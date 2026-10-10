@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import AdminHeader from "@/components/AdminHeader";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 export const metadata: Metadata = {
   title: "OperateIQ | Property Intelligence Platform",
@@ -27,7 +28,8 @@ export default function AdminLayout({
   return (
     <>
       <AdminHeader />
-      {/* pt-16 gives 4px of breathing room below the fixed 56px (h-14) admin header */}
+      <ImpersonationBanner />
+      {/* pt-16 gives breathing room below the fixed 56px (h-14) admin header */}
       {/* Suspense required for useSearchParams() in Next.js 15 production builds */}
       <div className="pt-16">
         <Suspense fallback={<div className="min-h-screen bg-[#040812]" />}>
