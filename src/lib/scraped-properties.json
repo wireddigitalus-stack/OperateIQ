@@ -1,0 +1,253 @@
+{
+  "scrapedAt": "2026-04-07T05:13:56.793Z",
+  "sourceUrl": "https://www.teamvisionllc.com",
+  "totalImages": 12,
+  "totalProperties": 6,
+  "images": [
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/The+Executive+Tall+Image-1920w.png",
+      "filename": "commercial-executive-entry.jpg",
+      "alt": "The Executive Office Entry",
+      "property": "The Executive",
+      "localPath": "/property-images/commercial-executive-entry.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/Centre+Point+Tall+Image-1920w.png",
+      "filename": "commercial-centerpoint-mall.jpg",
+      "alt": "Centre Point Strip Mall",
+      "property": "Centre Point Suites",
+      "localPath": "/property-images/commercial-centerpoint-mall.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/city+centre+outside+1-1920w.jpg",
+      "filename": "commercial-city-centre-exterior.jpg",
+      "alt": "City Centre Building Exterior",
+      "property": "City Centre",
+      "localPath": "/property-images/commercial-city-centre-exterior.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/Vision+Tall+Slim+Images-1920w.png",
+      "filename": "commercial-vision-office.jpg",
+      "alt": "Vision LLC Office Space",
+      "property": "Vision Office",
+      "localPath": "/property-images/commercial-vision-office.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/centerpoint-2-1920w.png",
+      "filename": "commercial-centerpoint-2.jpg",
+      "alt": "Centre Point Exterior",
+      "property": "Centre Point Suites",
+      "localPath": "/property-images/commercial-centerpoint-2.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/office+space+pic+1-1920w.jpg",
+      "filename": "cowork-shared-office.jpg",
+      "alt": "Bristol CoWork Shared Workspace",
+      "property": "Bristol CoWork",
+      "localPath": "/property-images/cowork-shared-office.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/office+space+11-1920w.jpg",
+      "filename": "cowork-conference-room.jpg",
+      "alt": "Bristol CoWork Conference Room",
+      "property": "Bristol CoWork",
+      "localPath": "/property-images/cowork-conference-room.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/office+space+pic+4-1920w.jpg",
+      "filename": "cowork-lobby-waiting.jpg",
+      "alt": "Bristol CoWork Lobby and Waiting Area",
+      "property": "Bristol CoWork",
+      "localPath": "/property-images/cowork-lobby-waiting.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/office+space+10-63af29d3-1920w.jpg",
+      "filename": "cowork-private-office.jpg",
+      "alt": "Bristol CoWork Private Office",
+      "property": "Bristol CoWork",
+      "localPath": "/property-images/cowork-private-office.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/construction-built-11-1920w.png",
+      "filename": "development-event-space-after.jpg",
+      "alt": "Foundation Event Facility Completed",
+      "property": "Foundation Event Facility",
+      "localPath": "/property-images/development-event-space-after.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/construction+build+8-1920w.jpg",
+      "filename": "development-construction.jpg",
+      "alt": "Vision LLC Commercial Construction",
+      "property": "Development & Construction",
+      "localPath": "/property-images/development-construction.jpg",
+      "success": true
+    },
+    {
+      "url": "https://lirp.cdn-website.com/49369e6c/dms3rep/multi/opt/red+pepper+before+and+after-1920w.png",
+      "filename": "development-red-pepper-transform.jpg",
+      "alt": "Red Pepper Building Transformation",
+      "property": "Development & Construction",
+      "localPath": "/property-images/development-red-pepper-transform.jpg",
+      "success": true
+    }
+  ],
+  "properties": [
+    {
+      "id": "city-centre",
+      "name": "City Centre Professional Suites",
+      "type": "Office / Mixed-Use",
+      "sqft": "1,200 – 18,000+",
+      "rawDescription": "City Centre is Vision LLC's flagship mixed-use development in the heart of Downtown Bristol. Premium street-level retail with executive office suites above. Located at the center of Bristol's growing business district with private parking available.",
+      "location": "Bristol, TN",
+      "images": [
+        "commercial-city-centre-exterior.jpg"
+      ],
+      "features": [
+        "Street-Level Retail",
+        "Executive Suites",
+        "Private Parking",
+        "Downtown Location"
+      ],
+      "badge": "Featured",
+      "badgeColor": "green",
+      "status": "available",
+      "description": "City Centre Professional Suites offers unparalleled mixed-use flexibility in the heart of Downtown Bristol, featuring premium street-level retail and customizable executive office suites. Spanning 1,200 to 18,000+ sqft, these prime Bristol TN commercial real estate opportunities include dedicated private parking, providing an exceptional foundation for businesses seeking a strategic presence in the Tri-Cities market.",
+      "downloadedImages": []
+    },
+    {
+      "id": "bristol-cowork",
+      "name": "Bristol CoWork",
+      "type": "CoWorking Space",
+      "sqft": "5,000+",
+      "rawDescription": "Bristol CoWork at 620 State Street is our newest commercial facility. It offers a range of modern commercial leasing options tailored to meet the needs of modern business professionals. From shared workspaces and private offices to fully equipped conference rooms, our brand new facility is designed to foster productivity and collaboration, all while keeping costs low. Amenities include power, water, high-speed internet, and shared conference space.",
+      "location": "620 State Street, Bristol, TN",
+      "images": [
+        "cowork-shared-office.jpg",
+        "cowork-conference-room.jpg",
+        "cowork-lobby-waiting.jpg",
+        "cowork-private-office.jpg"
+      ],
+      "features": [
+        "Private Offices",
+        "Dedicated Desks",
+        "Conference Rooms",
+        "High-Speed Internet",
+        "Fully Furnished"
+      ],
+      "badge": "CoWork",
+      "badgeColor": "blue",
+      "status": "memberships",
+      "description": "Experience unparalleled flexibility with modern commercial leasing options at Bristol CoWork, a premier 5,000+ sqft facility located in Downtown Bristol, TN. This newly developed commercial real estate in Bristol TN offers fully furnished private offices, dedicated desks, and equipped conference rooms with high-speed internet and all utilities, creating an environment engineered to support business growth and operational efficiency.",
+      "downloadedImages": [
+        "/property-images/cowork-shared-office.jpg",
+        "/property-images/cowork-conference-room.jpg",
+        "/property-images/cowork-lobby-waiting.jpg",
+        "/property-images/cowork-private-office.jpg"
+      ]
+    },
+    {
+      "id": "the-executive",
+      "name": "The Executive — Premier Office Suites",
+      "type": "Office",
+      "sqft": "500 – 12,000",
+      "rawDescription": "Premier office suites in a meticulously restored historic building in Downtown Bristol. Full-service amenities include professional address, mail handling, and on-demand meeting rooms. The Executive offers flexible lease terms ideal for professional services, law firms, and growing businesses.",
+      "location": "Bristol, TN",
+      "images": [
+        "commercial-executive-entry.jpg"
+      ],
+      "features": [
+        "Historic Building",
+        "Full-Service Amenities",
+        "Professional Address",
+        "Flexible Leasing"
+      ],
+      "badge": "Premium",
+      "badgeColor": "gold",
+      "status": "available",
+      "description": "Discover premier office suites within a meticulously restored historic building, offering prime Downtown Bristol commercial space ideal for professional services and law firms. The Executive features full-service amenities including a professional address and on-demand meeting rooms, providing flexible lease terms from 500 – 12,000 sqft for businesses seeking operational efficiency and a distinguished presence in Bristol TN.",
+      "downloadedImages": []
+    },
+    {
+      "id": "centre-point-suites",
+      "name": "Centre Point Suites",
+      "type": "Retail / Office",
+      "sqft": "800 – 5,000",
+      "rawDescription": "Centre Point is a high-visibility retail and office complex strategically positioned along one of Bristol's highest-traffic corridors. Anchor tenants, signage opportunities, and ample parking make it ideal for retail businesses, personal service providers, and medical offices.",
+      "location": "Bristol, TN",
+      "images": [
+        "commercial-centerpoint-mall.jpg",
+        "commercial-centerpoint-2.jpg"
+      ],
+      "features": [
+        "High-Traffic Location",
+        "Retail Storefronts",
+        "Ample Parking",
+        "Signage Opportunities"
+      ],
+      "badge": "High-Traffic",
+      "badgeColor": "green",
+      "status": "units",
+      "description": "Discover prime Bristol TN commercial real estate at Centre Point Suites, strategically positioned along Bristol's highest-traffic corridor with exceptional visibility for businesses seeking 800-5,000 sqft of versatile retail or office space. This premier complex offers prominent retail storefronts, abundant parking, and key signage opportunities, providing an ideal foundation for retail, personal service, or medical offices aiming for maximum market exposure in the Tri-Cities region.",
+      "downloadedImages": [
+        "/property-images/commercial-centerpoint-mall.jpg",
+        "/property-images/commercial-centerpoint-2.jpg"
+      ]
+    },
+    {
+      "id": "foundation-event-facility",
+      "name": "Foundation Event Facility",
+      "type": "Event Space / Commercial",
+      "sqft": "3,000 – 8,000",
+      "rawDescription": "The Foundation Event Facility (FEF) is a landmark adaptive reuse project by Vision LLC — a historic building transformed into a versatile event and commercial space in Downtown Bristol. Available for long-term commercial lease or short-term event bookings.",
+      "location": "Bristol, TN",
+      "images": [
+        "development-event-space-after.jpg"
+      ],
+      "features": [
+        "Historic Adaptive Reuse",
+        "Event Space",
+        "Commercial Lease",
+        "Downtown Bristol"
+      ],
+      "badge": "Unique",
+      "badgeColor": "gold",
+      "status": "available",
+      "description": "The Foundation Event Facility presents a landmark historic adaptive reuse opportunity, delivering a premier commercial event space in Downtown Bristol. Spanning 3,000 to 8,000 square feet, this versatile property is available for long-term commercial lease, accommodating diverse business operations or high-profile event bookings within the Bristol, TN commercial real estate market. This unique asset provides an unparalleled platform for elevated commercial ventures or memorable events in a prime Tri-Cities location.",
+      "downloadedImages": [
+        "/property-images/development-event-space-after.jpg"
+      ]
+    },
+    {
+      "id": "commercial-warehouse",
+      "name": "Commercial Warehouse Space",
+      "type": "Industrial",
+      "sqft": "2,000 – 25,000",
+      "rawDescription": "Flexible commercial warehouse and light industrial space in the Bristol metro area. Loading docks, high ceilings, and 3-phase power available. Ideal for distribution, light manufacturing, storage, and contractor operations in the Tri-Cities region.",
+      "location": "Bristol, TN",
+      "images": [
+        "development-construction.jpg"
+      ],
+      "features": [
+        "Loading Docks",
+        "High Ceilings",
+        "3-Phase Power",
+        "Light Industrial"
+      ],
+      "badge": "Industrial",
+      "badgeColor": "gray",
+      "status": "available",
+      "description": "Flexible commercial warehouse and light industrial space in the Bristol metro area. Loading docks, high ceilings, and 3-phase power available. Ideal for distribution, light manufacturing, storage, and contractor operations in the Tri-Cities region.",
+      "downloadedImages": []
+    }
+  ]
+}

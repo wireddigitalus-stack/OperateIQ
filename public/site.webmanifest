@@ -1,0 +1,27 @@
+{
+  "name": "Vision LLC",
+  "short_name": "Vision LLC",
+  "description": "Downtown Bristol's #1 Commercial Real Estate Company — Office, Retail, CoWork & Executive Advisement",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080C14",
+  "theme_color": "#4ADE80",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/vision-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

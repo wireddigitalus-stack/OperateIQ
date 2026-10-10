@@ -1,0 +1,17 @@
+{
+  "name": "Vision Cleaning",
+  "short_name": "Cleaning",
+  "description": "Vision Staff Cleaning Portal",
+  "start_url": "/staff/cleaning",
+  "scope": "/staff/cleaning/",
+  "display": "standalone",
+  "background_color": "#080C14",
+  "theme_color": "#071207",
+  "icons": [
+    {
+      "src": "/vision-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

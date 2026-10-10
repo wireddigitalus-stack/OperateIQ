@@ -1,0 +1,52 @@
+import { NextRequest, NextResponse } from "next/server";
+
+const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
+const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const BUCKET = "maintenance-photos";
+
+export async function POST(req: NextRequest) {
+  try {
+    const form = await req.formData();
+    const file = form.get("file") as File | null;
+    if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
+
+    const bytes = await file.arrayBuffer();
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+    // Ensure bucket exists (idempotent)
+    await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+      method: "POST",
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true }),
+    });
+
+    // Upload file
+    const upload = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${filename}`, {
+      method: "POST",
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        "Content-Type": file.type || "image/jpeg",
+        "x-upsert": "true",
+      },
+      body: bytes,
+    });
+
+    if (!upload.ok) {
+      const err = await upload.text();
+      console.error("[maintenance/upload] Storage error:", err);
+      return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    }
+
+    const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${filename}`;
+    return NextResponse.json({ url });
+  } catch (err) {
+    console.error("[maintenance/upload] Error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
