@@ -39,7 +39,7 @@ export async function PUT(req: NextRequest) {
 
     // Upsert using Supabase's on-conflict resolution
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/site_content?on_conflict=section,key`,
+      `${SUPABASE_URL}/rest/v1/site_content?on_conflict=org_id,section,key`,
       {
         method: "POST",
         headers: { ...headers, Prefer: "resolution=merge-duplicates,return=representation" },

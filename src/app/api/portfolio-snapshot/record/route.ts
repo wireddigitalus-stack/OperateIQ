@@ -147,7 +147,7 @@ export async function POST() {
 
     // Upsert into portfolio_snapshots (idempotent per day)
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/portfolio_snapshots?on_conflict=snapshot_date`,
+      `${SUPABASE_URL}/rest/v1/portfolio_snapshots?on_conflict=org_id,snapshot_date`,
       {
         method: "POST",
         headers: { ...H, "Prefer": "resolution=merge-duplicates,return=representation" },
