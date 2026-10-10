@@ -481,3 +481,48 @@ textarea {
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OperateIQ public-site design tokens (navy + indigo→cyan gradient)
+   Prefixed .oiq-* so admin styles above are untouched.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --oiq-bg: #0B1020;
+  --oiq-surface: #111733;
+  --oiq-border: rgba(148, 163, 184, 0.14);
+  --oiq-indigo: #6366F1;
+  --oiq-cyan: #22D3EE;
+  --oiq-text: #E2E8F0;
+  --oiq-muted: #94A3B8;
+}
+.oiq-page { background: var(--oiq-bg); color: var(--oiq-text); }
+.oiq-grad-text {
+  background: linear-gradient(90deg, var(--oiq-indigo), var(--oiq-cyan));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.oiq-grad-bg { background: linear-gradient(135deg, var(--oiq-indigo), var(--oiq-cyan)); }
+.oiq-glow {
+  background:
+    radial-gradient(60rem 30rem at 15% -10%, rgba(99,102,241,0.25), transparent 60%),
+    radial-gradient(50rem 25rem at 90% 0%, rgba(34,211,238,0.18), transparent 60%),
+    var(--oiq-bg);
+}
+.oiq-card {
+  background: rgba(17, 23, 51, 0.7);
+  border: 1px solid var(--oiq-border);
+  border-radius: 1rem;
+  backdrop-filter: blur(8px);
+}
+.oiq-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: .75rem 1.25rem; border-radius: .75rem; font-weight: 600; color: #fff;
+  background: linear-gradient(135deg, var(--oiq-indigo), var(--oiq-cyan));
+  box-shadow: 0 8px 24px -8px rgba(99,102,241,.6); transition: transform .15s, box-shadow .15s;
+}
+.oiq-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -8px rgba(34,211,238,.55); }
+.oiq-btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: .75rem 1.25rem; border-radius: .75rem; font-weight: 600; color: var(--oiq-text);
+  border: 1px solid var(--oiq-border); background: rgba(255,255,255,0.03); transition: background .15s;
+}
+.oiq-btn-ghost:hover { background: rgba(255,255,255,0.07); }

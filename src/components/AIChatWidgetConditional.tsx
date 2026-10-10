@@ -1,15 +1,11 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import AIChatWidget from "./AIChatWidget";
+import OpsIQWidget from "./OpsIQWidget";
 
 export default function AIChatWidgetConditional() {
   const pathname = usePathname();
-  // Hide on admin (CRM tool, not prospect), QR landing pages, and staff portals
-  if (
-    pathname?.startsWith("/admin") ||
-    pathname?.startsWith("/meet") ||
-    pathname?.startsWith("/staff")
-  ) return null;
-  return <AIChatWidget />;
+  // Public marketing site only — admin and staff portals have their own tools
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/staff")) return null;
+  return <OpsIQWidget />;
 }

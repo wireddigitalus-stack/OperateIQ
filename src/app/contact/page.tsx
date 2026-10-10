@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
-  Phone, Mail, MapPin, Clock, ArrowRight, MessageSquare,
+  Phone, Mail, Clock, ArrowRight, MessageSquare,
   CheckCircle, Loader2, AlertCircle,
 } from "lucide-react";
-import { COMPANY } from "@/lib/data";
+import { BRAND } from "@/lib/brand";
 import { getAnalyticsSessionId, trackEvent } from "@/hooks/useAnalytics";
 import SafeEmail from "@/components/SafeEmail";
 import Turnstile from "@/components/Turnstile";
@@ -60,7 +60,7 @@ export default function ContactPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMsg(data.error ?? "Something went wrong. Please call us directly.");
+        setErrorMsg(data.error ?? "Something went wrong. Please try again shortly.");
         setStatus("error");
         return;
       }
@@ -78,14 +78,14 @@ export default function ContactPage() {
     return (
       <div className="pt-28 pb-20 min-h-screen px-4 sm:px-6 lg:px-8">
         <div className="max-w-lg w-full mx-auto">
-          <div className="glass rounded-2xl p-10 border border-[rgba(74,222,128,0.25)] text-center">
+          <div className="glass rounded-2xl p-10 border border-[rgba(99,102,241,0.25)] text-center">
             {/* Animated check */}
             <div className="flex justify-center mb-6">
               <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-[rgba(74,222,128,0.12)] flex items-center justify-center">
-                  <CheckCircle size={40} className="text-[#4ADE80]" />
+                <div className="w-20 h-20 rounded-full bg-[rgba(99,102,241,0.12)] flex items-center justify-center">
+                  <CheckCircle size={40} className="text-[#22D3EE]" />
                 </div>
-                <div className="absolute inset-0 rounded-full border-2 border-[#4ADE80] opacity-30 animate-ping" />
+                <div className="absolute inset-0 rounded-full border-2 border-[#22D3EE] opacity-30 animate-ping" />
               </div>
             </div>
 
@@ -93,7 +93,7 @@ export default function ContactPage() {
               Message Sent!
             </h1>
             <p className="text-gray-400 text-sm leading-relaxed mb-2">
-              Thanks for reaching out. A member of the Vision team will review your inquiry and
+              Thanks for reaching out. A member of the OperateIQ team will review your message and
               follow up at{" "}
               {submittedEmail && (
                 <span className="text-white font-semibold">{submittedEmail}</span>
@@ -101,12 +101,7 @@ export default function ContactPage() {
               {!submittedEmail && "your email"}{" "}
               within 24 hours.
             </p>
-            <p className="text-gray-500 text-xs mb-8">
-              Need to speak to someone right now?{" "}
-              <a href={COMPANY.phoneHref} className="text-[#4ADE80] font-semibold">
-                {COMPANY.phone}
-              </a>
-            </p>
+            <div className="mb-8" />
 
             <div className="flex flex-col sm:flex-row gap-3">
               <button
@@ -130,7 +125,7 @@ export default function ContactPage() {
 
   // ── Main form ────────────────────────────────────────────────────────────────
   const inputClass =
-    "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(74,222,128,0.15)] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[rgba(74,222,128,0.5)] transition-all";
+    "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(99,102,241,0.15)] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[rgba(99,102,241,0.5)] transition-all";
 
   return (
     <div className="pt-28 pb-20 min-h-screen px-4 sm:px-6 lg:px-8">
@@ -138,12 +133,11 @@ export default function ContactPage() {
         <div className="max-w-2xl mb-14">
           <div className="section-line mb-4" />
           <h1 className="text-4xl sm:text-5xl font-black text-white mb-4">
-            Let&apos;s Find Your{" "}
-            <span className="gradient-text-green">Perfect Space</span>
+            Let&apos;s Talk{" "}
+            <span className="oiq-grad-text">Operations</span>
           </h1>
           <p className="text-gray-400 text-lg leading-relaxed">
-            Whether you&apos;re looking for office space, a retail location, or want to
-            discuss a development project — we respond within 24 hours.
+            Questions about plans, onboarding, or a demo? Send us a note — we respond within one business day.
           </p>
         </div>
 
@@ -154,8 +148,8 @@ export default function ContactPage() {
               ref={formRef}
               id="contact-form"
               onSubmit={handleSubmit}
-              className="glass rounded-2xl p-8 border border-[rgba(74,222,128,0.1)] space-y-5"
-              aria-label="Contact Vision LLC"
+              className="glass rounded-2xl p-8 border border-[rgba(99,102,241,0.1)] space-y-5"
+              aria-label="Contact OperateIQ"
             >
               {/* ── Honeypot — hidden from humans, invisible via CSS ─────── */}
               <div style={{ position: "absolute", left: "-9999px", opacity: 0, pointerEvents: "none" }} aria-hidden="true">
@@ -173,7 +167,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label htmlFor="contact-phone" className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Phone *</label>
-                  <input id="contact-phone" type="tel" name="phone" required placeholder="(423) 000-0000"
+                  <input id="contact-phone" type="tel" name="phone" required placeholder="(555) 000-0000"
                     className={inputClass} />
                 </div>
               </div>
@@ -194,28 +188,26 @@ export default function ContactPage() {
               <div>
                 <label htmlFor="contact-interest" className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">I&apos;m Interested In *</label>
                 <select id="contact-interest" name="interest" required className={inputClass}>
-                  <option value="" className="bg-[#111827]">Select a service...</option>
-                  <option value="Office Space" className="bg-[#111827]">Office Space</option>
-                  <option value="Retail Storefront" className="bg-[#111827]">Retail Storefront</option>
-                  <option value="Warehouse / Industrial" className="bg-[#111827]">Warehouse / Industrial</option>
-                  <option value="Bristol CoWork Membership" className="bg-[#111827]">Bristol CoWork Membership</option>
-                  <option value="Development / Construction" className="bg-[#111827]">Development / Construction</option>
-                  <option value="Executive Advisement" className="bg-[#111827]">Executive Advisement</option>
+                  <option value="" className="bg-[#111827]">Select a topic...</option>
+                  <option value="Plans & Pricing" className="bg-[#111827]">Plans &amp; Pricing</option>
+                  <option value="Book a Demo" className="bg-[#111827]">Book a Demo</option>
+                  <option value="Onboarding & Data Import" className="bg-[#111827]">Onboarding &amp; Data Import</option>
+                  <option value="Website Builder" className="bg-[#111827]">Website Builder</option>
+                  <option value="Support" className="bg-[#111827]">Support</option>
+                  <option value="Partnerships" className="bg-[#111827]">Partnerships</option>
                   <option value="Other" className="bg-[#111827]">Other</option>
                 </select>
               </div>
 
               <div>
-                <label htmlFor="contact-city" className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Preferred Market</label>
+                <label htmlFor="contact-city" className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Portfolio Size</label>
                 <select id="contact-city" name="city" className={inputClass}>
-                  <option value="" className="bg-[#111827]">Any / Open to suggestions</option>
-                  <option value="Bristol, TN" className="bg-[#111827]">Bristol, TN</option>
-                  <option value="Bristol, VA" className="bg-[#111827]">Bristol, VA</option>
-                  <option value="Kingsport, TN" className="bg-[#111827]">Kingsport, TN</option>
-                  <option value="Johnson City, TN" className="bg-[#111827]">Johnson City, TN</option>
-                  <option value="Abingdon, VA" className="bg-[#111827]">Abingdon, VA</option>
-                  <option value="Elizabethton, TN" className="bg-[#111827]">Elizabethton, TN</option>
-                </select>
+                  <option value="" className="bg-[#111827]">Select portfolio size...</option>
+                  <option value="1-5 properties" className="bg-[#111827]">1–5 properties</option>
+                  <option value="6-25 properties" className="bg-[#111827]">6–25 properties</option>
+                  <option value="26-100 properties" className="bg-[#111827]">26–100 properties</option>
+                  <option value="100+ properties" className="bg-[#111827]">100+ properties</option>
+                                                    </select>
               </div>
 
               <div>
@@ -258,34 +250,28 @@ export default function ContactPage() {
                   </>
                 )}
               </button>
-
-              <p className="text-xs text-gray-600 text-center">
-                Or call us directly at{" "}
-                <a href={COMPANY.phoneHref} className="text-[#4ADE80] font-semibold">{COMPANY.phone}</a>
-              </p>
             </form>
           </div>
 
           {/* Contact Info */}
           <div className="lg:col-span-2 space-y-5">
             {[
-              { icon: <Phone size={20} />, label: "Call Us",    value: COMPANY.phone,        href: COMPANY.phoneHref,                                             id: "contact-side-phone" },
-              { icon: <Mail size={20} />,  label: "Email",      value: COMPANY.email,        href: `mailto:${COMPANY.email}`,                                     id: "contact-side-email" },
-              { icon: <MapPin size={20} />,label: "Our Office", value: COMPANY.fullAddress,  href: "https://maps.google.com/?q=100+5th+St+Bristol+TN+37620",       id: "contact-side-address" },
-              { icon: <Clock size={20} />, label: "Hours",      value: "Mon–Fri: 8:00 AM – 5:00 PM EST", href: null,                                              id: "contact-side-hours" },
-            ].map((item) => (
-              <div key={item.id} className="glass rounded-xl p-5 border border-[rgba(74,222,128,0.1)]">
+              { icon: <Phone size={20} />, label: "Call Us",    value: BRAND.phone,        href: BRAND.phone ? `tel:${BRAND.phone}` : null,                                             id: "contact-side-phone" },
+              { icon: <Mail size={20} />,  label: "Email",      value: BRAND.email,        href: BRAND.email ? `mailto:${BRAND.email}` : null,                                     id: "contact-side-email" },
+              { icon: <Clock size={20} />, label: "Hours",      value: "Mon–Fri · Replies within 1 business day", href: null,                                              id: "contact-side-hours" },
+            ].filter((item) => item.value).map((item) => (
+              <div key={item.id} className="glass rounded-xl p-5 border border-[rgba(99,102,241,0.1)]">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-[rgba(74,222,128,0.1)] flex items-center justify-center text-[#4ADE80] flex-shrink-0">{item.icon}</div>
+                  <div className="w-10 h-10 rounded-xl bg-[rgba(99,102,241,0.1)] flex items-center justify-center text-[#22D3EE] flex-shrink-0">{item.icon}</div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{item.label}</p>
                     {item.id === "contact-side-email" ? (
-                      <SafeEmail className="text-sm font-semibold text-white hover:text-[#4ADE80] transition-colors break-all" />
+                      <SafeEmail className="text-sm font-semibold text-white hover:text-[#22D3EE] transition-colors break-all" />
                     ) : item.href ? (
                       <a href={item.href} id={item.id}
                         target={item.href.startsWith("http") ? "_blank" : undefined}
                         rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                        className="text-sm font-semibold text-white hover:text-[#4ADE80] transition-colors break-all">
+                        className="text-sm font-semibold text-white hover:text-[#22D3EE] transition-colors break-all">
                         {item.value}
                       </a>
                     ) : (
@@ -296,22 +282,22 @@ export default function ContactPage() {
               </div>
             ))}
 
-            <div className="glass rounded-xl p-5 border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.04)]">
+            <div className="glass rounded-xl p-5 border border-[rgba(99,102,241,0.2)] bg-[rgba(99,102,241,0.04)]">
               <div className="flex items-center gap-3 mb-3">
-                <MessageSquare size={18} className="text-[#4ADE80]" />
-                <span className="text-sm font-bold text-white">Chat with Vision AI</span>
+                <MessageSquare size={18} className="text-[#22D3EE]" />
+                <span className="text-sm font-bold text-white">Chat with OpsIQ</span>
                 <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] pulse-green" />
-                  <span className="text-[10px] text-[#4ADE80]">Online</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#22D3EE] pulse-green" />
+                  <span className="text-[10px] text-[#22D3EE]">Online</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mb-3">Get instant answers about our properties, services, and the Tri-Cities CRE market.</p>
+              <p className="text-xs text-gray-400 mb-3">Get instant answers about features, plans, and getting started.</p>
               <button
                 id="contact-open-chat"
-                onClick={() => (document.getElementById("lease-bot-toggle") as HTMLButtonElement)?.click()}
+                onClick={() => (document.querySelector<HTMLButtonElement>("[aria-label=\"Chat with OpsIQ\"]") as HTMLButtonElement)?.click()}
                 className="btn-secondary w-full py-2.5 text-sm justify-center"
               >
-                Ask VISION
+                Ask OpsIQ
               </button>
             </div>
           </div>

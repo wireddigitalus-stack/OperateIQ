@@ -1,27 +1,17 @@
 {
-  "name": "Vision LLC",
-  "short_name": "Vision LLC",
-  "description": "Downtown Bristol's #1 Commercial Real Estate Company — Office, Retail, CoWork & Executive Advisement",
+  "name": "OperateIQ",
+  "short_name": "OperateIQ",
+  "description": "Property operations, finally intelligent.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#080C14",
-  "theme_color": "#4ADE80",
+  "background_color": "#0B1020",
+  "theme_color": "#6366F1",
   "icons": [
     {
-      "src": "/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "/vision-icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

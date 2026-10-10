@@ -1,17 +1,18 @@
 {
-  "name": "Vision Cleaning",
-  "short_name": "Cleaning",
-  "description": "Vision Staff Cleaning Portal",
+  "name": "OperateIQ Cleaning",
+  "short_name": "OIQ Cleaning",
+  "description": "OperateIQ Cleaning crew portal",
   "start_url": "/staff/cleaning",
   "scope": "/staff/cleaning/",
   "display": "standalone",
-  "background_color": "#080C14",
-  "theme_color": "#071207",
+  "background_color": "#0B1020",
+  "theme_color": "#6366F1",
   "icons": [
     {
-      "src": "/vision-icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

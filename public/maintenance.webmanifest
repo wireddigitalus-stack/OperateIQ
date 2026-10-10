@@ -1,17 +1,18 @@
 {
-  "name": "Vision Maintenance",
-  "short_name": "Maintenance",
-  "description": "Vision Staff Maintenance Portal",
+  "name": "OperateIQ Maintenance",
+  "short_name": "OIQ Maintenance",
+  "description": "OperateIQ Maintenance crew portal",
   "start_url": "/staff/maintenance",
   "scope": "/staff/maintenance/",
   "display": "standalone",
-  "background_color": "#080C14",
-  "theme_color": "#1A1200",
+  "background_color": "#0B1020",
+  "theme_color": "#6366F1",
   "icons": [
     {
-      "src": "/vision-icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

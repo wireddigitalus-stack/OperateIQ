@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { BRAND } from "@/lib/brand";
 
 interface SafeEmailProps {
   className?: string;
@@ -14,8 +15,7 @@ export default function SafeEmail({ className = "", label, children }: SafeEmail
     setMounted(true);
   }, []);
 
-  const user = "leasing";
-  const domain = "teamvisionllc.com";
+  const [user, domain] = (BRAND.email || "@").split("@");
   const email = `${user}@${domain}`;
 
   if (!mounted) {
