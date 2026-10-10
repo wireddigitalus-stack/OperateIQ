@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile } from "@/lib/org-profile";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const MODEL = "gemini-2.5-flash";
@@ -17,7 +18,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "name, type, and city are required" }, { status: 400 });
   }
 
-  const prompt = `You are an expert commercial real estate copywriter for Vision LLC — the largest private CRE owner in Downtown Bristol, TN/VA.
+  const org = getOrgProfile();
+
+  const prompt = `You are an expert commercial real estate copywriter for ${org.name}, a commercial real estate firm in ${org.location}.
 
 Generate compelling property listing content for the following property:
 
@@ -25,12 +28,12 @@ Generate compelling property listing content for the following property:
 - Type: ${type}
 - City: ${city}
 - Size: ${sqft ? sqft + " sq ft" : "size TBD"}
-- Address: ${address || "Downtown Bristol, TN/VA area"}
+- Address: ${address || `${city} area`}
 - Keywords/Features: ${keywords || "professional, quality, well-maintained"}
 
 Return ONLY valid JSON with this exact structure (no markdown, no code fences):
 {
-  "description": "2–3 paragraph professional property description (200–300 words). Mention the Tri-Cities market, the property's strengths, and ideal tenant types.",
+  "description": "2–3 paragraph professional property description (200–300 words). Mention the local ${city} market, the property's strengths, and ideal tenant types.",
   "features": ["Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5", "Feature 6"],
   "badge": "Short catchy badge text (2–3 words max, e.g. Move-In Ready, Prime Location, High Traffic)",
   "metaDescription": "SEO meta description under 160 characters mentioning the city and property type"

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Sparkles, Loader2, Send, Globe, FileText, Trash2, Eye, EyeOff, ChevronDown, RefreshCw } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
 
-const CATEGORIES = ["Market Insights","Investment","Coworking","Office Space","Retail","Industrial","Development","Executive Advisement","Tri-Cities News"];
+const CATEGORIES = ["Market Insights","Investment","Flexible Workspace","Office Space","Retail","Industrial","Development","Property Management","Local News"];
 
 interface BlogPost {
   id: string;
@@ -87,7 +87,7 @@ export default function BlogGenerator() {
           category: draft.category, tags: draft.tags, read_time: draft.read_time,
           content: draft.content, status,
           published_at: new Date().toISOString(),
-          author: "Vision LLC", author_title: "Commercial Real Estate",
+          author: "OperateIQ", author_title: "Commercial Real Estate",
         }),
       });
       const d = await res.json();
@@ -132,12 +132,12 @@ export default function BlogGenerator() {
           <div className="sm:col-span-2">
             <label className={LABEL}>Article Topic *</label>
             <input value={topic} onChange={e => setTopic(e.target.value)} className={FIELD}
-              placeholder="e.g. Why Downtown Bristol TN is the Best Place to Open a Business in 2026" />
+              placeholder="e.g. 5 Things to Look for Before Signing a Commercial Lease" />
           </div>
           <div>
             <label className={LABEL}>Target Keyword</label>
             <input value={keyword} onChange={e => setKeyword(e.target.value)} className={FIELD}
-              placeholder="e.g. commercial real estate Bristol TN" />
+              placeholder="e.g. office space for lease near me" />
           </div>
           <div>
             <label className={LABEL}>Category</label>

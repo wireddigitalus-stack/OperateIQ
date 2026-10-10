@@ -26,15 +26,15 @@ export default function MlsImportMock() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto bg-vision-surface/50 border border-gray-800 rounded-2xl p-6 md:p-8 backdrop-blur-sm relative overflow-hidden">
+    <div className="w-full max-w-3xl mx-auto bg-brand-surface/50 border border-gray-800 rounded-2xl p-6 md:p-8 backdrop-blur-sm relative overflow-hidden">
       {/* Background glow */}
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-vision-green/10 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-green/10 rounded-full blur-[80px] pointer-events-none" />
 
       {/* Activation Pill */}
       <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-800/50">
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <UploadCloud className="w-6 h-6 text-vision-green" />
+            <UploadCloud className="w-6 h-6 text-brand-green" />
             MLS Auto-Import
           </h2>
           <p className="text-gray-400 mt-1 text-sm">
@@ -68,13 +68,13 @@ export default function MlsImportMock() {
                 value={mlsNumber}
                 onChange={(e) => setMlsNumber(e.target.value)}
                 placeholder="Enter MLS # (e.g. 12345678) or Address"
-                className="w-full pl-12 pr-4 py-4 bg-vision-black/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-vision-green focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-4 bg-brand-black/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent transition-all"
               />
             </div>
             <button
               type="submit"
               disabled={!mlsNumber}
-              className="px-8 py-4 bg-vision-green hover:bg-vision-green-dark text-vision-black font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
+              className="px-8 py-4 bg-brand-green hover:bg-brand-green-dark text-brand-black font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
             >
               Fetch Data
             </button>
@@ -91,8 +91,8 @@ export default function MlsImportMock() {
           >
             <div className="relative">
               <div className="w-16 h-16 border-4 border-gray-800 rounded-full"></div>
-              <div className="w-16 h-16 border-4 border-vision-green border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-              <Search className="w-6 h-6 text-vision-green absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+              <div className="w-16 h-16 border-4 border-brand-green border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+              <Search className="w-6 h-6 text-brand-green absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
             </div>
             <div>
               <h3 className="text-white font-medium text-lg">Querying MLS Database...</h3>
@@ -106,16 +106,16 @@ export default function MlsImportMock() {
             key="success"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-vision-black/40 border border-vision-green/30 rounded-xl p-6"
+            className="bg-brand-black/40 border border-brand-green/30 rounded-xl p-6"
           >
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-vision-green/20 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-vision-green" />
+                <div className="w-10 h-10 rounded-full bg-brand-green/20 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-brand-green" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-lg">Property Found</h3>
-                  <p className="text-vision-green text-sm font-medium">Data successfully imported</p>
+                  <p className="text-brand-green text-sm font-medium">Data successfully imported</p>
                 </div>
               </div>
               <button 
@@ -167,7 +167,7 @@ export default function MlsImportMock() {
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="text-gray-500 text-xs uppercase block mb-1">List Price</span>
-                    <span className="text-2xl text-vision-green font-bold">$2,450,000</span>
+                    <span className="text-2xl text-brand-green font-bold">$2,450,000</span>
                   </div>
                   <button className="px-6 py-2 bg-white text-black font-medium rounded-lg hover:bg-gray-200 transition-colors">
                     Continue to Form →

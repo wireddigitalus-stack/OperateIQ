@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile, orgContactLine } from "@/lib/org-profile";
+import { GEO_PAGES, PROPERTIES } from "@/lib/data";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY!;
 const MODEL      = "gemini-2.5-flash";
@@ -24,9 +26,24 @@ export async function POST(req: NextRequest) {
   // Truncate content for very long articles (keep first 6000 chars — enough for full context)
   const contentSample = content.length > 6000 ? content.slice(0, 6000) + "\n\n[... article continues ...]" : content;
 
-  const prompt = `You are a specialist in LOCAL SEO for commercial real estate in the Tri-Cities region of Tennessee/Virginia.
+  const org = getOrgProfile();
+  const contact = orgContactLine(org);
+  const geoTerms = Array.from(new Set([
+    org.location,
+    ...GEO_PAGES.flatMap((g) => [
+      `${g.city} ${g.state}`,
+      g.region,
+      g.countyName,
+      g.zipCode ? `zip ${g.zipCode}` : "",
+      ...g.neighborhoods,
+      ...g.nearbyHighways,
+    ]),
+  ].filter(Boolean))).join(", ");
+  const brandTerms = [org.name, ...PROPERTIES.map((p) => p.name)].join(", ");
 
-Your job is to analyse an existing blog article written by the Vision LLC team and produce two outputs:
+  const prompt = `You are a specialist in LOCAL SEO for commercial real estate in ${org.location}.
+
+Your job is to analyse an existing blog article written by the ${org.name} team and produce two outputs:
 1. Optimised SEO metadata (meta title, meta description, excerpt) — these are NEWLY WRITTEN, not edits to existing text
 2. A geo-enhanced version of the article body — same article, same voice, same facts — but with local geographic context woven in naturally wherever it genuinely helps a reader or search engine understand location
 
@@ -44,23 +61,23 @@ ${contentSample}
 
 ### For SEO Metadata
 Write tight, proven SEO copy:
-- metaTitle: 55–60 characters. Must include the primary local keyword AND the city/region. Format: "[Topic] in [Location] | Vision LLC". Never exceed 60 chars.
-- metaDescription: 145–155 characters EXACTLY. Must include: (a) the primary keyword, (b) a specific local geographic reference (Bristol TN, Tri-Cities, or specific zip/county), (c) a clear call to action. Proven format: "[What the article covers]. Vision LLC — [location]-based [value prop]. [CTA]."
+- metaTitle: 55–60 characters. Must include the primary local keyword AND the city/region. Format: "[Topic] in [Location] | ${org.name}". Never exceed 60 chars.
+- metaDescription: 145–155 characters EXACTLY. Must include: (a) the primary keyword, (b) a specific local geographic reference (city, region, or specific zip/county from the term bank), (c) a clear call to action. Proven format: "[What the article covers]. ${org.name} — [location]-based [value prop]. [CTA]."
 - excerpt: 2 sentences max, 200–250 characters total. Punchy. States the specific value the article delivers. No generic phrases like "In this article we discuss".
 
 ### For Content Enhancement
 Enhance the article body for local SEO. Rules you MUST follow:
 1. DO NOT change the article's meaning, claims, or structure
 2. DO NOT add more than 4–6 new geographic references total — quality over quantity
-3. Only add location context where it would genuinely help a reader understand the local context (e.g. "the downtown Bristol, TN (Sullivan County, zip 37620) market" instead of just "the market")
+3. Only add location context where it would genuinely help a reader understand the local context (e.g. "the downtown ${org.location} market" instead of just "the market")
 4. Natural is non-negotiable. If it reads like keyword stuffing, revert it.
-5. Strengthen any weak calls to action to mention Vision LLC's phone (423-573-1022) or email (leasing [at] teamvisionllc.com)
+5. Strengthen any weak calls to action to ${contact ? `mention ${org.name}'s contact details (${contact})` : `invite readers to contact ${org.name}`}
 6. Return the FULL enhanced article — not just changed sections
 
 ## LOCAL SEO TERM BANK (use naturally, not all at once)
-Geographic: Bristol TN, Bristol VA, Tri-Cities TN/VA, Kingsport TN, Johnson City TN, Northeast Tennessee, Southwest Virginia, State Street, Sullivan County, Washington County, zip 37620, zip 37660, zip 37601, I-81 corridor, Blountville TN
+Geographic: ${geoTerms}
 Property-specific: Class-A office, commercial real estate, coworking space, executive suites, retail space, adaptive reuse, historic tax credit
-Brand: Vision LLC, Bristol CoWork, City Centre Professional Suites, The Executive
+Brand: ${brandTerms}
 
 ## OUTPUT FORMAT
 Return ONLY valid JSON, no markdown wrapper:

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { FileText, Printer, Building2, MapPin, Ruler, CheckCircle2, ChevronDown, Sparkles } from "lucide-react";
 import { PROPERTIES, COMPANY } from "@/lib/data";
+import { getOrgProfile } from "@/lib/org-profile";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ async function toDataUri(url: string): Promise<string> {
 
 // ─── Logo → base64 helper ────────────────────────────────────────────────────
 async function toLogoDataUri(baseUrl: string): Promise<string> {
-  return toDataUri(`${baseUrl}/vision-logo.png`);
+  return toDataUri(`${baseUrl}/operateiq-logo.svg`);
 }
 
 // ─── One-Sheet HTML Builder ───────────────────────────────────────────────────
@@ -36,6 +37,7 @@ function buildOneSheetHTML(
   imageDataUri: string = "",
   logoDataUri: string = ""
 ): string {
+  const org = getOrgProfile();
   const features = (property.features ?? []);
   const half = Math.ceil(features.length / 2);
   const col1 = features.slice(0, half);
@@ -55,7 +57,7 @@ function buildOneSheetHTML(
       ? `${baseUrl}${(property as Property & { image?: string }).image}`
       : null);
 
-  const logoSrc = logoDataUri || `${baseUrl}/vision-logo.png`;
+  const logoSrc = logoDataUri || `${baseUrl}/operateiq-logo.svg`;
 
   const heroBlock = imageUrl
     ? `<div style="position:absolute;inset:0">
@@ -79,7 +81,7 @@ function buildOneSheetHTML(
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>${property.name} — Vision LLC</title>
+  <title>${property.name} — OperateIQ</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     @page { margin: 0; size: letter portrait; }
@@ -472,7 +474,7 @@ function buildOneSheetHTML(
 
       <!-- Top nav -->
       <div class="top-bar">
-        <img class="logo-img" src="${logoSrc}" alt="Vision LLC" />
+        <img class="logo-img" src="${logoSrc}" alt="OperateIQ" />
         <div class="top-bar-contact">
           <p><a href="tel:${COMPANY.phoneHref}">${COMPANY.phone}</a></p>
           <p><a href="mailto:${COMPANY.email}">${COMPANY.email}</a></p>
@@ -531,14 +533,14 @@ function buildOneSheetHTML(
             : ""
         }
 
-        <!-- Vision LLC Brand Trust Block -->
+        <!-- OperateIQ Brand Trust Block -->
         <div class="trust-block">
-          <div class="trust-label">Why Vision LLC</div>
+          <div class="trust-label">Why ${org.name}</div>
           <div class="trust-pillars">
             <div class="trust-pillar">
               <span class="trust-pillar-icon">🏆</span>
-              <div class="trust-pillar-title">20+ Years</div>
-              <div class="trust-pillar-sub">Serving Bristol's commercial market</div>
+              <div class="trust-pillar-title">Local Experts</div>
+              <div class="trust-pillar-sub">Serving ${org.location}</div>
             </div>
             <div class="trust-pillar">
               <span class="trust-pillar-icon">🤝</span>
@@ -547,11 +549,11 @@ function buildOneSheetHTML(
             </div>
             <div class="trust-pillar">
               <span class="trust-pillar-icon">📍</span>
-              <div class="trust-pillar-title">Downtown's #1</div>
-              <div class="trust-pillar-sub">Largest commercial portfolio in Bristol, TN/VA</div>
+              <div class="trust-pillar-title">Quality Spaces</div>
+              <div class="trust-pillar-sub">Well-maintained, professionally managed properties</div>
             </div>
           </div>
-          <div class="trust-tagline"><strong>Vision LLC</strong> — where every deal is personal.</div>
+          <div class="trust-tagline"><strong>${org.name}</strong> — where every deal is personal.</div>
         </div>
 
       </div>
@@ -601,16 +603,16 @@ function buildOneSheetHTML(
             </div>
           </div>
 
-          <div class="cta-row">
+          ${org.website ? `<div class="cta-row">
             <div class="cta-icon-dot">🌐</div>
             <div>
               <div class="cta-label">Website</div>
-              <div class="cta-value">teamvisionllc.com</div>
+              <div class="cta-value">${org.website}</div>
             </div>
-          </div>
+          </div>` : ""}
 
           <p class="cta-tagline">
-            Vision LLC — Downtown Bristol's premier commercial property owner.
+            ${org.name} — commercial property leasing &amp; management.
             Our team personally walks every prospect through available spaces.
           </p>
         </div>
@@ -621,14 +623,14 @@ function buildOneSheetHTML(
     <!-- Footer -->
     <div class="footer">
       <div class="footer-left">
-        <img class="footer-logo" src="${logoSrc}" alt="Vision LLC" />
+        <img class="footer-logo" src="${logoSrc}" alt="OperateIQ" />
         <div class="footer-divider"></div>
-        <span class="footer-meta">${COMPANY.fullAddress} · ${COMPANY.phone}</span>
+        <span class="footer-meta">${[COMPANY.fullAddress, org.phone].filter(Boolean).join(" · ")}</span>
       </div>
       <div class="footer-right">
         Information subject to change without notice. All square footages approximate.<br/>
-        Contact Vision LLC to confirm availability &amp; lease terms.<br/>
-        <span class="footer-green">teamvisionllc.com</span> · Generated ${new Date().toLocaleDateString("en-US", {
+        Contact ${org.name} to confirm availability &amp; lease terms.<br/>
+        ${org.website ? `<span class="footer-green">${org.website}</span> · ` : ""}Generated ${new Date().toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
           day: "numeric",
@@ -654,7 +656,7 @@ export default function PropertyOneSheet() {
     const baseUrl =
       typeof window !== "undefined"
         ? `${window.location.protocol}//${window.location.host}`
-        : "https://www.teamvisionllc.com";
+        : "";
 
     const imgPath = (selected as Property & { image?: string }).image;
     const [imageDataUri, logoDataUri] = await Promise.all([
@@ -707,7 +709,7 @@ export default function PropertyOneSheet() {
                 <Sparkles size={8} /> Premium PDF
               </span>
             </div>
-            <p className="text-xs text-gray-500">Generate a branded, print-ready PDF for any Vision property</p>
+            <p className="text-xs text-gray-500">Generate a branded, print-ready PDF for any OperateIQ property</p>
           </div>
         </div>
         <p className="text-xs text-gray-600 mt-3 leading-relaxed">

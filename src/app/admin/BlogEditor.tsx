@@ -12,8 +12,8 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  "Market Insights", "Investment", "Coworking", "Office Space",
-  "Retail", "Industrial", "Development", "Executive Advisement", "Tri-Cities News",
+  "Market Insights", "Investment", "Flexible Workspace", "Office Space",
+  "Retail", "Industrial", "Development", "Property Management", "Local News",
 ];
 
 interface BlogPost {
@@ -47,7 +47,7 @@ const EMPTY_POST: Omit<BlogPost, "id" | "created_at" | "published_at"> = {
   read_time: 5,
   content: "",
   status: "draft",
-  author: "Vision LLC",
+  author: "OperateIQ",
   author_title: "Commercial Real Estate",
   image_url: "",
   image_alt: "",
@@ -69,83 +69,83 @@ function formatBytes(bytes: number): string {
 
 const STATIC_POSTS = [
   {
-    slug: "downtown-bristol-tn-commercial-real-estate-market-2026",
-    title: "Downtown Bristol, TN Commercial Real Estate Market Outlook 2026",
-    meta_title: "Downtown Bristol TN Commercial Real Estate Market Outlook 2026 | Vision LLC",
-    meta_description: "Deep dive into the 2025 commercial real estate market in Downtown Bristol, TN.",
+    slug: "commercial-real-estate-market-outlook-2026",
+    title: "Commercial Real Estate Market Outlook 2026: What Tenants and Owners Should Know",
+    meta_title: "Commercial Real Estate Market Outlook 2026 | Your Company",
+    meta_description: "A look at the 2026 commercial real estate market — vacancy trends, rental rates, and what they mean for local businesses.",
     category: "Market Reports",
-    tags: ["Bristol TN", "Market Report", "Commercial Real Estate", "Tri-Cities"],
+    tags: ["Market Report", "Commercial Real Estate", "Leasing"],
     read_time: 6,
     published_at: "2026-04-01T00:00:00.000Z",
-    author: "Vision LLC Team",
-    author_title: "Commercial Real Estate Experts — Tri-Cities, TN",
-    image_url: "/images/Hard_Rock_Bristol_VA.jpg",
-    image_alt: "Hard Rock Hotel & Casino Bristol, Virginia",
-    excerpt: "Downtown Bristol, TN is experiencing one of its most dynamic commercial real estate cycles in two decades.",
+    author: "OperateIQ Team",
+    author_title: "Property Management Team",
+    image_url: "",
+    image_alt: "",
+    excerpt: "Commercial real estate is entering a new cycle. Here's what tenants and owners should watch this year.",
     status: "published" as const,
   },
   {
-    slug: "coworking-vs-traditional-office-tri-cities-tennessee",
-    title: "Coworking vs. Traditional Office Space in the Tri-Cities: What's Right for Your Business?",
-    meta_title: "Coworking vs Traditional Office Space Tri-Cities TN | Bristol CoWork | Vision LLC",
-    meta_description: "Comparing coworking memberships vs. traditional commercial leases in the Tri-Cities.",
+    slug: "flexible-workspace-vs-traditional-office-lease",
+    title: "Flexible Workspace vs. Traditional Office Lease: What's Right for Your Business?",
+    meta_title: "Flexible Workspace vs Traditional Office Lease | Your Company",
+    meta_description: "Comparing flexible workspace memberships vs. traditional commercial leases for growing businesses.",
     category: "Business Insights",
-    tags: ["Coworking", "Bristol TN", "Office Space", "Tri-Cities", "Small Business"],
+    tags: ["Flexible Workspace", "Office Space", "Small Business"],
     read_time: 5,
     published_at: "2026-04-04T00:00:00.000Z",
-    author: "Vision LLC Team",
-    author_title: "Commercial Real Estate Experts — Tri-Cities, TN",
+    author: "OperateIQ Team",
+    author_title: "Property Management Team",
     image_url: "",
     image_alt: "",
-    excerpt: "For growing businesses in the Tri-Cities, the choice between a coworking membership and a traditional lease is more nuanced than ever.",
+    excerpt: "For growing businesses, the choice between a flexible workspace and a traditional lease is more nuanced than ever.",
     status: "published" as const,
   },
   {
-    slug: "historic-adaptive-reuse-downtown-bristol-tennessee",
-    title: "Historic Adaptive Reuse: How Vision LLC Is Transforming Downtown Bristol, TN",
-    meta_title: "Historic Adaptive Reuse Downtown Bristol TN | Vision LLC Development",
-    meta_description: "How Vision LLC is leading the historic adaptive reuse movement in Downtown Bristol, TN.",
+    slug: "renovating-older-buildings-for-modern-tenants",
+    title: "Renovating Older Buildings for Modern Tenants",
+    meta_title: "Renovating Older Buildings for Modern Tenants | Your Company",
+    meta_description: "How thoughtful renovation turns older properties into in-demand commercial space.",
     category: "Development",
-    tags: ["Historic Preservation", "Adaptive Reuse", "Bristol TN", "Development"],
+    tags: ["Renovation", "Adaptive Reuse", "Development"],
     read_time: 6,
     published_at: "2026-04-07T00:00:00.000Z",
-    author: "Vision LLC Team",
-    author_title: "Commercial Real Estate Experts — Tri-Cities, TN",
+    author: "OperateIQ Team",
+    author_title: "Property Management Team",
     image_url: "",
     image_alt: "",
-    excerpt: "Vision LLC has spent over 20 years converting historic downtown Bristol buildings into premium commercial assets.",
+    excerpt: "Older buildings can become premium commercial assets with the right renovation strategy.",
     status: "published" as const,
   },
   {
-    slug: "top-industries-driving-commercial-real-estate-kingsport-johnson-city",
-    title: "Top Industries Driving Commercial Real Estate Demand in Kingsport & Johnson City, TN",
-    meta_title: "Industries Driving Commercial Real Estate Kingsport & Johnson City TN | Vision LLC",
-    meta_description: "Eastman Chemical, ETSU, Ballad Health, and defense contractors are fueling office and industrial demand.",
+    slug: "industries-driving-commercial-space-demand",
+    title: "Top Industries Driving Commercial Space Demand",
+    meta_title: "Industries Driving Commercial Space Demand | Your Company",
+    meta_description: "Healthcare, logistics, and professional services are fueling office and industrial demand.",
     category: "Market Reports",
-    tags: ["Kingsport TN", "Johnson City TN", "Market Report", "Industrial", "Tri-Cities"],
+    tags: ["Market Report", "Industrial", "Office Space"],
     read_time: 6,
     published_at: "2026-04-10T00:00:00.000Z",
-    author: "Vision LLC Team",
-    author_title: "Commercial Real Estate Experts — Tri-Cities, TN",
+    author: "OperateIQ Team",
+    author_title: "Property Management Team",
     image_url: "",
     image_alt: "",
-    excerpt: "The Tri-Cities commercial real estate market is being shaped by five dominant industries.",
+    excerpt: "A handful of growing industries are shaping demand for office, retail, and industrial space.",
     status: "published" as const,
   },
   {
-    slug: "executive-business-consulting-northeast-tennessee-2026",
-    title: "Executive Business Consulting in Northeast Tennessee: What CEOs Need in 2025",
-    meta_title: "Executive Business Consulting Northeast Tennessee 2025 | Vision LLC Advisement",
-    meta_description: "Vision LLC's Executive Advisement division offers C-suite strategy, site selection, and market entry consulting.",
-    category: "Executive Advisement",
-    tags: ["Executive Consulting", "Business Strategy", "Tri-Cities", "Tennessee"],
+    slug: "property-management-checklist-for-owners",
+    title: "The Property Management Checklist Every Owner Needs in 2026",
+    meta_title: "Property Management Checklist for Owners 2026 | Your Company",
+    meta_description: "A practical checklist for owners covering maintenance, tenant relations, leasing, and reporting.",
+    category: "Property Management",
+    tags: ["Property Management", "Maintenance", "Owners"],
     read_time: 7,
     published_at: "2026-04-14T00:00:00.000Z",
-    author: "Vision LLC Team",
-    author_title: "Executive Advisement Division — Vision LLC",
+    author: "OperateIQ Team",
+    author_title: "Property Management Team",
     image_url: "",
     image_alt: "",
-    excerpt: "The Tri-Cities region is an underappreciated strategic market in 2025.",
+    excerpt: "Staying on top of maintenance, leases, and tenant communication is easier with a simple checklist.",
     status: "published" as const,
   },
 ];
@@ -950,7 +950,7 @@ function BlogImageUploader({ currentUrl, currentAlt, onUrlChange, onAltChange }:
       <div>
         <label className={LABEL}>Image Alt Text <span className="text-gray-700 font-normal normal-case">(for SEO)</span></label>
         <input value={currentAlt} onChange={e => onAltChange(e.target.value)} className={FIELD}
-          placeholder="e.g. Downtown Bristol Tennessee State Street" />
+          placeholder="e.g. Modern office lobby with natural light" />
       </div>
     </div>
   );
@@ -1063,7 +1063,7 @@ function PostEditor({ initial, onSave, onCancel }: {
         read_time: initial.read_time || 5,
         content: initial.content || "",
         status: initial.status,
-        author: initial.author || "Vision LLC",
+        author: initial.author || "OperateIQ",
         author_title: initial.author_title || "Commercial Real Estate",
         image_url: initial.image_url || "",
         image_alt: initial.image_alt || "",
@@ -1146,7 +1146,7 @@ function PostEditor({ initial, onSave, onCancel }: {
         <div>
           <label className={LABEL}>Article Title *</label>
           <input ref={titleRef} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className={FIELD}
-            placeholder="e.g. Why Downtown Bristol is the Best Place to Open a Business in 2026" />
+            placeholder="e.g. 5 Things to Look for Before Signing a Commercial Lease" />
         </div>
         <div>
           <div className="flex items-center justify-between mb-1.5">
@@ -1267,7 +1267,7 @@ function PostEditor({ initial, onSave, onCancel }: {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={LABEL}>Author Name</label>
-                <input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} className={FIELD} placeholder="Vision LLC" />
+                <input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} className={FIELD} placeholder="OperateIQ" />
               </div>
               <div>
                 <label className={LABEL}>Author Title</label>

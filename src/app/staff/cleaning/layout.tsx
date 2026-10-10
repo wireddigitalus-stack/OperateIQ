@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cleaning Portal — Vision",
-  description: "Team Vision Staff Cleaning Portal. Manage daily property updates and reports.",
+  title: "Cleaning Portal — OperateIQ",
+  description: "OperateIQ Staff Cleaning Portal. Manage daily property updates and reports.",
   robots: { index: false, follow: false },
   openGraph: {
-    title: "Cleaning Portal — Vision",
-    description: "Team Vision Staff Cleaning Portal. Manage daily property updates and reports.",
+    title: "Cleaning Portal — OperateIQ",
+    description: "OperateIQ Staff Cleaning Portal. Manage daily property updates and reports.",
     type: "website",
-    url: "https://www.teamvisionllc.com/staff/cleaning",
-    siteName: "Vision Cleaning",
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/staff/cleaning`,
+    siteName: "OperateIQ Cleaning",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cleaning Portal — Vision",
-    description: "Team Vision Staff Cleaning Portal. Manage daily property updates and reports.",
+    title: "Cleaning Portal — OperateIQ",
+    description: "OperateIQ Staff Cleaning Portal. Manage daily property updates and reports.",
   },
   manifest: "/cleaning.webmanifest",
   icons: {

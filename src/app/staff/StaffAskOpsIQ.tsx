@@ -7,7 +7,7 @@ interface Message {
   text: string;
 }
 
-interface StaffAskVisionProps {
+interface StaffAskOpsIQProps {
   role: "maintenance" | "cleaning";
   context?: string; // ticket or assignment summary for AI
 }
@@ -27,7 +27,7 @@ const QUICK_PROMPTS: Record<string, string[]> = {
   ],
 };
 
-export default function StaffAskVision({ role, context }: StaffAskVisionProps) {
+export default function StaffAskOpsIQ({ role, context }: StaffAskOpsIQProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -69,7 +69,7 @@ export default function StaffAskVision({ role, context }: StaffAskVisionProps) {
       <button
         onClick={() => setOpen(true)}
         className={`fixed bottom-24 right-4 z-30 w-14 h-14 rounded-full bg-gradient-to-br ${roleGradient} shadow-lg flex items-center justify-center text-black transition-transform active:scale-90`}
-        aria-label="Ask VISION AI"
+        aria-label="Ask OpsIQ AI"
       >
         <Brain size={22} />
       </button>
@@ -84,7 +84,7 @@ export default function StaffAskVision({ role, context }: StaffAskVisionProps) {
                 <Brain size={18} className="text-black" />
               </div>
               <div>
-                <p className="text-sm font-black text-white">Ask VISION AI</p>
+                <p className="text-sm font-black text-white">Ask OpsIQ AI</p>
                 <p className="text-[11px] text-gray-500">
                   {role === "maintenance" ? "Repair guides & troubleshooting" : "Cleaning procedures & tips"}
                 </p>

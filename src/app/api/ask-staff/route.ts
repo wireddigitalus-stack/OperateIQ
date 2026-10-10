@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile } from "@/lib/org-profile";
+import { BRAND } from "@/lib/brand";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -12,8 +14,10 @@ export async function POST(req: NextRequest) {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
 
+    const org = getOrgProfile();
+
     const systemPrompts: Record<string, string> = {
-      maintenance: `You are VISION Maintenance AI — a knowledgeable field assistant for Hurley Enterprise maintenance workers in Bristol, TN/VA.
+      maintenance: `You are ${BRAND.assistant} Maintenance Assistant — a knowledgeable field assistant for ${org.name} maintenance workers in ${org.location}.
 Today: ${today}
 ${context ? `CURRENT TICKETS:\n${context}` : ""}
 
@@ -26,7 +30,7 @@ You help maintenance workers with:
 
 Be direct, practical, and conversational. Use numbered steps when giving instructions. Max 120 words. Skip preambles.`,
 
-      cleaning: `You are VISION Cleaning AI — a helpful field assistant for Hurley Enterprise cleaning staff in Bristol, TN/VA.
+      cleaning: `You are ${BRAND.assistant} Cleaning Assistant — a helpful field assistant for ${org.name} cleaning staff in ${org.location}.
 Today: ${today}
 ${context ? `TODAY'S SCHEDULE:\n${context}` : ""}
 

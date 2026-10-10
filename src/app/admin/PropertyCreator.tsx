@@ -14,7 +14,7 @@ interface DynProperty {
 }
 
 const EMPTY = (): Omit<DynProperty,"id"|"created_at"> => ({
-  name:"", type:"Office", address:"", city:"Bristol", sqft:"", lease_status:"available",
+  name:"", type:"Office", address:"", city:"Anytown", sqft:"", lease_status:"available",
   badge:"", badge_color:"#4ADE80", description:"", features:[""], images:[], hero_image:"",
   in_banner:false, published:false,
 });
@@ -149,7 +149,7 @@ export default function PropertyCreator() {
   name         TEXT NOT NULL,
   type         TEXT NOT NULL,
   address      TEXT,
-  city         TEXT NOT NULL DEFAULT 'Bristol',
+  city         TEXT NOT NULL DEFAULT '',
   sqft         TEXT,
   lease_status TEXT DEFAULT 'available',
   badge        TEXT,
@@ -200,11 +200,11 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
           </div>
           <div>
             <label className={labelCls}>Address</label>
-            <input className={inputCls} placeholder="e.g. 100 5th St., Suite 3A" value={form.address} onChange={e => set("address", e.target.value)} />
+            <input className={inputCls} placeholder="e.g. 100 Main St., Suite 3A" value={form.address} onChange={e => set("address", e.target.value)} />
           </div>
           <div>
             <label className={labelCls}>City *</label>
-            <input className={inputCls} placeholder="Bristol" value={form.city} onChange={e => set("city", e.target.value)} />
+            <input className={inputCls} placeholder="Anytown" value={form.city} onChange={e => set("city", e.target.value)} />
           </div>
           <div>
             <label className={labelCls}>Square Footage</label>

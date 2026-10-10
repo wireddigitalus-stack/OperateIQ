@@ -91,7 +91,7 @@ export default function HeroBannerManager() {
     // Use resolved data if available, otherwise fall back
     if (resolved[idx]?.src) return resolved[idx].src;
     if (slide.type === "custom" && slide.imageUrl) return slide.imageUrl;
-    return "/property-images/commercial-city-centre-exterior.jpg";
+    return "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&q=70";
   };
 
   const getLabel = (slide: SlideConfig, idx: number): string => {
@@ -203,12 +203,12 @@ export default function HeroBannerManager() {
       type: "custom",
       imageUrl: "",
       label: "New Slide",
-      location: "Bristol, TN",
+      location: "Anytown, ST",
       enabled: true,
       order: slides.length,
     };
     updateSlides([...slides, newSlide]);
-    setResolved(prev => [...prev, { src: "", label: "New Slide", location: "Bristol, TN" }]);
+    setResolved(prev => [...prev, { src: "", label: "New Slide", location: "Anytown, ST" }]);
     setShowAddPicker(false);
 
     // Open file picker for the new slide

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { BLOG_POSTS } from "@/lib/blog-data";
+import { getOrgProfile } from "@/lib/org-profile";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -50,7 +51,7 @@ export async function POST() {
         published_at: post.publishedAt
           ? new Date(post.publishedAt).toISOString()
           : new Date().toISOString(),
-        author: post.author || "Vision LLC",
+        author: post.author || getOrgProfile().name,
         author_title: post.authorTitle || "Commercial Real Estate",
         image_url: post.image || "",
         image_alt: post.imageAlt || "",

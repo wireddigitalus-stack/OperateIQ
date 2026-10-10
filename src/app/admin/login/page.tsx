@@ -42,8 +42,8 @@ export default function AdminLoginPage() {
         {/* Logo */}
         <div className="flex justify-center mb-10">
           <Image
-            src="/vision-logo.png"
-            alt="Vision LLC"
+            src="/operateiq-logo.svg"
+            alt="OperateIQ"
             width={150}
             height={54}
             className="h-12 w-auto"
@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_rgba(74,222,128,0.25)]">
               <Shield size={22} className="text-black" />
             </div>
-            <h1 className="text-xl font-black text-white mb-1">VISION</h1>
+            <h1 className="text-xl font-black text-white mb-1">OperateIQ</h1>
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Property Intelligence Platform</p>
             <p className="text-sm text-gray-500">Sign in to access your dashboard</p>
           </div>
@@ -99,7 +99,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-center text-[11px] text-gray-700 mt-6">
-          VISION · Property Intelligence Platform
+          OperateIQ · Property Operations Platform
         </p>
       </div>
     </div>

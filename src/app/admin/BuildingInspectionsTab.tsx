@@ -10,18 +10,18 @@ import PrintButton from "./PrintButton";
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const PROPERTIES_LIST = [
-  "City Centre",
-  "City Central",
-  "Coke Building",
-  "Centerpoint",
-  "250 Commonwealth",
-  "628 State St",
-  "215 Gate City Hwy",
-  "221 Moore ST",
-  "642 State St",
-  "634 State St",
-  "720 State St",
-  "209 Blackley Rd",
+  "Sample Office Building",
+  "Downtown Center",
+  "Mill Building",
+  "Riverside Commons",
+  "250 Commerce Ave",
+  "100 Main St",
+  "215 Highway Dr",
+  "221 Oak St",
+  "142 Main St",
+  "134 Main St",
+  "720 Main St",
+  "209 Park Rd",
   "Farm",
 ];
 
@@ -388,7 +388,7 @@ export default function BuildingInspectionsTab({
           </div>
         </div>
         <p style="font-size:9px;color:#94a3b8;margin-top:10px;font-style:italic;">
-          Vision LLC Commercial Property Portfolio · Generated for institutional record keeping, municipal safety records, and risk management insurance compliance.
+          OperateIQ Commercial Property Portfolio · Generated for institutional record keeping, municipal safety records, and risk management insurance compliance.
         </p>
       </div>
     `;
@@ -480,7 +480,7 @@ export default function BuildingInspectionsTab({
         <tbody>${tableRows}</tbody>
       </table>
       <div style="margin-top:24px;display:flex;justify-content:space-between;font-size:10px;color:#64748b;border-top:1px solid #cbd5e1;padding-top:12px;">
-        <span>Vision LLC · Property Management Portfolio</span>
+        <span>OperateIQ · Property Management Portfolio</span>
         <span>${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
       </div>
     `;

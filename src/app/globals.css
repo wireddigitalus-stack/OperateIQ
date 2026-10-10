@@ -32,8 +32,8 @@
   animation: border-spin 3s linear infinite;
 }
 
-/* Compact animated border for Ask VISION buttons in the admin dashboard */
-.btn-ask-vision {
+/* Compact animated border for Ask OpsIQ buttons in the admin dashboard */
+.btn-ask-opsiq {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -59,7 +59,7 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
-.btn-ask-vision:hover { opacity: 0.85; }
+.btn-ask-opsiq:hover { opacity: 0.85; }
 
 
 .btn-primary-cta:hover {
@@ -69,16 +69,16 @@ input[type=number] {
 }
 
 :root {
-  --vision-black: #080B0F;
-  --vision-dark: #0D1117;
-  --vision-surface: #111827;
-  --vision-border: rgba(74, 222, 128, 0.15);
-  --vision-green: #4ADE80;
-  --vision-green-dark: #22C55E;
-  --vision-gold: #FACC15;
-  --vision-gold-dark: #EAB308;
-  --vision-white: #F9FAFB;
-  --vision-muted: #6B7280;
+  --brand-black: #080B0F;
+  --brand-dark: #0D1117;
+  --brand-surface: #111827;
+  --brand-border: rgba(74, 222, 128, 0.15);
+  --brand-green: #4ADE80;
+  --brand-green-dark: #22C55E;
+  --brand-gold: #FACC15;
+  --brand-gold-dark: #EAB308;
+  --brand-white: #F9FAFB;
+  --brand-muted: #6B7280;
 }
 
 * {
@@ -90,8 +90,8 @@ html {
 }
 
 body {
-  background-color: var(--vision-black);
-  color: var(--vision-white);
+  background-color: var(--brand-black);
+  color: var(--brand-white);
   font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -103,7 +103,7 @@ body {
   background: rgba(17, 24, 39, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--vision-border);
+  border: 1px solid var(--brand-border);
 }
 
 .glass-strong {
@@ -147,7 +147,7 @@ body {
     radial-gradient(ellipse at 20% 20%, rgba(74, 222, 128, 0.06) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 80%, rgba(250, 204, 21, 0.04) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 50%, rgba(74, 222, 128, 0.02) 0%, transparent 70%),
-    var(--vision-black);
+    var(--brand-black);
 }
 
 /* Section divider line */
@@ -189,7 +189,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--vision-dark);
+  background: var(--brand-dark);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -246,7 +246,7 @@ body {
     linear-gradient(rgba(74, 222, 128, 0.4), rgba(74, 222, 128, 0.4)) border-box;
   border: 1.5px solid transparent;
   border-radius: 8px;
-  color: var(--vision-green);
+  color: var(--brand-green);
   font-weight: 600;
   font-size: 15px;
   text-decoration: none;
@@ -275,7 +275,7 @@ body {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--vision-green);
+  color: var(--brand-green);
 }
 
 /* Chat widget */
@@ -286,7 +286,7 @@ body {
   padding: 12px 16px;
   max-width: 85%;
   align-self: flex-end;
-  color: var(--vision-white);
+  color: var(--brand-white);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -298,7 +298,7 @@ body {
   padding: 12px 16px;
   max-width: 85%;
   align-self: flex-start;
-  color: var(--vision-white);
+  color: var(--brand-white);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -315,7 +315,7 @@ body {
    slide to the bottom of the screen. Only applies on mobile/tablet (< lg). */
 @media (max-width: 1023px) {
   #lease-bot-toggle,
-  #vision-chat-panel {
+  #oiq-chat-panel {
     transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 opacity 0.3s ease,
                 transform 0.3s ease;
@@ -325,7 +325,7 @@ body {
     bottom: 6.75rem !important;
   }
 
-  html.mobile-bar-hidden #vision-chat-panel {
+  html.mobile-bar-hidden #oiq-chat-panel {
     bottom: 10.25rem !important;
   }
 }

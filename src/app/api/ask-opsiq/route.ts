@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile } from "@/lib/org-profile";
+import { BRAND } from "@/lib/brand";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY environment variable is not set");
@@ -49,7 +51,9 @@ export async function POST(req: NextRequest) {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
 
-    const prompt = `You are Ask VISION — AI lead advisor for Vision LLC's CRM in Bristol, TN/VA.
+    const org = getOrgProfile();
+
+    const prompt = `You are Ask ${BRAND.assistant} — AI lead advisor for ${org.name}'s CRM in ${org.location}.
 Today: ${today}
 Total leads in pipeline: ${(leads || []).length}
 
@@ -91,7 +95,7 @@ Instructions: Be direct and actionable. Name specific people. Reference budgets 
     return NextResponse.json({ response });
 
   } catch (error: unknown) {
-    console.error("Ask VISION error:", error);
+    console.error("Ask OpsIQ error:", error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { error: `Analysis failed: ${message}` },

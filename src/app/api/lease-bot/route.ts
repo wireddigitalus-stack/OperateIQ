@@ -3,6 +3,9 @@ import { LEADS_STORE, type Lead } from "@/lib/leads-store";
 import { detectWhale } from "@/lib/whale-detector";
 import { supabaseAdmin, rowToLead } from "@/lib/supabase";
 import { writeActivityLog } from "@/lib/activity-log";
+import { PROPERTIES } from "@/lib/data";
+import { getOrgProfile } from "@/lib/org-profile";
+import { BRAND } from "@/lib/brand";
 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -92,7 +95,7 @@ function buildLeadEmailHtml(lead: Lead): string {
 
       <div style="margin-top:28px;padding-top:20px;border-top:1px solid #E5E7EB;">
         ${lead.email ? `<p style="margin:0;color:#4B5563;font-size:12px;">Reply to reach <strong style="color:#111827;">${lead.name}</strong> at <a href="mailto:${lead.email}" style="color:#16A34A;font-weight:600;text-decoration:none;">${lead.email}</a></p>` : ""}
-        <p style="margin:8px 0 0;color:#9CA3AF;font-size:11px;">Submitted via Vision LLC Lease Bot · <a href="https://teamvisionllc.com/admin" style="color:#16A34A;font-weight:600;text-decoration:none;">Open Dashboard →</a></p>
+        <p style="margin:8px 0 0;color:#9CA3AF;font-size:11px;">Submitted via ${BRAND.name} Lease Bot · <a href="${BRAND.url}/admin" style="color:#16A34A;font-weight:600;text-decoration:none;">Open Dashboard →</a></p>
       </div>
     </div>
   </div>
@@ -101,18 +104,17 @@ function buildLeadEmailHtml(lead: Lead): string {
 }
 
 
-const PROPERTIES_CONTEXT = `
-Available Vision LLC Properties (use EXACT id values shown):
-1. id="city-centre"       — City Centre Professional Suites — 1,200–18,000+ sqft, downtown office, State Street Bristol TN/VA, premium finishes
-2. id="the-executive"     — The Executive — 500–12,000 sqft, private executive office suites, historic building, downtown Bristol TN/VA
-3. id="bristol-cowork"    — Bristol CoWork — 620 State Street, private offices, dedicated desks, conference rooms, monthly memberships
-4. id="centre-point"      — Centre Point Suites — 800–5,000 sqft, high-traffic retail/office, multiple units available, Bristol VA
-5. id="foundation-event"  — Foundation Event Facility — 3,000–8,000 sqft, historic adaptive reuse, event & commercial space
-6. id="commercial-warehouse" — Commercial Warehouse — 2,000–25,000 sqft, loading docks, highway access, Bristol TN/VA metro area
+const buildPropertiesContext = (orgName: string) => `
+Available ${orgName} Properties (use EXACT id values shown):
+${PROPERTIES.map(
+  (p, i) => `${i + 1}. id="${p.id}" — ${p.name} — ${p.type} — ${p.sqft} sqft — ${p.city}`
+).join("\n")}
 `;
 
-const SCORING_PROMPT = (lead: Partial<Lead>) => `
-You are a commercial real estate lead scoring AI for Vision LLC in Bristol, TN/VA.
+const SCORING_PROMPT = (lead: Partial<Lead>) => {
+  const org = getOrgProfile();
+  return `
+You are a commercial real estate lead scoring AI for ${org.name} in ${org.location}.
 
 Score this lead from 25-100 (minimum score is always 25). Use these criteria:
 - Base score: 25 (every lead starts here)
@@ -140,7 +142,7 @@ LEAD DATA:
 - Team Size: ${lead.teamSize}
 - Additional Info: ${lead.additionalInfo || "None provided"}
 
-${PROPERTIES_CONTEXT}
+${buildPropertiesContext(org.name)}
 
 Respond with ONLY valid JSON in this exact format (no markdown, no explanation):
 {
@@ -153,7 +155,7 @@ Respond with ONLY valid JSON in this exact format (no markdown, no explanation):
       "name": "<property name>",
       "type": "<Office|CoWork|Retail|Warehouse|Event>",
       "sqft": "<size range>",
-      "location": "Downtown Bristol, TN/VA",
+      "location": "${org.location}",
       "matchReason": "<one sentence why this property fits>"
     }
   ]
@@ -166,6 +168,7 @@ Rules for scoreLabel:
 
 Include 1-2 best matching properties only.
 `;
+};
 
 export async function POST(req: NextRequest) {
   try {

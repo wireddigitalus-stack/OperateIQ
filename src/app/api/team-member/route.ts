@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile } from "@/lib/org-profile";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -17,11 +18,11 @@ function nameToSlug(name: string): string {
   return parts.find((p) => p.length > 2) ?? parts[0];
 }
 
-// GET /api/team-member?slug=allen
+// GET /api/team-member?slug=jane
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get("slug")?.toLowerCase().trim();
   if (!slug) {
-    return NextResponse.json({ name: "Vision LLC", title: "Commercial Real Estate" });
+    return NextResponse.json({ name: getOrgProfile().name, title: "Commercial Real Estate" });
   }
 
   try {
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
       { headers: H }
     );
     if (!res.ok) {
-      return NextResponse.json({ name: "Vision LLC", title: "Commercial Real Estate" });
+      return NextResponse.json({ name: getOrgProfile().name, title: "Commercial Real Estate" });
     }
 
     const users: { name: string; role: string }[] = await res.json();
@@ -42,18 +43,18 @@ export async function GET(req: NextRequest) {
       // Build a friendly title from their role
       const roleMap: Record<string, string> = {
         owner: "Principal Broker",
-        admin: "Vision LLC Team",
+        admin: `${getOrgProfile().name} Team`,
         manager: "Property Manager",
-        staff: "Vision LLC Team",
+        staff: `${getOrgProfile().name} Team`,
       };
       return NextResponse.json({
         name: match.name,
-        title: roleMap[match.role] || "Vision LLC Team",
+        title: roleMap[match.role] || `${getOrgProfile().name} Team`,
       });
     }
 
-    return NextResponse.json({ name: "Vision LLC", title: "Commercial Real Estate" });
+    return NextResponse.json({ name: getOrgProfile().name, title: "Commercial Real Estate" });
   } catch {
-    return NextResponse.json({ name: "Vision LLC", title: "Commercial Real Estate" });
+    return NextResponse.json({ name: getOrgProfile().name, title: "Commercial Real Estate" });
   }
 }

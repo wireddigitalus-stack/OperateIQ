@@ -242,12 +242,12 @@ export default function TenantImporter({ onImport, onClose }: Props) {
   const downloadTemplate = () => {
     const csv = [
       "Tenant Name,Primary Contact,Email,Phone,Building,Unit,Monthly Rent,Lease Start,Lease End,Status,Notes",
-      "Bristol Tech Co.,Jane Smith,jane@bristoltech.com,(423) 555-1234,The Executive,Suite 204,4200,2023-01-01,2025-12-31,active,",
-      "Main Street Salon,Bob Jones,bob@salon.com,(276) 555-9876,CoWork Center,Desk 12,800,2024-06-01,2025-05-31,active,",
+      "Acme Tech Co.,Jane Smith,jane@acmetech.com,(555) 555-1234,Sample Office Building,Suite 204,4200,2023-01-01,2025-12-31,active,",
+      "Main Street Salon,Bob Jones,bob@salon.com,(555) 555-9876,Sample Retail Center,Unit 12,800,2024-06-01,2025-05-31,active,",
     ].join("\n");
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "vision_tenant_import_template.csv";
+    a.download = "oiq_tenant_import_template.csv";
     a.click();
   };
 

@@ -7,18 +7,18 @@ import {
 import PrintButton from "./PrintButton";
 
 const PROPERTIES_LIST = [
-  "City Centre",
-  "City Central",
-  "Coke Building",
-  "Centerpoint",
-  "250 Commonwealth",
-  "628 State St",
-  "215 Gate City Hwy",
-  "221 Moore ST",
-  "642 State St",
-  "634 State St",
-  "720 State St",
-  "209 Blackley Rd",
+  "Sample Office Building",
+  "Downtown Center",
+  "Mill Building",
+  "Riverside Commons",
+  "250 Commerce Ave",
+  "100 Main St",
+  "215 Highway Dr",
+  "221 Oak St",
+  "142 Main St",
+  "134 Main St",
+  "720 Main St",
+  "209 Park Rd",
   "Farm"
 ];
 
@@ -79,7 +79,7 @@ export default function SalesLeadsBoard({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("vision_commenter") || currentUserName || "";
+    const saved = localStorage.getItem("oiq_commenter") || currentUserName || "";
     setAuthorName(saved);
   }, [currentUserName]);
 
@@ -231,7 +231,7 @@ export default function SalesLeadsBoard({
     const updatedNotes = currentNotes ? `${currentNotes}\n${entry}` : entry;
     
     // Save locally commenter name
-    localStorage.setItem("vision_commenter", authorName.trim());
+    localStorage.setItem("oiq_commenter", authorName.trim());
 
     await updateField(id, "notes", updatedNotes);
     setNewNote("");

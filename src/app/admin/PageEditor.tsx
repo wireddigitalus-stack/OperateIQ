@@ -15,7 +15,7 @@ type FieldMeta = { label: string; value: string; type: "text" | "textarea" };
 function buildDefaults(): Record<string, Record<string, FieldMeta>> {
   const sections: Record<string, Record<string, FieldMeta>> = {};
 
-  // ── Space Type pages (Office, CoWorking, Retail, Industrial) ──
+  // ── Space Type pages (Office, Retail, Industrial) ──
   for (const sp of SPACE_TYPE_PAGES) {
     const key = `space:${sp.slug}`;
     sections[key] = {
@@ -42,11 +42,11 @@ function buildDefaults(): Record<string, Record<string, FieldMeta>> {
     };
   }
 
-  // ── CoWork standalone page ──
-  sections["page:cowork"] = {
-    hero_badge:       { label: "Hero Badge Text", value: "Now Open · 620 State Street", type: "text" },
-    hero_description: { label: "Hero Description", value: "Downtown Bristol's premier professional workspace — built for entrepreneurs, remote teams, and growing businesses that need more than a coffee shop.", type: "textarea" },
-    hero_subtext:     { label: "Hero Subtext", value: "620 State Street, Bristol, TN · All-inclusive memberships · Private offices available today", type: "text" },
+  // ── Flex Space standalone page ──
+  sections["page:flex-space"] = {
+    hero_badge:       { label: "Hero Badge Text", value: "Now Leasing · Flexible Workspace", type: "text" },
+    hero_description: { label: "Hero Description", value: "A professional workspace built for entrepreneurs, remote teams, and growing businesses that need more than a coffee shop.", type: "textarea" },
+    hero_subtext:     { label: "Hero Subtext", value: "123 Main Street, Anytown, ST · All-inclusive memberships · Private offices available today", type: "text" },
     plans_heading:    { label: "Plans Section Heading", value: "Membership Plans", type: "text" },
     plans_subtext:    { label: "Plans Section Subtext", value: "All plans include Wi-Fi, coffee, and access to communal areas. Contact us for current rates.", type: "textarea" },
     plan_1_name:      { label: "Plan 1 — Name", value: "Hot Desk", type: "text" },
@@ -62,20 +62,20 @@ function buildDefaults(): Record<string, Record<string, FieldMeta>> {
     plan_3_desc:      { label: "Plan 3 — Description", value: "Fully furnished, lockable private office. Move in tomorrow.", type: "text" },
     plan_3_features:  { label: "Plan 3 — Features (one per line)", value: "Private Lockable Office\nFurnished & Ready\nAll Utilities Included\nDedicated Internet\nBusiness Address\nConference Rooms Included\n24/7 Access\nSignage Options", type: "textarea" },
     location_heading: { label: "Location Section Heading", value: "Prime Downtown Location", type: "text" },
-    location_address: { label: "Location Address", value: "620 State Street · Bristol, TN 37620", type: "text" },
-    location_desc:    { label: "Location Description", value: "Located on Bristol's iconic State Street — right on the TN/VA state line, steps from restaurants, hotels, and the region's most active commercial corridor.", type: "textarea" },
+    location_address: { label: "Location Address", value: "123 Main Street · Anytown, ST 00000", type: "text" },
+    location_desc:    { label: "Location Description", value: "Describe the location here — nearby restaurants, transit, parking, and what makes the neighborhood a great place to work.", type: "textarea" },
   };
 
-  // ── Executive Advisement standalone page ──
-  sections["page:executive-advisement"] = {
-    hero_badge:       { label: "Hero Badge", value: "Division III — Executive Advisement", type: "text" },
+  // ── Services standalone page ──
+  sections["page:services"] = {
+    hero_badge:       { label: "Hero Badge", value: "Our Services", type: "text" },
     hero_heading:     { label: "Hero Heading", value: "Big Moves. Smart Strategy. Fresh Insight.", type: "text" },
-    hero_description: { label: "Hero Description", value: "Vision LLC's Executive Advisement division delivers C-suite consulting and strategic guidance grounded in 30+ years of real-world leadership — not theory.", type: "textarea" },
+    hero_description: { label: "Hero Description", value: "Your Company delivers hands-on property management and advisory services for owners, investors, and tenants.", type: "textarea" },
     hero_subtext:     { label: "Hero Subtext", value: "We scale WITH you. Hands-on. Accountable. Integrated.", type: "text" },
-    cred_stat_1:      { label: "Credibility Stat 1", value: "30+ Years Executive Experience", type: "text" },
+    cred_stat_1:      { label: "Credibility Stat 1", value: "Years of Experience", type: "text" },
     cred_stat_2:      { label: "Credibility Stat 2", value: "3 Specialized Advisory Divisions", type: "text" },
-    cred_stat_3:      { label: "Credibility Stat 3", value: "20+ Years Tri-Cities Market Knowledge", type: "text" },
-    cred_stat_4:      { label: "Credibility Stat 4", value: "#1 Integrated CRE + Strategy Firm in Region", type: "text" },
+    cred_stat_3:      { label: "Credibility Stat 3", value: "Deep Local Market Knowledge", type: "text" },
+    cred_stat_4:      { label: "Credibility Stat 4", value: "Full-Service Property Management", type: "text" },
     services_heading: { label: "Services Section Heading", value: "Core Advisory Services", type: "text" },
     services_subtext: { label: "Services Section Subtext", value: "Five integrated service pillars — each designed to move the needle at the executive level.", type: "textarea" },
     svc_1_title:      { label: "Service 1 — Title", value: "Executive Leadership Coaching", type: "text" },
@@ -90,7 +90,7 @@ function buildDefaults(): Record<string, Record<string, FieldMeta>> {
     svc_5_desc:       { label: "Service 5 — Description", value: "We uniquely leverage commercial real estate as a strategic tool — reducing occupancy costs, unlocking equity.", type: "textarea" },
     div_1_title:      { label: "Division 1 — Title", value: "Government & Public Sector", type: "text" },
     div_1_sub:        { label: "Division 1 — Subtitle", value: "Public-Private Partnerships · Regulatory Navigation · Grant-Aligned Development", type: "text" },
-    div_1_desc:       { label: "Division 1 — Description", value: "Vision LLC has deep experience bridging the public and private sectors.", type: "textarea" },
+    div_1_desc:       { label: "Division 1 — Description", value: "Your Company has experience bridging the public and private sectors.", type: "textarea" },
     div_2_title:      { label: "Division 2 — Title", value: "Global & National Industry", type: "text" },
     div_2_sub:        { label: "Division 2 — Subtitle", value: "Construction · Manufacturing · Technology · Professional Services", type: "text" },
     div_2_desc:       { label: "Division 2 — Description", value: "With established relationships across construction, manufacturing, technology, public safety, and professional services sectors.", type: "textarea" },
@@ -98,12 +98,12 @@ function buildDefaults(): Record<string, Record<string, FieldMeta>> {
     div_3_sub:        { label: "Division 3 — Subtitle", value: "Board Advisory · Portfolio Strategy · Sustainable Scaling", type: "text" },
     div_3_desc:       { label: "Division 3 — Description", value: "We take active board-level advisory roles in select portfolio companies.", type: "textarea" },
     ecosystem_heading:{ label: "Ecosystem Heading", value: "The Integrated Ecosystem Advantage", type: "text" },
-    ecosystem_desc:   { label: "Ecosystem Description", value: "Vision LLC is the only firm in the Tri-Cities that operates simultaneously across four critical domains.", type: "textarea" },
+    ecosystem_desc:   { label: "Ecosystem Description", value: "Your Company operates across leasing, management, maintenance, and advisory — all under one roof.", type: "textarea" },
     who_heading:      { label: "Who We Work With Heading", value: "Who We Work With", type: "text" },
     who_subtext:      { label: "Who We Work With Subtext", value: "From local founders to national executives — we work with leaders who are serious about growth.", type: "textarea" },
     who_tags:         { label: "Client Types (one per line)", value: "Growth-Stage Founders\nC-Suite & Board Members\nRegional Governments\nPrivate Equity Firms\nHealthcare Organizations\nManufacturing Companies\nCommercial Developers\nNonprofit Leadership", type: "textarea" },
     final_quote:      { label: "Final Quote", value: "\"The sum of all parts is greater than the whole.\"", type: "text" },
-    final_attribution:{ label: "Quote Attribution", value: "— J. Allen Hurley II", type: "text" },
+    final_attribution:{ label: "Quote Attribution", value: "— Your Name", type: "text" },
     final_subtext:    { label: "Final Subtext", value: "That's not just a philosophy. It's how we build. How we advise. How we grow — with you.", type: "textarea" },
   };
 
@@ -122,15 +122,15 @@ const PAGE_META: { key: string; label: string; description: string; color: strin
   })),
   // Standalone pages
   {
-    key: "page:cowork",
-    label: "CoWork Page",
-    description: "/cowork — Bristol CoWork standalone page",
+    key: "page:flex-space",
+    label: "Flex Space Page",
+    description: "/flex-space — Flexible workspace standalone page",
     color: "#FACC15",
   },
   {
-    key: "page:executive-advisement",
-    label: "Executive Advisement",
-    description: "/executive-advisement — C-Suite consulting page",
+    key: "page:services",
+    label: "Services Page",
+    description: "/services — Services overview page",
     color: "#FACC15",
   },
 ];
@@ -267,7 +267,7 @@ export default function PageEditor() {
             Space &amp; Page Editor
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            Edit Space Type pages (Office, CoWorking, Retail, Warehouse), CoWork, and Executive Advisement.
+            Edit Space Type pages (Office, Retail, Warehouse), Flex Space, and Services.
           </p>
         </div>
         <button
@@ -374,10 +374,10 @@ export default function PageEditor() {
                   const isTitle = fieldKey === "metaTitle";
                   const pageKeywords = (isH1 || isTitle || isDesc)
                     ? sectionKey.startsWith("space:")
-                      ? ["commercial real estate", "Bristol", "Tri-Cities"]
-                      : sectionKey === "page:cowork"
-                      ? ["coworking", "Bristol", "workspace"]
-                      : ["executive", "consulting", "Vision LLC"]
+                      ? ["commercial real estate", "office space", "for lease"]
+                      : sectionKey === "page:flex-space"
+                      ? ["flexible", "workspace", "office"]
+                      : ["property management", "services", "leasing"]
                     : undefined;
 
                   return (
@@ -425,7 +425,7 @@ export default function PageEditor() {
                           googlePreview={isDesc ? {
                             title: getValue(sectionKey, "metaTitle") || getValue(sectionKey, "hero_heading") || "",
                             description: val,
-                            url: sectionKey.startsWith("space:") ? `teamvisionllc.com/spaces/${sectionKey.replace("space:", "")}` : `teamvisionllc.com/${sectionKey.replace("page:", "")}`,
+                            url: sectionKey.startsWith("space:") ? `${(typeof window !== "undefined" ? window.location.host : "")}/spaces/${sectionKey.replace("space:", "")}` : `${(typeof window !== "undefined" ? window.location.host : "")}/${sectionKey.replace("page:", "")}`,
                           } : undefined}
                         />
                       )}

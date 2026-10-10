@@ -218,15 +218,15 @@ function ageBarPct(days: number): number {
 // ─── Demo Data ────────────────────────────────────────────────────────────────
 
 const DEMO_LEADS: Lead[] = [
-  { id: "demo_1", timestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString(), name: "Sarah Mitchell", email: "", phone: "423-555-0192", spaceType: "Executive Office", budget: "3000", timeline: "ASAP — under 30 days", teamSize: "2–4 people", score: 91, scoreLabel: "Verified Lead", reasoning: "Strong budget, urgent timeline, and professional office need align perfectly with City Centre availability.", matchedProperties: [{ id: "city-centre", name: "City Centre Professional Suites", type: "Office", sqft: "1,200–3,000 sqft", location: "Downtown Bristol, TN", matchReason: "Premium finishes, immediate availability, fits 2-4 team." }] },
-  { id: "demo_2", timestamp: new Date(Date.now() - 1000 * 60 * 34).toISOString(), name: "Mark Delaney", email: "", phone: "", spaceType: "CoWork Membership", budget: "800", timeline: "1–2 months", teamSize: "Solo", score: 58, scoreLabel: "MQL", reasoning: "Solo operator with moderate budget — Bristol CoWork is an excellent fit. Nurture toward dedicated desk.", matchedProperties: [{ id: "bristol-cowork", name: "Bristol CoWork", type: "CoWork", sqft: "Hot desk / Dedicated desk", location: "620 State Street, Bristol, TN", matchReason: "All-inclusive monthly membership, perfect for solo professional." }] },
-  { id: "demo_3", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), name: "Dr. James Patel", email: "", phone: "276-555-0847", spaceType: "Private Office Suite", budget: "6000", timeline: "ASAP — under 30 days", teamSize: "5–10 people", score: 96, scoreLabel: "Verified Lead", reasoning: "Very high budget, urgent timeline, established team — priority contact for today.", matchedProperties: [{ id: "the-executive", name: "The Executive Office Suites", type: "Office", sqft: "2,000–6,000 sqft", location: "Downtown Bristol, TN", matchReason: "Historic prestige building, fits team of 5-10, premium positioning." }, { id: "city-centre", name: "City Centre Professional Suites", type: "Office", sqft: "3,000–8,000 sqft", location: "Downtown Bristol, TN", matchReason: "Larger footprint option with flexible configuration." }], isWhale: true, whaleTier: "gold", whaleKeywords: [] },
-  { id: "demo_4", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), name: "Blake Thornton", email: "", phone: "", spaceType: "Retail Storefront", budget: "1500", timeline: "3–6 months", teamSize: "2–4 people", score: 42, scoreLabel: "MQL", reasoning: "Retail need with longer timeline. Good candidate for State Street storefront. Follow up in 60 days.", matchedProperties: [{ id: "centre-point", name: "Centre Point Suites", type: "Retail", sqft: "800–2,000 sqft", location: "Downtown Bristol, TN", matchReason: "High foot traffic retail units at budget-friendly rates." }] },
+  { id: "demo_1", timestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString(), name: "Sarah Mitchell", email: "", phone: "555-555-0192", spaceType: "Executive Office", budget: "3000", timeline: "ASAP — under 30 days", teamSize: "2–4 people", score: 91, scoreLabel: "Verified Lead", reasoning: "Strong budget, urgent timeline, and professional office need align perfectly with Sample Office Building availability.", matchedProperties: [{ id: "sample-office", name: "Sample Office Building", type: "Office", sqft: "1,200–3,000 sqft", location: "Anytown, ST", matchReason: "Premium finishes, immediate availability, fits 2-4 team." }] },
+  { id: "demo_2", timestamp: new Date(Date.now() - 1000 * 60 * 34).toISOString(), name: "Mark Delaney", email: "", phone: "", spaceType: "Flex Workspace", budget: "800", timeline: "1–2 months", teamSize: "Solo", score: 58, scoreLabel: "MQL", reasoning: "Solo operator with moderate budget — a small suite at Sample Office Building is an excellent fit. Nurture toward a longer lease.", matchedProperties: [{ id: "sample-office", name: "Sample Office Building", type: "Office", sqft: "150–400 sqft", location: "123 Main Street, Anytown, ST", matchReason: "Small private suite with flexible terms, perfect for solo professional." }] },
+  { id: "demo_3", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), name: "Dr. James Patel", email: "", phone: "555-555-0847", spaceType: "Private Office Suite", budget: "6000", timeline: "ASAP — under 30 days", teamSize: "5–10 people", score: 96, scoreLabel: "Verified Lead", reasoning: "Very high budget, urgent timeline, established team — priority contact for today.", matchedProperties: [{ id: "sample-office", name: "Sample Office Building", type: "Office", sqft: "2,000–6,000 sqft", location: "Anytown, ST", matchReason: "Prestige building, fits team of 5-10, premium positioning." }, { id: "sample-office-2", name: "Sample Office Building — Floor 3", type: "Office", sqft: "3,000–8,000 sqft", location: "Anytown, ST", matchReason: "Larger footprint option with flexible configuration." }], isWhale: true, whaleTier: "gold", whaleKeywords: [] },
+  { id: "demo_4", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), name: "Blake Thornton", email: "", phone: "", spaceType: "Retail Storefront", budget: "1500", timeline: "3–6 months", teamSize: "2–4 people", score: 42, scoreLabel: "MQL", reasoning: "Retail need with longer timeline. Good candidate for a Main Street storefront. Follow up in 60 days.", matchedProperties: [{ id: "sample-retail", name: "Sample Retail Center", type: "Retail", sqft: "800–2,000 sqft", location: "Anytown, ST", matchReason: "High foot traffic retail units at budget-friendly rates." }] },
 ];
 
 
 
-// ─── Ask VISION Modal ──────────────────────────────────────────────────────────
+// ─── Ask OpsIQ Modal ──────────────────────────────────────────────────────────
 
 const QUICK_QUERIES = [
   "Who should I call first today?",
@@ -236,7 +236,7 @@ const QUICK_QUERIES = [
   "Compare our MQLs by budget",
 ];
 
-function AskVisionModal({ leads, onClose }: { leads: Lead[]; onClose: () => void }) {
+function AskOpsIQModal({ leads, onClose }: { leads: Lead[]; onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
@@ -260,7 +260,7 @@ function AskVisionModal({ leads, onClose }: { leads: Lead[]; onClose: () => void
         teamSize: l.teamSize, timestamp: l.timestamp, phone: l.phone,
         isWhale: l.isWhale, whaleKeywords: l.whaleKeywords,
       }));
-      const res = await fetch("/api/ask-vision", {
+      const res = await fetch("/api/ask-opsiq", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, leads: leanLeads }),
@@ -284,7 +284,7 @@ function AskVisionModal({ leads, onClose }: { leads: Lead[]; onClose: () => void
               <Brain size={16} className="text-black" />
             </div>
             <div>
-              <p className="text-white font-black text-sm">Ask VISION</p>
+              <p className="text-white font-black text-sm">Ask OpsIQ</p>
               <p className="text-xs text-[#4ADE80]">Lead Intelligence · {leads.length} leads in context</p>
             </div>
           </div>
@@ -317,7 +317,7 @@ function AskVisionModal({ leads, onClose }: { leads: Lead[]; onClose: () => void
           {asked && (
             <div className="rounded-xl border border-[rgba(74,222,128,0.15)] bg-[rgba(74,222,128,0.03)] p-4 min-h-[80px]">
               <p className="text-xs text-[#4ADE80] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Sparkles size={10} /> Ask VISION Analysis
+                <Sparkles size={10} /> Ask OpsIQ Analysis
               </p>
               {loading ? (
                 <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -401,11 +401,11 @@ function DailyBriefCard({ leads, onBadgeClick, onLeadClick, currentUserName, cal
         teamSize: l.teamSize, timestamp: l.timestamp, phone: l.phone,
         isWhale: l.isWhale, whaleKeywords: l.whaleKeywords,
       }));
-      const res = await fetch("/api/ask-vision", {
+      const res = await fetch("/api/ask-opsiq", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: `VISION PROPERTY INTELLIGENCE DAILY BRIEF — max 2 short sentences, facts only, no greetings or headers:
+          question: `OPERATEIQ DAILY BRIEF — max 2 short sentences, facts only, no greetings or headers:
 1. Name the top 2 leads by revenue potential (highest budget × score). For each: name, budget/month, timeline.
 2. Hot pipeline total per month. Mention whale count only if above 0.
 Use real names and numbers. Be punchy.`,
@@ -520,7 +520,7 @@ Use real names and numbers. Be punchy.`,
           <p className="text-sm text-gray-500 italic">Top priority: {topLead.name} — {topLead.spaceType} at ${parseBudget(topLead.budget).toLocaleString()}/mo</p>
         ) : null}
         <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
-          <Sparkles size={9} /> Powered by Ask VISION
+          <Sparkles size={9} /> Powered by Ask OpsIQ
         </p>
       </div>
 
@@ -593,7 +593,7 @@ function LeadComments({ leadId, currentUserName }: { leadId: string; currentUser
   const [loadingCmts, setLoadingCmts] = useState(false);
   const [newBody, setNewBody] = useState("");
   const [authorName, setAuthorName] = useState<string>(() =>
-    typeof window !== "undefined" ? localStorage.getItem("vision_commenter") ?? "" : ""
+    typeof window !== "undefined" ? localStorage.getItem("oiq_commenter") ?? "" : ""
   );
   const [posting, setPosting] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -622,7 +622,7 @@ function LeadComments({ leadId, currentUserName }: { leadId: string; currentUser
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lead_id: leadId, author: authorName.trim(), body: newBody.trim() }),
       });
-      localStorage.setItem("vision_commenter", authorName.trim());
+      localStorage.setItem("oiq_commenter", authorName.trim());
       setNewBody("");
       await loadComments();
     } finally { setPosting(false); }
@@ -749,7 +749,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
     createdByEmployee: "",
   });
 
-  const LEAD_DRAFT_KEY = "vision_draft_lead_new";
+  const LEAD_DRAFT_KEY = "oiq_draft_lead_new";
 
   const clearLocalDraft = () => { try { localStorage.removeItem(LEAD_DRAFT_KEY); } catch { /* ignore */ } };
 
@@ -927,7 +927,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
               <div className="flex gap-2 flex-shrink-0">
                 <button onClick={() => {
                   try {
-                    const raw = localStorage.getItem("vision_draft_lead_new");
+                    const raw = localStorage.getItem("oiq_draft_lead_new");
                     if (raw) {
                       const { data } = JSON.parse(raw);
                       if (data?.form) setForm(data.form);
@@ -949,7 +949,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
             </div>
             <div>
               <label className={LABEL}>Phone</label>
-              <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: formatPhoneAdmin(e.target.value) })} placeholder="(423) ___-____" className={FIELD} />
+              <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: formatPhoneAdmin(e.target.value) })} placeholder="(555) ___-____" className={FIELD} />
             </div>
             <div>
               <label className={LABEL}>Email</label>
@@ -1289,7 +1289,7 @@ export default function AdminPage() {
     setMentionAlert({ message: msg, author });
   }, []);
   const [recentLiveIds, setRecentLiveIds] = useState<Set<string>>(new Set());
-  const [showAskVision, setShowAskVision] = useState(false);
+  const [showAskOpsIQ, setShowAskOpsIQ] = useState(false);
   const [callListOpen, setCallListOpen] = useState(false);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [activeCallLog, setActiveCallLog] = useState<{ leadId: string; leadName: string; phone: string } | null>(null);
@@ -1567,7 +1567,7 @@ export default function AdminPage() {
         email,
         avatar: data.user.user_metadata?.avatar_url,
       });
-      try { localStorage.setItem("vision_commenter", resolvedName); } catch { /**/ }
+      try { localStorage.setItem("oiq_commenter", resolvedName); } catch { /**/ }
 
       // ── Log this login to activity_log ──────────────────────────────────
       try {
@@ -1592,7 +1592,7 @@ export default function AdminPage() {
 
   // Clear stale localStorage on mount — Supabase is now source of truth
   useEffect(() => {
-    try { localStorage.removeItem("vision_live_leads"); } catch { /* ignore */ }
+    try { localStorage.removeItem("oiq_live_leads"); } catch { /* ignore */ }
   }, []);
 
   // Supabase Realtime Presence — show who else is online
@@ -1636,7 +1636,7 @@ export default function AdminPage() {
   // ── localStorage live-lead poller (4s interval) ────────────────────────────
   const pollLocalStorage = useCallback(() => {
     try {
-      const stored: Lead[] = JSON.parse(localStorage.getItem("vision_live_leads") || "[]");
+      const stored: Lead[] = JSON.parse(localStorage.getItem("oiq_live_leads") || "[]");
       if (!stored.length) return;
 
       const brandNew = stored.filter(l => !seenIdsRef.current.has(l.id));
@@ -1740,7 +1740,7 @@ export default function AdminPage() {
           </div>
           <h1 className="text-xl font-black text-white mb-2">Access Denied</h1>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-            Your Google account is not authorized to access VISION.
+            Your Google account is not authorized to access OperateIQ.
             <br />Contact your administrator to request access.
           </p>
           <button
@@ -1996,7 +1996,7 @@ export default function AdminPage() {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center mx-auto mb-3 shadow-[0_0_24px_rgba(74,222,128,0.3)] animate-pulse">
             <Zap size={20} className="text-black" />
           </div>
-          <p className="text-xs text-gray-600">Loading VISION…</p>
+          <p className="text-xs text-gray-600">Loading OperateIQ…</p>
         </div>
       </div>
     );
@@ -2074,10 +2074,10 @@ export default function AdminPage() {
         {/* Page Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/vision-icon.png" alt="Vision" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.25)] object-cover" />
+            <img src="/operateiq-icon.svg" alt="OperateIQ" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.25)] object-cover" />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-white font-black text-xl tracking-tight">VISION</h1>
+                <h1 className="text-white font-black text-xl tracking-tight">OperateIQ</h1>
                 <span className="flex items-center gap-1.5 text-xs font-bold text-[#4ADE80] bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] px-2 py-0.5 rounded-lg">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
                   LIVE
@@ -2123,12 +2123,12 @@ export default function AdminPage() {
             </button>
 
             <button
-              onClick={() => setShowAskVision(true)}
-              className="btn-ask-vision px-3 sm:px-4 py-2"
-              title="Ask VISION"
+              onClick={() => setShowAskOpsIQ(true)}
+              className="btn-ask-opsiq px-3 sm:px-4 py-2"
+              title="Ask OpsIQ"
             >
               <Brain size={13} />
-              <span className="hidden sm:inline">Ask VISION</span>
+              <span className="hidden sm:inline">Ask OpsIQ</span>
             </button>
             {activeTab === "leads" && (
               <button
@@ -2165,9 +2165,9 @@ export default function AdminPage() {
 
         </div>
 
-        {/* Ask VISION Modal */}
-        {showAskVision && (
-          <AskVisionModal leads={leads} onClose={() => setShowAskVision(false)} />
+        {/* Ask OpsIQ Modal */}
+        {showAskOpsIQ && (
+          <AskOpsIQModal leads={leads} onClose={() => setShowAskOpsIQ(false)} />
         )}
 
         {/* ─ CALL LOG MODAL ──────────────────────────────────────────────────── */}
@@ -3155,7 +3155,7 @@ export default function AdminPage() {
               <div className="text-center py-20 text-gray-600">
                 <Zap size={32} className="mx-auto mb-3 opacity-30" />
                 <p>No {filter.toLowerCase()}s yet.</p>
-                <p className="text-sm mt-1">Leads appear here as they come in through Ask VISION.</p>
+                <p className="text-sm mt-1">Leads appear here as they come in through Ask OpsIQ.</p>
               </div>
             )}
 
@@ -3497,7 +3497,7 @@ export default function AdminPage() {
         {activeTab === "settings" && <SettingsTab leads={activeLeads} deletingAll={deletingAll} deleteAllConfirm={deleteAllConfirm} setDeleteAllConfirm={setDeleteAllConfirm} deleteAllLeads={deleteAllLeads} />}
 
         <div className="text-center text-[10px] sm:text-xs text-gray-700 mt-10 mb-6 px-4 space-y-0.5">
-          <p className="font-semibold text-gray-600">VISION Property Intelligence Platform</p>
+          <p className="font-semibold text-gray-600">OperateIQ Property Operations Platform</p>
           <p>AI-Powered by Gemini · Auto-refreshes every 30s</p>
         </div>
       </div>

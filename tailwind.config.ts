@@ -9,12 +9,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        "vision-black": "#080B0F",
-        "vision-dark": "#0D1117",
-        "vision-surface": "#111827",
-        "vision-green": "#4ADE80",
-        "vision-green-dark": "#22C55E",
-        "vision-gold": "#FACC15",
+        "brand-black": "#080B0F",
+        "brand-dark": "#0D1117",
+        "brand-surface": "#111827",
+        "brand-green": "#4ADE80",
+        "brand-green-dark": "#22C55E",
+        "brand-gold": "#FACC15",
       },
       fontFamily: {
         sans: ["var(--font-dm-sans)", "var(--font-inter)", "system-ui", "sans-serif"],

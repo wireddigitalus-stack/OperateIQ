@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile } from "@/lib/org-profile";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -18,7 +19,9 @@ export async function POST(req: NextRequest) {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
 
-    const prompt = `You are a commercial real estate market analyst for Vision LLC, Downtown Bristol's #1 commercial property firm (Bristol, TN/VA — Tri-Cities region, 20+ years).
+    const org = getOrgProfile();
+
+    const prompt = `You are a commercial real estate market analyst for ${org.name}, a commercial property firm in ${org.location}.
 
 Write a concise, professional AI Market Brief based on this data snapshot. Be specific, data-driven, and use the actual numbers provided. Sound like a smart analyst, not a chatbot.
 
@@ -47,9 +50,9 @@ ${leadsByMonth.map((m: { label: string; count: number }) => `  ${m.label}: ${m.c
 
 Write the brief in 3 short sections:
 
-**Market Pulse** (2–3 sentences): What does the lead data tell us about current demand in Bristol/Tri-Cities?
+**Market Pulse** (2–3 sentences): What does the lead data tell us about current demand in ${org.location}?
 
-**Key Opportunities** (2–3 bullet points): What should Vision LLC prioritize based on this data?
+**Key Opportunities** (2–3 bullet points): What should ${org.name} prioritize based on this data?
 
 **Action Items** (2–3 bullet points): Specific, practical next steps for the team this week.
 

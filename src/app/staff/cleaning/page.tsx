@@ -443,7 +443,7 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-const CHECKLIST_KEY = "vision_cleaning_checks";
+const CHECKLIST_KEY = "oiq_cleaning_checks";
 
 function loadChecks(): Record<string, string[]> {
   try { return JSON.parse(localStorage.getItem(CHECKLIST_KEY) || "{}"); } catch { return {}; }
@@ -463,13 +463,13 @@ export default function CleaningStaffPage() {
   const todayFormatted = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   useEffect(() => {
-    const saved = localStorage.getItem("vision_cleaning_name");
+    const saved = localStorage.getItem("oiq_cleaning_name");
     if (saved) setWorkerName(saved);
     setCheckState(loadChecks());
   }, []);
 
   const handleSelectName = (name: string) => {
-    localStorage.setItem("vision_cleaning_name", name);
+    localStorage.setItem("oiq_cleaning_name", name);
     setWorkerName(name);
   };
 
@@ -540,7 +540,7 @@ export default function CleaningStaffPage() {
             <p className="text-base font-black text-white leading-none">{workerName}</p>
           </div>
         </div>
-        <button onClick={() => { localStorage.removeItem("vision_cleaning_name"); setWorkerName(null); }}
+        <button onClick={() => { localStorage.removeItem("oiq_cleaning_name"); setWorkerName(null); }}
           className="text-xs text-gray-600 px-3 py-2 rounded-xl border border-[rgba(255,255,255,0.07)]">Switch</button>
       </div>
 

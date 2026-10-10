@@ -79,7 +79,7 @@ function ExportButton({ leads }: { leads: Lead[] }) {
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Leads");
-      XLSX.writeFile(wb, `vision-leads-${new Date().toISOString().slice(0,10)}.xlsx`);
+      XLSX.writeFile(wb, `operateiq-leads-${new Date().toISOString().slice(0,10)}.xlsx`);
     } finally {
       setExporting(false);
     }
@@ -227,14 +227,14 @@ function QBExportButton() {
 
       // Download Excel
       const dateStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `vision-qb-export-${dateStr}.xlsx`);
+      XLSX.writeFile(wb, `operateiq-qb-export-${dateStr}.xlsx`);
 
       // Download IIF
       const blob = new Blob([lines.join("\n")], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `vision-qb-import-${dateStr}.iif`;
+      a.download = `operateiq-qb-import-${dateStr}.iif`;
       a.click();
       URL.revokeObjectURL(url);
 
@@ -412,7 +412,6 @@ function Tooltip({ text, children, wide }: { text: string; children: React.React
 
 // ─── Owner lock — these emails can never be deleted from the dashboard
 const OWNER_EMAILS = new Set([
-  "ahurley1474@gmail.com",   // Allen Hurley — owner
   "wireddigitalus@gmail.com", // Robert Neilson — developer
 ]);
 
@@ -432,9 +431,9 @@ function UserSection({ title, role, icon, color, users, onRefresh }: {
   const [copied, setCopied] = useState(false);
 
   const getInviteMessage = (u: AllowedUser) => {
-    const domain = typeof window !== "undefined" ? window.location.origin : "https://vision.teamvisionllc.com";
+    const domain = typeof window !== "undefined" ? window.location.origin : "";
     const portalUrl = `${domain}/staff/${u.role}`;
-    return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your Team Vision ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
+    return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your OperateIQ ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
 
 ${portalUrl}
 
@@ -782,7 +781,7 @@ Save a shortcut to your phone's Home Screen:
 
 // ─── Notifications Card (Beta) ────────────────────────────────────────────────
 
-const NOTIF_KEY = "vision_notif_prefs";
+const NOTIF_KEY = "oiq_notif_prefs";
 
 interface NotifPrefs {
   emailEnabled: boolean;
@@ -898,10 +897,8 @@ function NotificationsCard() {
           <div className="mb-3">
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Recipients</p>
             <div className="space-y-1.5">
-              {[
-                { name: "J. McClanahan", email: "jmcclanahan@teamvisionllc.com" },
-                { name: "D. Myers", email: "dmyers@teamvisionllc.com" },
-              ].map(r => (
+              <p className="text-[10px] text-gray-600 px-3 py-2 rounded-xl bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.05)]">Configure recipients in the LEAD_NOTIFY_TO environment variable.</p>
+              {([] as { name: string; email: string }[]).map(r => (
                 <div key={r.email} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.05)]">
                   <div className="w-6 h-6 rounded-lg bg-[rgba(74,222,128,0.1)] flex items-center justify-center text-[10px] font-black text-[#4ADE80]">
                     {r.name.split(" ").map(w => w[0]).join("")}
@@ -921,7 +918,7 @@ function NotificationsCard() {
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Triggers</p>
             <div className="space-y-1">
               {[
-                { icon: <Zap size={12} className="text-[#FACC15]" />, label: "New Lead (Chatbot)", desc: "Instant email when someone submits via Ask VISION" },
+                { icon: <Zap size={12} className="text-[#FACC15]" />, label: "New Lead (Chatbot)", desc: "Instant email when someone submits via Ask OpsIQ" },
                 { icon: <MessageSquare size={12} className="text-[#60A5FA]" />, label: "Contact Form", desc: "Inquiry from the website contact page" },
               ].map((t, i) => (
                 <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[rgba(0,0,0,0.15)]">
@@ -972,16 +969,10 @@ function NotificationsCard() {
 export function SocialLinksCard() {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState("");
-  const BASE = "https://www.teamvisionllc.com";
+  const BASE = typeof window !== "undefined" ? window.location.origin : "";
 
   const LINKS = [
     { slug: "", label: "All Properties", emoji: "🏠", desc: "Default — shows all properties equally" },
-    { slug: "the-executive", label: "The Executive", emoji: "🏢", desc: "Premier office suites · Downtown" },
-    { slug: "city-centre", label: "City Centre", emoji: "💼", desc: "Flexible offices · 1.2k–18k sqft" },
-    { slug: "bristol-cowork", label: "Bristol CoWork", emoji: "☕", desc: "All-inclusive · 620 State St" },
-    { slug: "centre-point-suites", label: "Centre Point", emoji: "🏪", desc: "Casino adjacent · Retail & office" },
-    { slug: "foundation-event-facility", label: "Foundation Events", emoji: "🎉", desc: "Premier event facility" },
-    { slug: "warehouse", label: "Warehouse", emoji: "🏭", desc: "2k–25k sqft · Bristol Metro" },
     { slug: "admin-login", label: "Admin Portal", emoji: "🔒", desc: "Direct login link for staff & administration", isDirect: true },
   ];
 
@@ -1091,7 +1082,7 @@ function LoginHistory() {
 
   const [simulatedActive, setSimulatedActive] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem("vision_simulated_threat") === "true";
+    return localStorage.getItem("oiq_simulated_threat") === "true";
   });
 
   const fetchLoginsAndAudit = useCallback(async (isSimulated: boolean) => {
@@ -1150,7 +1141,7 @@ function LoginHistory() {
   const toggleSimulation = () => {
     const next = !simulatedActive;
     setSimulatedActive(next);
-    localStorage.setItem("vision_simulated_threat", String(next));
+    localStorage.setItem("oiq_simulated_threat", String(next));
     fetchLoginsAndAudit(next);
   };
 
@@ -1200,7 +1191,7 @@ function LoginHistory() {
         </div>
       </button>
       <p className="text-xs text-gray-500 mb-3">
-        AI-audited authentication sessions and allowlist defense to safeguard the VISION dashboard.
+        AI-audited authentication sessions and allowlist defense to safeguard the OperateIQ dashboard.
       </p>
 
       {expanded && (
@@ -1279,7 +1270,7 @@ function LoginHistory() {
                 ) : (
                   <>
                     <p className="text-sm text-gray-300 leading-relaxed font-medium mb-3">
-                      {auditResult?.summary ?? "VISION AI Security Guard is active. Logs are scanned for anomalies continuously. No immediate concerns."}
+                      {auditResult?.summary ?? "OpsIQ Security Guard is active. Logs are scanned for anomalies continuously. No immediate concerns."}
                     </p>
 
                     {auditResult?.anomalies && auditResult.anomalies.length > 0 && (
@@ -1618,7 +1609,7 @@ function SettingsPanel({ leads, deletingAll, deleteAllConfirm, setDeleteAllConfi
   const [savingQR, setSavingQR] = useState(false);
   const [hiddenQR, setHiddenQR] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
-    try { return new Set(JSON.parse(localStorage.getItem("vision_hidden_qr") || "[]") as string[]); }
+    try { return new Set(JSON.parse(localStorage.getItem("oiq_hidden_qr") || "[]") as string[]); }
     catch { return new Set(); }
   });
   const [showHidden, setShowHidden] = useState(false);
@@ -1626,7 +1617,7 @@ function SettingsPanel({ leads, deletingAll, deleteAllConfirm, setDeleteAllConfi
   function hideCard(id: string) {
     const next = new Set(hiddenQR).add(id);
     setHiddenQR(next);
-    localStorage.setItem("vision_hidden_qr", JSON.stringify([...next]));
+    localStorage.setItem("oiq_hidden_qr", JSON.stringify([...next]));
     setDeletingQR(null);
   }
 
@@ -1634,7 +1625,7 @@ function SettingsPanel({ leads, deletingAll, deleteAllConfirm, setDeleteAllConfi
     const next = new Set(hiddenQR);
     next.delete(id);
     setHiddenQR(next);
-    localStorage.setItem("vision_hidden_qr", JSON.stringify([...next]));
+    localStorage.setItem("oiq_hidden_qr", JSON.stringify([...next]));
   }
 
   const loadUsers = useCallback(async () => {
@@ -1692,7 +1683,7 @@ REVOKE SELECT (pin) ON TABLE allowed_users FROM anon, authenticated;
 
 -- Seed your own email as first admin:
 INSERT INTO allowed_users (id, email, name, role, active)
-VALUES ('user_owner', 'ahurley1474@gmail.com', 'Allen Hurley', 'admin', true)
+VALUES ('user_owner', 'you@example.com', 'Your Name', 'admin', true)
 ON CONFLICT (email) DO NOTHING;`}</pre>
             <button onClick={loadUsers} className="mt-3 flex items-center gap-1.5 text-xs font-bold text-[#4ADE80] hover:underline">
               <RefreshCw size={11} /> Refresh after running SQL
@@ -1779,7 +1770,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
             if (isHidden && !showHidden) return null;
 
             const slug = nameToSlug(admin.name || admin.email);
-            const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://www.teamvisionllc.com";
+            const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
             const captureUrl = `${baseUrl}/meet/${slug}`;
             const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=080C14&color=4ADE80&margin=10&data=${encodeURIComponent(captureUrl)}`;
             const qrLeadCount = leads.filter(l => l.source === "qr" && l.campaign === slug).length;

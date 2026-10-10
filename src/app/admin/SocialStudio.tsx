@@ -201,7 +201,7 @@ export default function SocialStudio() {
   function exportPack() {
     const prop = PROPERTIES.find(p => p.id === propId);
     const txt = [
-      "VISION LLC — SOCIAL CONTENT PACK",
+      "OperateIQ — SOCIAL CONTENT PACK",
       `Property: ${prop?.name}  |  ${new Date().toLocaleString()}`,
       "=".repeat(60),
       `\nUNIVERSAL POST (Variant 1):\n${post}`,
@@ -217,7 +217,7 @@ export default function SocialStudio() {
     ].join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([txt], { type: "text/plain" }));
-    a.download = `vision-social-${Date.now()}.txt`;
+    a.download = `operateiq-social-${Date.now()}.txt`;
     a.click();
   }
 

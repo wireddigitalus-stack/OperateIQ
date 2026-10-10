@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile, orgContactLine } from "@/lib/org-profile";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -20,9 +21,13 @@ export async function POST(req: NextRequest) {
       luxury:       "aspirational and premium — speak to success, prestige, and exclusivity",
     };
 
+    const org = getOrgProfile();
+    const contact = orgContactLine(org);
+    const brandTag = org.name.replace(/[^A-Za-z0-9]/g, "");
+
     const goalGuide: Record<string, string> = {
-      awareness:  "Build brand awareness. Focus on Vision LLC reputation, location prestige, and the Bristol market story.",
-      leads:      "Drive direct inquiries. Include phone 423-573-1022 and teamvisionllc.com. Push the reader to contact us today.",
+      awareness:  `Build brand awareness. Focus on ${org.name}'s reputation, location prestige, and the local ${org.location} market story.`,
+      leads:      `Drive direct inquiries.${contact ? ` Include ${contact}.` : ""} Push the reader to contact us today.`,
       tour:       "Schedule a property tour. Create urgency and excitement. Make them want to physically see the space.",
       promo:      "Highlight a specific promotion or deal. Make the value proposition crystal clear and time-sensitive.",
     };
@@ -35,11 +40,11 @@ export async function POST(req: NextRequest) {
       ? `\nContent Goal: ${goalGuide[goal]}`
       : "";
 
-    const prompt = `You are a top-tier social media strategist for Vision LLC, Downtown Bristol TN/VA's premier commercial real estate firm (20+ years, largest private CRE owner downtown).
+    const prompt = `You are a top-tier social media strategist for ${org.name}, a commercial real estate firm in ${org.location}.
 
 PROPERTY: ${property.name}
 TYPE: ${property.type}
-LOCATION: ${property.city ?? "Bristol, TN/VA"}
+LOCATION: ${property.city ?? org.location}
 SIZE: ${property.sqft} sqft
 STATUS: ${property.status}
 DESCRIPTION: ${property.description ?? ""}
@@ -49,7 +54,7 @@ TONE: ${toneGuide[tone] ?? toneGuide.professional}${contextNote}${goalNote}
 Generate ALL sections below. IMPORTANT: Use EXACTLY these section headers on their own line. Write the content on the very next line — no blank lines between header and content. Do NOT truncate or cut off any section.
 
 POST:
-Write a single universal social media post (3-5 sentences). This will be used across Facebook, Instagram, and LinkedIn. Include a strong hook first sentence, 2-3 key property details, and end with a CTA including phone 423-573-1022 or teamvisionllc.com. Max 2 emojis. Do not include hashtags here.
+Write a single universal social media post (3-5 sentences). This will be used across Facebook, Instagram, and LinkedIn. Include a strong hook first sentence, 2-3 key property details, and end with a clear CTA${contact ? ` including ${contact}` : ""}. Max 2 emojis. Do not include hashtags here.
 
 POST_ALT:
 An alternative version of the post with a different angle or hook. Same length and format rules as POST.
@@ -61,19 +66,19 @@ EMAIL_SUBJECT:
 One punchy email subject line. Max 60 chars. No emojis. High open-rate style.
 
 GOOGLE_POST:
-Google Business profile post. 1-2 sentences. Local focus. Include phone 423-573-1022. Max 1500 chars.
+Google Business profile post. 1-2 sentences. Local focus.${contact ? ` Include ${contact}.` : ""} Max 1500 chars.
 
 HASHTAGS_LOCATION:
-Exactly 8 hashtags for Bristol TN/VA location and Tri-Cities area. All on one line, space separated. No line breaks.
+Exactly 8 hashtags for the ${property.city ?? org.location} location and surrounding area. All on one line, space separated. No line breaks.
 
 HASHTAGS_INDUSTRY:
-Exactly 8 hashtags for commercial real estate industry. All on one line, space separated. Must include #CommercialRealEstate #CRE #VisionLLC. No line breaks.
+Exactly 8 hashtags for commercial real estate industry. All on one line, space separated. Must include #CommercialRealEstate #CRE${brandTag ? ` #${brandTag}` : ""}. No line breaks.
 
 HASHTAGS_PROPERTY:
 Exactly 8 hashtags specific to this property type, features, and local market. All on one line, space separated. No line breaks.
 
 BEST_TIME:
-One sentence: best day + time to post for CRE content in Eastern US, with brief reason. Apply to all platforms.`;
+One sentence: best day + time to post for CRE content in the local time zone for ${org.location}, with brief reason. Apply to all platforms.`;
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,

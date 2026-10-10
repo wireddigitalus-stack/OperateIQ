@@ -41,20 +41,8 @@ interface Props {
 
 // ── Must match the same dropdown names used in PropDetailsTab ─────────────────
 const PROPERTY_DROPDOWN_NAMES: Record<string, string[]> = {
-  "city-centre": [
-    "City Centre Professional Suites",
-    "City Centre",
-    "City Central",
-    "Bristol CoWork",
-    "Bristol Cowork",
-  ],
-  "the-executive": ["The Executive"],
-  "centre-point-suites": ["Centre Point"],
-  "foundation-event-facility": ["Foundation Event Facility"],
-  "commercial-warehouse": ["Commercial Warehouse"],
-  "west-state-commons": ["West State Commons"],
-  "250-commonwealth-ave": ["250 Commonwealth Ave"],
-  "628-state-street": ["628 State Street"],
+  "sample-office": ["Sample Office Building"],
+  "sample-retail": ["Sample Retail Center"],
 };
 
 function exactBuildingMatch(tenantBuilding: string, propertyId: string, displayName: string): boolean {

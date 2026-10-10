@@ -1371,7 +1371,7 @@ export default function MaintenanceStaffPage() {
   );
 
   useEffect(() => {
-    const saved = localStorage.getItem("vision_staff_name");
+    const saved = localStorage.getItem("oiq_staff_name");
     if (saved) setWorkerName(saved);
   }, []);
 
@@ -1389,7 +1389,7 @@ export default function MaintenanceStaffPage() {
   }, []);
 
   const handleSelectName = (name: string) => {
-    localStorage.setItem("vision_staff_name", name);
+    localStorage.setItem("oiq_staff_name", name);
     setWorkerName(name);
   };
 
@@ -1566,7 +1566,7 @@ export default function MaintenanceStaffPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { localStorage.removeItem("vision_staff_name"); setWorkerName(null); }}
+          <button onClick={() => { localStorage.removeItem("oiq_staff_name"); setWorkerName(null); }}
             className="text-xs text-gray-400 hover:text-white px-3 py-2 rounded-xl border border-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.05)] transition-all">
             Switch
           </button>

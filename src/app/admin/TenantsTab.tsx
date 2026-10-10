@@ -186,13 +186,13 @@ function TenantForm({
       {/* Company & Contact */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><label className={LABEL}>Company / Tenant Name *</label>
-          <input value={form.name || ""} onChange={e => set("name", e.target.value)} placeholder="Bristol Tech Co." className={FIELD} spellCheck /></div>
+          <input value={form.name || ""} onChange={e => set("name", e.target.value)} placeholder="Acme Tech Co." className={FIELD} spellCheck /></div>
         <div><label className={LABEL}>Primary Contact</label>
           <div className="flex gap-1.5 items-center"><input value={form.contactName || ""} onChange={e => set("contactName", e.target.value)} placeholder="Jane Smith" className={FIELD + " flex-1"} spellCheck /><MicButton onResult={(t) => set("contactName", (form.contactName || "") + (form.contactName ? " " : "") + t)} /></div></div>
         <div><label className={LABEL}>Email</label>
           <input type="email" value={form.email || ""} onChange={e => set("email", e.target.value)} placeholder="jane@company.com" className={FIELD} /></div>
         <div><label className={LABEL}>Phone</label>
-          <div className="flex gap-1.5 items-center"><input type="tel" value={form.phone || ""} onChange={e => set("phone", e.target.value)} placeholder="(423) 555-0000" className={FIELD + " flex-1"} /><MicButton onResult={(t) => set("phone", (form.phone || "") + (form.phone ? " " : "") + t)} /></div></div>
+          <div className="flex gap-1.5 items-center"><input type="tel" value={form.phone || ""} onChange={e => set("phone", e.target.value)} placeholder="(555) 555-0000" className={FIELD + " flex-1"} /><MicButton onResult={(t) => set("phone", (form.phone || "") + (form.phone ? " " : "") + t)} /></div></div>
       </div>
 
       {/* Property */}
@@ -203,7 +203,7 @@ function TenantForm({
               <input
                 value={currentVal}
                 onChange={e => set("building", e.target.value)}
-                placeholder="e.g. 642 State St"
+                placeholder="e.g. 123 Main St"
                 className={FIELD + " flex-1"}
               />
               <button
@@ -310,7 +310,7 @@ function TenantForm({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div><label className={LABEL}>Assigned Rep</label>
           <div className="flex gap-1.5 items-center"><input value={form.rep || ""} onChange={e => set("rep", e.target.value)}
-            placeholder={currentUserName || "Allen Hurley"} className={FIELD + " flex-1"} /><MicButton onResult={(t) => set("rep", (form.rep || "") + (form.rep ? " " : "") + t)} /></div></div>
+            placeholder={currentUserName || "Your name"} className={FIELD + " flex-1"} /><MicButton onResult={(t) => set("rep", (form.rep || "") + (form.rep ? " " : "") + t)} /></div></div>
         <div><label className={LABEL}>Status</label>
           <select value={form.status || "active"} onChange={e => set("status", e.target.value as "active"|"pending"|"expired")} className={FIELD}>
             <option value="active" className="bg-[#0A0F1A]">Active</option>
@@ -1381,10 +1381,10 @@ export default function TenantsTab({
 
   // Static known properties (matches the list from PropDetailsTab)
   const STATIC_PROPERTIES = [
-    "City Centre Professional Suites", "The Executive",
-    "Centre Point", "Foundation Event Facility", "Commercial Warehouse",
-    "West State Commons", "250 Commonwealth Ave",
-    "628 State Street", "City Central",
+    "Sample Office Building", "Main Street Plaza",
+    "Riverside Commons", "Oak Park Center", "Commercial Warehouse",
+    "Westside Commons", "250 Commerce Ave",
+    "100 Main Street", "Downtown Center",
   ];
 
   // Build comprehensive sorted list: static + dynamic DB properties + existing tenant buildings

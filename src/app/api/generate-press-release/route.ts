@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile, orgContactLine } from "@/lib/org-profile";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -26,10 +27,14 @@ export async function POST(req: NextRequest) {
     const typeLabel = TYPE_LABELS[type] || "Press Release";
     const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
+    const org = getOrgProfile();
+    const contact = orgContactLine(org);
+    const dateline = org.location.toUpperCase();
+
     // Compact prompt — fewer tokens needed from the model
     const prompt = `Write a short professional press release. Be concise — 3 paragraphs max.
 
-Company: Vision LLC (commercial real estate, Bristol, Tennessee/Virginia, Tri-Cities region)
+Company: ${org.name} (commercial real estate, ${org.location})
 Type: ${typeLabel}
 Topic: ${topic}
 ${details ? `Details: ${details}` : ""}
@@ -38,13 +43,13 @@ Today's date: ${today}
 Format:
 Line 1: HEADLINE: [headline text]
 Line 2: (blank)
-Line 3: BRISTOL, Tenn./Va. — ${today} — [body paragraph 1]
+Line 3: ${dateline} — ${today} — [body paragraph 1]
 Line 4: (blank)
 [body paragraph 2]
 Line 5: (blank)
 [body paragraph 3]
 Line 6: (blank)
-About Vision LLC: Vision LLC is a commercial real estate firm specializing in office, retail, and industrial space in the Tri-Cities region of Tennessee and Virginia. For more information, visit teamvisionllc.com. Contact: ahurley1474@gmail.com
+About ${org.name}: ${org.name} is a commercial real estate firm specializing in office, retail, and industrial space in ${org.location}.${contact ? ` Contact: ${contact}` : ""}
 
 Write it now, no preamble:`;
 

@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Maintenance Portal — Vision",
-  description: "Team Vision Staff Maintenance Portal. Manage daily facility repairs and work orders.",
+  title: "Maintenance Portal — OperateIQ",
+  description: "OperateIQ Staff Maintenance Portal. Manage daily facility repairs and work orders.",
   robots: { index: false, follow: false },
   openGraph: {
-    title: "Maintenance Portal — Vision",
-    description: "Team Vision Staff Maintenance Portal. Manage daily facility repairs and work orders.",
+    title: "Maintenance Portal — OperateIQ",
+    description: "OperateIQ Staff Maintenance Portal. Manage daily facility repairs and work orders.",
     type: "website",
-    url: "https://www.teamvisionllc.com/staff/maintenance",
-    siteName: "Vision Maintenance",
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/staff/maintenance`,
+    siteName: "OperateIQ Maintenance",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Maintenance Portal — Vision",
-    description: "Team Vision Staff Maintenance Portal. Manage daily facility repairs and work orders.",
+    title: "Maintenance Portal — OperateIQ",
+    description: "OperateIQ Staff Maintenance Portal. Manage daily facility repairs and work orders.",
   },
   manifest: "/maintenance.webmanifest",
   icons: {

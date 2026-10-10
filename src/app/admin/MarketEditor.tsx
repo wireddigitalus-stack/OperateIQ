@@ -6,6 +6,7 @@ import {
   Type, Pencil, ChevronDown, ChevronRight, MapPin,
 } from "lucide-react";
 import { GEO_PAGES } from "@/lib/data";
+import { getOrgProfile, orgContactLine } from "@/lib/org-profile";
 import SeoFieldGuard, { getSeoConfig, buildMarketKeywords } from "./SeoFieldGuard";
 
 // ── Auto-generate defaults from GEO_PAGES ──────────────────────────────────
@@ -14,6 +15,8 @@ type FieldMeta = { label: string; value: string; type: "text" | "textarea" };
 
 function buildMarketDefaults(): Record<string, Record<string, FieldMeta>> {
   const sections: Record<string, Record<string, FieldMeta>> = {};
+  const org = getOrgProfile();
+  const contact = orgContactLine(org);
   for (const g of GEO_PAGES) {
     const key = `market:${g.slug}`;
     sections[key] = {
@@ -28,16 +31,16 @@ function buildMarketDefaults(): Record<string, Record<string, FieldMeta>> {
       keyEmployers:    { label: "Key Employers (one per line)", value: g.keyEmployers.join("\n"), type: "textarea" },
       nearbyHighways:  { label: "Nearby Highways (one per line)", value: g.nearbyHighways.join("\n"), type: "textarea" },
       availableTypes:  { label: "Available Space Types (one per line)", value: g.availableTypes.join("\n"), type: "textarea" },
-      faq_q1:          { label: "FAQ 1 — Question", value: `Does Vision LLC have commercial property available in ${g.city}, ${g.state}?`, type: "text" },
+      faq_q1:          { label: "FAQ 1 — Question", value: `Does ${org.name} have commercial property available in ${g.city}, ${g.state}?`, type: "text" },
       faq_a1:          { label: "FAQ 1 — Answer", value: g.isPrimary
-        ? `Yes! Vision LLC is the largest private commercial property owner in Downtown Bristol with a full portfolio. Contact our team at 423-573-1022.`
-        : `Vision LLC actively serves businesses from ${g.city} — connecting them with our commercial portfolio in Downtown Bristol, TN.`, type: "textarea" },
-      faq_q2:          { label: "FAQ 2 — Question", value: `What types of commercial space does Vision LLC offer in the ${g.region}?`, type: "text" },
-      faq_a2:          { label: "FAQ 2 — Answer", value: `In the ${g.region} market, Vision LLC offers ${g.availableTypes.join(", ")}. We specialize in finding the right fit for your business.`, type: "textarea" },
-      faq_q3:          { label: "FAQ 3 — Question", value: `How long has Vision LLC been serving ${g.city}?`, type: "text" },
-      faq_a3:          { label: "FAQ 3 — Answer", value: `Vision LLC has been investing in and serving the ${g.region} region for over 20 years.`, type: "textarea" },
+        ? `Yes! ${org.name} has a full portfolio of commercial property in ${g.city}. Contact our team to learn more.`
+        : `${org.name} actively serves businesses from ${g.city} — connecting them with our commercial portfolio in ${org.location}.`, type: "textarea" },
+      faq_q2:          { label: "FAQ 2 — Question", value: `What types of commercial space does ${org.name} offer in the ${g.region}?`, type: "text" },
+      faq_a2:          { label: "FAQ 2 — Answer", value: `In the ${g.region} market, ${org.name} offers ${g.availableTypes.join(", ")}. We specialize in finding the right fit for your business.`, type: "textarea" },
+      faq_q3:          { label: "FAQ 3 — Question", value: `How long has ${org.name} been serving ${g.city}?`, type: "text" },
+      faq_a3:          { label: "FAQ 3 — Answer", value: `${org.name} has been investing in and serving the ${g.region} region for years.`, type: "textarea" },
       faq_q4:          { label: "FAQ 4 — Question", value: `How do I schedule a property tour in ${g.city}?`, type: "text" },
-      faq_a4:          { label: "FAQ 4 — Answer", value: `You can call us at 423-573-1022, email leasing [at] teamvisionllc.com, or fill out our contact form.`, type: "textarea" },
+      faq_a4:          { label: "FAQ 4 — Answer", value: `${contact ? `You can reach us at ${contact}, or` : "You can"} fill out our contact form.`, type: "textarea" },
     };
   }
   return sections;
@@ -323,7 +326,7 @@ export default function MarketEditor() {
                           googlePreview={isDesc ? {
                             title: getValue(sectionKey, "metaTitle"),
                             description: val,
-                            url: `teamvisionllc.com/markets/${geo.slug}`,
+                            url: `${typeof window !== "undefined" ? window.location.host : ""}/markets/${geo.slug}`,
                           } : undefined}
                         />
                       )}

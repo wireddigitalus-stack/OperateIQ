@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// Vision LLC — Analytics Admin API
+// OperateIQ — Analytics Admin API
 // Returns aggregated analytics data for the admin dashboard.
 // Queries the session_summary view and raw site_analytics table.
 // ══════════════════════════════════════════════════════════════════════════════

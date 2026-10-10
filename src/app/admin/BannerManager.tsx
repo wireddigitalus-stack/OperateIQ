@@ -2,8 +2,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Loader2, CheckCircle2, X, Upload, Video, ImageIcon, Trash2, Save, RefreshCw, AlertTriangle, Monitor } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
+import { getOrgProfile } from "@/lib/org-profile";
 
-const MAIN_IDS = ["city-centre","bristol-cowork","the-executive","centre-point-suites","foundation-event-facility","warehouse"];
+const MAIN_IDS = ["sample-office","sample-retail"];
+const DEFAULT_LOC = getOrgProfile().location;
 const BANNER_PROPS = PROPERTIES.filter(p => MAIN_IDS.includes(p.id));
 
 interface Slide { type: "property"|"custom"; propertyId?: string; imageUrl?: string; label: string; location: string; enabled: boolean; order: number; }
@@ -21,7 +23,7 @@ export default function BannerManager() {
   const [uploadingCustom, setUploadingCustom] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [customLabel, setCustomLabel] = useState("");
-  const [customLoc, setCustomLoc] = useState("Bristol, TN");
+  const [customLoc, setCustomLoc] = useState(DEFAULT_LOC);
   const [videoInput, setVideoInput] = useState("");
   const customFileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
@@ -60,7 +62,7 @@ export default function BannerManager() {
       }
       const p = BANNER_PROPS.find(x => x.id === id)!;
       const maxOrder = Math.max(0, ...prev.slides.map(s => s.order));
-      return { ...prev, slides: [...prev.slides, { type:"property", propertyId:id, label:p.name, location:`${p.city}, TN`, enabled:true, order:maxOrder+1 }] };
+      return { ...prev, slides: [...prev.slides, { type:"property", propertyId:id, label:p.name, location:p.city, enabled:true, order:maxOrder+1 }] };
     });
   }
 
@@ -71,8 +73,8 @@ export default function BannerManager() {
       const res = await fetch("/api/hero-banner/upload", { method:"POST", body:fd });
       const d = await res.json(); if (!res.ok) throw new Error(d.error);
       const maxOrder = Math.max(0, ...config.slides.map(s => s.order));
-      setConfig(prev => ({ ...prev, slides: [...prev.slides, { type:"custom", imageUrl:d.url, label:customLabel||"Custom Banner", location:customLoc||"Bristol, TN", enabled:true, order:maxOrder+1 }] }));
-      setCustomLabel(""); setCustomLoc("Bristol, TN");
+      setConfig(prev => ({ ...prev, slides: [...prev.slides, { type:"custom", imageUrl:d.url, label:customLabel||"Custom Banner", location:customLoc||DEFAULT_LOC, enabled:true, order:maxOrder+1 }] }));
+      setCustomLabel(""); setCustomLoc(DEFAULT_LOC);
     } catch(e: unknown) { setError(e instanceof Error ? e.message : "Upload failed"); }
     finally { setUploadingCustom(false); }
   }
@@ -186,7 +188,7 @@ export default function BannerManager() {
                 </div>
                 <div className="p-2">
                   <p className="text-[10px] font-bold text-white truncate">{prop.name}</p>
-                  <p className="text-[9px] text-gray-600">{prop.city}, TN</p>
+                  <p className="text-[9px] text-gray-600">{prop.city}</p>
                 </div>
               </button>
             );

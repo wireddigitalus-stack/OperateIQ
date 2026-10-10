@@ -320,7 +320,7 @@ export default function PageMap({ activeSection, onSectionSelect }: PageMapProps
           <rect x={10} y={0} width={svgW * 0.52 + 12} height={svgH} rx={10} fill="rgba(255,255,255,0.01)" stroke="rgba(255,255,255,0.05)" strokeWidth={0.5} />
           {/* URL bar */}
           <rect x={20} y={-14} width={svgW * 0.4} height={12} rx={4} fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} />
-          <text x={28} y={-6} fill="rgba(255,255,255,0.2)" fontSize={6} fontFamily="monospace">teamvisionllc.com</text>
+          <text x={28} y={-6} fill="rgba(255,255,255,0.2)" fontSize={6} fontFamily="monospace">yourwebsite.com</text>
 
           {/* Section blocks */}
           {sections.map(section => (

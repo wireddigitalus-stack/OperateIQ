@@ -1,19 +1,40 @@
 import { NextResponse } from "next/server";
+import { getOrgProfile } from "@/lib/org-profile";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// ── Google News RSS search queries — hyper-focused on TN/VA CRE market ────
-// Every query explicitly excludes UK/Europe to prevent Bristol England contamination
+// ── Market region ─────────────────────────────────────────────────────────
+// MARKET_INTEL_REGION is a Google News boolean expression, e.g.
+//   "Texas OR Oklahoma"  or  "\"Austin\" OR \"Travis County\""
+// When unset, queries fall back to national US commercial real estate news.
+const MARKET_REGION = (process.env.MARKET_INTEL_REGION || "").trim();
+
+// ── Google News RSS search queries ────────────────────────────────────────
+// Queries exclude UK/Europe to keep results focused on the US market.
 const UK_EXCLUDE = `-UK -England -Europe -London -"United Kingdom"`;
-const SEARCH_QUERIES = [
-  `("relocating headquarters" OR "opening new office" OR "expanding operations") (Tennessee OR Virginia) ${UK_EXCLUDE}`,
-  `("company closing" OR "business closing" OR "layoffs") (Tennessee OR Virginia) ${UK_EXCLUDE}`,
-  `("new headquarters" OR "moving headquarters") (Tennessee OR "East Tennessee" OR "Southwest Virginia") ${UK_EXCLUDE}`,
-  `("commercial real estate" OR "office market" OR "vacancy rate") (Tennessee OR Virginia) ${UK_EXCLUDE}`,
-  `("business law" OR "tax incentive" OR "economic development") (Tennessee OR Virginia) ${UK_EXCLUDE}`,
-  `("Bristol Tennessee" OR "Bristol Virginia" OR "Bristol TN" OR "Bristol VA") (business OR commercial OR development)`,
-  `("Tri-Cities" OR "Kingsport" OR "Johnson City") Tennessee (business OR office OR commercial) ${UK_EXCLUDE}`,
-];
+
+function buildSearchQueries(): string[] {
+  if (MARKET_REGION) {
+    const r = `(${MARKET_REGION})`;
+    return [
+      `("relocating headquarters" OR "opening new office" OR "expanding operations") ${r} ${UK_EXCLUDE}`,
+      `("company closing" OR "business closing" OR "layoffs") ${r} ${UK_EXCLUDE}`,
+      `("new headquarters" OR "moving headquarters") ${r} ${UK_EXCLUDE}`,
+      `("commercial real estate" OR "office market" OR "vacancy rate") ${r} ${UK_EXCLUDE}`,
+      `("business law" OR "tax incentive" OR "economic development") ${r} ${UK_EXCLUDE}`,
+      `("property management" OR "commercial lease" OR "commercial development") ${r} ${UK_EXCLUDE}`,
+    ];
+  }
+  // National US fallback
+  return [
+    `("commercial real estate" OR "office market" OR "vacancy rate") "United States" ${UK_EXCLUDE}`,
+    `("relocating headquarters" OR "opening new office" OR "expanding operations") US ${UK_EXCLUDE}`,
+    `("property management" OR "landlord" OR "commercial lease") US ${UK_EXCLUDE}`,
+    `("commercial property" OR "industrial real estate" OR "retail real estate") trends US ${UK_EXCLUDE}`,
+    `("interest rates" OR "CRE lending" OR "commercial mortgage") real estate US ${UK_EXCLUDE}`,
+  ];
+}
+const SEARCH_QUERIES = buildSearchQueries();
 
 // ── Regional business RSS feeds ───────────────────────────────────────────
 const RSS_FEEDS = [
@@ -77,7 +98,7 @@ async function fetchFeed(url: string, source: string): Promise<FeedItem[]> {
     const timeout = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { "User-Agent": "VisionLLC-MarketIntel/1.0" },
+      headers: { "User-Agent": "OperateIQ-MarketIntel/1.0" },
     });
     clearTimeout(timeout);
     if (!res.ok) return [];
@@ -102,33 +123,37 @@ async function scoreWithAI(items: FeedItem[]): Promise<{ title: string; link: st
     }));
   }
 
-  const prompt = `You are a commercial real estate market analyst for Vision LLC, a CRE firm in Downtown Bristol, Virginia/Tennessee (USA), in the Tri-Cities region.
+  const org = getOrgProfile();
+  const regionLabel = MARKET_REGION
+    ? MARKET_REGION.replace(/"/g, "").replace(/\s+OR\s+/gi, " / ")
+    : "the United States (national)";
+
+  const prompt = `You are a commercial real estate market analyst for ${org.name}, a property firm based in ${org.location} (USA).
+The market region of interest is: ${regionLabel}.
 
 STRICT GEOGRAPHIC FILTER:
-- ONLY score articles about TENNESSEE (TN) or VIRGINIA (VA) in the United States.
-- Any article about other US states, the UK, Europe, Asia, or international locations = "skip".
-- "Bristol" without "Tennessee" or "Virginia" context = likely Bristol UK = "skip".
+- ONLY score articles relevant to ${MARKET_REGION ? `the configured region (${regionLabel})` : "the United States"}.
+- Any article about ${MARKET_REGION ? "other regions, " : ""}the UK, Europe, Asia, or international locations = "skip".
+- Place names that are ambiguous (e.g. a US city name shared with a non-US city) without clear US context = "skip".
 
-WHAT IS RELEVANT to Vision LLC:
-- Companies relocating TO or expanding IN Tennessee or Virginia
-- Company closures or layoffs in TN/VA (creates vacant commercial space = opportunity)
-- New TN or VA business laws, tax incentives, or economic development programs
-- Commercial real estate market data for TN/VA (vacancy rates, lease rates, market trends)
-- New business openings or headquarters announcements in TN/VA
-- Infrastructure or development projects in TN/VA that affect CRE
+WHAT IS RELEVANT to ${org.name}:
+- Companies relocating TO or expanding IN ${regionLabel}
+- Company closures or layoffs in ${regionLabel} (creates vacant commercial space = opportunity)
+- New business laws, tax incentives, or economic development programs affecting ${regionLabel}
+- Commercial real estate market data for ${regionLabel} (vacancy rates, lease rates, market trends)
+- New business openings or headquarters announcements in ${regionLabel}
+- Infrastructure or development projects in ${regionLabel} that affect CRE
 
 WHAT IS NOT RELEVANT (mark as "skip"):
 - Residential real estate, housing market
 - Sports, entertainment, politics unrelated to business/CRE
-- Articles about states other than TN or VA
-- International news of any kind
-- General national business news with no TN/VA connection
-
+${MARKET_REGION ? `- Articles about places outside ${regionLabel}\n` : ""}- International news of any kind
+${MARKET_REGION ? `- General national business news with no connection to ${regionLabel}\n` : ""}
 Score each item:
-- "hot" = Directly about TN/VA commercial real estate, company relocation to TN/VA, or major business opening/closing in our region (Tri-Cities, East TN, Southwest VA)
-- "warm" = About TN or VA business/economic news that could indirectly affect CRE demand
-- "cold" = Tangentially related to TN/VA but low direct CRE impact
-- "skip" = Not about TN or VA, or completely irrelevant to commercial real estate
+- "hot" = Directly about commercial real estate, company relocation, or major business opening/closing in ${regionLabel}${MARKET_REGION ? ` (especially near ${org.location})` : ""}
+- "warm" = Business/economic news for ${regionLabel} that could indirectly affect CRE demand
+- "cold" = Tangentially related to ${regionLabel} but low direct CRE impact
+- "skip" = Not relevant to ${regionLabel}, or completely irrelevant to commercial real estate
 
 Return ONLY a valid JSON array. Each object: {"index": number, "score": "hot"|"warm"|"cold"|"skip", "reason": "one sentence why"}
 

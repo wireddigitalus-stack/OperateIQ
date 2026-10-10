@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { BRAND } from "@/lib/brand";
+import { orgContactLine } from "@/lib/org-profile";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -116,7 +118,7 @@ function buildHtml(data: {
           Reply directly to this email to reach <strong style="color:#111827;">${data.name}</strong> at
           <a href="mailto:${data.email}" style="color:#16A34A;font-weight:600;text-decoration:none;">${data.email}</a>
         </p>
-        <p style="margin:8px 0 0;color:#9CA3AF;font-size:11px;">Submitted via teamvisionllc.com contact form</p>
+        <p style="margin:8px 0 0;color:#9CA3AF;font-size:11px;">Submitted via ${BRAND.name} contact form</p>
       </div>
     </div>
   </div>
@@ -392,8 +394,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[contact] Unexpected error:", err);
+    const contact = orgContactLine();
     return NextResponse.json(
-      { error: "Something went wrong. Please call us directly at (423) 573-5700." },
+      {
+        error: contact
+          ? `Something went wrong. Please contact us directly: ${contact}`
+          : "Something went wrong. Please try again later.",
+      },
       { status: 500 }
     );
   }

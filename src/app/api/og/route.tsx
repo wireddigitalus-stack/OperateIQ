@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { BRAND } from "@/lib/brand";
 
 export const runtime = "edge";
 
@@ -9,11 +10,11 @@ const H = 630;
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
-  const title = searchParams.get("title") || "Vision LLC";
+  const title = searchParams.get("title") || BRAND.name;
   const subtitle =
     searchParams.get("subtitle") ||
-    "Commercial Real Estate · Bristol, TN/VA";
-  const tag = searchParams.get("tag") || "Tri-Cities CRE Leader";
+    BRAND.tagline;
+  const tag = searchParams.get("tag") || "Property Management";
   const type = searchParams.get("type") || "default"; // property | geo | blog | default
 
   // Accent colour per type
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
                   letterSpacing: "-0.5px",
                 }}
               >
-                VISION LLC
+                {BRAND.name}
               </span>
             </div>
             <span
@@ -171,7 +172,7 @@ export async function GET(request: NextRequest) {
                 marginLeft: 50,
               }}
             >
-              Commercial Real Estate · Bristol, TN/VA
+              Property Management Platform
             </span>
           </div>
 
@@ -270,16 +271,12 @@ export async function GET(request: NextRequest) {
               }}
             />
             <span style={{ fontSize: 15, color: "#6B7280" }}>
-              teamvisionllc.com
-            </span>
-            <span style={{ fontSize: 15, color: "#374151", margin: "0 12px" }}>·</span>
-            <span style={{ fontSize: 15, color: "#6B7280" }}>
-              Largest private CRE owner in Downtown Bristol
+              {BRAND.tagline}
             </span>
           </div>
 
           <span style={{ fontSize: 15, color: "#6B7280" }}>
-            423-573-1022
+            {BRAND.name}
           </span>
         </div>
       </div>

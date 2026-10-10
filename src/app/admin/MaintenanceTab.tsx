@@ -127,14 +127,14 @@ function demoDates() {
 function getDemoTickets(): Ticket[] {
   const d = demoDates();
   return [
-    { id: "demo_1", title: "HVAC not cooling — Suite 301", description: "Tenant reports unit blowing warm air. Thermostat set to 68°F but room holds at 78°F.", building: "The Executive", unit: "Suite 301", tenant: "Executive Suites", category: "HVAC", priority: 1, status: "in_progress", assignedTo: "Mike D.", reportedBy: "Allen Hurley", estimatedCost: 650, actualCost: 0, estimatedHours: 4, scheduledDate: d.today, completedDate: null, notes: "[Apr 17 — Mike D.] Compressor cycling on and off. Ordered capacitor. Parts arrive tomorrow.", source: "admin", createdAt: new Date(Date.now() - 3600000 * 6).toISOString() },
-    { id: "demo_2", title: "Water leak under sink — Unit 112", description: "Tenant reported active drip pooling under kitchen sink cabinet. Possible P-trap failure.", building: "City Centre", unit: "Unit 112", tenant: "Jane Doe", category: "Plumbing", priority: 1, status: "open", assignedTo: "Carlos M.", reportedBy: "Tenant", estimatedCost: 180, actualCost: 0, estimatedHours: 2, scheduledDate: d.today, completedDate: null, notes: "", source: "staff", createdAt: new Date(Date.now() - 3600000 * 2).toISOString() },
-    { id: "demo_3", title: "Electrical outlet sparking — Boardroom", description: "Receptionist noticed sparking from outlet near window. Outlet taken offline. Licensed electrician needed.", building: "Bristol Commons", unit: "Boardroom", tenant: "Vision LLC", category: "Electrical", priority: 2, status: "scheduled", assignedTo: "James R.", reportedBy: "Allen Hurley", estimatedCost: 320, actualCost: 0, estimatedHours: 3, scheduledDate: d.tomorrow, completedDate: null, notes: "[Apr 17 — Allen Hurley] Contacted Tri-Cities Electric. Coming tomorrow 9am.", source: "admin", createdAt: new Date(Date.now() - 3600000 * 14).toISOString() },
-    { id: "demo_4", title: "Lobby door lock not responding", description: "Main entrance keypad intermittently fails. Tenants having to use side entrance.", building: "The Executive", unit: "Main Lobby", tenant: "Common Area", category: "Door/Lock", priority: 2, status: "in_progress", assignedTo: "Mike D.", reportedBy: "Front Desk", estimatedCost: 220, actualCost: 0, estimatedHours: 1.5, scheduledDate: d.today, completedDate: null, notes: "", source: "admin", createdAt: new Date(Date.now() - 3600000 * 28).toISOString() },
-    { id: "demo_5", title: "Parking lot light out — Section B", description: "Three LED fixtures in Section B are dark. Likely a tripped breaker or ballast issue.", building: "City Centre", unit: "Parking Lot", tenant: "Common Area", category: "Electrical", priority: 3, status: "scheduled", assignedTo: "Carlos M.", reportedBy: "Allen Hurley", estimatedCost: 140, actualCost: 0, estimatedHours: 2, scheduledDate: d.nextWeek, completedDate: null, notes: "", source: "admin", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
-    { id: "demo_6", title: "Refrigerator not cooling — Break Room", description: "Staff fridge holding at 52°F. Contents may be unsafe. Needs service call or replacement.", building: "Bristol Commons", unit: "Break Room", tenant: "Common Area", category: "Appliance", priority: 3, status: "open", assignedTo: "", reportedBy: "Staff", estimatedCost: 280, actualCost: 0, estimatedHours: 2, scheduledDate: d.nextWeek, completedDate: null, notes: "", source: "staff", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
-    { id: "demo_7", title: "Paint scuff in hallway — 2nd floor", description: "5-ft scuff along north wall. Low priority. Touch-up paint on hand in maintenance closet.", building: "The Executive", unit: "2nd Floor Hallway", tenant: "Common Area", category: "Damage", priority: 4, status: "open", assignedTo: "James R.", reportedBy: "Cleaning Staff", estimatedCost: 40, actualCost: 0, estimatedHours: 1, scheduledDate: d.twoWks, completedDate: null, notes: "", source: "cleaning", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
-    { id: "demo_8", title: "HVAC filter replacement — Suite 105", description: "Quarterly filter swap completed. New MERV-11 filters installed. Next due in 90 days.", building: "City Centre", unit: "Suite 105", tenant: "Vision LLC", category: "HVAC", priority: 4, status: "complete", assignedTo: "Mike D.", reportedBy: "Allen Hurley", estimatedCost: 60, actualCost: 55, estimatedHours: 0.5, scheduledDate: d.yesterday, completedDate: d.yesterday, notes: "[Apr 16 — Mike D.] Done. Used two 16x20x1 MERV-11s. Disposed of old filters.", source: "admin", createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
+    { id: "demo_1", title: "HVAC not cooling — Suite 301", description: "Tenant reports unit blowing warm air. Thermostat set to 68°F but room holds at 78°F.", building: "Main Street Plaza", unit: "Suite 301", tenant: "Executive Suites", category: "HVAC", priority: 1, status: "in_progress", assignedTo: "Mike D.", reportedBy: "Property Manager", estimatedCost: 650, actualCost: 0, estimatedHours: 4, scheduledDate: d.today, completedDate: null, notes: "[Apr 17 — Mike D.] Compressor cycling on and off. Ordered capacitor. Parts arrive tomorrow.", source: "admin", createdAt: new Date(Date.now() - 3600000 * 6).toISOString() },
+    { id: "demo_2", title: "Water leak under sink — Unit 112", description: "Tenant reported active drip pooling under kitchen sink cabinet. Possible P-trap failure.", building: "Sample Office Building", unit: "Unit 112", tenant: "Jane Doe", category: "Plumbing", priority: 1, status: "open", assignedTo: "Carlos M.", reportedBy: "Tenant", estimatedCost: 180, actualCost: 0, estimatedHours: 2, scheduledDate: d.today, completedDate: null, notes: "", source: "staff", createdAt: new Date(Date.now() - 3600000 * 2).toISOString() },
+    { id: "demo_3", title: "Electrical outlet sparking — Boardroom", description: "Receptionist noticed sparking from outlet near window. Outlet taken offline. Licensed electrician needed.", building: "Sample Retail Center", unit: "Boardroom", tenant: "OperateIQ", category: "Electrical", priority: 2, status: "scheduled", assignedTo: "James R.", reportedBy: "Property Manager", estimatedCost: 320, actualCost: 0, estimatedHours: 3, scheduledDate: d.tomorrow, completedDate: null, notes: "[Apr 17 — Property Manager] Contacted the electrician. Coming tomorrow 9am.", source: "admin", createdAt: new Date(Date.now() - 3600000 * 14).toISOString() },
+    { id: "demo_4", title: "Lobby door lock not responding", description: "Main entrance keypad intermittently fails. Tenants having to use side entrance.", building: "Main Street Plaza", unit: "Main Lobby", tenant: "Common Area", category: "Door/Lock", priority: 2, status: "in_progress", assignedTo: "Mike D.", reportedBy: "Front Desk", estimatedCost: 220, actualCost: 0, estimatedHours: 1.5, scheduledDate: d.today, completedDate: null, notes: "", source: "admin", createdAt: new Date(Date.now() - 3600000 * 28).toISOString() },
+    { id: "demo_5", title: "Parking lot light out — Section B", description: "Three LED fixtures in Section B are dark. Likely a tripped breaker or ballast issue.", building: "Sample Office Building", unit: "Parking Lot", tenant: "Common Area", category: "Electrical", priority: 3, status: "scheduled", assignedTo: "Carlos M.", reportedBy: "Property Manager", estimatedCost: 140, actualCost: 0, estimatedHours: 2, scheduledDate: d.nextWeek, completedDate: null, notes: "", source: "admin", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+    { id: "demo_6", title: "Refrigerator not cooling — Break Room", description: "Staff fridge holding at 52°F. Contents may be unsafe. Needs service call or replacement.", building: "Sample Retail Center", unit: "Break Room", tenant: "Common Area", category: "Appliance", priority: 3, status: "open", assignedTo: "", reportedBy: "Staff", estimatedCost: 280, actualCost: 0, estimatedHours: 2, scheduledDate: d.nextWeek, completedDate: null, notes: "", source: "staff", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
+    { id: "demo_7", title: "Paint scuff in hallway — 2nd floor", description: "5-ft scuff along north wall. Low priority. Touch-up paint on hand in maintenance closet.", building: "Main Street Plaza", unit: "2nd Floor Hallway", tenant: "Common Area", category: "Damage", priority: 4, status: "open", assignedTo: "James R.", reportedBy: "Cleaning Staff", estimatedCost: 40, actualCost: 0, estimatedHours: 1, scheduledDate: d.twoWks, completedDate: null, notes: "", source: "cleaning", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+    { id: "demo_8", title: "HVAC filter replacement — Suite 105", description: "Quarterly filter swap completed. New MERV-11 filters installed. Next due in 90 days.", building: "Sample Office Building", unit: "Suite 105", tenant: "OperateIQ", category: "HVAC", priority: 4, status: "complete", assignedTo: "Mike D.", reportedBy: "Property Manager", estimatedCost: 60, actualCost: 55, estimatedHours: 0.5, scheduledDate: d.yesterday, completedDate: d.yesterday, notes: "[Apr 16 — Mike D.] Done. Used two 16x20x1 MERV-11s. Disposed of old filters.", source: "admin", createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
   ];
 }
 
@@ -360,7 +360,7 @@ function SummaryBanner({ tickets, onSelectTicket }: { tickets: Ticket[]; onSelec
 
 // ─── Ticket Form ──────────────────────────────────────────────────────────────
 
-const MAINT_DRAFT_KEY = "vision_draft_maintenance_new";
+const MAINT_DRAFT_KEY = "oiq_draft_maintenance_new";
 
 function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName }:
   { initial: Partial<Ticket>; onSave: (d: Partial<Ticket>) => Promise<void>; onSaveDraft: (d: Partial<Ticket>) => Promise<void>; onCancel: () => void; currentUserName?: string }) {
@@ -505,19 +505,19 @@ function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName }:
           <label className={LABEL}>Building / Property</label>
           <select value={form.building || ""} onChange={e => set("building", e.target.value)} className={FIELD}>
             <option value="" className="bg-[#0A0F1A]">Select property…</option>
-            <option value="City Centre" className="bg-[#0A0F1A]">City Centre</option>
-            <option value="City Central" className="bg-[#0A0F1A]">City Central</option>
-            <option value="Coke Building" className="bg-[#0A0F1A]">Coke Building</option>
-            <option value="Centerpoint" className="bg-[#0A0F1A]">Centerpoint</option>
-            <option value="250 Commonwealth" className="bg-[#0A0F1A]">250 Commonwealth</option>
-            <option value="628 State St" className="bg-[#0A0F1A]">628 State St</option>
-            <option value="215 Gate City Hwy" className="bg-[#0A0F1A]">215 Gate City Hwy</option>
-            <option value="221 Moore ST" className="bg-[#0A0F1A]">221 Moore ST</option>
-            <option value="642 State St" className="bg-[#0A0F1A]">642 State St</option>
-            <option value="634 State St" className="bg-[#0A0F1A]">634 State St</option>
-            <option value="720 State St" className="bg-[#0A0F1A]">720 State St</option>
-            <option value="209 Blackley Rd" className="bg-[#0A0F1A]">209 Blackley Rd</option>
-            <option value="1825 Vol Pky" className="bg-[#0A0F1A]">1825 Vol Pky</option>
+            <option value="Sample Office Building" className="bg-[#0A0F1A]">Sample Office Building</option>
+            <option value="Downtown Center" className="bg-[#0A0F1A]">Downtown Center</option>
+            <option value="Mill Building" className="bg-[#0A0F1A]">Mill Building</option>
+            <option value="Riverside Commons" className="bg-[#0A0F1A]">Riverside Commons</option>
+            <option value="250 Commerce Ave" className="bg-[#0A0F1A]">250 Commerce Ave</option>
+            <option value="100 Main St" className="bg-[#0A0F1A]">100 Main St</option>
+            <option value="215 Highway Dr" className="bg-[#0A0F1A]">215 Highway Dr</option>
+            <option value="221 Oak St" className="bg-[#0A0F1A]">221 Oak St</option>
+            <option value="142 Main St" className="bg-[#0A0F1A]">142 Main St</option>
+            <option value="134 Main St" className="bg-[#0A0F1A]">134 Main St</option>
+            <option value="720 Main St" className="bg-[#0A0F1A]">720 Main St</option>
+            <option value="209 Park Rd" className="bg-[#0A0F1A]">209 Park Rd</option>
+            <option value="1825 Parkway Blvd" className="bg-[#0A0F1A]">1825 Parkway Blvd</option>
             <option value="Farm" className="bg-[#0A0F1A]">Farm</option>
           </select>
         </div>
@@ -559,7 +559,7 @@ function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName }:
         </div>
         <div>
           <label className={LABEL}>Reported By</label>
-          <div className="flex gap-1.5 items-center"><input value={form.reportedBy || ""} onChange={e => set("reportedBy", e.target.value)} placeholder={currentUserName || "Allen Hurley"} className={FIELD + " flex-1"} /><MicButton onResult={(t) => set("reportedBy", (form.reportedBy || "") + (form.reportedBy ? " " : "") + t)} /></div>
+          <div className="flex gap-1.5 items-center"><input value={form.reportedBy || ""} onChange={e => set("reportedBy", e.target.value)} placeholder={currentUserName || "Your name"} className={FIELD + " flex-1"} /><MicButton onResult={(t) => set("reportedBy", (form.reportedBy || "") + (form.reportedBy ? " " : "") + t)} /></div>
         </div>
         <div>
           <label className={LABEL}>Status</label>

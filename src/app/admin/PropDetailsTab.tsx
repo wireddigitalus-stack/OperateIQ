@@ -8,6 +8,7 @@ import {
   Landmark, Wrench, Thermometer,
 } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
+import { getOrgProfile } from "@/lib/org-profile";
 import { type Tenant, rowToTenant } from "./TenantsTab";
 import PortfolioOverviewCard from "./PortfolioOverviewCard";
 import PortfolioHistoryChart from "./PortfolioHistoryChart";
@@ -190,20 +191,8 @@ function n(s: string) { return parseFloat(s) || 0; }
 
 // Exact property name map — matches the dropdown values used in tenant forms
 const PROPERTY_DROPDOWN_NAMES: Record<string, string[]> = {
-  "city-centre": [
-    "City Centre Professional Suites",
-    "City Centre",
-    "City Central",
-    "Bristol CoWork",
-    "Bristol Cowork",
-  ],
-  "the-executive": ["The Executive"],
-  "centre-point-suites": ["Centre Point"],
-  "foundation-event-facility": ["Foundation Event Facility"],
-  "commercial-warehouse": ["Commercial Warehouse"],
-  "west-state-commons": ["West State Commons"],
-  "250-commonwealth-ave": ["250 Commonwealth Ave"],
-  "628-state-street": ["628 State Street"],
+  "sample-office": ["Sample Office Building"],
+  "sample-retail": ["Sample Retail Center"],
 };
 
 function exactBuildingMatch(tenantBuilding: string, propertyId: string, displayName: string): boolean {
@@ -766,7 +755,7 @@ function PropertyCard({ property, tenants, detail, onSave, onDelete }: {
 
 // ── AddPropertyForm ───────────────────────────────────────────────────────────
 
-const EMPTY_ADD = { name: "", type: "Office", city: "Bristol, TN", address: "", sqft: "" };
+const EMPTY_ADD = { name: "", type: "Office", city: getOrgProfile().location, address: "", sqft: "" };
 
 function AddPropertyForm({ onAdd, onClose }: { onAdd: (p: typeof EMPTY_ADD) => Promise<void>; onClose: () => void }) {
   const [form, setForm] = useState({ ...EMPTY_ADD });
@@ -804,7 +793,7 @@ function AddPropertyForm({ onAdd, onClose }: { onAdd: (p: typeof EMPTY_ADD) => P
           </div>
           <div>
             <label className={L}>City *</label>
-            <input value={form.city} onChange={s("city")} placeholder="Bristol, TN" className={F} />
+            <input value={form.city} onChange={s("city")} placeholder="Anytown, ST" className={F} />
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -891,7 +880,7 @@ export default function PropDetailsTab() {
 
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("all");
 
-  // Merge static + dynamic properties (deduplicate by id, exclude Bristol CoWork and Jamestown at Shelby)
+  // Merge static + dynamic properties (deduplicate by id)
   const allProperties: PropertyItem[] = useMemo(() => {
     const staticProps: PropertyItem[] = PROPERTIES.map(p => ({
       id: p.id, name: p.name, type: p.type, city: p.city, address: p.address, sqft: p.sqft,
@@ -901,9 +890,8 @@ export default function PropDetailsTab() {
     return [...staticProps, ...uniqueDyn].filter(p => {
       const id = p.id.toLowerCase();
       const name = p.name.toLowerCase();
-      // Remove Bristol CoWork and Jamestown at Shelby per CTO request
-      if (id === "bristol-cowork" || name.includes("bristol cowork")) return false;
-      if (id === "815-shelby-street" || name.includes("jamestown at shelby") || name.includes("jamestown @ shelby")) return false;
+      // Hook for excluding specific properties from the dashboard (none by default)
+      void id; void name;
       return true;
     });
   }, [dynProps]);
@@ -1030,7 +1018,7 @@ export default function PropDetailsTab() {
   })), [allProperties, tenants, detailMap]);
 
   const overviewProperties = useMemo(() => 
-    allProperties.filter(p => p.name !== "Executive Premier Suites" && p.name !== "Foundation Event Facility"), 
+    allProperties.filter(() => true), 
   [allProperties]);
 
   const exportUnleasedSpacesToCSV = () => {
@@ -1058,7 +1046,7 @@ export default function PropDetailsTab() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `Vision_Unleased_Spaces_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `Unleased_Spaces_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1093,7 +1081,7 @@ export default function PropDetailsTab() {
     let htmlContent = `
       <html>
         <head>
-          <title>Vision LLC - Unleased Spaces Report</title>
+          <title>OperateIQ - Unleased Spaces Report</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111827; margin: 40px; }
             h1 { font-size: 20px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; border-bottom: 2px solid #111827; padding-bottom: 10px; }
@@ -1177,7 +1165,7 @@ export default function PropDetailsTab() {
 
     htmlContent += `
           <div style="margin-top: 50px; text-align: center; font-size: 11px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 10px;">
-            VISION Property Intelligence Platform &copy; ${new Date().getFullYear()}
+            OperateIQ Property Operations Platform &copy; ${new Date().getFullYear()}
           </div>
           <script>
             window.onload = function() {

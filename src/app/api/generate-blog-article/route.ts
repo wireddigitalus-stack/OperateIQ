@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile, orgContactLine } from "@/lib/org-profile";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY!;
 const MODEL      = "gemini-1.6-flash";
@@ -9,7 +10,10 @@ export async function POST(req: NextRequest) {
 
   if (!topic) return NextResponse.json({ error: "topic required" }, { status: 400 });
 
-  const prompt = `You are an expert commercial real estate content writer for Vision LLC — the largest private CRE owner in Downtown Bristol, TN/VA.
+  const org = getOrgProfile();
+  const contact = orgContactLine(org);
+
+  const prompt = `You are an expert commercial real estate content writer for ${org.name}, a commercial real estate firm in ${org.location}.
 
 Write a complete, publication-ready SEO blog article with the following specs:
 - Topic: ${topic}
@@ -25,11 +29,11 @@ OUTPUT FORMAT (return valid JSON only, no markdown wrapper):
   "excerpt": "2-sentence article summary for blog cards",
   "tags": ["Tag1","Tag2","Tag3","Tag4"],
   "readTime": 6,
-  "content": "Full article in HTML. Use <h2>, <h3>, <p>, <ul>, <li>, <strong> tags. 1,200-1,600 words. Include: intro hook, 3-4 main sections with H2 headings, local Bristol TN/VA and Tri-Cities references, data points where relevant, and a closing CTA paragraph mentioning Vision LLC and phone 423-573-1022."
+  "content": "Full article in HTML. Use <h2>, <h3>, <p>, <ul>, <li>, <strong> tags. 1,200-1,600 words. Include: intro hook, 3-4 main sections with H2 headings, local ${org.location} references, data points where relevant, and a closing CTA paragraph mentioning ${org.name}${contact ? ` and ${contact}` : ""}."
 }
 
 Rules:
-- The content MUST mention Downtown Bristol, TN/VA and Vision LLC naturally
+- The content MUST mention ${org.location} and ${org.name} naturally
 - Include the target keyword in the first paragraph
 - Write at a professional B2B level — no fluff, real insights
 - Return ONLY the JSON, no other text`;

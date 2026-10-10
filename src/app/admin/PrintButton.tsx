@@ -120,13 +120,13 @@ export default function PrintButton({ zoneId, buildHTML, label = "Print / PDF", 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>${title ?? "Vision Report"}</title>
+  <title>${title ?? "OperateIQ Report"}</title>
   <style>${PRINT_CSS}</style>
 </head>
 <body>
   <div class="print-page-header">
-    <h1>${title ?? "Vision Report"}</h1>
-    <span>${dateStr} &nbsp;·&nbsp; Vision LLC</span>
+    <h1>${title ?? "OperateIQ Report"}</h1>
+    <span>${dateStr} &nbsp;·&nbsp; OperateIQ</span>
   </div>
   ${bodyHTML}
 </body>

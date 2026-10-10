@@ -57,8 +57,8 @@ const NODES: FlowNode[] = [
   { id: "api-analytics",  label: "/api/analytics",        type: "api", domain: "analytics",  x: 370, y: 700,  sub: "Page views, sessions" },
   { id: "api-content",    label: "/api/content-gen",      type: "api", domain: "content",    x: 370, y: 790,  sub: "Blog, social, press releases" },
   { id: "api-activity",   label: "/api/activity-log",     type: "api", domain: "leads",      x: 370, y: 880,  sub: "Audit trail" },
-  { id: "api-intel",      label: "/api/market-intel",     type: "api", domain: "content",    x: 370, y: 970,  sub: "AI news radar — TN/VA" },
-  { id: "api-askvision",  label: "/api/ask-vision",       type: "api", domain: "leads",      x: 370, y: 1060, sub: "AI chatbot for visitors" },
+  { id: "api-intel",      label: "/api/market-intel",     type: "api", domain: "content",    x: 370, y: 970,  sub: "AI news radar — local market" },
+  { id: "api-askopsiq",  label: "/api/ask-opsiq",       type: "api", domain: "leads",      x: 370, y: 1060, sub: "AI chatbot for visitors" },
 
   // ─── Database Tables (Column 3 ~x=710) ─────────────────────────────────
   { id: "db-leads",        label: "leads",                type: "db", domain: "leads",       x: 710, y: 80,   sub: "Lead records" },
@@ -96,7 +96,7 @@ const CONNECTIONS: Connection[] = [
   // Leads pipeline
   { from: "src-web",      to: "api-leasebot",   domain: "leads" },
   { from: "src-web",      to: "api-contact",    domain: "leads" },
-  { from: "src-web",      to: "api-askvision",  domain: "leads" },
+  { from: "src-web",      to: "api-askopsiq",  domain: "leads" },
   { from: "api-leasebot", to: "db-leads",       domain: "leads" },
   { from: "api-contact",  to: "db-leads",       domain: "leads" },
   { from: "db-leads",     to: "tab-leads",      domain: "leads" },
@@ -139,7 +139,7 @@ const CONNECTIONS: Connection[] = [
   { from: "src-ai",       to: "api-content",    domain: "content" },
   { from: "src-ai",       to: "api-leasebot",   domain: "leads" },
   { from: "src-ai",       to: "api-intel",      domain: "content" },
-  { from: "src-ai",       to: "api-askvision",  domain: "leads" },
+  { from: "src-ai",       to: "api-askopsiq",  domain: "leads" },
   { from: "api-content",  to: "db-blog",        domain: "content" },
   { from: "db-blog",      to: "tab-content",    domain: "content" },
   { from: "db-blog",      to: "tab-marketing",  domain: "content" },

@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// Vision LLC — Internal Analytics Hook
+// OperateIQ — Internal Analytics Hook
 // Lightweight, privacy-first, zero-dependency tracker.
 // Assigns an anonymous session ID via cookie, tracks page views, scroll depth,
 // time-on-page, CTA clicks, and property interest — all server-side via

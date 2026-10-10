@@ -8,7 +8,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export interface ActivityPayload {
-  actor_email:   string;   // who did it  e.g. "robert@visionllc.com"
+  actor_email:   string;   // who did it  e.g. "admin@example.com"
   actor_name:    string;   // display name e.g. "Robert"
   action:        "created" | "updated" | "deleted" | "submitted";
   resource_type: "tenant" | "lead" | "maintenance" | "cleaning" | "rent_ledger";

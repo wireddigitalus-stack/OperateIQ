@@ -210,7 +210,7 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "🏢",
       title: "How Tenants Link to Properties",
-      body: "Tenants connect to properties by the property selected in the dropdown on the Tenants tab. The match is exact — select 'The Executive' and the tenant appears on The Executive's card here. If a tenant doesn't match any property, it shows in an orange 'Unassigned Tenants' section at the bottom so nothing gets lost.",
+      body: "Tenants connect to properties by the property selected in the dropdown on the Tenants tab. The match is exact — select 'Sample Office Building' and the tenant appears on that property's card here. If a tenant doesn't match any property, it shows in an orange 'Unassigned Tenants' section at the bottom so nothing gets lost.",
     },
     {
       emoji: "⚡",
@@ -260,7 +260,7 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "📉",
       title: "Missed Revenue Tracking",
-      body: "The Executive Overview KPI card now features a 'Missed Revenue' metric. This sums up the potential monthly rents of all vacant suites and buildings so Allen can track unrealized income in one click.",
+      body: "The Executive Overview KPI card now features a 'Missed Revenue' metric. This sums up the potential monthly rents of all vacant suites and buildings so owners can track unrealized income in one click.",
     },
     {
       emoji: "🔑",
@@ -413,14 +413,14 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "📡",
       title: "Market Intel Radar",
-      body: "Don't forget the Market Intel sub-tab. It scans real-time news for companies expanding, relocating, or signing leases in the Tri-Cities — giving you leads before they even start looking.",
+      body: "Don't forget the Market Intel sub-tab. It scans real-time news for companies expanding, relocating, or signing leases in your market — giving you leads before they even start looking.",
     },
   ],
   "marketing-press": [
     {
       emoji: "🗞️",
       title: "When to Write a Press Release",
-      body: "Use press releases for signed leases, new property additions, business expansions, and community milestones. Local Tri-Cities media actively picks up commercial real estate news.",
+      body: "Use press releases for signed leases, new property additions, business expansions, and community milestones. Local media actively picks up commercial real estate news.",
     },
     {
       emoji: "✏️",
@@ -430,14 +430,14 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "📧",
       title: "Where to Submit",
-      body: "Target Kingsport Times-News, Bristol Herald Courier, and WJHL TV. Paste the full release in the email body with the headline as the subject line — no attachments.",
+      body: "Target your local newspaper, business journal, and TV news desks. Paste the full release in the email body with the headline as the subject line — no attachments.",
     },
   ],
   "marketing-blog": [
     {
       emoji: "📝",
       title: "Blog = Local SEO",
-      body: "Blog posts help your site rank for searches like 'office space Bristol TN' or 'commercial real estate Tri-Cities.' One post per month keeps you visible in Google.",
+      body: "Blog posts help your site rank for searches like 'office space [your city]' or 'commercial real estate [your region].' One post per month keeps you visible in Google.",
     },
     {
       emoji: "🔗",
@@ -523,7 +523,7 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "📍",
       title: "Use Location Keywords",
-      body: "Include nearby landmarks and neighborhoods in descriptions (e.g., 'steps from downtown Bristol State Street,' 'minutes from I-81'). This improves local SEO and AI content quality.",
+      body: "Include nearby landmarks and neighborhoods in descriptions (e.g., 'steps from downtown Main Street,' 'minutes from the interstate'). This improves local SEO and AI content quality.",
     },
     {
       emoji: "🔢",
@@ -567,7 +567,7 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "📡",
       title: "What the Radar Scans",
-      body: "Market Intel scans Google News, BusinessWire, and PR Newswire in real-time for keywords like 'office relocation,' 'expanding operations,' 'new headquarters,' and 'commercial lease' — focused on Virginia, Tennessee, the Tri-Cities, and Bristol specifically.",
+      body: "Market Intel scans Google News, BusinessWire, and PR Newswire in real-time for keywords like 'office relocation,' 'expanding operations,' 'new headquarters,' and 'commercial lease' — focused on your state, region, and city.",
     },
     {
       emoji: "🔥",
@@ -587,24 +587,24 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "📋",
       title: "Pair with Google Alerts",
-      body: "For 24/7 coverage, set up free Google Alerts for phrases like: 'relocating headquarters Tennessee', 'new office Tri-Cities', 'expanding operations Bristol.' Alerts go to your inbox so you catch signals even between dashboard scans.",
+      body: "For 24/7 coverage, set up free Google Alerts for phrases like: 'relocating headquarters [your state]', 'new office [your region]', 'expanding operations [your city].' Alerts go to your inbox so you catch signals even between dashboard scans.",
     },
     {
       emoji: "🧠",
       title: "Why Warm Signals Matter",
-      body: "Don't ignore 🟡 Warm signals — a company expanding anywhere in the Southeast could be persuaded to choose Bristol. Track warm companies over weeks; if the same name appears multiple times, that's a pattern worth a cold outreach.",
+      body: "Don't ignore 🟡 Warm signals — a company expanding anywhere in your region could be persuaded to choose your city. Track warm companies over weeks; if the same name appears multiple times, that's a pattern worth a cold outreach.",
     },
     {
       emoji: "🚀",
       title: "Phase 3 Roadmap",
-      body: "This is Phase 2 (RSS + AI scoring). Phase 3 will add job posting monitoring (companies posting roles in Tri-Cities = expansion signal), SEC filing analysis for lease expirations, and automatic weekly email digests of hot leads.",
+      body: "This is Phase 2 (RSS + AI scoring). Phase 3 will add job posting monitoring (companies posting roles in your market = expansion signal), SEC filing analysis for lease expirations, and automatic weekly email digests of hot leads.",
     },
   ],
   "marketing-one-sheet": [
     {
       emoji: "🏢",
       title: "What Is a One-Sheet?",
-      body: "A Property One-Sheet is a single-page branded PDF brochure for a property. It includes the photo, description, features, specs, and Vision LLC's contact info — perfect for a site tour or email attachment.",
+      body: "A Property One-Sheet is a single-page branded PDF brochure for a property. It includes the photo, description, features, specs, and OperateIQ's contact info — perfect for a site tour or email attachment.",
     },
     {
       emoji: "🖨️",
@@ -619,7 +619,7 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "🔄",
       title: "Always Up to Date",
-      body: "The one-sheet pulls live data from the Vision platform. Any time property info is updated in the system, the next generated PDF reflects those changes automatically.",
+      body: "The one-sheet pulls live data from the OperateIQ platform. Any time property info is updated in the system, the next generated PDF reflects those changes automatically.",
     },
   ],
   archived: [
@@ -663,7 +663,7 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "🔔",
       title: "Email Notifications",
-      body: "The Notifications section shows exactly who receives email alerts and what triggers them. Currently, new leads from the chatbot and contact form automatically email jmcclanahan@ and dmyers@. SMS alerts and per-user customization are coming soon.",
+      body: "The Notifications section shows exactly who receives email alerts and what triggers them. Currently, new leads from the chatbot and contact form automatically email the recipients configured in LEAD_NOTIFY_TO. SMS alerts and per-user customization are coming soon.",
     },
     {
       emoji: "📊",
@@ -678,17 +678,17 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "📲",
       title: "Social Capture Links",
-      body: "The Social Capture Links card gives you ready-to-copy URLs for Facebook and Instagram posts. Each link can feature a specific property — so when you post about The Executive, the landing page highlights The Executive with a hero card, photo, and CTA. Just click the 📘 FB or 📷 IG button next to the property to copy the link.",
+      body: "The Social Capture Links card gives you ready-to-copy URLs for Facebook and Instagram posts. Each link can feature a specific property — so when you post about a specific building, the landing page highlights it with a hero card, photo, and CTA. Just click the 📘 FB or 📷 IG button next to the property to copy the link.",
     },
     {
       emoji: "🔗",
       title: "How Featured Links Work",
-      body: "When you copy a link like '/l/fb?feature=the-executive', anyone clicking that link from your Facebook post sees a branded page with The Executive front and center — big hero image, description, tags, and a 'View This Property' button. Other properties still appear below. No feature param = all properties shown equally.",
+      body: "When you copy a link like '/l/fb?feature=sample-office', anyone clicking that link from your Facebook post sees a branded page with that property front and center — big hero image, description, tags, and a 'View This Property' button. Other properties still appear below. No feature param = all properties shown equally.",
     },
     {
       emoji: "🤝",
       title: "QR Meet Pages",
-      body: "Each team member has a personal QR code page at teamvisionllc.com/meet/[name]. When scanned in person, prospects fill out a quick form and the lead is auto-captured in your dashboard tagged 'qr / in-person' with the team member's name as the campaign source.",
+      body: "Each team member has a personal QR code page at yoursite.com/meet/[name]. When scanned in person, prospects fill out a quick form and the lead is auto-captured in your dashboard tagged 'qr / in-person' with the team member's name as the campaign source.",
     },
     {
       emoji: "👁️",
@@ -780,7 +780,7 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "🔑",
       title: "Keyword Checker",
-      body: "For critical fields (H1, SEO Title, Meta Description), the system checks if your key SEO keywords are still present. If you accidentally delete a keyword like 'Bristol TN' or 'commercial real estate' — you'll see a red warning immediately.",
+      body: "For critical fields (H1, SEO Title, Meta Description), the system checks if your key SEO keywords are still present. If you accidentally delete a keyword like your city name or 'commercial real estate' — you'll see a red warning immediately.",
     },
     {
       emoji: "🔍",
@@ -800,7 +800,7 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "❓",
       title: "FAQ Best Practices",
-      body: "FAQ questions should match how real people search on Google (e.g., 'How much does office space cost in Bristol TN?'). Google can display these directly in search results as rich snippets — powerful free exposure.",
+      body: "FAQ questions should match how real people search on Google (e.g., 'How much does office space cost in [your city]?'). Google can display these directly in search results as rich snippets — powerful free exposure.",
     },
     {
       emoji: "↩️",
@@ -822,7 +822,7 @@ const TIPS: Record<TabKey, Tip[]> = {
     {
       emoji: "🔑",
       title: "Keyword Checker",
-      body: "For critical fields (H1, SEO Title, Meta Description), the system checks if your key SEO keywords are still present. A red warning appears if important keywords like 'coworking,' 'Bristol,' or 'Tri-Cities' are removed.",
+      body: "For critical fields (H1, SEO Title, Meta Description), the system checks if your key SEO keywords are still present. A red warning appears if important keywords like 'office space,' your city, or your region are removed.",
     },
     {
       emoji: "🔍",
@@ -836,8 +836,8 @@ const TIPS: Record<TabKey, Tip[]> = {
     },
     {
       emoji: "📋",
-      title: "CoWork & Executive Pages",
-      body: "The CoWork and Executive Advisement pages have many fields because they're content-rich pages. Focus on the 🔴 Critical fields first (hero heading, descriptions). The 🟢 Safe fields like pricing plans and client types can be edited freely.",
+      title: "Flex Space & Services Pages",
+      body: "The Flex Space and Services pages have many fields because they're content-rich pages. Focus on the 🔴 Critical fields first (hero heading, descriptions). The 🟢 Safe fields like pricing plans and client types can be edited freely.",
     },
     {
       emoji: "👁️",
@@ -1073,7 +1073,7 @@ export default function ProTips({ activeTab }: ProTipsProps) {
             {/* Footer */}
             <div className="px-6 py-3 bg-[rgba(0,0,0,0.3)] border-t border-[rgba(255,255,255,0.04)] flex items-center justify-between">
               <p className="text-[9px] text-gray-700">
-                Vision Property Intelligence Platform
+                OperateIQ Property Operations Platform
               </p>
               <button
                 onClick={() => setOpen(false)}

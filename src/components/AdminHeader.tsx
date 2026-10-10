@@ -18,8 +18,8 @@ export default function AdminHeader() {
         aria-label="Go to dashboard home"
       >
         <Image
-          src="/vision-logo.png"
-          alt="Vision LLC"
+          src="/operateiq-logo.svg"
+          alt="OperateIQ"
           width={88}
           height={28}
           className="h-7 w-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity"
@@ -33,7 +33,7 @@ export default function AdminHeader() {
 
       {/* ── Right: View Live Site CTA ── */}
       <a
-        href="https://www.teamvisionllc.com"
+        href="/"
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold

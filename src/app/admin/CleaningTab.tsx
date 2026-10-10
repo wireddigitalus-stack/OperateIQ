@@ -40,20 +40,20 @@ function getDemoAssignments(): Assignment[] {
   const mon = weekDay(0), tue = weekDay(1), wed = weekDay(2),
         thu = weekDay(3), fri = weekDay(4);
   return [
-    { id: "dc_1",  workerName: "Sarah M.", property: "The Executive",  area: "Common Areas & Lobby",    scheduledDate: mon, startTime: "08:00", endTime: "10:00", completedAt: new Date().toISOString(), notes: "", status: "done" },
-    { id: "dc_2",  workerName: "Sarah M.", property: "The Executive",  area: "Suites 101-110",          scheduledDate: mon, startTime: "10:00", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_3",  workerName: "Sarah M.", property: "The Executive",  area: "Common Areas & Lobby",    scheduledDate: wed, startTime: "08:00", endTime: "10:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_4",  workerName: "Sarah M.", property: "The Executive",  area: "Suites 201-210",          scheduledDate: wed, startTime: "10:00", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_5",  workerName: "Sarah M.", property: "The Executive",  area: "Full Building Deep Clean", scheduledDate: fri, startTime: "08:00", endTime: "14:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_6",  workerName: "Linda K.", property: "City Centre",    area: "Lobby & Reception",       scheduledDate: tue, startTime: "09:00", endTime: "11:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_7",  workerName: "Linda K.", property: "City Centre",    area: "Suites 101-112",          scheduledDate: tue, startTime: "11:00", endTime: "15:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_8",  workerName: "Linda K.", property: "City Centre",    area: "Restrooms & Corridors",   scheduledDate: thu, startTime: "09:00", endTime: "12:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_9",  workerName: "Priya R.", property: "Bristol Commons", area: "Restrooms (All Floors)",  scheduledDate: mon, startTime: "07:30", endTime: "10:30", completedAt: new Date().toISOString(), notes: "", status: "done" },
-    { id: "dc_10", workerName: "Priya R.", property: "Bristol Commons", area: "Restrooms (All Floors)",  scheduledDate: tue, startTime: "07:30", endTime: "10:30", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_11", workerName: "Priya R.", property: "Bristol Commons", area: "Lobby & Break Room",      scheduledDate: wed, startTime: "07:30", endTime: "10:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_12", workerName: "Priya R.", property: "Bristol Commons", area: "Restrooms (All Floors)",  scheduledDate: thu, startTime: "07:30", endTime: "10:30", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_13", workerName: "Priya R.", property: "Bristol Commons", area: "Full Building Clean",     scheduledDate: fri, startTime: "07:30", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_14", workerName: "Jess T.",  property: "City Centre",    area: "Executive Suites 201-205",scheduledDate: mon, startTime: "10:00", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_1",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Common Areas & Lobby",    scheduledDate: mon, startTime: "08:00", endTime: "10:00", completedAt: new Date().toISOString(), notes: "", status: "done" },
+    { id: "dc_2",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Suites 101-110",          scheduledDate: mon, startTime: "10:00", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_3",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Common Areas & Lobby",    scheduledDate: wed, startTime: "08:00", endTime: "10:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_4",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Suites 201-210",          scheduledDate: wed, startTime: "10:00", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_5",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Full Building Deep Clean", scheduledDate: fri, startTime: "08:00", endTime: "14:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_6",  workerName: "Linda K.", property: "Sample Office Building",    area: "Lobby & Reception",       scheduledDate: tue, startTime: "09:00", endTime: "11:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_7",  workerName: "Linda K.", property: "Sample Office Building",    area: "Suites 101-112",          scheduledDate: tue, startTime: "11:00", endTime: "15:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_8",  workerName: "Linda K.", property: "Sample Office Building",    area: "Restrooms & Corridors",   scheduledDate: thu, startTime: "09:00", endTime: "12:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_9",  workerName: "Priya R.", property: "Sample Retail Center", area: "Restrooms (All Floors)",  scheduledDate: mon, startTime: "07:30", endTime: "10:30", completedAt: new Date().toISOString(), notes: "", status: "done" },
+    { id: "dc_10", workerName: "Priya R.", property: "Sample Retail Center", area: "Restrooms (All Floors)",  scheduledDate: tue, startTime: "07:30", endTime: "10:30", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_11", workerName: "Priya R.", property: "Sample Retail Center", area: "Lobby & Break Room",      scheduledDate: wed, startTime: "07:30", endTime: "10:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_12", workerName: "Priya R.", property: "Sample Retail Center", area: "Restrooms (All Floors)",  scheduledDate: thu, startTime: "07:30", endTime: "10:30", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_13", workerName: "Priya R.", property: "Sample Retail Center", area: "Full Building Clean",     scheduledDate: fri, startTime: "07:30", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
+    { id: "dc_14", workerName: "Jess T.",  property: "Sample Office Building",    area: "Executive Suites 201-205",scheduledDate: mon, startTime: "10:00", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
   ];
 }
 
@@ -430,11 +430,11 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail }:
               }}
             >
               <option value="" style={{ background: "#0A0F1A" }}>Select property…</option>
-              <option value="City Centre Professional Suites" style={{ background: "#0A0F1A" }}>City Centre Professional Suites</option>
-              <option value="Bristol CoWork" style={{ background: "#0A0F1A" }}>Bristol CoWork</option>
-              <option value="The Executive" style={{ background: "#0A0F1A" }}>The Executive</option>
-              <option value="Centre Point" style={{ background: "#0A0F1A" }}>Centre Point</option>
-              <option value="Foundation Event Facility" style={{ background: "#0A0F1A" }}>Foundation Event Facility</option>
+              <option value="Sample Office Building" style={{ background: "#0A0F1A" }}>Sample Office Building</option>
+              <option value="Sample Retail Center" style={{ background: "#0A0F1A" }}>Sample Retail Center</option>
+              <option value="Main Street Plaza" style={{ background: "#0A0F1A" }}>Main Street Plaza</option>
+              <option value="Riverside Commons" style={{ background: "#0A0F1A" }}>Riverside Commons</option>
+              <option value="Oak Park Center" style={{ background: "#0A0F1A" }}>Oak Park Center</option>
               <option value="Commercial Warehouse" style={{ background: "#0A0F1A" }}>Commercial Warehouse</option>
             </select>
           </div>
@@ -486,11 +486,11 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail }:
           <label className={LABEL}>Property / Building *</label>
           <select value={property} onChange={e => setProperty(e.target.value)} className={FIELD}>
             <option value="" className="bg-[#0A0F1A]">Select property…</option>
-            <option value="City Centre Professional Suites" className="bg-[#0A0F1A]">City Centre Professional Suites</option>
-            <option value="Bristol CoWork" className="bg-[#0A0F1A]">Bristol CoWork</option>
-            <option value="The Executive" className="bg-[#0A0F1A]">The Executive</option>
-            <option value="Centre Point" className="bg-[#0A0F1A]">Centre Point</option>
-            <option value="Foundation Event Facility" className="bg-[#0A0F1A]">Foundation Event Facility</option>
+            <option value="Sample Office Building" className="bg-[#0A0F1A]">Sample Office Building</option>
+            <option value="Sample Retail Center" className="bg-[#0A0F1A]">Sample Retail Center</option>
+            <option value="Main Street Plaza" className="bg-[#0A0F1A]">Main Street Plaza</option>
+            <option value="Riverside Commons" className="bg-[#0A0F1A]">Riverside Commons</option>
+            <option value="Oak Park Center" className="bg-[#0A0F1A]">Oak Park Center</option>
             <option value="Commercial Warehouse" className="bg-[#0A0F1A]">Commercial Warehouse</option>
           </select>
         </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PROPERTIES } from "@/lib/data";
+import { getOrgProfile } from "@/lib/org-profile";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -16,7 +17,8 @@ interface SlideConfig {
 }
 interface HeroConfig { slides: SlideConfig[]; videoUrl: string | null; videoEnabled: boolean; }
 
-const MAIN_IDS = ["city-centre","bristol-cowork","the-executive","centre-point-suites","foundation-event-facility","warehouse"];
+// Default hero slides: every property in the catalogue, in catalogue order.
+const MAIN_IDS = PROPERTIES.map(p => p.id);
 
 /** Returns { value, tableExists } */
 async function getRaw(): Promise<{ value: HeroConfig | null; tableExists: boolean }> {
@@ -61,10 +63,10 @@ function resolve(config: HeroConfig, overrides: Record<string, string>) {
         if (!p) return null;
         const override = overrides[s.propertyId];
         const imgSrc = (override && override.trim()) ? override : p.image;
-        return { src: imgSrc, label: s.label || p.name, location: s.location || `${p.city}, TN` };
+        return { src: imgSrc, label: s.label || p.name, location: s.location || p.city };
       }
       if (s.type === "custom" && s.imageUrl) {
-        return { src: s.imageUrl, label: s.label || "Banner", location: s.location || "Bristol, TN" };
+        return { src: s.imageUrl, label: s.label || "Banner", location: s.location || getOrgProfile().location };
       }
       return null;
     })
@@ -75,7 +77,7 @@ function defaultConfig(): HeroConfig {
   return {
     slides: MAIN_IDS.map((id, i) => {
       const p = PROPERTIES.find(pr => pr.id === id)!;
-      return { type: "property", propertyId: id, label: p?.name, location: `${p?.city}, TN`, enabled: true, order: i };
+      return { type: "property", propertyId: id, label: p?.name, location: p?.city, enabled: true, order: i };
     }),
     videoUrl: null, videoEnabled: false,
   };
