@@ -5,7 +5,6 @@ export const metadata: Metadata = {
   title: "Privacy Policy | Vision LLC",
   description:
     "Vision LLC privacy policy — how we collect, use, and protect your information when you use teamvisionllc.com.",
-  robots: { index: true, follow: true },
   alternates: {
     canonical: "https://www.teamvisionllc.com/privacy",
   },

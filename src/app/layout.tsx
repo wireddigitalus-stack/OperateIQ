@@ -79,17 +79,21 @@ export const metadata: Metadata = {
     ],
   },
 
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
+  // Pre-launch: noindex everywhere until NEXT_PUBLIC_ALLOW_INDEXING=true
+  robots:
+    process.env.NEXT_PUBLIC_ALLOW_INDEXING === "true"
+      ? {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+          },
+        }
+      : { index: false, follow: false, googleBot: { index: false, follow: false } },
 };
 
 export default function RootLayout({
