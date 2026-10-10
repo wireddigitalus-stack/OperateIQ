@@ -21,6 +21,7 @@ import ActivityFeedPanel from "./ActivityFeedPanel";
 import SettingsTab, { SocialLinksCard } from "./SettingsTab";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { isSuperAdmin } from "@/lib/platform";
 import * as XLSX from "xlsx";
 import {
   Zap, RefreshCw, Phone, Clock, Building2, TrendingUp,
@@ -1524,7 +1525,7 @@ export default function AdminPage() {
         const envAllowed = rawList.split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
         const isEnvAllowed = envAllowed.length > 0 && envAllowed.includes(email.toLowerCase());
 
-        if (!access && !isEnvAllowed) {
+        if (!access && !isEnvAllowed && !isSuperAdmin(email)) {
           setAccessDenied(true);
           setAuthChecking(false);
           // ── Log blocked access attempt ──
