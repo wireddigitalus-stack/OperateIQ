@@ -1756,7 +1756,6 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS nn_fee NUMERIC DEFAULT 0;`}</pre>
           onClose={() => setShowIntakeStaging(false)}
           onImportSuccess={async () => {
             await fetchTenants();
-            setShowIntakeStaging(false);
           }}
           knownBuildings={buildingOptions}
         />

@@ -19,6 +19,7 @@ import CallLogModal, { type CallLog, outcomeColor, outcomeLabel } from "./CallLo
 import PrintButton from "./PrintButton";
 import ActivityFeedPanel from "./ActivityFeedPanel";
 import SettingsTab, { SocialLinksCard } from "./SettingsTab";
+import IntakeStagingModal from "./IntakeStagingModal";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { isSuperAdmin } from "@/lib/platform";
@@ -1258,6 +1259,7 @@ export default function AdminPage() {
   const [contentSubView, setContentSubView] = useState("content-properties");
   const [teamBoardSubTab, setTeamBoardSubTab] = useState<"chat" | "tasks">("chat");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showIntakeModal, setShowIntakeModal] = useState(false);
 
   // Always start at the very top — prevents browser scroll-restoration from
   // loading the dashboard mid-page and hiding the tab nav under the site nav
@@ -2167,6 +2169,15 @@ export default function AdminPage() {
               <Brain size={13} />
               <span className="hidden sm:inline">Ask OpsIQ</span>
             </button>
+
+            <button
+              onClick={() => setShowIntakeModal(true)}
+              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600/30 to-cyan-600/20 border border-cyan-400/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/20 hover:border-cyan-300 transition-all shadow-[0_0_12px_rgba(6,182,212,0.18)] cursor-pointer"
+              title="Import Buildings & Tenants (Excel / Docs / Photos)"
+            >
+              <Sparkles size={13} className="text-cyan-400" />
+              <span className="hidden sm:inline">Import Docs / Excel</span>
+            </button>
             {activeTab === "leads" && (
               <button
                 onClick={fetchLeads}
@@ -2212,6 +2223,17 @@ export default function AdminPage() {
         {/* Ask OpsIQ Modal */}
         {showAskOpsIQ && (
           <AskOpsIQModal leads={leads} onClose={() => setShowAskOpsIQ(false)} />
+        )}
+
+        {/* AI Multi-Tenant & Building Intake Modal */}
+        {showIntakeModal && (
+          <IntakeStagingModal
+            isOpen={showIntakeModal}
+            onClose={() => setShowIntakeModal(false)}
+            onViewTenants={() => switchTab("tenants")}
+            onViewBuildings={() => switchTab("propdetails")}
+            currentOrgName={activeOrg?.name || "Your Portfolio"}
+          />
         )}
 
         {/* ─ CALL LOG MODAL ──────────────────────────────────────────────────── */}
@@ -2427,6 +2449,13 @@ export default function AdminPage() {
 
               <div className="flex items-center gap-2.5 flex-wrap">
                 <button
+                  onClick={() => setShowIntakeModal(true)}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-bold transition-all border border-cyan-400/40 flex items-center gap-1.5 shadow-[0_0_16px_rgba(6,182,212,0.35)] cursor-pointer"
+                >
+                  <Sparkles size={14} className="text-cyan-200" />
+                  <span>Import Buildings &amp; Tenants</span>
+                </button>
+                <button
                   onClick={() => setActiveTab("propdetails")}
                   className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
                 >
@@ -2434,11 +2463,11 @@ export default function AdminPage() {
                   <span>Add First Building</span>
                 </button>
                 <button
-                  onClick={() => setActiveTab("tenants")}
+                  onClick={() => setShowIntakeModal(true)}
                   className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
                 >
                   <Users size={14} className="text-emerald-400" />
-                  <span>Import Tenants</span>
+                  <span>Tenant Rent Roll</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("maintenance")}

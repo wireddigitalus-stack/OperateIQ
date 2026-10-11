@@ -5,13 +5,14 @@ import {
   Clock, CheckCircle2, Home, Loader2, RefreshCw, Save,
   ChevronDown, ChevronUp, Zap, Droplets, ShieldCheck, Receipt,
   MoreHorizontal, TrendingDown, Minus, Printer, X, Pencil, Plus, Trash2, Download,
-  Landmark, Wrench, Thermometer,
+  Landmark, Wrench, Thermometer, Sparkles,
 } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
 import { getOrgProfile } from "@/lib/org-profile";
 import { type Tenant, rowToTenant } from "./TenantsTab";
 import PortfolioOverviewCard from "./PortfolioOverviewCard";
 import PortfolioHistoryChart from "./PortfolioHistoryChart";
+import IntakeStagingModal from "./IntakeStagingModal";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -830,6 +831,7 @@ export default function PropDetailsTab() {
   const [showPrint, setShowPrint] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showAddSpace, setShowAddSpace] = useState(false);
+  const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [parkingLots, setParkingLots] = useState<any[]>([]);
   const [showAddParkingLot, setShowAddParkingLot] = useState(false);
   const [parkingLotMigrationSql, setParkingLotMigrationSql] = useState<string | null>(null);
@@ -1194,8 +1196,12 @@ export default function PropDetailsTab() {
           <p className="text-xs text-gray-500 mt-1">Occupancy, P&amp;L, and financials per property — live from Tenant data.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+          <button onClick={() => setShowIntakeModal(true)}
+            className="flex items-center gap-1.5 text-xs font-bold text-white px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 shadow-[0_0_16px_rgba(6,182,212,0.35)] transition-all cursor-pointer">
+            <Sparkles size={12} className="text-cyan-200" /> Import Buildings &amp; Tenants
+          </button>
           <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-white px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-[0_0_16px_rgba(59,130,246,0.35)] transition-all">
+            className="flex items-center gap-1.5 text-xs font-bold text-white px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-[0_0_16px_rgba(59,130,246,0.35)] transition-all cursor-pointer">
             <Plus size={12} /> Add Property
           </button>
           <button onClick={() => setTick(t => t + 1)}
@@ -1580,6 +1586,15 @@ export default function PropDetailsTab() {
       {showPrint && <PrintReport data={printData} onClose={() => setShowPrint(false)} />}
       {showAdd && <AddPropertyForm onAdd={handleAddProperty} onClose={() => setShowAdd(false)} />}
       {showAddSpace && <AddSpaceModal properties={allProperties} onAdd={handleAddSpace} onClose={() => setShowAddSpace(false)} />}
+      {showIntakeModal && (
+        <IntakeStagingModal
+          isOpen={showIntakeModal}
+          onClose={() => setShowIntakeModal(false)}
+          onImportSuccess={() => setTick(t => t + 1)}
+          knownBuildings={allProperties.map(p => p.name)}
+          currentOrgName={getOrgProfile().name}
+        />
+      )}
       
       {/* ── Parking Lots Section ── */}
       <div className="mt-12 mb-8">
