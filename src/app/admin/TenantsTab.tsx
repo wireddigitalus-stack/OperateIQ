@@ -1813,23 +1813,23 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS nn_fee NUMERIC DEFAULT 0;`}</pre>
           <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-sky-400 mb-4 shadow-[0_0_24px_rgba(56,189,248,0.1)]">
             <Building2 size={32} />
           </div>
-          <p className="text-white text-base font-bold">No tenants in this portfolio yet</p>
-          <p className="text-xs text-gray-400 mt-1 mb-6 max-w-md">
+          <p className="text-white text-xl sm:text-2xl font-black tracking-tight">No tenants in this portfolio yet</p>
+          <p className="text-sm sm:text-base text-gray-300 mt-2 mb-8 max-w-lg leading-relaxed">
             Onboard new tenants quickly: drop an Excel spreadsheet, upload photos of legal pad notes or lease documents, or manually key in your first tenant.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <button
               onClick={() => setShowIntakeStaging(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white text-xs font-bold hover:opacity-95 shadow-[0_0_20px_rgba(56,189,248,0.35)] transition-all"
+              className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white text-sm sm:text-base font-black hover:opacity-95 shadow-[0_0_24px_rgba(56,189,248,0.4)] transition-all cursor-pointer"
             >
-              <Sparkles size={14} className="text-white animate-pulse" />
-              ⚡ Fast Intake (Excel, Legal Pad, Leases)
+              <Sparkles size={18} className="text-white animate-pulse" />
+              <span>⚡ Fast Intake (Excel, Legal Pad, Leases)</span>
             </button>
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-white text-xs font-bold transition-all"
+              className="flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 text-white text-sm sm:text-base font-bold transition-all cursor-pointer"
             >
-              <Plus size={14} /> Add Single Tenant
+              <Plus size={18} /> <span>Add Single Tenant</span>
             </button>
           </div>
         </div>

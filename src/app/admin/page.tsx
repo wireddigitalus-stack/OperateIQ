@@ -2430,69 +2430,69 @@ export default function AdminPage() {
 
         {/* Active Customer Workspace Welcome & Onboarding Banner */}
         {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001" && (
-          <div className="mb-6 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-indigo-950/70 via-[#0B1426] to-sky-950/60 border border-indigo-500/40 shadow-[0_0_30px_rgba(99,102,241,0.15)]">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
+          <div className="mb-8 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-indigo-950/80 via-[#0B1426] to-sky-950/70 border border-indigo-500/40 shadow-[0_0_40px_rgba(99,102,241,0.2)]">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider bg-cyan-500/25 text-cyan-300 border border-cyan-400/50">
                     {activeOrg.tier} Tier Active
                   </span>
-                  <span className="text-xs text-slate-400 font-medium">14-Day Free Evaluation Period</span>
+                  <span className="text-sm sm:text-base text-slate-300 font-semibold">14-Day Free Evaluation Period</span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
                   Welcome to {activeOrg.name}
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+                <p className="text-sm sm:text-base lg:text-lg text-slate-200 max-w-2xl leading-relaxed">
                   Your dedicated property operations workspace is active. Use the quick-start buttons below to add your buildings, import your tenant rent roll, or set up maintenance workflows.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <button
                   onClick={() => setShowIntakeModal(true)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-bold transition-all border border-cyan-400/40 flex items-center gap-1.5 shadow-[0_0_16px_rgba(6,182,212,0.35)] cursor-pointer"
+                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-sm sm:text-base font-black transition-all border border-cyan-300/50 flex items-center gap-2 shadow-[0_0_24px_rgba(6,182,212,0.4)] cursor-pointer"
                 >
-                  <Sparkles size={14} className="text-cyan-200" />
+                  <Sparkles size={18} className="text-cyan-100 animate-pulse" />
                   <span>Import Buildings &amp; Tenants</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("propdetails")}
-                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
+                  className="px-4 sm:px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-sm sm:text-base font-bold transition-all border border-white/20 flex items-center gap-2 shadow-sm"
                 >
-                  <Building2 size={14} className="text-cyan-400" />
+                  <Building2 size={18} className="text-cyan-400" />
                   <span>Add First Building</span>
                 </button>
                 <button
                   onClick={() => setShowIntakeModal(true)}
-                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
+                  className="px-4 sm:px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-sm sm:text-base font-bold transition-all border border-white/20 flex items-center gap-2 shadow-sm"
                 >
-                  <Users size={14} className="text-emerald-400" />
+                  <Users size={18} className="text-emerald-400" />
                   <span>Tenant Rent Roll</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("maintenance")}
-                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
+                  className="px-4 sm:px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-sm sm:text-base font-bold transition-all border border-white/20 flex items-center gap-2 shadow-sm"
                 >
-                  <Wrench size={14} className="text-amber-400" />
+                  <Wrench size={18} className="text-amber-400" />
                   <span>Setup Maintenance</span>
                 </button>
                 <button
                   onClick={() => switchTab("content")}
-                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
+                  className="px-4 sm:px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-sm sm:text-base font-bold transition-all border border-white/20 flex items-center gap-2 shadow-sm"
                 >
-                  <Pencil size={14} className="text-amber-300" />
+                  <Pencil size={18} className="text-amber-300" />
                   <span>Site Builder</span>
                 </button>
                 <a
                   href="/demo-site"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-xs font-bold transition-all border border-sky-400/40 flex items-center gap-1.5 shadow-[0_0_15px_rgba(56,189,248,0.2)]"
+                  className="px-4 sm:px-5 py-3 rounded-2xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-sm sm:text-base font-bold transition-all border border-sky-400/40 flex items-center gap-2 shadow-[0_0_15px_rgba(56,189,248,0.2)]"
                   title={`Open live public website for ${activeOrg.name}`}
                 >
-                  <Globe size={14} className="text-sky-400" />
+                  <Globe size={18} className="text-sky-400" />
                   <span>View Public Site</span>
-                  <ExternalLink size={11} className="opacity-75" />
+                  <ExternalLink size={14} className="opacity-75" />
                 </a>
               </div>
             </div>

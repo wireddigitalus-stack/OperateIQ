@@ -752,41 +752,41 @@ export default function IntakeStagingModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0B1020]/90">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500/20 to-indigo-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.25)]">
-              <Sparkles size={20} className="animate-pulse" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500/20 to-indigo-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.25)] flex-shrink-0">
+              <Sparkles size={24} className="animate-pulse" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-white tracking-wide">
-                  AI Tenant & Rent Roll Intake
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-wide">
+                  AI Tenant &amp; Rent Roll Intake
                 </h2>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-400/30 text-sky-300">
+                <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-sky-500/15 border border-sky-400/40 text-sky-300">
                   {currentOrgName}
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-400 flex items-center gap-1">
-                  <ShieldCheck size={11} /> Human-In-The-Loop Staging
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-400 flex items-center gap-1.5">
+                  <ShieldCheck size={14} /> Human-In-The-Loop Staging
                 </span>
               </div>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Drop spreadsheets, photos of handwritten legal pads, or scanned lease contracts. Review & verify detected rows before committing to database.
+              <p className="text-sm sm:text-base text-gray-300 mt-1 leading-relaxed">
+                Drop spreadsheets, photos of handwritten legal pads, or scanned lease contracts. Review &amp; verify detected rows before committing to database.
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
           >
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
           {errorMsg && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2.5">
-              <AlertCircle size={16} className="flex-shrink-0 text-red-400" />
-              <span>{errorMsg}</span>
+            <div className="p-4 rounded-xl bg-red-500/15 border border-red-500/40 text-red-200 text-sm flex items-center gap-3">
+              <AlertCircle size={18} className="flex-shrink-0 text-red-400" />
+              <span className="font-semibold">{errorMsg}</span>
             </div>
           )}
 
@@ -797,7 +797,7 @@ export default function IntakeStagingModal({
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
-                className="relative rounded-2xl border-2 border-dashed border-sky-400/30 hover:border-sky-400/70 bg-gradient-to-b from-sky-950/10 via-black/40 to-black/60 p-8 sm:p-12 text-center transition-all duration-300 group cursor-pointer"
+                className="relative rounded-3xl border-2 border-dashed border-sky-400/35 hover:border-sky-400/80 bg-gradient-to-b from-sky-950/20 via-black/50 to-black/70 p-8 sm:p-14 text-center transition-all duration-300 group cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <input
@@ -816,29 +816,29 @@ export default function IntakeStagingModal({
                   }}
                 />
 
-                <div className="max-w-md mx-auto space-y-4">
-                  <div className="w-16 h-16 mx-auto rounded-2xl bg-sky-500/10 border border-sky-400/30 flex items-center justify-center text-sky-400 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(56,189,248,0.35)] transition-all">
-                    <Upload size={30} />
+                <div className="max-w-xl mx-auto space-y-4">
+                  <div className="w-20 h-20 mx-auto rounded-3xl bg-sky-500/15 border border-sky-400/40 flex items-center justify-center text-sky-400 group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(56,189,248,0.4)] transition-all">
+                    <Upload size={36} />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white mb-1">
-                      Drag & Drop Rent Roll, Handwritten Notes, or Leases
+                    <h3 className="text-xl sm:text-2xl font-black text-white mb-2 tracking-tight">
+                      Drag &amp; Drop Rent Roll, Handwritten Notes, or Leases
                     </h3>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      Supports Excel (<code className="text-sky-300">.xlsx, .csv</code>), physical documents (<code className="text-sky-300">PDF, JPG, PNG</code>), and camera snaps of legal pad notes.
+                    <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                      Supports Excel (<code className="text-sky-300 font-bold">.xlsx, .csv</code>), physical documents (<code className="text-sky-300 font-bold">PDF, JPG, PNG</code>), and camera snaps of legal pad notes.
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         fileInputRef.current?.click();
                       }}
-                      className="px-4 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                      className="px-5 py-3 rounded-2xl bg-sky-500/25 hover:bg-sky-500/35 border border-sky-400/50 text-sky-200 text-sm sm:text-base font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
                     >
-                      <FileText size={14} /> Browse Files
+                      <FileText size={18} /> Browse Files
                     </button>
 
                     <button
@@ -847,9 +847,9 @@ export default function IntakeStagingModal({
                         e.stopPropagation();
                         cameraInputRef.current?.click();
                       }}
-                      className="px-4 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/40 text-purple-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                      className="px-5 py-3 rounded-2xl bg-purple-500/25 hover:bg-purple-500/35 border border-purple-400/50 text-purple-200 text-sm sm:text-base font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
                     >
-                      <Camera size={14} /> Snap Photo (Camera)
+                      <Camera size={18} /> Snap Photo (Camera)
                     </button>
                     <input
                       ref={cameraInputRef}
@@ -867,71 +867,71 @@ export default function IntakeStagingModal({
               </div>
 
               {/* Instant Test Drive / Quick Presets */}
-              <div className="rounded-xl border border-white/12 bg-white/[0.02] p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
-                    <Sparkles size={18} />
+              <div className="rounded-2xl border border-white/15 bg-white/[0.03] p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-400/35 flex items-center justify-center text-emerald-400 flex-shrink-0">
+                    <Sparkles size={22} />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white">Testing a New Account or Property?</h4>
-                    <p className="text-[11px] text-gray-400">
+                    <h4 className="text-base sm:text-lg font-black text-white">Testing a New Account or Property?</h4>
+                    <p className="text-sm text-gray-300 mt-0.5 leading-relaxed">
                       18-unit mixed portfolio: Commercial (Retail, Legal, Cafe, Design, Medical, Flex Bays) &amp; Residential (Apartments, Studios, Townhomes).
                     </p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2.5">
                   <a
                     href="/sample-data/operateiq_test_portfolio.xlsx"
                     download="operateiq_test_portfolio.xlsx"
-                    className="px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition-all flex items-center gap-1.5"
+                    className="px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-sm font-bold transition-all flex items-center gap-2"
                     title="Download Excel test portfolio workbook"
                   >
-                    <FileSpreadsheet size={13} />
+                    <FileSpreadsheet size={15} />
                     <span>Download .XLSX</span>
                   </a>
                   <a
                     href="/sample-data/operateiq_test_portfolio.csv"
                     download="operateiq_test_portfolio.csv"
-                    className="px-3 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 text-xs font-semibold transition-all flex items-center gap-1.5"
+                    className="px-4 py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 text-sky-300 text-sm font-bold transition-all flex items-center gap-2"
                     title="Download CSV test portfolio spreadsheet"
                   >
-                    <FileSpreadsheet size={13} />
+                    <FileSpreadsheet size={15} />
                     <span>Download .CSV</span>
                   </a>
                   <button
                     type="button"
                     onClick={handleLoadSample}
-                    className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_12px_rgba(255,255,255,0.06)]"
+                    className="px-5 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.18] border border-white/25 text-white text-sm sm:text-base font-black transition-all flex items-center gap-2 whitespace-nowrap shadow-[0_0_16px_rgba(255,255,255,0.08)] cursor-pointer"
                   >
-                    ⚡ 1-Click Load 18 Units <ArrowRight size={13} />
+                    ⚡ 1-Click Load 18 Units <ArrowRight size={15} />
                   </button>
                 </div>
               </div>
 
               {/* Supported Formats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-sky-400">
-                    <FileSpreadsheet size={15} /> Excel / CSV Spreadsheets
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-5 rounded-2xl border border-white/12 bg-black/50 space-y-2.5">
+                  <div className="flex items-center gap-2 text-sm sm:text-base font-bold text-sky-400">
+                    <FileSpreadsheet size={18} /> Excel / CSV Spreadsheets
                   </div>
-                  <p className="text-[11px] text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
                     Instant client-side column mapping. Recognizes tenant names, phone, rent, deposits, and dates automatically.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-purple-400">
-                    <FileText size={15} /> Lease Agreements & Scans
+                <div className="p-5 rounded-2xl border border-white/12 bg-black/50 space-y-2.5">
+                  <div className="flex items-center gap-2 text-sm sm:text-base font-bold text-purple-400">
+                    <FileText size={18} /> Lease Agreements &amp; Scans
                   </div>
-                  <p className="text-[11px] text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
                     Gemini 2.5 Flash Vision extracts commencement, expiration, monthly base rent, security deposits, and special terms.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-                    <Camera size={15} /> Handwritten Legal Pad Notes
+                <div className="p-5 rounded-2xl border border-white/12 bg-black/50 space-y-2.5">
+                  <div className="flex items-center gap-2 text-sm sm:text-base font-bold text-emerald-400">
+                    <Camera size={18} /> Handwritten Legal Pad Notes
                   </div>
-                  <p className="text-[11px] text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
                     Snap a photo of your notebook or yellow legal pad. Vision AI parses handwriting into structured tenant ledger records.
                   </p>
                 </div>
@@ -941,19 +941,19 @@ export default function IntakeStagingModal({
 
           {/* STEP 2: Scanning & OCR Progress */}
           {step === "scanning" && (
-            <div className="py-16 text-center space-y-6">
-              <div className="relative w-20 h-20 mx-auto">
-                <div className="absolute inset-0 rounded-full border-2 border-sky-400/20 animate-ping" />
-                <div className="relative w-20 h-20 rounded-full bg-sky-500/10 border border-sky-400/40 flex items-center justify-center text-sky-400 shadow-[0_0_30px_rgba(56,189,248,0.3)]">
-                  <Loader2 size={32} className="animate-spin" />
+            <div className="py-20 text-center space-y-6">
+              <div className="relative w-24 h-24 mx-auto">
+                <div className="absolute inset-0 rounded-full border-2 border-sky-400/25 animate-ping" />
+                <div className="relative w-24 h-24 rounded-full bg-sky-500/10 border border-sky-400/40 flex items-center justify-center text-sky-400 shadow-[0_0_35px_rgba(56,189,248,0.35)]">
+                  <Loader2 size={40} className="animate-spin" />
                 </div>
               </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-white">OpsIQ Document Intelligence</h3>
-                <p className="text-xs text-sky-300 font-medium tracking-wide animate-pulse">
+              <div className="space-y-2">
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">OpsIQ Document Intelligence</h3>
+                <p className="text-base sm:text-lg text-sky-300 font-bold tracking-wide animate-pulse">
                   {scanStatusText}
                 </p>
-                <p className="text-[11px] text-gray-500">
+                <p className="text-sm text-gray-400 font-medium">
                   Processing: {sourceFile?.name || "Document"}
                 </p>
               </div>
@@ -964,53 +964,53 @@ export default function IntakeStagingModal({
           {(step === "review" || step === "committing") && (
             <div className="space-y-4">
               {/* Review Summary Bar */}
-              <div className="p-4 rounded-xl bg-[#0B1020] border border-white/15 flex flex-wrap items-center justify-between gap-4 shadow-[0_0_20px_rgba(0,0,0,0.4)]">
-                <div className="flex flex-wrap items-center gap-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1020] border border-white/20 flex flex-wrap items-center justify-between gap-4 shadow-[0_0_20px_rgba(0,0,0,0.4)]">
+                <div className="flex flex-wrap items-center gap-4 sm:gap-5">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={toggleSelectAll}
-                      className="flex items-center gap-1.5 text-xs font-bold text-sky-400 hover:text-sky-300"
+                      className="flex items-center gap-2 text-sm sm:text-base font-black text-sky-400 hover:text-sky-300 cursor-pointer"
                     >
-                      {stagedRecords.every((r) => r.selected) ? <CheckSquare size={16} /> : <Square size={16} />}
+                      {stagedRecords.every((r) => r.selected) ? <CheckSquare size={18} /> : <Square size={18} />}
                       Select All ({stagedRecords.length})
                     </button>
                   </div>
 
-                  <div className="h-4 w-px bg-white/10" />
+                  <div className="h-5 w-px bg-white/20 hidden sm:block" />
 
-                  <div className="text-xs text-gray-300">
-                    Selected: <span className="font-bold text-white">{selectedRecords.length}</span> / {stagedRecords.length}
+                  <div className="text-sm sm:text-base text-gray-200">
+                    Selected: <span className="font-black text-white">{selectedRecords.length}</span> / {stagedRecords.length}
                   </div>
 
-                  <div className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
-                    <DollarSign size={13} />
+                  <div className="text-sm sm:text-base text-emerald-300 font-bold flex items-center gap-1.5">
+                    <DollarSign size={16} />
                     <span>Total Rent: <strong>${totalRent.toLocaleString()}/mo</strong></span>
                   </div>
 
-                  <div className="text-xs text-amber-400 font-semibold flex items-center gap-1">
+                  <div className="text-sm sm:text-base text-amber-300 font-bold flex items-center gap-1.5">
                     <span>Deposits: <strong>${totalDeposit.toLocaleString()}</strong></span>
                   </div>
 
                   {needsReviewCount > 0 && (
-                    <span className="text-[11px] font-bold text-amber-300 bg-amber-500/10 border border-amber-400/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <AlertTriangle size={11} /> {needsReviewCount} need verification
+                    <span className="text-xs sm:text-sm font-bold text-amber-300 bg-amber-500/15 border border-amber-400/40 px-3 py-1 rounded-full flex items-center gap-1.5">
+                      <AlertTriangle size={14} /> {needsReviewCount} need verification
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   {sourceFile?.url && (
                     <button
                       type="button"
                       onClick={() => setShowSourceDrawer(!showSourceDrawer)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-medium transition-all flex items-center gap-1.5 ${
+                      className={`px-4 py-2 rounded-xl border text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
                         showSourceDrawer
-                          ? "bg-sky-500/20 border-sky-400/40 text-sky-300"
-                          : "bg-white/[0.04] border-white/10 text-gray-300 hover:text-white"
+                          ? "bg-sky-500/25 border-sky-400/50 text-sky-200"
+                          : "bg-white/[0.06] border-white/15 text-gray-200 hover:text-white"
                       }`}
                     >
-                      {showSourceDrawer ? <EyeOff size={13} /> : <Eye size={13} />}
+                      {showSourceDrawer ? <EyeOff size={15} /> : <Eye size={15} />}
                       {showSourceDrawer ? "Hide Source Scan" : "View Source Scan"}
                     </button>
                   )}
@@ -1018,9 +1018,9 @@ export default function IntakeStagingModal({
                   <button
                     type="button"
                     onClick={addEmptyRow}
-                    className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-gray-200 text-xs font-semibold flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 text-white text-sm font-bold flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Plus size={13} /> Add Row
+                    <Plus size={15} /> Add Row
                   </button>
 
                   <button
@@ -1030,115 +1030,115 @@ export default function IntakeStagingModal({
                       setStagedRecords([]);
                       setSourceFile(null);
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-gray-400 hover:text-white text-xs font-semibold flex items-center gap-1"
+                    className="px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-gray-300 hover:text-white text-sm font-semibold flex items-center gap-1.5 cursor-pointer"
                   >
-                    <RefreshCw size={12} /> Re-scan
+                    <RefreshCw size={14} /> Re-scan
                   </button>
                 </div>
               </div>
 
               {/* Source Document Cross-Reference Preview Drawer */}
               {showSourceDrawer && sourceFile?.url && (
-                <div className="p-4 rounded-xl border border-sky-400/30 bg-black/60 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-sky-400 font-bold">
-                    <span className="flex items-center gap-1.5">
-                      <FileText size={14} /> Source Document Cross-Reference: {sourceFile.name}
+                <div className="p-5 rounded-2xl border border-sky-400/35 bg-black/70 space-y-3">
+                  <div className="flex items-center justify-between text-sm sm:text-base text-sky-300 font-bold">
+                    <span className="flex items-center gap-2">
+                      <FileText size={18} /> Source Document Cross-Reference: {sourceFile.name}
                     </span>
-                    <span className="text-gray-400 text-[11px]">Compare detected data against original document</span>
+                    <span className="text-gray-300 text-xs sm:text-sm">Compare detected data against original document</span>
                   </div>
-                  <div className="max-h-72 overflow-auto rounded-lg border border-white/10 bg-black/80 flex items-center justify-center p-2">
+                  <div className="max-h-80 overflow-auto rounded-xl border border-white/15 bg-black/90 flex items-center justify-center p-3">
                     <img
                       src={sourceFile.url}
                       alt="Source Scan"
-                      className="max-h-64 object-contain rounded shadow-lg"
+                      className="max-h-72 object-contain rounded-lg shadow-lg"
                     />
                   </div>
                 </div>
               )}
 
               {/* Staging Data Grid */}
-              <div className="rounded-xl border border-white/12 bg-black/40 overflow-hidden shadow-inner">
+              <div className="rounded-2xl border border-white/15 bg-black/50 overflow-hidden shadow-inner">
                 <div className="overflow-x-auto max-h-[50vh]">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-[#0B1020] text-gray-400 uppercase text-[10px] tracking-wider sticky top-0 z-10 border-b border-white/10">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead className="bg-[#0B1020] text-gray-300 uppercase text-xs font-black tracking-wider sticky top-0 z-10 border-b border-white/15">
                       <tr>
-                        <th className="py-3 px-3 w-10 text-center">Sel</th>
-                        <th className="py-3 px-3 w-24">Status</th>
-                        <th className="py-3 px-3 min-w-[170px]">Tenant / Company *</th>
-                        <th className="py-3 px-3 min-w-[140px]">Contact Person</th>
-                        <th className="py-3 px-3 min-w-[160px]">Property / Building</th>
-                        <th className="py-3 px-3 min-w-[100px]">Suite / Unit</th>
-                        <th className="py-3 px-3 min-w-[110px]">Rent ($/mo) *</th>
-                        <th className="py-3 px-3 min-w-[100px]">Deposit ($)</th>
-                        <th className="py-3 px-3 min-w-[110px]">Lease Start</th>
-                        <th className="py-3 px-3 min-w-[110px]">Lease End</th>
-                        <th className="py-3 px-3 min-w-[180px]">Notes / Terms</th>
-                        <th className="py-3 px-3 w-12 text-center">Action</th>
+                        <th className="py-3.5 px-3 w-10 text-center">Sel</th>
+                        <th className="py-3.5 px-3 w-28">Status</th>
+                        <th className="py-3.5 px-3 min-w-[190px]">Tenant / Company *</th>
+                        <th className="py-3.5 px-3 min-w-[150px]">Contact Person</th>
+                        <th className="py-3.5 px-3 min-w-[180px]">Property / Building</th>
+                        <th className="py-3.5 px-3 min-w-[110px]">Suite / Unit</th>
+                        <th className="py-3.5 px-3 min-w-[120px]">Rent ($/mo) *</th>
+                        <th className="py-3.5 px-3 min-w-[110px]">Deposit ($)</th>
+                        <th className="py-3.5 px-3 min-w-[125px]">Lease Start</th>
+                        <th className="py-3.5 px-3 min-w-[125px]">Lease End</th>
+                        <th className="py-3.5 px-3 min-w-[200px]">Notes / Terms</th>
+                        <th className="py-3.5 px-3 w-14 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/[0.06]">
-                      {stagedRecords.map((r, idx) => {
+                    <tbody className="divide-y divide-white/[0.08]">
+                      {stagedRecords.map((r) => {
                         const isInvalid = !r.name.trim() || r.monthlyRent <= 0;
                         return (
                           <tr
                             key={r.id}
-                            className={`hover:bg-white/[0.02] transition-colors ${
+                            className={`hover:bg-white/[0.03] transition-colors ${
                               !r.selected ? "opacity-50 bg-black/30" : isInvalid ? "bg-red-500/5" : ""
                             }`}
                           >
                             {/* Checkbox */}
-                            <td className="py-2.5 px-3 text-center">
+                            <td className="py-3 px-3 text-center">
                               <input
                                 type="checkbox"
                                 checked={r.selected}
                                 onChange={(e) => updateRow(r.id, "selected", e.target.checked)}
-                                className="rounded border-white/30 text-sky-500 focus:ring-0 cursor-pointer"
+                                className="w-4 h-4 rounded border-white/30 text-sky-500 focus:ring-0 cursor-pointer"
                               />
                             </td>
 
                             {/* Status badge */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               {isInvalid ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-full">
-                                  <AlertCircle size={10} /> Missing Info
+                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-300 bg-red-500/20 border border-red-500/40 px-2.5 py-1 rounded-full whitespace-nowrap">
+                                  <AlertCircle size={12} /> Missing Info
                                 </span>
                               ) : r.needsReview ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-400/30 px-2 py-0.5 rounded-full">
-                                  <AlertTriangle size={10} /> Review
+                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-2.5 py-1 rounded-full whitespace-nowrap">
+                                  <AlertTriangle size={12} /> Review
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-400/30 px-2 py-0.5 rounded-full">
-                                  <CheckCircle2 size={10} /> Verified
+                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-400/40 px-2.5 py-1 rounded-full whitespace-nowrap">
+                                  <CheckCircle2 size={12} /> Verified
                                 </span>
                               )}
                             </td>
 
                             {/* Tenant / Company Name */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               <input
                                 type="text"
                                 value={r.name}
                                 onChange={(e) => updateRow(r.id, "name", e.target.value)}
                                 placeholder="Required company name..."
-                                className={`w-full px-2.5 py-1.5 rounded-lg text-xs bg-black/40 border text-white outline-none focus:border-sky-400 transition-all ${
-                                  !r.name.trim() ? "border-red-500/60 bg-red-500/5" : "border-white/10"
+                                className={`w-full px-3 py-2 rounded-xl text-sm font-semibold bg-black/50 border text-white outline-none focus:border-sky-400 transition-all ${
+                                  !r.name.trim() ? "border-red-500/60 bg-red-500/10" : "border-white/15"
                                 }`}
                               />
                             </td>
 
                             {/* Contact Person */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               <input
                                 type="text"
                                 value={r.contactName}
                                 onChange={(e) => updateRow(r.id, "contactName", e.target.value)}
                                 placeholder="Contact name..."
-                                className="w-full px-2.5 py-1.5 rounded-lg text-xs bg-black/40 border border-white/10 text-white outline-none focus:border-sky-400"
+                                className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 border border-white/15 text-white outline-none focus:border-sky-400"
                               />
                             </td>
 
                             {/* Building / Property */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               <div className="relative">
                                 <input
                                   type="text"
@@ -1146,7 +1146,7 @@ export default function IntakeStagingModal({
                                   value={r.building}
                                   onChange={(e) => updateRow(r.id, "building", e.target.value)}
                                   placeholder="Select or enter property..."
-                                  className="w-full px-2.5 py-1.5 rounded-lg text-xs bg-black/40 border border-white/10 text-white outline-none focus:border-sky-400"
+                                  className="w-full px-3 py-2 rounded-xl text-sm font-medium bg-black/50 border border-white/15 text-white outline-none focus:border-sky-400"
                                 />
                                 <datalist id={`buildings-${r.id}`}>
                                   {buildingSuggestions.map((b) => (
@@ -1157,86 +1157,86 @@ export default function IntakeStagingModal({
                             </td>
 
                             {/* Unit / Suite */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               <input
                                 type="text"
                                 value={r.unit}
                                 onChange={(e) => updateRow(r.id, "unit", e.target.value)}
                                 placeholder="Suite 200..."
-                                className="w-full px-2.5 py-1.5 rounded-lg text-xs bg-black/40 border border-white/10 text-white outline-none focus:border-sky-400"
+                                className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 border border-white/15 text-white outline-none focus:border-sky-400"
                               />
                             </td>
 
                             {/* Monthly Rent */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               <div className="relative">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">$</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">$</span>
                                 <input
                                   type="number"
                                   value={r.monthlyRent || ""}
                                   onChange={(e) => updateRow(r.id, "monthlyRent", Number(e.target.value))}
                                   placeholder="0"
-                                  className={`w-full pl-6 pr-2.5 py-1.5 rounded-lg text-xs bg-black/40 border text-emerald-400 font-bold outline-none focus:border-sky-400 ${
-                                    r.monthlyRent <= 0 ? "border-red-500/60 bg-red-500/5" : "border-white/10"
+                                  className={`w-full pl-7 pr-3 py-2 rounded-xl text-sm bg-black/50 border text-emerald-300 font-black outline-none focus:border-sky-400 ${
+                                    r.monthlyRent <= 0 ? "border-red-500/60 bg-red-500/10" : "border-white/15"
                                   }`}
                                 />
                               </div>
                             </td>
 
                             {/* Security Deposit */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               <div className="relative">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">$</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">$</span>
                                 <input
                                   type="number"
                                   value={r.securityDeposit || ""}
                                   onChange={(e) => updateRow(r.id, "securityDeposit", Number(e.target.value))}
                                   placeholder="0"
-                                  className="w-full pl-6 pr-2.5 py-1.5 rounded-lg text-xs bg-black/40 border border-white/10 text-amber-300 font-medium outline-none focus:border-sky-400"
+                                  className="w-full pl-7 pr-3 py-2 rounded-xl text-sm bg-black/50 border border-white/15 text-amber-300 font-bold outline-none focus:border-sky-400"
                                 />
                               </div>
                             </td>
 
                             {/* Lease Start */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               <input
                                 type="date"
                                 value={r.leaseStart}
                                 onChange={(e) => updateRow(r.id, "leaseStart", e.target.value)}
-                                className="w-full px-2 py-1.5 rounded-lg text-[11px] bg-black/40 border border-white/10 text-gray-300 outline-none focus:border-sky-400"
+                                className="w-full px-2.5 py-2 rounded-xl text-xs sm:text-sm bg-black/50 border border-white/15 text-gray-200 outline-none focus:border-sky-400"
                               />
                             </td>
 
                             {/* Lease End */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               <input
                                 type="date"
                                 value={r.leaseEnd}
                                 onChange={(e) => updateRow(r.id, "leaseEnd", e.target.value)}
-                                className="w-full px-2 py-1.5 rounded-lg text-[11px] bg-black/40 border border-white/10 text-gray-300 outline-none focus:border-sky-400"
+                                className="w-full px-2.5 py-2 rounded-xl text-xs sm:text-sm bg-black/50 border border-white/15 text-gray-200 outline-none focus:border-sky-400"
                               />
                             </td>
 
                             {/* Notes / Special Terms */}
-                            <td className="py-2.5 px-3">
+                            <td className="py-3 px-3">
                               <input
                                 type="text"
                                 value={r.notes}
                                 onChange={(e) => updateRow(r.id, "notes", e.target.value)}
                                 placeholder="Terms, options, deposits..."
-                                className="w-full px-2.5 py-1.5 rounded-lg text-xs bg-black/40 border border-white/10 text-gray-300 outline-none focus:border-sky-400"
+                                className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 border border-white/15 text-gray-200 outline-none focus:border-sky-400"
                               />
                             </td>
 
                             {/* Delete action */}
-                            <td className="py-2.5 px-3 text-center">
+                            <td className="py-3 px-3 text-center">
                               <button
                                 type="button"
                                 onClick={() => deleteRow(r.id)}
-                                className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                className="p-2 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                                 title="Remove Row"
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={16} />
                               </button>
                             </td>
                           </tr>
@@ -1264,14 +1264,14 @@ export default function IntakeStagingModal({
                 </div>
 
                 <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/40 text-emerald-300 text-xs font-black tracking-wider uppercase">
-                    <ShieldCheck size={14} className="text-emerald-400" />
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-xs sm:text-sm font-black tracking-wider uppercase">
+                    <ShieldCheck size={16} className="text-emerald-400" />
                     <span>Transaction Verified &amp; Finalized</span>
                   </div>
-                  <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  <h3 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
                     YES! YOUR DATA WAS SAVED &amp; FINALIZED
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-300 max-w-xl mx-auto leading-relaxed">
+                  <p className="text-sm sm:text-base text-gray-200 max-w-xl mx-auto leading-relaxed">
                     All buildings and tenant lease agreements have been permanently written to your live database. Occupancy calculations, rent rolls, and portfolio P&amp;L ledgers are fully synced.
                   </p>
                 </div>
@@ -1280,27 +1280,27 @@ export default function IntakeStagingModal({
               {/* 3 Summary Receipt Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
                 {/* 1. Buildings Card */}
-                <div className="p-5 rounded-2xl bg-gradient-to-b from-sky-950/30 to-[#0A1020] border border-sky-400/30 shadow-[0_4px_20px_rgba(56,189,248,0.1)] flex flex-col justify-between">
+                <div className="p-6 rounded-3xl bg-gradient-to-b from-sky-950/30 to-[#0A1020] border border-sky-400/35 shadow-[0_4px_20px_rgba(56,189,248,0.1)] flex flex-col justify-between">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400">
-                        <Building size={20} />
+                      <div className="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400">
+                        <Building size={24} />
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-400/20">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">
                         Portfolio Enrolled
                       </span>
                     </div>
                     <div>
-                      <div className="text-2xl font-black text-white">
+                      <div className="text-3xl font-black text-white">
                         {savedBuildings.length} Building{savedBuildings.length === 1 ? "" : "s"}
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">Properties &amp; Units Registered</div>
+                      <div className="text-sm text-gray-300 mt-1 font-medium">Properties &amp; Units Registered</div>
                     </div>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-white/10">
-                    <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
+                  <div className="mt-5 pt-3.5 border-t border-white/10">
+                    <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
                       {savedBuildings.map((b) => (
-                        <span key={b} className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 truncate max-w-full">
+                        <span key={b} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200 truncate max-w-full">
                           {b}
                         </span>
                       ))}
@@ -1309,52 +1309,52 @@ export default function IntakeStagingModal({
                 </div>
 
                 {/* 2. Leases Card */}
-                <div className="p-5 rounded-2xl bg-gradient-to-b from-indigo-950/30 to-[#0A1020] border border-indigo-400/30 shadow-[0_4px_20px_rgba(99,102,241,0.1)] flex flex-col justify-between">
+                <div className="p-6 rounded-3xl bg-gradient-to-b from-indigo-950/30 to-[#0A1020] border border-indigo-400/35 shadow-[0_4px_20px_rgba(99,102,241,0.1)] flex flex-col justify-between">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center text-indigo-400">
-                        <CheckSquare size={20} />
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center text-indigo-400">
+                        <CheckSquare size={24} />
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-400/20">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-400/30">
                         Active Leases
                       </span>
                     </div>
                     <div>
-                      <div className="text-2xl font-black text-white">
+                      <div className="text-3xl font-black text-white">
                         {savedTenantsCount} Tenant{savedTenantsCount === 1 ? "" : "s"}
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">Committed to Rent Roll Database</div>
+                      <div className="text-sm text-gray-300 mt-1 font-medium">Committed to Rent Roll Database</div>
                     </div>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-gray-300">
+                  <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between text-sm text-gray-300">
                     <span>Database Status:</span>
-                    <span className="font-bold text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 size={12} /> Active &amp; Verified
+                    <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 size={15} /> Active &amp; Verified
                     </span>
                   </div>
                 </div>
 
                 {/* 3. Monthly Rent Roll Card */}
-                <div className="p-5 rounded-2xl bg-gradient-to-b from-emerald-950/30 to-[#0A1020] border border-emerald-400/30 shadow-[0_4px_20px_rgba(52,211,153,0.1)] flex flex-col justify-between">
+                <div className="p-6 rounded-3xl bg-gradient-to-b from-emerald-950/30 to-[#0A1020] border border-emerald-400/35 shadow-[0_4px_20px_rgba(52,211,153,0.1)] flex flex-col justify-between">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
-                        <DollarSign size={20} />
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+                        <DollarSign size={24} />
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-400/20">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
                         Live Rent Roll
                       </span>
                     </div>
                     <div>
-                      <div className="text-2xl font-black text-emerald-400">
-                        ${savedRentSum.toLocaleString()}<span className="text-xs font-medium text-gray-400">/mo</span>
+                      <div className="text-3xl font-black text-emerald-400">
+                        ${savedRentSum.toLocaleString()}<span className="text-sm font-medium text-gray-400">/mo</span>
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">Monthly Recurring Lease Revenue</div>
+                      <div className="text-sm text-gray-300 mt-1 font-medium">Monthly Recurring Lease Revenue</div>
                     </div>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-gray-300">
+                  <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between text-sm text-gray-300">
                     <span>Projected Annual:</span>
-                    <span className="font-bold text-white">
+                    <span className="font-bold text-white text-base">
                       ${(savedRentSum * 12).toLocaleString()}/yr
                     </span>
                   </div>
@@ -1362,7 +1362,7 @@ export default function IntakeStagingModal({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-4 border-t border-white/10">
+              <div className="flex flex-wrap items-center justify-center gap-4 pt-5 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => {
@@ -1373,9 +1373,9 @@ export default function IntakeStagingModal({
                       onClose();
                     }
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(59,130,246,0.4)] flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm sm:text-base shadow-[0_0_24px_rgba(59,130,246,0.4)] flex items-center gap-2.5 transition-all cursor-pointer"
                 >
-                  <Users size={14} />
+                  <Users size={18} />
                   <span>View in Tenants Directory</span>
                 </button>
 
@@ -1389,9 +1389,9 @@ export default function IntakeStagingModal({
                       onClose();
                     }
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(6,182,212,0.4)] flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white font-black text-sm sm:text-base shadow-[0_0_24px_rgba(6,182,212,0.4)] flex items-center gap-2.5 transition-all cursor-pointer"
                 >
-                  <Building size={14} />
+                  <Building size={18} />
                   <span>View in Building Portfolio</span>
                 </button>
 
@@ -1403,16 +1403,16 @@ export default function IntakeStagingModal({
                     setSourceFile(null);
                     setErrorMsg("");
                   }}
-                  className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-gray-300 hover:text-white font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-3.5 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 text-gray-200 hover:text-white font-bold text-sm sm:text-base transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <RefreshCw size={13} />
+                  <RefreshCw size={16} />
                   <span>Import Another Document</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 font-semibold text-xs transition-all cursor-pointer"
+                  className="px-5 py-3.5 rounded-2xl border border-white/15 text-gray-300 hover:text-white hover:bg-white/5 font-semibold text-sm sm:text-base transition-all cursor-pointer"
                 >
                   Close &amp; Finish
                 </button>
@@ -1423,18 +1423,18 @@ export default function IntakeStagingModal({
 
         {/* Modal Footer Controls */}
         {(step === "review" || step === "committing") && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-white/10 bg-[#0B1020]/95">
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <ShieldCheck size={14} className="text-emerald-400" />
+          <div className="flex flex-col sm:flex-row items-center justify-between px-6 sm:px-8 py-4 sm:py-5 border-t border-white/15 bg-[#0B1020]/95 gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <ShieldCheck size={18} className="text-emerald-400 flex-shrink-0" />
               <span>Final user review required prior to database commit.</span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={step === "committing"}
-                className="px-4 py-2 rounded-xl border border-white/15 text-gray-300 hover:text-white hover:bg-white/5 text-xs font-semibold transition-all disabled:opacity-50"
+                className="px-5 py-3 rounded-2xl border border-white/15 text-gray-300 hover:text-white hover:bg-white/5 text-sm font-bold transition-all disabled:opacity-50 cursor-pointer"
               >
                 Cancel
               </button>
@@ -1443,17 +1443,17 @@ export default function IntakeStagingModal({
                 type="button"
                 onClick={handleCommit}
                 disabled={step === "committing" || selectedRecords.length === 0 || invalidSelected > 0}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-[0_0_20px_rgba(59,130,246,0.35)] hover:opacity-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm sm:text-base font-black shadow-[0_0_24px_rgba(59,130,246,0.4)] transition-all flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {step === "committing" ? (
                   <>
-                    <Loader2 size={14} className="animate-spin" />
+                    <Loader2 size={18} className="animate-spin" />
                     Committing to Database...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 size={14} />
-                    Approve & Import {selectedRecords.length} Tenant{selectedRecords.length === 1 ? "" : "s"}
+                    <CheckCircle2 size={18} />
+                    Approve &amp; Import {selectedRecords.length} Tenant{selectedRecords.length === 1 ? "" : "s"}
                   </>
                 )}
               </button>
