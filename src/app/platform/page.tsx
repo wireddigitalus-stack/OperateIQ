@@ -19,6 +19,8 @@ import {
   X,
   Loader2,
   Lock,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { isSuperAdmin } from "@/lib/platform";
@@ -39,6 +41,19 @@ interface Org {
   tickets_count: number;
 }
 
+interface PlatformSignup {
+  id: string;
+  submitted_at: string;
+  name: string;
+  email: string;
+  company: string;
+  phone: string;
+  interest: string;
+  city: string;
+  message: string;
+  org_id?: string | null;
+}
+
 interface Stats {
   totalOrgs: number;
   totalProperties: number;
@@ -53,7 +68,9 @@ export default function PlatformDashboardPage() {
   const [authChecking, setAuthChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<"organizations" | "signups">("organizations");
   const [orgs, setOrgs] = useState<Org[]>([]);
+  const [signups, setSignups] = useState<PlatformSignup[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -96,15 +113,22 @@ export default function PlatformDashboardPage() {
     });
   }, []);
 
-  // 2. Fetch all organizations & platform stats
+  // 2. Fetch all organizations & platform stats & signups
   const loadPlatformData = () => {
     setLoading(true);
-    fetch("/api/platform/overview")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.organizations) setOrgs(data.organizations);
-        if (data.stats) setStats(data.stats);
-      })
+    Promise.all([
+      fetch("/api/platform/overview")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.organizations) setOrgs(data.organizations);
+          if (data.stats) setStats(data.stats);
+        }),
+      fetch("/api/platform/signups")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.signups) setSignups(data.signups);
+        })
+    ])
       .catch((err) => console.error("Error loading platform data:", err))
       .finally(() => setLoading(false));
   };
@@ -117,11 +141,15 @@ export default function PlatformDashboardPage() {
 
   // Support Mode: Impersonate org and jump to /admin
   async function handleEnterSupportMode(org: Org) {
+    await handleEnterSupportModeById(org.id);
+  }
+
+  async function handleEnterSupportModeById(orgId: string) {
     try {
       await fetch("/api/platform/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId: org.id }),
+        body: JSON.stringify({ orgId }),
       });
       router.push("/admin");
     } catch (err) {
@@ -241,6 +269,19 @@ export default function PlatformDashboardPage() {
     return matchSearch && matchTier;
   });
 
+  const filteredSignups = signups.filter((s) => {
+    if (!search.trim()) return true;
+    const term = search.toLowerCase();
+    return (
+      s.name?.toLowerCase().includes(term) ||
+      s.email?.toLowerCase().includes(term) ||
+      s.company?.toLowerCase().includes(term) ||
+      s.phone?.toLowerCase().includes(term) ||
+      s.interest?.toLowerCase().includes(term) ||
+      s.message?.toLowerCase().includes(term)
+    );
+  });
+
   return (
     <div className="min-h-screen bg-[#080C14] text-slate-200">
       {/* ── Top Bar ── */}
@@ -315,20 +356,20 @@ export default function PlatformDashboardPage() {
             </div>
 
             <div className="oiq-card p-5">
+              <p className="text-xs text-slate-400 font-medium">Inbound Signups & Leads</p>
+              <p className="text-3xl font-extrabold text-white mt-1.5">{signups.length}</p>
+              <div className="flex items-center gap-2 mt-2 text-xs text-emerald-400 font-medium">
+                <Users size={12} />
+                <span>Platform intake pipeline</span>
+              </div>
+            </div>
+
+            <div className="oiq-card p-5">
               <p className="text-xs text-slate-400 font-medium">Total Properties</p>
               <p className="text-3xl font-extrabold text-white mt-1.5">{stats.totalProperties}</p>
               <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
                 <Building2 size={12} className="text-indigo-400" />
                 <span>Across all customer accounts</span>
-              </div>
-            </div>
-
-            <div className="oiq-card p-5">
-              <p className="text-xs text-slate-400 font-medium">Active Tenants</p>
-              <p className="text-3xl font-extrabold text-white mt-1.5">{stats.totalTenants}</p>
-              <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
-                <Users size={12} className="text-cyan-400" />
-                <span>Managed rent accounts</span>
               </div>
             </div>
 
@@ -343,160 +384,315 @@ export default function PlatformDashboardPage() {
           </div>
         )}
 
+        {/* ── Tabs Navigation ── */}
+        <div className="flex items-center gap-2 border-b border-white/10 mb-6 pb-2">
+          <button
+            onClick={() => setActiveTab("organizations")}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === "organizations"
+                ? "bg-white/10 text-white shadow-sm border border-white/15"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Building2 size={16} className={activeTab === "organizations" ? "text-cyan-400" : ""} />
+            <span>Client Organizations</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/10 text-slate-300 font-mono">
+              {filteredOrgs.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("signups")}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === "signups"
+                ? "bg-white/10 text-white shadow-sm border border-white/15"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Users size={16} className={activeTab === "signups" ? "text-emerald-400" : ""} />
+            <span>Inbound Signups & Leads</span>
+            {signups.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-mono font-bold">
+                {signups.length}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
           <div className="relative w-full sm:w-80">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder="Search organizations or emails…"
+              placeholder={activeTab === "organizations" ? "Search organizations or emails…" : "Search signups, companies, emails…"}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
             />
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            {["all", "starter", "growth", "pro"].map((tier) => (
-              <button
-                key={tier}
-                onClick={() => setFilterTier(tier)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
-                  filterTier === tier
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.07]"
-                }`}
-              >
-                {tier}
-              </button>
-            ))}
-          </div>
+          {activeTab === "organizations" && (
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {["all", "starter", "growth", "pro"].map((tier) => (
+                <button
+                  key={tier}
+                  onClick={() => setFilterTier(tier)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
+                    filterTier === tier
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.07]"
+                  }`}
+                >
+                  {tier}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Organizations Table */}
-        <div className="oiq-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white/[0.02] border-b border-white/[0.08] text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                <tr>
-                  <th className="py-3.5 px-5">Organization</th>
-                  <th className="py-3.5 px-4">Plan Tier</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4">Properties</th>
-                  <th className="py-3.5 px-4">Tenants</th>
-                  <th className="py-3.5 px-4">Open Tickets</th>
-                  <th className="py-3.5 px-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.06]">
-                {loading ? (
+        {/* Tables Section */}
+        {activeTab === "signups" ? (
+          <div className="oiq-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-white/[0.02] border-b border-white/[0.08] text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-500">
-                      <Loader2 size={24} className="animate-spin text-cyan-400 mx-auto mb-2" />
-                      Loading organizations…
-                    </td>
+                    <th className="py-3.5 px-5">Lead / Company</th>
+                    <th className="py-3.5 px-4">Contact</th>
+                    <th className="py-3.5 px-4">Interest / Plan</th>
+                    <th className="py-3.5 px-4">Portfolio & Units</th>
+                    <th className="py-3.5 px-4">Submitted</th>
+                    <th className="py-3.5 px-5 text-right">Actions</th>
                   </tr>
-                ) : filteredOrgs.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-500">
-                      No organizations found matching your criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredOrgs.map((org) => {
-                    const planColor =
-                      org.tier === "pro"
-                        ? "text-purple-300 bg-purple-950/60 border-purple-500/40"
-                        : org.tier === "growth"
-                        ? "text-cyan-300 bg-cyan-950/60 border-cyan-500/40"
-                        : "text-slate-300 bg-slate-800/60 border-slate-600/40";
+                </thead>
+                <tbody className="divide-y divide-white/[0.06]">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-500">
+                        <Loader2 size={24} className="animate-spin text-cyan-400 mx-auto mb-2" />
+                        Loading inbound signups…
+                      </td>
+                    </tr>
+                  ) : filteredSignups.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-500">
+                        No inbound signups or inquiries found matching your search.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredSignups.map((s) => {
+                      const isTrial = (s.interest || "").toLowerCase().includes("trial");
+                      return (
+                        <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-4 px-5">
+                            <div className="font-bold text-white flex items-center gap-2">
+                              <span>{s.company || s.name}</span>
+                              {isTrial && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                  Trial Intake
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5">{s.name}</p>
+                          </td>
 
-                    const statusColor =
-                      org.subscription_status === "active"
-                        ? "text-emerald-400 bg-emerald-950/40 border-emerald-500/30"
-                        : org.subscription_status === "trialing"
-                        ? "text-amber-400 bg-amber-950/40 border-amber-500/30"
-                        : "text-rose-400 bg-rose-950/40 border-rose-500/30";
+                          <td className="py-4 px-4 text-xs space-y-0.5">
+                            <a
+                              href={`mailto:${s.email}`}
+                              className="text-sky-400 hover:text-sky-300 flex items-center gap-1 font-medium"
+                            >
+                              <Mail size={12} />
+                              <span>{s.email}</span>
+                            </a>
+                            {s.phone && (
+                              <a
+                                href={`tel:${s.phone}`}
+                                className="text-slate-400 hover:text-white flex items-center gap-1"
+                              >
+                                <Phone size={12} />
+                                <span>{s.phone}</span>
+                              </a>
+                            )}
+                          </td>
 
-                    return (
-                      <tr key={org.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-4 px-5">
-                          <div className="font-bold text-white flex items-center gap-2">
-                            <span>{org.name}</span>
-                          </div>
-                          <p className="text-xs text-slate-500 font-mono mt-0.5">/{org.slug}</p>
-                          {org.contact_email && (
-                            <p className="text-xs text-slate-400 mt-1">{org.contact_email}</p>
-                          )}
-                        </td>
-
-                        <td className="py-4 px-4">
-                          <span
-                            className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border ${planColor}`}
-                          >
-                            {org.tier}
-                          </span>
-                        </td>
-
-                        <td className="py-4 px-4">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize border ${statusColor}`}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            {org.subscription_status}
-                          </span>
-                        </td>
-
-                        <td className="py-4 px-4 font-semibold text-slate-200">
-                          {org.properties_count}
-                        </td>
-
-                        <td className="py-4 px-4 font-semibold text-slate-200">
-                          {org.tenants_count}
-                        </td>
-
-                        <td className="py-4 px-4">
-                          {org.tickets_count > 0 ? (
-                            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              {org.tickets_count} open
+                          <td className="py-4 px-4">
+                            <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-300 bg-indigo-950/50 border border-indigo-500/30">
+                              {s.interest || "14-Day Free Trial"}
                             </span>
-                          ) : (
-                            <span className="text-xs text-slate-500">0</span>
-                          )}
-                        </td>
+                          </td>
 
-                        <td className="py-4 px-5 text-right">
-                          <div className="inline-flex items-center gap-2">
-                            <button
-                              onClick={() => {
-                                setEditOrg(org);
-                                setEditTier(org.tier);
-                                setEditStatus(org.subscription_status);
-                                setEditDomain(org.custom_domain || "");
-                              }}
-                              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                              title="Edit tier & subscription settings"
-                            >
-                              <Sliders size={15} />
-                            </button>
+                          <td className="py-4 px-4 text-xs text-slate-300">
+                            <p className="font-medium text-white">{s.city || "Commercial / Residential"}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1 max-w-xs">{s.message}</p>
+                          </td>
 
-                            <button
-                              onClick={() => handleEnterSupportMode(org)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-white oiq-grad-bg hover:opacity-95 transition-opacity shadow-sm flex items-center gap-1.5"
-                            >
-                              <span>Enter Dashboard</span>
-                              <ArrowRight size={13} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                          <td className="py-4 px-4 text-xs text-slate-400 whitespace-nowrap">
+                            {new Date(s.submitted_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </td>
+
+                          <td className="py-4 px-5 text-right whitespace-nowrap">
+                            {s.org_id ? (
+                              <button
+                                onClick={() => handleEnterSupportModeById(s.org_id!)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-white oiq-grad-bg hover:opacity-95 transition-opacity shadow-sm inline-flex items-center gap-1.5"
+                              >
+                                <span>Enter Workspace</span>
+                                <ArrowRight size={13} />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setNewOrgName(s.company || s.name);
+                                  setNewOrgEmail(s.email);
+                                  setNewOrgPhone(s.phone);
+                                  setShowAddModal(true);
+                                }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all inline-flex items-center gap-1"
+                              >
+                                <Plus size={12} />
+                                <span>Provision Org</span>
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Organizations Table */
+          <div className="oiq-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-white/[0.02] border-b border-white/[0.08] text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3.5 px-5">Organization</th>
+                    <th className="py-3.5 px-4">Plan Tier</th>
+                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4">Properties</th>
+                    <th className="py-3.5 px-4">Tenants</th>
+                    <th className="py-3.5 px-4">Open Tickets</th>
+                    <th className="py-3.5 px-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.06]">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-500">
+                        <Loader2 size={24} className="animate-spin text-cyan-400 mx-auto mb-2" />
+                        Loading organizations…
+                      </td>
+                    </tr>
+                  ) : filteredOrgs.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-500">
+                        No organizations found matching your criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredOrgs.map((org) => {
+                      const planColor =
+                        org.tier === "pro"
+                          ? "text-purple-300 bg-purple-950/60 border-purple-500/40"
+                          : org.tier === "growth"
+                          ? "text-cyan-300 bg-cyan-950/60 border-cyan-500/40"
+                          : "text-slate-300 bg-slate-800/60 border-slate-600/40";
+
+                      const statusColor =
+                        org.subscription_status === "active"
+                          ? "text-emerald-400 bg-emerald-950/40 border-emerald-500/30"
+                          : org.subscription_status === "trialing"
+                          ? "text-amber-400 bg-amber-950/40 border-amber-500/30"
+                          : "text-rose-400 bg-rose-950/40 border-rose-500/30";
+
+                      return (
+                        <tr key={org.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-4 px-5">
+                            <div className="font-bold text-white flex items-center gap-2">
+                              <span>{org.name}</span>
+                            </div>
+                            <p className="text-xs text-slate-500 font-mono mt-0.5">/{org.slug}</p>
+                            {org.contact_email && (
+                              <p className="text-xs text-slate-400 mt-1">{org.contact_email}</p>
+                            )}
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <span
+                              className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border ${planColor}`}
+                            >
+                              {org.tier}
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-4">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize border ${statusColor}`}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              {org.subscription_status}
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-4 font-semibold text-slate-200">
+                            {org.properties_count}
+                          </td>
+
+                          <td className="py-4 px-4 font-semibold text-slate-200">
+                            {org.tenants_count}
+                          </td>
+
+                          <td className="py-4 px-4">
+                            {org.tickets_count > 0 ? (
+                              <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                {org.tickets_count} open
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-500">0</span>
+                            )}
+                          </td>
+
+                          <td className="py-4 px-5 text-right">
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditOrg(org);
+                                  setEditTier(org.tier);
+                                  setEditStatus(org.subscription_status);
+                                  setEditDomain(org.custom_domain || "");
+                                }}
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                                title="Edit tier & subscription settings"
+                              >
+                                <Sliders size={15} />
+                              </button>
+
+                              <button
+                                onClick={() => handleEnterSupportMode(org)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-white oiq-grad-bg hover:opacity-95 transition-opacity shadow-sm flex items-center gap-1.5"
+                              >
+                                <span>Enter Dashboard</span>
+                                <ArrowRight size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* ── Modal: Add Client Organization ── */}

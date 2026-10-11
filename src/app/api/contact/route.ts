@@ -247,117 +247,26 @@ export async function POST(req: NextRequest) {
       console.warn("[contact] Supabase audit insert skipped (table may not exist)");
     }
 
-    // ── 5b. INSERT INTO LEADS PIPELINE ─── so it shows in the admin dashboard ──
+    // ── 5b. AI Spam Check for notification email ────────────────────────────
+    let isSpam = false;
+    let spamReason = "";
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-      // Build a message/notes field combining company, city, and the message
-      const notes = [
-        cleanCompany && `Company: ${cleanCompany}`,
-        cleanCity && `Preferred Market: ${cleanCity}`,
-        cleanMessage,
-      ].filter(Boolean).join("\n");
-
-      // Simple score heuristic based on what they told us
-      const hasPhone = !!cleanPhone;
-      const hasCompany = !!cleanCompany;
-      const urgentInterests = ["Office Space", "Retail Storefront", "Warehouse / Industrial"];
-      const isUrgentType = urgentInterests.includes(cleanInterest);
-      const baseScore = 50 + (hasPhone ? 15 : 0) + (hasCompany ? 10 : 0) + (isUrgentType ? 10 : 0);
-      let score = Math.min(baseScore, 95);
-      let scoreLabel = score >= 70 ? "Hot Lead" : score >= 40 ? "Warm Lead" : "Nurture";
-      let reasoning = `Submitted via contact form. Interest: ${cleanInterest}.${hasPhone ? " Phone provided — higher intent." : ""}${hasCompany ? ` Company: ${cleanCompany}.` : ""}`;
-
-      // ── AI Spam Check ──
-      let isSpam = false;
-      let spamReason = "";
-      try {
-        const spamCheck = await detectSpamWithAI({
-          name: cleanName,
-          email: cleanEmail,
-          company: cleanCompany,
-          phone: cleanPhone,
-          interest: cleanInterest,
-          city: cleanCity,
-          message: cleanMessage,
-        });
-        if (spamCheck.isSpam) {
-          isSpam = true;
-          spamReason = spamCheck.reason;
-          score = 0;
-          scoreLabel = "Potential Spam";
-          reasoning = `Flagged as potential spam by AI. Reason: ${spamReason}`;
-        }
-      } catch (err) {
-        console.warn("[contact AI spam check failed]", err);
-      }
-
-      const lead = {
-        id: `contact_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        timestamp: new Date().toISOString(),
+      const spamCheck = await detectSpamWithAI({
         name: cleanName,
         email: cleanEmail,
+        company: cleanCompany,
         phone: cleanPhone,
-        space_type: cleanInterest,
-        budget: 0,
-        timeline: "Exploring options",
-        team_size: "Unknown",
-        additional_info: notes,
-        score,
-        score_label: scoreLabel,
-        reasoning,
-        matched_properties: [],
-        is_whale: false,
-        whale_tier: null,
-        whale_keywords: [],
-        source: "contact-form",
-        medium: "web",
-        campaign: "",
-        session_id: sessionId || null,  // Link to analytics session
-        progress: "0-25%",
-        created_by_employee: "Submitted via website",
-      };
-
-      const payload: any = { ...lead };
-      let res = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": SERVICE_KEY,
-          "Authorization": `Bearer ${SERVICE_KEY}`,
-          "Prefer": "return=minimal",
-        },
-        body: JSON.stringify(payload),
+        interest: cleanInterest,
+        city: cleanCity,
+        message: cleanMessage,
       });
-
-      if (!res.ok && res.status === 400) {
-        const errJson = await res.clone().json().catch(() => ({}));
-        if (errJson.code === "42703" && payload.progress !== undefined) {
-          console.warn("[contact REST insert] progress column does not exist, retrying without it");
-          delete payload.progress;
-          res = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "apikey": SERVICE_KEY,
-              "Authorization": `Bearer ${SERVICE_KEY}`,
-              "Prefer": "return=minimal",
-            },
-            body: JSON.stringify(payload),
-          });
-        }
+      if (spamCheck.isSpam) {
+        isSpam = true;
+        spamReason = spamCheck.reason;
       }
-
-      // Store local reference for email usage
-      (global as any).lastContactSpamState = { isSpam, spamReason };
-    } catch (leadErr) {
-      // Non-fatal — email still goes out even if lead insert fails
-      console.warn("[contact] Lead pipeline insert failed:", leadErr);
+    } catch (err) {
+      console.warn("[contact AI spam check failed]", err);
     }
-
-    const { isSpam, spamReason } = (global as any).lastContactSpamState || { isSpam: false, spamReason: "" };
-    delete (global as any).lastContactSpamState;
 
     // ── 6. Send email via Resend REST API ────────────────────────────────────
     if (RESEND_API_KEY && TO_EMAILS.length > 0) {

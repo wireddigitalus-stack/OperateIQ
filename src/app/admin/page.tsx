@@ -1301,6 +1301,7 @@ export default function AdminPage() {
   const [deleteAllConfirm, setDeleteAllConfirm] = useState("");
   const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(null);
   const [prepopulatedTenant, setPrepopulatedTenant] = useState<Partial<Tenant> | null>(null);
+  const [activeOrg, setActiveOrg] = useState<{ id: string; name: string; slug: string; tier: string } | null>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1501,6 +1502,13 @@ export default function AdminPage() {
 
   // Auth check — redirect to login if no session, block if not on allowlist
   useEffect(() => {
+    fetch("/api/platform/session")
+      .then((res) => res.json())
+      .then((d) => {
+        if (d.impersonatingOrg) setActiveOrg(d.impersonatingOrg);
+      })
+      .catch(() => {});
+
     supabaseBrowser.auth.getUser().then(async ({ data }) => {
       // Security: purge any stale client-side demo tokens immediately
       if (typeof window !== "undefined") {
@@ -2388,6 +2396,52 @@ export default function AdminPage() {
             </div>
           );
         })()}
+
+        {/* Active Customer Workspace Welcome & Onboarding Banner */}
+        {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001" && (
+          <div className="mb-6 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-indigo-950/70 via-[#0B1426] to-sky-950/60 border border-indigo-500/40 shadow-[0_0_30px_rgba(99,102,241,0.15)]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
+                    {activeOrg.tier} Tier Active
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">14-Day Free Evaluation Period</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white">
+                  Welcome to {activeOrg.name}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+                  Your dedicated property operations workspace is active. Use the quick-start buttons below to add your buildings, import your tenant rent roll, or set up maintenance workflows.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <button
+                  onClick={() => setActiveTab("propdetails")}
+                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
+                >
+                  <Building2 size={14} className="text-cyan-400" />
+                  <span>Add First Building</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("tenants")}
+                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
+                >
+                  <Users size={14} className="text-emerald-400" />
+                  <span>Import Tenants</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("maintenance")}
+                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
+                >
+                  <Wrench size={14} className="text-amber-400" />
+                  <span>Setup Maintenance</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ─ LEADS TAB ──────────────────────────────────────────────────────── */}
         {activeTab === "leads" && (

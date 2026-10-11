@@ -48,7 +48,7 @@ function SignupForm() {
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -56,14 +56,15 @@ function SignupForm() {
           email: email.trim(),
           company: companyName.trim(),
           phone: phone.trim(),
-          interest: `14-Day Free Trial Signup (${activePlan.name} Plan)`,
-          city: "Self-Serve Trial Onboarding",
-          message: `Trial Signup Details:\n- Plan: ${activePlan.name} ($${activePlan.monthly}/mo)\n- Units Managed: ${unitCount}\n- Portfolio Type: ${portfolioType}\n- Phone: ${phone || "Not provided"}`,
+          plan: activePlan.id,
+          unitCount,
+          portfolioType,
         }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        throw new Error("Could not process signup. Please try again.");
+        throw new Error(data.error || "Could not process signup. Please try again.");
       }
 
       setSubmitted(true);
@@ -82,38 +83,39 @@ function SignupForm() {
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-2xl font-black text-white">Your Trial Account Is Reserved!</h2>
+          <h2 className="text-2xl font-black text-white">Your Workspace Is Ready!</h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm mx-auto">
-            Welcome to <strong>OperateIQ</strong>, {fullName.split(" ")[0]}. We have registered your <strong>{TRIAL_DAYS}-day free trial</strong> for <strong>{companyName}</strong> on the <strong>{activePlan.name}</strong> tier.
+            Welcome to <strong>OperateIQ</strong>, {fullName.split(" ")[0]}. We have provisioned a dedicated <strong>{TRIAL_DAYS}-day free trial</strong> workspace for <strong>{companyName}</strong> on the <strong>{activePlan.name}</strong> plan.
           </p>
         </div>
 
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-left space-y-2 text-xs text-slate-300">
           <div className="flex items-center gap-2 text-sky-400 font-bold">
             <Sparkles size={14} />
-            <span>Next Steps:</span>
+            <span>Workspace Provisioned:</span>
           </div>
           <p>
-            • A confirmation and workspace activation email has been routed to <strong>{email}</strong>.
+            • Admin credentials registered to <strong>{email}</strong>.
           </p>
           <p>
-            • Your account includes pre-seeded sample regional properties so you can test features right away.
+            • Your dedicated portfolio dashboard is initialized and ready for your properties, rent roll, and maintenance crews.
           </p>
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            href="/demo-site"
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white font-bold text-xs shadow-lg hover:opacity-95 transition-all flex items-center justify-center gap-1.5"
+            href="/admin"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white font-bold text-xs shadow-lg hover:opacity-95 transition-all flex items-center justify-center gap-2"
           >
-            <span>Explore Demo Website</span>
-            <ExternalLink size={13} />
+            <span>Enter Your Dashboard</span>
+            <ArrowRight size={14} />
           </Link>
           <Link
-            href="/"
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white font-bold text-xs transition-all"
+            href="/demo-site"
+            className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5"
           >
-            Back to Home
+            <span>Explore Demo Site</span>
+            <ExternalLink size={13} />
           </Link>
         </div>
       </div>

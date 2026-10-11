@@ -11,6 +11,7 @@ import { isSuperAdmin } from "@/lib/platform";
 export default function AdminHeader() {
   const router = useRouter();
   const [canAccessPlatform, setCanAccessPlatform] = useState(false);
+  const [activeOrg, setActiveOrg] = useState<{ id: string; name: string; slug: string; tier: string } | null>(null);
 
   useEffect(() => {
     supabaseBrowser.auth.getUser().then(({ data }) => {
@@ -24,6 +25,7 @@ export default function AdminHeader() {
       .then((res) => res.json())
       .then((data) => {
         if (data.isSuperAdmin) setCanAccessPlatform(true);
+        if (data.impersonatingOrg) setActiveOrg(data.impersonatingOrg);
       })
       .catch(() => {});
   }, []);
@@ -47,10 +49,17 @@ export default function AdminHeader() {
             className="h-7 w-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity"
             priority
           />
-          <span className="hidden sm:flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-white/15 bg-white/[0.04] text-[10px] font-black text-sky-400 uppercase tracking-widest shadow-[0_0_12px_rgba(56,189,248,0.2)]">
-            <LayoutDashboard size={9} />
-            Admin
-          </span>
+          {activeOrg ? (
+            <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-indigo-500/40 bg-indigo-950/60 text-[11px] font-bold text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.25)]">
+              <Building2 size={11} className="text-cyan-400" />
+              <span>{activeOrg.name}</span>
+            </span>
+          ) : (
+            <span className="hidden sm:flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-white/15 bg-white/[0.04] text-[10px] font-black text-sky-400 uppercase tracking-widest shadow-[0_0_12px_rgba(56,189,248,0.2)]">
+              <LayoutDashboard size={9} />
+              Admin
+            </span>
+          )}
         </button>
 
         {canAccessPlatform && (
