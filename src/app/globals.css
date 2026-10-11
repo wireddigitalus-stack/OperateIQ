@@ -19,10 +19,10 @@
   gap: 8px;
   padding: 14px 28px;
   background: conic-gradient(from var(--border-angle), #0D1117, #0D1117) padding-box,
-    conic-gradient(from var(--border-angle), #FACC15 0%, #F59E0B 25%, #4ADE80 50%, #FACC15 75%, #FACC15 100%) border-box;
+    conic-gradient(from var(--border-angle), #6366F1 0%, #3B82F6 25%, #22D3EE 50%, #38BDF8 75%, #6366F1 100%) border-box;
   border: 2px solid transparent;
   border-radius: 8px;
-  color: #FACC15;
+  color: #38BDF8;
   font-weight: 700;
   font-size: 15px;
   text-decoration: none;
@@ -39,10 +39,10 @@
   align-items: center;
   gap: 6px;
   background: conic-gradient(from var(--border-angle), #080C14, #080C14) padding-box,
-    conic-gradient(from var(--border-angle), #FACC15 0%, #4ADE80 40%, #60A5FA 70%, #FACC15 100%) border-box;
+    conic-gradient(from var(--border-angle), #6366F1 0%, #3B82F6 40%, #22D3EE 70%, #6366F1 100%) border-box;
   border: 1.5px solid transparent;
   border-radius: 10px;
-  color: #4ADE80;
+  color: #22D3EE;
   font-weight: 700;
   font-size: 12px;
   cursor: pointer;
@@ -176,7 +176,7 @@ body {
 .section-line {
   width: 60px;
   height: 3px;
-  background: linear-gradient(90deg, #4ADE80, #FACC15);
+  background: linear-gradient(90deg, #6366F1, #22D3EE);
   border-radius: 2px;
 }
 
@@ -238,25 +238,27 @@ body {
   align-items: center;
   gap: 8px;
   padding: 14px 28px;
-  background: linear-gradient(135deg, #4ADE80 0%, #22C55E 40%, #FACC15 100%);
-  color: #080B0F;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 50%, #22D3EE 100%);
+  color: #FFFFFF;
   font-weight: 700;
   font-size: 15px;
-  border-radius: 8px;
+  border-radius: 10px;
   text-decoration: none;
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
   letter-spacing: 0.01em;
+  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.35);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(74, 222, 128, 0.3), 0 4px 12px rgba(250, 204, 21, 0.2);
-  background: linear-gradient(135deg, #6EF4A0 0%, #4ADE80 40%, #FBBF24 100%);
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.45), 0 4px 14px rgba(34, 211, 238, 0.35);
+  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 50%, #38BDF8 100%);
+  color: #FFFFFF;
 }
 
-/* ── Secondary button: hover reveals animated gold border ── */
+/* ── Secondary button ── */
 .btn-secondary {
   --border-angle: 0deg;
   position: relative;
@@ -264,26 +266,24 @@ body {
   align-items: center;
   gap: 8px;
   padding: 13px 28px;
-  background: conic-gradient(from var(--border-angle), transparent, transparent) padding-box,
-    linear-gradient(rgba(74, 222, 128, 0.4), rgba(74, 222, 128, 0.4)) border-box;
-  border: 1.5px solid transparent;
-  border-radius: 8px;
-  color: var(--brand-green);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+  color: #E2E8F0;
   font-weight: 600;
   font-size: 15px;
   text-decoration: none;
-  transition: color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.3s ease;
   cursor: pointer;
   letter-spacing: 0.01em;
 }
 
 .btn-secondary:hover {
-  background: conic-gradient(from var(--border-angle), rgba(10,18,14,0.95), rgba(10,18,14,0.95)) padding-box,
-    conic-gradient(from var(--border-angle), #FACC15 0%, #F59E0B 30%, #4ADE80 60%, #FACC15 100%) border-box;
-  animation: border-spin 3s linear infinite;
-  color: #fff;
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(34, 211, 238, 0.6);
+  color: #FFFFFF;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(250, 204, 21, 0.12);
+  box-shadow: 0 8px 24px rgba(34, 211, 238, 0.18);
 }
 
 /* Map pack badge */

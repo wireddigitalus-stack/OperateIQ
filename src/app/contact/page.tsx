@@ -113,8 +113,8 @@ export default function ContactPage() {
               >
                 Send Another Message
               </button>
-              <Link href="/commercial-real-estate" className="btn-primary flex-1 py-3 justify-center text-sm">
-                Browse Listings <ArrowRight size={15} />
+              <Link href="/features" className="btn-primary flex-1 py-3 justify-center text-sm">
+                Explore Features <ArrowRight size={15} />
               </Link>
             </div>
           </div>
