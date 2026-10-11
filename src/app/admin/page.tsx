@@ -2433,11 +2433,11 @@ export default function AdminPage() {
           <div className="mb-8 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-indigo-950/80 via-[#0B1426] to-sky-950/70 border border-indigo-500/40 shadow-[0_0_40px_rgba(99,102,241,0.2)]">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider bg-cyan-500/25 text-cyan-300 border border-cyan-400/50">
+                <div className="flex items-center gap-2.5">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
                     {activeOrg.tier} Tier Active
                   </span>
-                  <span className="text-sm sm:text-base text-slate-300 font-semibold">14-Day Free Evaluation Period</span>
+                  <span className="text-xs text-slate-400 font-medium">14-Day Free Evaluation Period</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
                   Welcome to {activeOrg.name}
