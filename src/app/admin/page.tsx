@@ -1505,7 +1505,8 @@ export default function AdminPage() {
     fetch("/api/platform/session")
       .then((res) => res.json())
       .then((d) => {
-        if (d.impersonatingOrg) setActiveOrg(d.impersonatingOrg);
+        if (d.activeOrg) setActiveOrg(d.activeOrg);
+        else if (d.impersonatingOrg) setActiveOrg(d.impersonatingOrg);
       })
       .catch(() => {});
 

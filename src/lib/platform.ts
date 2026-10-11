@@ -14,6 +14,7 @@ export const SUPER_ADMIN_EMAILS = [
     .filter(Boolean),
 ];
 
+export const ACTIVE_ORG_COOKIE = "oiq_active_org_id";
 export const IMPERSONATE_COOKIE = "oiq_impersonate_org_id";
 
 /**

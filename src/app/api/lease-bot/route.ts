@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { IMPERSONATE_COOKIE } from "@/lib/platform";
+import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE } from "@/lib/platform";
 import { LEADS_STORE, type Lead } from "@/lib/leads-store";
 import { detectWhale } from "@/lib/whale-detector";
 import { supabaseAdmin, rowToLead } from "@/lib/supabase";
@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
       };
 
       const cookieStore = await cookies();
-      const targetOrgId = (body as any)?.org_id || cookieStore.get(IMPERSONATE_COOKIE)?.value || null;
+      const targetOrgId = (body as any)?.org_id || cookieStore.get(ACTIVE_ORG_COOKIE)?.value || cookieStore.get(IMPERSONATE_COOKIE)?.value || null;
       if (targetOrgId) {
         dbPayload.org_id = targetOrgId;
       }
@@ -401,7 +401,7 @@ export async function GET(req: NextRequest) {
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
     const cookieStore = await cookies();
-    const activeOrgId = req.nextUrl?.searchParams?.get("org_id") || cookieStore.get(IMPERSONATE_COOKIE)?.value || null;
+    const activeOrgId = req.nextUrl?.searchParams?.get("org_id") || cookieStore.get(ACTIVE_ORG_COOKIE)?.value || cookieStore.get(IMPERSONATE_COOKIE)?.value || null;
 
     let url = `${SUPABASE_URL}/rest/v1/leads?select=*&order=timestamp.desc&limit=50`;
     if (activeOrgId) {

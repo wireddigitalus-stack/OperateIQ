@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { IMPERSONATE_COOKIE } from "@/lib/platform";
+import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE } from "@/lib/platform";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 function sanitize(val: unknown): string {
@@ -139,13 +139,16 @@ export async function POST(req: NextRequest) {
     });
 
     res.cookies.set({
-      name: IMPERSONATE_COOKIE,
+      name: ACTIVE_ORG_COOKIE,
       value: orgId,
       path: "/",
-      maxAge: 14 * 24 * 60 * 60, // 14 days
+      maxAge: 30 * 24 * 60 * 60, // 30 days
       sameSite: "lax",
       httpOnly: false, // Accessible to client-side components to read active org name
     });
+
+    // Ensure leftover impersonation cookie is cleared so new user is never in support mode
+    res.cookies.delete(IMPERSONATE_COOKIE);
 
     return res;
   } catch (error) {
