@@ -204,7 +204,7 @@ function SignupForm() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Robert Neilson"
+                    placeholder="Your Name"
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
                   />
                 </div>
@@ -221,7 +221,7 @@ function SignupForm() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="robert@company.com"
+                    placeholder="you@acmeproperties.com"
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
                   />
                 </div>
@@ -241,7 +241,7 @@ function SignupForm() {
                     required
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Blue Ridge Properties LLC"
+                    placeholder="ACME Property Management"
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
                   />
                 </div>
