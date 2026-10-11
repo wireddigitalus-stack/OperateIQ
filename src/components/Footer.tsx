@@ -16,6 +16,12 @@ export default function Footer() {
         <div className="md:col-span-2 space-y-4">
           <Logo />
           <p className="text-sm text-slate-400 max-w-sm">{BRAND.tagline} Rent, tenants, maintenance, crews and reporting — with {BRAND.assistant} built in.</p>
+          <div className="pt-1">
+            <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/[0.08] text-[11px] text-slate-300 font-mono tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#22D3EE] animate-pulse" />
+              <span>{BRAND.domain}</span>
+            </span>
+          </div>
         </div>
         {cols.map((c) => (
           <div key={c.title}>
@@ -31,7 +37,7 @@ export default function Footer() {
         ))}
       </div>
       <div className="border-t border-[var(--oiq-border)] py-6 px-5 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} {BRAND.name}. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} {BRAND.name} · {BRAND.domain}. All rights reserved.</p>
         <div className="flex items-center gap-3">
           <Link href="/demo-site" className="text-slate-500 hover:text-slate-300 transition-colors">
             Demo Property Site

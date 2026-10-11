@@ -26,7 +26,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "operateiq-early-access-regional-property-owners",
     title: "OperateIQ Opens Early Access: Modern Property Operations Intelligence Built for Rural and Regional Owners",
     metaTitle: "OperateIQ Opens Early Access for Rural & Regional Property Owners",
-    metaDescription: "Headquartered on State Street in Downtown Bristol, TN/VA, OperateIQ announces early access to its property operations intelligence platform built specifically for small and mid-market operators.",
+    metaDescription: "Headquartered on State Street in Downtown Bristol, TN/VA, OperateIQ (GetOperateIQ.com) announces early access to its property operations intelligence platform built specifically for small and mid-market operators.",
     category: "Press Release",
     tags: ["Press Release", "Early Access", "Regional CRE", "PropTech", "Bristol TN"],
     targetKeyword: "property operations intelligence for small property owners",
@@ -36,8 +36,8 @@ export const BLOG_POSTS: BlogPost[] = [
     authorTitle: "Platform Announcements",
     image: "/blog/bristol-state-st-launch.jpg",
     imageAlt: "Historic Downtown Bristol State Street on the Tennessee and Virginia border illuminated at dusk with OperateIQ property operations telemetry overlays",
-    excerpt: "From our headquarters on historic State Street in Downtown Bristol, TN/VA, OperateIQ is thrilled to announce early access to our property operations intelligence platform — purposefully built to bring enterprise-tier power to underserved small and mid-sized property owners.",
-    content: `**BRISTOL, TN/VA — Oct 11, 2026** — OperateIQ, the property operations intelligence platform headquartered on historic State Street along the Tennessee and Virginia border, today announced the official opening of its Early Access Program and 14-day free trial intake for commercial, multi-family, and mixed-use property owners.
+    excerpt: "From our headquarters on historic State Street in Downtown Bristol, TN/VA, OperateIQ (GetOperateIQ.com) is thrilled to announce early access to our property operations intelligence platform — purposefully built to bring enterprise-tier power to underserved small and mid-sized property owners.",
+    content: `**BRISTOL, TN/VA — Oct 11, 2026** — OperateIQ (GetOperateIQ.com), the property operations intelligence platform headquartered on historic State Street along the Tennessee and Virginia border, today announced the official opening of its Early Access Program and 14-day free trial intake for commercial, multi-family, and mixed-use property owners.
 
 Designed specifically to address the long-neglected needs of small-to-mid-sized property operators and regional portfolio owners, OperateIQ provides a modern alternative to legacy enterprise systems that have priced out independent operators with massive upfront implementation fees and bloated interfaces.
 
@@ -78,6 +78,6 @@ Every new account receives:
 **• Concierge Portfolio Migration:** White-glove onboarding assistance to import existing tenant rosters, leases, and vendor contacts from Excel or legacy systems in under 24 hours.
 **• Locked-In Early Supporter Pricing:** Special lifetime platform rates for early access partners.
 
-To claim your 14-day free trial and experience modern property operations intelligence, visit operateiq.com/signup or reach out to our team directly on State Street.`,
+To claim your 14-day free trial and experience modern property operations intelligence, visit GetOperateIQ.com/signup or reach out to our team directly on State Street.`,
   },
 ];

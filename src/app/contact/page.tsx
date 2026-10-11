@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   Phone, Mail, Clock, ArrowRight, MessageSquare,
-  CheckCircle, Loader2, AlertCircle,
+  CheckCircle, Loader2, AlertCircle, Globe,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { getAnalyticsSessionId, trackEvent } from "@/hooks/useAnalytics";
@@ -256,8 +256,9 @@ export default function ContactPage() {
           {/* Contact Info */}
           <div className="lg:col-span-2 space-y-5">
             {[
-              { icon: <Phone size={20} />, label: "Call Us",    value: BRAND.phone,        href: BRAND.phone ? `tel:${BRAND.phone}` : null,                                             id: "contact-side-phone" },
+              { icon: <Globe size={20} />, label: "Website",  value: BRAND.domain,       href: `https://${BRAND.domain.toLowerCase()}`,                               id: "contact-side-domain" },
               { icon: <Mail size={20} />,  label: "Email",      value: BRAND.email,        href: BRAND.email ? `mailto:${BRAND.email}` : null,                                     id: "contact-side-email" },
+              { icon: <Phone size={20} />, label: "Call Us",    value: BRAND.phone,        href: BRAND.phone ? `tel:${BRAND.phone}` : null,                                             id: "contact-side-phone" },
               { icon: <Clock size={20} />, label: "Hours",      value: "Mon–Fri · Replies within 1 business day", href: null,                                              id: "contact-side-hours" },
             ].filter((item) => item.value).map((item) => (
               <div key={item.id} className="glass rounded-xl p-5 border border-[rgba(99,102,241,0.1)]">
