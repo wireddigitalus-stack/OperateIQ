@@ -8,7 +8,7 @@ import Logo from "./Logo";
 const links = [
   { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Blog", href: "/blog" },
+  { label: "Blog", href: "/blog/operateiq-early-access-regional-property-owners" },
   { label: "Contact", href: "/contact" },
 ];
 

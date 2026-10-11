@@ -5,7 +5,7 @@ import { BRAND } from "@/lib/brand";
 
 const cols = [
   { title: "Product", links: [["Features", "/features"], ["Pricing", "/pricing"], ["Start free trial", "/signup"]] },
-  { title: "Company", links: [["Blog", "/blog"], ["Contact", "/contact"]] },
+  { title: "Company", links: [["Blog", "/blog/operateiq-early-access-regional-property-owners"], ["Contact", "/contact"]] },
   { title: "Legal", links: [["Privacy", "/privacy"], ["Terms", "/terms"]] },
 ];
 
