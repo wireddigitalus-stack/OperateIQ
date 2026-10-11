@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Building2, LayoutDashboard } from "lucide-react";
+import { Building2, LayoutDashboard, Globe, ExternalLink } from "lucide-react";
 
 export default function AdminHeader() {
   const router = useRouter();
@@ -52,10 +52,23 @@ export default function AdminHeader() {
         </button>
       </div>
 
-      {/* ── Right: Clean workspace plan badge ── */}
-      <div className="flex items-center gap-2">
+      {/* ── Right: View Public Site & Workspace Plan ── */}
+      <div className="flex items-center gap-2.5">
+        <a
+          href="/demo-site"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/10 border border-sky-400/30 text-sky-300 hover:bg-sky-500/20 hover:text-white shadow-[0_0_12px_rgba(56,189,248,0.15)] transition-all"
+          title={`View public website for ${activeOrg?.name || "your company"}`}
+        >
+          <Globe size={13} className="text-sky-400" />
+          <span className="hidden sm:inline">View Public Site</span>
+          <span className="sm:hidden">Public Site</span>
+          <ExternalLink size={10} />
+        </a>
+
         {activeOrg && (
-          <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/[0.04] border border-white/10 text-gray-300">
+          <span className="hidden md:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/[0.04] border border-white/10 text-gray-400">
             {activeOrg.tier} Tier
           </span>
         )}

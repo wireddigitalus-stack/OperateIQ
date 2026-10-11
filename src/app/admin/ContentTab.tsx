@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Save, CheckCircle2, Loader2, RotateCcw, AlertCircle,
   Type, Hash, Pencil, ChevronDown, ChevronRight,
-  Eye, Building2, BarChart3, Briefcase, Phone, MapPin, UploadCloud
+  Eye, Building2, BarChart3, Briefcase, Phone, MapPin, UploadCloud,
+  Globe, ExternalLink,
 } from "lucide-react";
 import PageMap from "./PageMap";
 import HeroBannerManager from "./HeroBannerManager";
@@ -293,6 +294,28 @@ export default function ContentTab({ onSubViewChange }: ContentTabProps) {
 
   return (
     <div className="space-y-5">
+
+      {/* ── Public Website Header & Quick View ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-sky-950/60 via-[#0B1426] to-sky-950/60 border border-sky-500/30">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400 flex-shrink-0">
+            <Globe size={20} />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-white">Live Public Website Builder</h4>
+            <p className="text-xs text-slate-400">Edits made across these tabs update your tenant-facing public website in real time.</p>
+          </div>
+        </div>
+        <a
+          href="/demo-site"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs transition-all shadow-[0_0_16px_rgba(56,189,248,0.25)] flex-shrink-0 self-start sm:self-auto"
+        >
+          <span>Open Live Website</span>
+          <ExternalLink size={12} />
+        </a>
+      </div>
 
       {/* ── Segmented View Toggle ── */}
       <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] p-2">

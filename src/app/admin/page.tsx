@@ -30,7 +30,7 @@ import {
   Bell, Mail, Shield, X, Radio,
   Sparkles, Brain, Send, ChevronRight, ChevronDown, Archive, MessageSquare, BarChart3, Wrench,
   ArrowRight, CheckSquare, Lock, AlertTriangle, Key, KeyRound, Download, FileSpreadsheet,
-  Search, Pencil, FileText, Flame, Landmark,
+  Search, Pencil, FileText, Flame, Landmark, Globe, ExternalLink,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -2447,6 +2447,24 @@ export default function AdminPage() {
                   <Wrench size={14} className="text-amber-400" />
                   <span>Setup Maintenance</span>
                 </button>
+                <button
+                  onClick={() => switchTab("content")}
+                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 flex items-center gap-1.5 shadow-sm"
+                >
+                  <Pencil size={14} className="text-amber-300" />
+                  <span>Site Builder</span>
+                </button>
+                <a
+                  href="/demo-site"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-xs font-bold transition-all border border-sky-400/40 flex items-center gap-1.5 shadow-[0_0_15px_rgba(56,189,248,0.2)]"
+                  title={`Open live public website for ${activeOrg.name}`}
+                >
+                  <Globe size={14} className="text-sky-400" />
+                  <span>View Public Site</span>
+                  <ExternalLink size={11} className="opacity-75" />
+                </a>
               </div>
             </div>
           </div>

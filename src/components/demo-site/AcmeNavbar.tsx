@@ -7,14 +7,18 @@ import { Building2, Sparkles, Calendar, ArrowRight, ShieldCheck, Search, Phone, 
 interface AcmeNavbarProps {
   onOpenAiInspector: () => void;
   onOpenTourModal: (propertyId?: string) => void;
+  orgName?: string;
+  hasTopBar?: boolean;
 }
 
 export default function AcmeNavbar({
   onOpenAiInspector,
   onOpenTourModal,
+  orgName,
+  hasTopBar,
 }: AcmeNavbarProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 h-20 bg-[#080C14]/90 backdrop-blur-xl border-b border-white/10 transition-all">
+    <header className={`fixed ${hasTopBar ? "top-10" : "top-0"} left-0 right-0 z-40 h-20 bg-[#080C14]/90 backdrop-blur-xl border-b border-white/10 transition-all`}>
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 flex items-center justify-between">
         
         {/* Brand & Subtitle */}
@@ -26,7 +30,7 @@ export default function AcmeNavbar({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-base sm:text-lg font-black text-white tracking-tight uppercase group-hover:text-sky-300 transition-colors">
-                  ACME Regional
+                  {orgName || "ACME Regional"}
                 </span>
                 <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
@@ -34,7 +38,7 @@ export default function AcmeNavbar({
                 </span>
               </div>
               <p className="text-[11px] text-gray-400 font-medium tracking-wide hidden sm:block">
-                Regional Commercial, Residential & Mixed-Use Holdings
+                {orgName ? `${orgName} · Property Portfolio` : "Regional Commercial, Residential & Mixed-Use Holdings"}
               </p>
             </div>
           </Link>
@@ -65,7 +69,7 @@ export default function AcmeNavbar({
           <button
             onClick={onOpenAiInspector}
             className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-sky-500/10 border border-sky-400/30 text-sky-300 text-xs font-bold"
-            title="Inspect how ChatGPT and Perplexity index ACME listings"
+            title="Inspect how ChatGPT and Perplexity index listings"
           >
             <Sparkles size={13} className="text-sky-400" />
             <span className="hidden sm:inline">AI Search</span>
@@ -81,11 +85,12 @@ export default function AcmeNavbar({
 
           <Link
             href="/admin"
-            className="hidden sm:flex items-center gap-1 px-3 py-2 rounded-xl border border-white/15 bg-white/[0.03] hover:bg-white/[0.08] text-gray-300 hover:text-white text-xs font-semibold transition-all"
-            title="Return to OperateIQ Admin Dashboard"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-sky-400/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 hover:text-white text-xs font-bold transition-all shadow-[0_0_12px_rgba(56,189,248,0.15)]"
+            title={`Return to ${orgName || "OperateIQ"} Admin Dashboard`}
           >
-            <span>Admin</span>
-            <ExternalLink size={11} className="text-gray-400" />
+            <Building2 size={13} className="text-sky-400" />
+            <span className="hidden sm:inline">{orgName ? `${orgName} Dashboard` : "Admin Dashboard"}</span>
+            <span className="sm:hidden">Dashboard</span>
           </Link>
         </div>
       </div>
