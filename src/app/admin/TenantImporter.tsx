@@ -251,21 +251,21 @@ export default function TenantImporter({ onImport, onClose }: Props) {
     a.click();
   };
 
-  const FIELD_CLS = "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-2.5 py-1.5 text-xs text-white w-full focus:border-[rgba(74,222,128,0.4)] outline-none";
+  const FIELD_CLS = "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-2.5 py-1.5 text-xs text-white w-full focus:border-sky-400/40 outline-none";
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-16 overflow-y-auto">
-      <div className="w-full max-w-4xl bg-[#0D1117] border border-[rgba(74,222,128,0.2)] rounded-3xl shadow-2xl">
+      <div className="w-full max-w-4xl bg-[#0D1117] border border-sky-500/20 rounded-3xl shadow-2xl">
 
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[rgba(255,255,255,0.06)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center">
-              <FileSpreadsheet size={18} className="text-black" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+              <FileSpreadsheet size={18} className="text-white" />
             </div>
             <div>
               <h2 className="text-base font-black text-white">Import Tenants from Excel</h2>
-              <p className="text-[11px] text-gray-500">Upload .xlsx, .xls, or .csv — we map the columns automatically</p>
+              <p className="text-[11px] text-gray-400">Upload .xlsx, .xls, or .csv — we map the columns automatically</p>
             </div>
           </div>
           <button onClick={onClose} className="text-gray-600 hover:text-white transition-colors"><X size={18} /></button>
@@ -314,10 +314,23 @@ export default function TenantImporter({ onImport, onClose }: Props) {
               </div>
             </div>
 
-            <button onClick={downloadTemplate}
-              className="flex items-center gap-2 text-xs text-gray-500 hover:text-[#4ADE80] transition-colors">
-              <Download size={12} /> Download blank template CSV
-            </button>
+            <div className="flex items-center gap-4 pt-1">
+              <a
+                href="/sample-data/operateiq_test_portfolio.xlsx"
+                download="operateiq_test_portfolio.xlsx"
+                className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
+              >
+                <Download size={13} /> Download Test Portfolio (.xlsx)
+              </a>
+              <span className="text-gray-600">·</span>
+              <a
+                href="/sample-data/operateiq_test_portfolio.csv"
+                download="operateiq_test_portfolio.csv"
+                className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 transition-colors font-medium"
+              >
+                <Download size={13} /> Download Test Portfolio (.csv)
+              </a>
+            </div>
           </div>
         )}
 

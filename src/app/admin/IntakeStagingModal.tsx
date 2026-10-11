@@ -73,72 +73,317 @@ function cleanMoney(val: unknown): number {
   return isNaN(n) ? 0 : Math.round(n);
 }
 
-// 4 realistic sample candidate records for instant 1-click test drive
+// 18 realistic sample candidate records for instant 1-click test drive (Commercial + Residential)
 const DEMO_STAGED_RECORDS: StagedTenantRecord[] = [
+  // Commercial: State Street Mixed-Use
   {
     id: "sample_1",
-    name: "Apex Financial Partners",
+    name: "Holston River Outfitters LLC",
     contactName: "Marcus Vance",
-    email: "marcus@apexpartners.com",
-    phone: "(555) 349-8201",
-    building: "The Summit Tower",
-    unit: "Suite 1400",
-    monthlyRent: 8450,
-    securityDeposit: 8450,
+    email: "marcus@holstonoutfitters.com",
+    phone: "(423) 555-0142",
+    building: "State Street Mixed-Use",
+    unit: "Suite 101",
+    monthlyRent: 2850,
+    securityDeposit: 2850,
     leaseStart: "2025-01-01",
     leaseEnd: "2027-12-31",
-    notes: "Full floor tenant, includes 4 reserved executive parking spaces.",
+    notes: "Commercial Retail · 2,400 sqft · 3-year term",
     confidence: "high",
     needsReview: false,
     selected: true,
   },
   {
     id: "sample_2",
-    name: "Horizon Innovation Lofts",
-    contactName: "Elena Rostova",
-    email: "elena@horizoncreative.io",
-    phone: "(555) 781-9943",
-    building: "Horizon Innovation Lofts",
-    unit: "Studio 204",
-    monthlyRent: 4200,
-    securityDeposit: 4200,
-    leaseStart: "2025-03-01",
-    leaseEnd: "2026-02-28",
-    notes: "3% annual CPI escalation; tenant requests fiber optic patch.",
+    name: "State Line Coffee Roasters",
+    contactName: "Sarah Jenkins",
+    email: "sarah@statelinecoffeeroasters.com",
+    phone: "(423) 555-0188",
+    building: "State Street Mixed-Use",
+    unit: "Suite 102",
+    monthlyRent: 1950,
+    securityDeposit: 1950,
+    leaseStart: "2024-06-01",
+    leaseEnd: "2029-05-31",
+    notes: "Commercial Cafe/Bakery · 1,650 sqft · 5-year term",
     confidence: "high",
     needsReview: false,
     selected: true,
   },
   {
     id: "sample_3",
-    name: "Beacon Health Diagnostics",
-    contactName: "Dr. Jonathan Ross",
-    email: "admin@beaconmed.org",
-    phone: "(555) 612-4402",
-    building: "The Summit Tower",
-    unit: "Suite 310",
-    monthlyRent: 6100,
-    securityDeposit: 12200,
-    leaseStart: "2025-06-01",
-    leaseEnd: "2028-05-31",
-    notes: "Handwritten note on file: 2 months security deposit held in escrow.",
-    confidence: "medium",
-    needsReview: true,
+    name: "Appalachian Legal Partners PLLC",
+    contactName: "David Sterling, Esq.",
+    email: "dsterling@appalachianlegal.com",
+    phone: "(423) 555-0195",
+    building: "State Street Mixed-Use",
+    unit: "Suite 201",
+    monthlyRent: 3200,
+    securityDeposit: 3200,
+    leaseStart: "2025-03-01",
+    leaseEnd: "2027-02-28",
+    notes: "Professional Legal Office · 2,800 sqft · 2-year term",
+    confidence: "high",
+    needsReview: false,
     selected: true,
   },
   {
     id: "sample_4",
-    name: "Urban Roast Roasters & Cafe",
-    contactName: "Maya Lin",
-    email: "contact@urbanroast.com",
-    phone: "(555) 902-1134",
-    building: "Metro Point Retail",
-    unit: "Retail Bay A",
-    monthlyRent: 3850,
-    securityDeposit: 3850,
+    name: "High Country Design Studio",
+    contactName: "Elena Rossi",
+    email: "elena@highcountrystudio.com",
+    phone: "(423) 555-0177",
+    building: "State Street Mixed-Use",
+    unit: "Suite 204",
+    monthlyRent: 1450,
+    securityDeposit: 1450,
+    leaseStart: "2025-08-01",
+    leaseEnd: "2026-07-31",
+    notes: "Creative Agency · 1,100 sqft · 1-year term",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+
+  // Residential: Appalachian Ridge Apartments
+  {
+    id: "sample_5",
+    name: "Davis, Michael & Emily",
+    contactName: "Michael Davis",
+    email: "mdavis.family@example.com",
+    phone: "(423) 555-0211",
+    building: "Appalachian Ridge Apartments",
+    unit: "Apt 1A",
+    monthlyRent: 1150,
+    securityDeposit: 1150,
+    leaseStart: "2025-04-01",
+    leaseEnd: "2026-03-31",
+    notes: "Residential 1BR/1BA · 750 sqft · Covered parking included",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_6",
+    name: "Martinez, Jessica",
+    contactName: "Jessica Martinez",
+    email: "jmartinez@example.com",
+    phone: "(423) 555-0234",
+    building: "Appalachian Ridge Apartments",
+    unit: "Apt 1B",
+    monthlyRent: 1150,
+    securityDeposit: 1150,
+    leaseStart: "2025-06-01",
+    leaseEnd: "2026-05-31",
+    notes: "Residential 1BR/1BA · 750 sqft · Pet deposit on file",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_7",
+    name: "Wilson, Thomas",
+    contactName: "Thomas Wilson",
+    email: "twilson@example.com",
+    phone: "(423) 555-0245",
+    building: "Appalachian Ridge Apartments",
+    unit: "Apt 2A",
+    monthlyRent: 1450,
+    securityDeposit: 1450,
+    leaseStart: "2025-01-15",
+    leaseEnd: "2026-01-14",
+    notes: "Residential 2BR/2BA · 1,050 sqft · Balcony unit",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_8",
+    name: "Taylor, Brian & Chloe",
+    contactName: "Chloe Taylor",
+    email: "chloe.taylor@example.com",
+    phone: "(423) 555-0268",
+    building: "Appalachian Ridge Apartments",
+    unit: "Apt 2B",
+    monthlyRent: 1450,
+    securityDeposit: 1450,
+    leaseStart: "2025-05-01",
+    leaseEnd: "2026-04-30",
+    notes: "Residential 2BR/2BA · 1,050 sqft · Hardwood upgrade",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_9",
+    name: "Reed, Samantha",
+    contactName: "Samantha Reed",
+    email: "sreed@example.com",
+    phone: "(423) 555-0279",
+    building: "Appalachian Ridge Apartments",
+    unit: "Apt 3A",
+    monthlyRent: 895,
+    securityDeposit: 895,
+    leaseStart: "2025-09-01",
+    leaseEnd: "2026-02-28",
+    notes: "Residential Studio · 520 sqft · Short-term 6mo lease",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_10",
+    name: "Patel, Kevin",
+    contactName: "Kevin Patel",
+    email: "kpatel@example.com",
+    phone: "(423) 555-0284",
+    building: "Appalachian Ridge Apartments",
+    unit: "Apt 3B",
+    monthlyRent: 895,
+    securityDeposit: 895,
+    leaseStart: "2025-02-01",
+    leaseEnd: "2026-01-31",
+    notes: "Residential Studio · 520 sqft",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_11",
+    name: "Miller, Robert & Ashley",
+    contactName: "Robert Miller",
+    email: "rmiller@example.com",
+    phone: "(423) 555-0292",
+    building: "Appalachian Ridge Apartments",
+    unit: "TH-01",
+    monthlyRent: 1950,
+    securityDeposit: 1950,
     leaseStart: "2024-11-01",
+    leaseEnd: "2025-10-31",
+    notes: "Residential 3BR/2.5BA Townhome · 1,600 sqft · Attached garage",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_12",
+    name: "Morgan, Daniel",
+    contactName: "Daniel Morgan",
+    email: "dmorgan@example.com",
+    phone: "(423) 555-0299",
+    building: "Appalachian Ridge Apartments",
+    unit: "TH-02",
+    monthlyRent: 1950,
+    securityDeposit: 1950,
+    leaseStart: "2025-12-01",
+    leaseEnd: "2026-11-30",
+    notes: "Residential 3BR/2.5BA Townhome · Deposit received · Move-in scheduled",
+    confidence: "medium",
+    needsReview: true,
+    selected: true,
+  },
+
+  // Commercial Office: Highland Medical & Professional Plaza
+  {
+    id: "sample_13",
+    name: "Tri-Cities Physical Therapy LLC",
+    contactName: "Dr. Karen Brooks",
+    email: "kbrooks@tricitiespt.com",
+    phone: "(423) 555-0310",
+    building: "Highland Medical & Professional Plaza",
+    unit: "Suite 100",
+    monthlyRent: 4200,
+    securityDeposit: 4200,
+    leaseStart: "2023-09-01",
+    leaseEnd: "2028-08-31",
+    notes: "Medical Clinic · 3,600 sqft · 5-year NNN lease",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_14",
+    name: "Cumberland Family Dentistry",
+    contactName: "Dr. Anthony Hill",
+    email: "office@cumberlanddentistry.com",
+    phone: "(423) 555-0344",
+    building: "Highland Medical & Professional Plaza",
+    unit: "Suite 150",
+    monthlyRent: 3800,
+    securityDeposit: 3800,
+    leaseStart: "2024-01-01",
+    leaseEnd: "2029-12-31",
+    notes: "Dental Practice · 3,100 sqft · 5-year medical buildout",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_15",
+    name: "Blue Ridge Tax & Wealth Advisers",
+    contactName: "Gregory Vance, CPA",
+    email: "gvance@blueridgetax.com",
+    phone: "(423) 555-0382",
+    building: "Highland Medical & Professional Plaza",
+    unit: "Suite 210",
+    monthlyRent: 2400,
+    securityDeposit: 2400,
+    leaseStart: "2024-10-01",
+    leaseEnd: "2027-09-30",
+    notes: "Financial / Accounting Firm · 2,000 sqft · 3-year commercial",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+
+  // Commercial Industrial: Blue Ridge Contractor & Flex Bays
+  {
+    id: "sample_16",
+    name: "Appalachian Plumbing Supply Inc.",
+    contactName: "Ray Callahan",
+    email: "rcallahan@appalachianplumbing.com",
+    phone: "(423) 555-0415",
+    building: "Blue Ridge Industrial & Flex Bays",
+    unit: "Bay 1",
+    monthlyRent: 2600,
+    securityDeposit: 2600,
+    leaseStart: "2024-03-01",
+    leaseEnd: "2027-02-28",
+    notes: "Industrial Warehouse / Showroom · 4,000 sqft · Grade door access",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_17",
+    name: "Summit Precision Fabrication",
+    contactName: "Jason Cole",
+    email: "jason@summitprecisionfab.com",
+    phone: "(423) 555-0440",
+    building: "Blue Ridge Industrial & Flex Bays",
+    unit: "Bay 2",
+    monthlyRent: 3100,
+    securityDeposit: 3100,
+    leaseStart: "2023-11-01",
     leaseEnd: "2026-10-31",
-    notes: "Scanned lease agreement: Outdoor patio seating permit attached.",
+    notes: "Manufacturing / CNC Fabrication · 4,800 sqft · 3-phase power",
+    confidence: "high",
+    needsReview: false,
+    selected: true,
+  },
+  {
+    id: "sample_18",
+    name: "Blue Ridge Electrical Services LLC",
+    contactName: "Mark Higgins",
+    email: "mhiggins@blueridgeelectrical.com",
+    phone: "(423) 555-0475",
+    building: "Blue Ridge Industrial & Flex Bays",
+    unit: "Bay 3",
+    monthlyRent: 2200,
+    securityDeposit: 2200,
+    leaseStart: "2025-02-01",
+    leaseEnd: "2027-01-31",
+    notes: "Contractor Office & Fleet Yard · 3,200 sqft · 2-year term",
     confidence: "high",
     needsReview: false,
     selected: true,
@@ -326,10 +571,10 @@ export default function IntakeStagingModal({
   // Load sample test data in 1 click
   const handleLoadSample = () => {
     setErrorMsg("");
-    setSourceFile({ name: "Sample Landlord Legal Pad & Leases (Demo).png", type: "sample" });
+    setSourceFile({ name: "OperateIQ Mixed Portfolio Test Roll (Demo).xlsx", type: "sample" });
     setStagedRecords(DEMO_STAGED_RECORDS);
-    setPortfolioSummary("4 Verified commercial & retail leases loaded from sample intake roll.");
-    setDetectedBuilding("The Summit Tower");
+    setPortfolioSummary("18 Verified commercial & residential tenant leases across 4 properties loaded.");
+    setDetectedBuilding("Multiple Properties");
     setStep("review");
   };
 
@@ -561,26 +806,46 @@ export default function IntakeStagingModal({
               </div>
 
               {/* Instant Test Drive / Quick Presets */}
-              <div className="rounded-xl border border-white/12 bg-white/[0.02] p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="rounded-xl border border-white/12 bg-white/[0.02] p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
                     <Sparkles size={18} />
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-white">Testing a New Account or Property?</h4>
                     <p className="text-[11px] text-gray-400">
-                      Instantly populate 4 sample commercial leases & handwritten notes without uploading your own file.
+                      18-unit mixed portfolio: Commercial (Retail, Legal, Cafe, Design, Medical, Flex Bays) &amp; Residential (Apartments, Studios, Townhomes).
                     </p>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleLoadSample}
-                  className="px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_12px_rgba(255,255,255,0.06)]"
-                >
-                  ⚡ Load Sample Test Roll <ArrowRight size={13} />
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href="/sample-data/operateiq_test_portfolio.xlsx"
+                    download="operateiq_test_portfolio.xlsx"
+                    className="px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition-all flex items-center gap-1.5"
+                    title="Download Excel test portfolio workbook"
+                  >
+                    <FileSpreadsheet size={13} />
+                    <span>Download .XLSX</span>
+                  </a>
+                  <a
+                    href="/sample-data/operateiq_test_portfolio.csv"
+                    download="operateiq_test_portfolio.csv"
+                    className="px-3 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 text-xs font-semibold transition-all flex items-center gap-1.5"
+                    title="Download CSV test portfolio spreadsheet"
+                  >
+                    <FileSpreadsheet size={13} />
+                    <span>Download .CSV</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={handleLoadSample}
+                    className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_12px_rgba(255,255,255,0.06)]"
+                  >
+                    ⚡ 1-Click Load 18 Units <ArrowRight size={13} />
+                  </button>
+                </div>
               </div>
 
               {/* Supported Formats Grid */}
