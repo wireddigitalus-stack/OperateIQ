@@ -30,43 +30,46 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const tenant = {
-      id: `tenant_${Date.now()}`,
-      name: body.name?.trim() || "",
-      contact_name: body.contactName?.trim() || "",
-      email: body.email?.trim() || "",
-      phone: body.phone?.trim() || "",
-      building: body.building?.trim() || "",
-      unit: body.unit?.trim() || "",
-      rep: body.rep?.trim() || "",
-      monthly_rent: Number(body.monthlyRent) || 0,
-      utilities_fee: Number(body.utilitiesFee) || 0,
-      security_deposit: Number(body.securityDeposit) || 0,
-      nnn_fee: Number(body.nnnFee) || 0,
-      cleaning_fee: Number(body.cleaningFee) || 0,
-      cam_fee: Number(body.camFee) || 0,
-      nn_fee: Number(body.nnFee) || 0,
-      lease_start: body.leaseStart || null,
-      lease_end: body.leaseEnd || null,
-      renewal_date: body.renewalDate || null,
-      lease_alert_days: body.leaseAlertDays ?? null,
-      escalation_pct: Number(body.escalationPct) || 0,
-      escalation_date: body.escalationDate || null,
-      status: body.status || "active",
-      notes: body.notes?.trim() || "",
-      source_lead_id: body.sourceLeadId || "",
-      lease_documents: body.leaseDocuments || "[]",
-      sec_dep_received: body.secDepReceived ?? false,
-      sec_dep_date: body.secDepDate || null,
-      sec_dep_status: body.secDepStatus || "no_change",
-      sec_dep_notes: body.secDepNotes || "",
+    const isBatch = Array.isArray(body) || Array.isArray(body.tenants);
+    const rawList: Record<string, unknown>[] = isBatch ? (Array.isArray(body) ? body : body.tenants) : [body];
+
+    const tenants = rawList.map((item, idx) => ({
+      id: (item.id as string) || `tenant_${Date.now()}_${idx}`,
+      name: String(item.name || "").trim(),
+      contact_name: String(item.contactName || item.contact_name || "").trim(),
+      email: String(item.email || "").trim(),
+      phone: String(item.phone || "").trim(),
+      building: String(item.building || "").trim(),
+      unit: String(item.unit || "").trim(),
+      rep: String(item.rep || "").trim(),
+      monthly_rent: Number(item.monthlyRent ?? item.monthly_rent) || 0,
+      utilities_fee: Number(item.utilitiesFee ?? item.utilities_fee) || 0,
+      security_deposit: Number(item.securityDeposit ?? item.security_deposit) || 0,
+      nnn_fee: Number(item.nnnFee ?? item.nnn_fee) || 0,
+      cleaning_fee: Number(item.cleaningFee ?? item.cleaning_fee) || 0,
+      cam_fee: Number(item.camFee ?? item.cam_fee) || 0,
+      nn_fee: Number(item.nnFee ?? item.nn_fee) || 0,
+      lease_start: (item.leaseStart || item.lease_start || null) as string | null,
+      lease_end: (item.leaseEnd || item.lease_end || null) as string | null,
+      renewal_date: (item.renewalDate || item.renewal_date || null) as string | null,
+      lease_alert_days: (item.leaseAlertDays ?? item.lease_alert_days ?? null) as number | null,
+      escalation_pct: Number(item.escalationPct ?? item.escalation_pct) || 0,
+      escalation_date: (item.escalationDate || item.escalation_date || null) as string | null,
+      status: String(item.status || "active"),
+      notes: String(item.notes || "").trim(),
+      source_lead_id: String(item.sourceLeadId || item.source_lead_id || ""),
+      lease_documents: typeof item.leaseDocuments === "string" ? item.leaseDocuments : JSON.stringify(item.leaseDocuments || []),
+      sec_dep_received: Boolean(item.secDepReceived ?? item.sec_dep_received ?? false),
+      sec_dep_date: (item.secDepDate || item.sec_dep_date || null) as string | null,
+      sec_dep_status: String(item.secDepStatus || item.sec_dep_status || "no_change"),
+      sec_dep_notes: String(item.secDepNotes || item.sec_dep_notes || ""),
       created_at: new Date().toISOString(),
-    };
+    }));
 
     const res = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
       method: "POST",
       headers: { ...HEADERS, "Prefer": "return=representation" },
-      body: JSON.stringify(tenant),
+      body: JSON.stringify(isBatch ? tenants : tenants[0]),
     });
 
     if (!res.ok) {
@@ -74,10 +77,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Insert failed" }, { status: 500 });
     }
 
-    // Auto-archive source lead if converted from a lead
-    if (tenant.source_lead_id) {
+    const insertedData = await res.json();
+
+    // Auto-archive source lead if converted from a single lead
+    if (!isBatch && tenants[0].source_lead_id) {
       try {
-        const leadUrl = `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(tenant.source_lead_id)}`;
+        const leadUrl = `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(tenants[0].source_lead_id)}`;
         await fetch(leadUrl, {
           method: "PATCH",
           headers: { ...HEADERS, "Prefer": "return-minimal" },
@@ -87,31 +92,31 @@ export async function POST(req: NextRequest) {
         });
 
         writeActivityLog({
-          actor_email:   body.actorEmail  || "unknown",
-          actor_name:    body.actorName || body.actorEmail?.split("@")[0] || "Staff",
+          actor_email:   String(body.actorEmail || "unknown"),
+          actor_name:    String(body.actorName || "Staff"),
           action:        "updated",
           resource_type: "lead",
-          resource_name: tenant.name,
-          resource_id:   tenant.source_lead_id,
-          metadata: { reason: "converted_to_tenant", tenant_id: tenant.id, tenant_name: tenant.name },
+          resource_name: tenants[0].name,
+          resource_id:   tenants[0].source_lead_id,
+          metadata: { reason: "converted_to_tenant", tenant_id: tenants[0].id, tenant_name: tenants[0].name },
         });
       } catch (leadErr) {
         console.error("Failed to auto-archive source lead:", leadErr);
       }
     }
 
-    // Audit log — fire and forget
+    // Audit log
     writeActivityLog({
-      actor_email:   body.actorEmail  || "unknown",
-      actor_name:    body.actorName || body.actorEmail?.split("@")[0] || "Staff",
+      actor_email:   String(body.actorEmail || "unknown"),
+      actor_name:    String(body.actorName || "Staff"),
       action:        "created",
       resource_type: "tenant",
-      resource_name: tenant.name,
-      resource_id:   tenant.id,
-      metadata: { building: tenant.building, unit: tenant.unit, monthly_rent: tenant.monthly_rent, source_lead_id: tenant.source_lead_id },
+      resource_name: isBatch ? `${tenants.length} tenants imported` : tenants[0].name,
+      resource_id:   isBatch ? `batch_${Date.now()}` : tenants[0].id,
+      metadata: { count: tenants.length, isBatch },
     });
 
-    return NextResponse.json({ success: true, tenant });
+    return NextResponse.json({ success: true, count: tenants.length, tenant: isBatch ? insertedData : tenants[0], tenants: insertedData });
   } catch (err) {
     console.error("tenants POST catch:", err);
     return NextResponse.json({ error: "Unexpected error" }, { status: 500 });

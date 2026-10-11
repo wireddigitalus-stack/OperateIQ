@@ -126,11 +126,11 @@ export default function SecurityDepositLedgerTab({
   };
 
   return (
-    <div className="glass rounded-2xl border border-[rgba(96,165,250,0.12)] bg-[rgba(10,15,30,0.4)] p-4 sm:p-6">
+    <div className="glass rounded-2xl border border-white/12 bg-[rgba(10,15,30,0.5)] p-4 sm:p-6 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
       {/* Header and filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-[rgba(255,255,255,0.06)]">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[rgba(96,165,250,0.15)] border border-[rgba(96,165,250,0.25)] flex items-center justify-center text-[#60A5FA]">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-sky-400">
             <Landmark size={16} />
           </div>
           <div>
@@ -140,7 +140,7 @@ export default function SecurityDepositLedgerTab({
         </div>
 
         {/* Stats Row */}
-        <div className="flex items-center gap-6 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)] rounded-xl px-4 py-2 text-xs">
+        <div className="flex items-center gap-6 bg-white/[0.02] border border-white/10 rounded-xl px-4 py-2 text-xs shadow-[0_0_16px_rgba(56,189,248,0.04)]">
           <div>
             <span className="text-gray-500 uppercase tracking-widest text-[9px] block">Total Held</span>
             <span className="text-white font-black">${totalDeposits.toLocaleString()}</span>
@@ -160,7 +160,7 @@ export default function SecurityDepositLedgerTab({
               placeholder="Search ledger…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-xl pl-8 pr-4 py-1.5 text-xs text-white focus:border-[rgba(96,165,250,0.4)] outline-none placeholder:text-gray-700"
+              className="w-full bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-xl pl-8 pr-4 py-1.5 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-700"
             />
           </div>
 
@@ -259,7 +259,7 @@ export default function SecurityDepositLedgerTab({
                           type="number"
                           value={t.securityDeposit || ""}
                           onChange={e => updateField(t.id, "securityDeposit", e.target.value)}
-                          className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg pl-6 pr-2 py-1 text-xs text-white focus:border-[rgba(96,165,250,0.4)] outline-none"
+                          className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg pl-6 pr-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none"
                         />
                       </div>
                     </td>
@@ -268,7 +268,7 @@ export default function SecurityDepositLedgerTab({
                         type="checkbox"
                         checked={!!t.secDepReceived}
                         onChange={e => updateField(t.id, "secDepReceived", e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-600 text-[#60A5FA] bg-[rgba(255,255,255,0.02)] focus:ring-0 cursor-pointer"
+                        className="w-4 h-4 rounded border-gray-600 text-sky-400 bg-[rgba(255,255,255,0.02)] focus:ring-0 cursor-pointer"
                       />
                     </td>
                     <td className="py-2">
@@ -276,14 +276,14 @@ export default function SecurityDepositLedgerTab({
                         type="date"
                         value={t.secDepDate || ""}
                         onChange={e => updateField(t.id, "secDepDate", e.target.value)}
-                        className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-1 text-xs text-white focus:border-[rgba(96,165,250,0.4)] outline-none [color-scheme:dark]"
+                        className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none [color-scheme:dark]"
                       />
                     </td>
                     <td className="py-2">
                       <select
                         value={t.secDepStatus || "no_change"}
                         onChange={e => updateField(t.id, "secDepStatus", e.target.value)}
-                        className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-1 text-xs text-white focus:border-[rgba(96,165,250,0.4)] outline-none"
+                        className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none"
                       >
                         {STATUS_OPTIONS.map(o => (
                           <option key={o.value} value={o.value} className="bg-[#0D1117]">
@@ -298,7 +298,7 @@ export default function SecurityDepositLedgerTab({
                         placeholder="Escrow account details, damages, etc..."
                         value={t.secDepNotes || ""}
                         onChange={e => updateField(t.id, "secDepNotes", e.target.value)}
-                        className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-1 text-xs text-white focus:border-[rgba(96,165,250,0.4)] outline-none"
+                        className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none"
                       />
                     </td>
                   </tr>

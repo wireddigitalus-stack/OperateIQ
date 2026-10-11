@@ -104,11 +104,11 @@ export default function ConversationTab({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-220px)] bg-[#080C14] rounded-2xl border border-[rgba(255,255,255,0.06)] overflow-hidden">
-      <div className="px-6 py-4 border-b border-[rgba(255,255,255,0.06)] bg-gradient-to-r from-[rgba(74,222,128,0.05)] to-transparent flex items-center justify-between">
+    <div className="flex flex-col h-[calc(100dvh-220px)] bg-[#080C14] rounded-2xl border border-white/12 shadow-[0_0_24px_rgba(56,189,248,0.06)] overflow-hidden">
+      <div className="px-6 py-4 border-b border-white/[0.08] bg-gradient-to-r from-blue-500/[0.08] via-transparent to-transparent flex items-center justify-between">
         <div>
           <h2 className="text-base font-black text-white flex items-center gap-2">
-            <MessageSquare size={17} className="text-[#4ADE80]" /> Communication Board
+            <MessageSquare size={17} className="text-sky-400" /> Communication Board
           </h2>
           <p className="text-xs text-gray-400 mt-1">Internal team logs & chat</p>
         </div>
@@ -131,7 +131,7 @@ export default function ConversationTab({
               <div key={m.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                 <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                   isMe 
-                    ? "bg-[#4ADE80] text-black font-medium" 
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium shadow-[0_0_14px_rgba(59,130,246,0.3)]" 
                     : "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-gray-200"
                 }`}>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.message}</p>
@@ -151,7 +151,7 @@ export default function ConversationTab({
 
       <div className="p-4 bg-[#0A0F1A] border-t border-[rgba(255,255,255,0.06)]">
         <div className="flex items-end gap-2 max-w-4xl mx-auto">
-          <div className="flex-1 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3 focus-within:border-[#4ADE80]/40 transition-colors">
+          <div className="flex-1 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3 focus-within:border-blue-400/60 focus-within:shadow-[0_0_12px_rgba(56,189,248,0.2)] transition-colors">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -169,7 +169,7 @@ export default function ConversationTab({
           <button
             onClick={sendMessage}
             disabled={!input.trim() || sending}
-            className="w-12 h-12 rounded-xl bg-[#4ADE80] flex items-center justify-center text-black hover:opacity-90 disabled:opacity-40 transition-all flex-shrink-0"
+            className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white hover:opacity-90 disabled:opacity-40 transition-all flex-shrink-0 shadow-[0_0_16px_rgba(59,130,246,0.35)]"
           >
             {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
           </button>

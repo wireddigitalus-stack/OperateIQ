@@ -129,9 +129,9 @@ function getMonthOptions(): { value: string; label: string }[] {
 const PAYMENT_TYPES = ["ACH", "Cash", "Check"] as const;
 
 // ─── Style constants (consistent with TenantsTab) ───────────────────────────
-const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-sm text-white focus:border-[rgba(74,222,128,0.4)] outline-none placeholder:text-gray-600";
+const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-600 transition-all";
 const FIELD_SM = FIELD + " text-xs py-1.5";
-const FEE_INPUT = "bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-lg px-2 py-1 text-xs text-white focus:border-[rgba(74,222,128,0.4)] outline-none placeholder:text-gray-700 w-16 tabular-nums text-center";
+const FEE_INPUT = "bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-lg px-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_8px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-700 w-16 tabular-nums text-center transition-all";
 const TH_CLASS = "text-left text-[10px] font-black text-gray-500 uppercase tracking-tight px-3 py-3 whitespace-nowrap";
 const TD_CLASS = "px-3 py-3 transition-all duration-150";
 
@@ -142,10 +142,9 @@ function SummaryCard({ label, value, icon: Icon, color, sub }: {
 }) {
   return (
     <div
-      className="relative rounded-2xl p-4 sm:p-5 overflow-hidden border transition-all duration-300"
+      className="relative rounded-2xl p-4 sm:p-5 overflow-hidden border border-white/10 transition-all duration-300 shadow-[0_0_20px_rgba(56,189,248,0.06)] hover:border-white/20"
       style={{
-        background: `linear-gradient(135deg, ${color}08, ${color}04)`,
-        borderColor: `${color}25`,
+        background: `linear-gradient(135deg, rgba(255,255,255,0.03), ${color}06)`,
       }}
     >
       <div className="flex items-start justify-between">

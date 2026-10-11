@@ -119,20 +119,20 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
           <div className="flex bg-[rgba(255,255,255,0.04)] p-1 rounded-xl border border-[rgba(255,255,255,0.08)]">
             <button 
               onClick={() => setFilter("all")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filter === "all" ? "bg-[#4ADE80] text-black" : "text-gray-500 hover:text-gray-300"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filter === "all" ? "bg-white/15 text-white shadow-sm" : "text-gray-400 hover:text-white"}`}
             >
               All Tasks
             </button>
             <button 
               onClick={() => setFilter("mine")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filter === "mine" ? "bg-[#4ADE80] text-black" : "text-gray-500 hover:text-gray-300"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filter === "mine" ? "bg-white/15 text-white shadow-sm" : "text-gray-400 hover:text-white"}`}
             >
               My Tasks
             </button>
           </div>
           <button 
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#4ADE80] text-black text-xs font-black hover:opacity-90 transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 shadow-[0_0_14px_rgba(59,130,246,0.35)] transition-all"
           >
             <Plus size={14} /> New Task
           </button>
@@ -140,7 +140,7 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
       </div>
 
       {showAdd && (
-        <div className="glass rounded-2xl border border-[rgba(74,222,128,0.25)] p-5 animate-in fade-in slide-in-from-top-2">
+        <div className="glass rounded-2xl border border-white/15 p-5 shadow-[0_0_24px_rgba(56,189,248,0.08)] animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-black text-white uppercase tracking-widest">Create New Task</h3>
             <button onClick={() => setShowAdd(false)} className="text-gray-500 hover:text-white"><X size={16} /></button>
@@ -151,8 +151,8 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
               <input 
                 value={form.task}
                 onChange={e => setForm({...form, task: e.target.value})}
-                placeholder="e.g. Follow up on Shelby St lease"
-                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-[#4ADE80]/40 outline-none"
+                placeholder="e.g. Follow up on lease"
+                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none"
               />
             </div>
             <div>
@@ -161,7 +161,7 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
                 value={form.assigned_to}
                 onChange={e => setForm({...form, assigned_to: e.target.value})}
                 placeholder="Name or Email"
-                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-[#4ADE80]/40 outline-none"
+                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none"
               />
             </div>
             <div>
@@ -170,7 +170,7 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
                 type="date"
                 value={form.due_date}
                 onChange={e => setForm({...form, due_date: e.target.value})}
-                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-[#4ADE80]/40 outline-none"
+                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none"
               />
             </div>
             <div>
@@ -178,7 +178,7 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
               <select 
                 value={form.priority}
                 onChange={e => setForm({...form, priority: e.target.value as Todo["priority"]})}
-                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-[#4ADE80]/40 outline-none"
+                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none"
               >
                 <option value="low" className="bg-[#0A0F1A]">Low</option>
                 <option value="medium" className="bg-[#0A0F1A]">Medium</option>
@@ -193,8 +193,8 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
                   onChange={e => setForm({...form, is_private: e.target.checked})}
                   className="hidden"
                 />
-                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${form.is_private ? "bg-[#4ADE80] border-[#4ADE80]" : "border-[rgba(255,255,255,0.2)] group-hover:border-[#4ADE80]"}`}>
-                  {form.is_private && <CheckCircle2 size={12} className="text-black" />}
+                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${form.is_private ? "bg-blue-500 border-blue-500" : "border-[rgba(255,255,255,0.2)] group-hover:border-blue-400"}`}>
+                  {form.is_private && <CheckCircle2 size={12} className="text-white" />}
                 </div>
                 <span className="text-xs text-gray-400 group-hover:text-white transition-colors">Private (only I can see)</span>
               </label>
@@ -205,7 +205,7 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
             <button 
               onClick={handleAdd}
               disabled={saving || !form.task.trim()}
-              className="flex items-center gap-2 px-6 py-2 rounded-xl bg-[#4ADE80] text-black text-xs font-black hover:opacity-90 transition-all disabled:opacity-40"
+              className="flex items-center gap-2 px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 shadow-[0_0_14px_rgba(59,130,246,0.35)] transition-all disabled:opacity-40"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save Task
@@ -322,7 +322,7 @@ function TaskCard({ todo, onStatusChange, onDelete }: { todo: Todo, onStatusChan
         {todo.status !== 'done' && (
           <button 
             onClick={() => onStatusChange(todo.id, 'done')}
-            className="flex-[2] py-1.5 rounded-lg bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.2)] text-[#4ADE80] text-[9px] font-bold hover:bg-[rgba(74,222,128,0.2)] transition-colors"
+            className="flex-[2] py-1.5 rounded-lg bg-white/[0.04] border border-white/15 text-[#4ADE80] text-[9px] font-bold hover:border-white/30 hover:shadow-[0_0_10px_rgba(56,189,248,0.15)] transition-all"
           >
             Complete
           </button>

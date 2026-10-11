@@ -159,12 +159,12 @@ export default function MarketEditor() {
     Object.keys(DEFAULTS[s] || {}).filter(k => isDirty(s, k)).length;
 
   const inputClass =
-    "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[rgba(74,222,128,0.5)] focus:bg-[rgba(255,255,255,0.06)] transition-all";
+    "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] focus:bg-[rgba(255,255,255,0.06)] transition-all";
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 size={24} className="animate-spin text-[#4ADE80]" />
+        <Loader2 size={24} className="animate-spin text-sky-400" />
         <span className="ml-3 text-gray-400 text-sm">Loading market editor…</span>
       </div>
     );
@@ -173,10 +173,10 @@ export default function MarketEditor() {
   return (
     <div className="space-y-4">
       {/* Top bar */}
-      <div className="flex items-center justify-between flex-wrap gap-4 p-5 glass rounded-2xl border border-[rgba(255,255,255,0.06)]">
+      <div className="flex items-center justify-between flex-wrap gap-4 p-5 glass rounded-2xl border border-white/12 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
         <div>
           <h2 className="text-lg font-black text-white flex items-center gap-2">
-            <MapPin size={20} className="text-[#4ADE80]" />
+            <MapPin size={20} className="text-sky-400" />
             Market Pages Editor
           </h2>
           <p className="text-xs text-gray-500 mt-1">
@@ -190,7 +190,7 @@ export default function MarketEditor() {
             saveSuccess
               ? "bg-[#4ADE80] text-black"
               : totalDirty > 0
-              ? "bg-[#4ADE80] hover:bg-[#22C55E] text-black shadow-lg shadow-[rgba(74,222,128,0.25)]"
+              ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-[rgba(59,130,246,0.35)]"
               : "bg-[rgba(255,255,255,0.06)] text-gray-600 cursor-not-allowed"
           }`}
         >
@@ -232,21 +232,21 @@ export default function MarketEditor() {
         return (
           <div
             key={sectionKey}
-            className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] overflow-hidden"
+            className="glass rounded-2xl border border-white/10 shadow-[0_0_20px_rgba(56,189,248,0.04)] overflow-hidden"
           >
             <button
               onClick={() => toggleSection(sectionKey)}
               className="w-full flex items-center justify-between p-5 hover:bg-[rgba(255,255,255,0.02)] transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.2)] text-[#4ADE80]">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10 border border-blue-500/20 text-sky-400">
                   <MapPin size={18} />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     {geo.city}, {geo.state}
                     {geo.isPrimary && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] font-semibold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[#4ADE80] font-semibold">
                         Primary
                       </span>
                     )}
@@ -270,7 +270,7 @@ export default function MarketEditor() {
             </button>
 
             {isExpanded && (
-              <div className="border-t border-[rgba(255,255,255,0.05)] p-5 space-y-4" style={{ borderLeft: "3px solid rgba(74,222,128,0.3)" }}>
+              <div className="border-t border-[rgba(255,255,255,0.05)] p-5 space-y-4" style={{ borderLeft: "3px solid rgba(56,189,248,0.4)" }}>
                 {Object.entries(fields).map(([fieldKey, fieldMeta]) => {
                   const val = getValue(sectionKey, fieldKey);
                   const dirty = isDirty(sectionKey, fieldKey);

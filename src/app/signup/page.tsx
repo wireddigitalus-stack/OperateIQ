@@ -1,8 +1,374 @@
-import type { Metadata } from "next";
-import ComingSoon from "@/components/marketing/ComingSoon";
+"use client";
 
-export const metadata: Metadata = { title: "Start your free trial | OperateIQ" };
+import React, { useState, Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import {
+  ShieldCheck,
+  Building2,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  Lock,
+  Layers,
+  Phone,
+  Mail,
+  User,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
+import { BRAND } from "@/lib/brand";
+import { PLANS, TRIAL_DAYS, type Tier } from "@/lib/plans";
+
+function SignupForm() {
+  const searchParams = useSearchParams();
+  const initialPlan = (searchParams.get("plan") as Tier) || "pro";
+
+  const [selectedPlan, setSelectedPlan] = useState<Tier>(initialPlan);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [unitCount, setUnitCount] = useState("11 - 50 Units");
+  const [portfolioType, setPortfolioType] = useState("Mixed-Use (Commercial & Residential)");
+  const [phone, setPhone] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const activePlan = PLANS.find((p) => p.id === selectedPlan) || PLANS[2];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim() || !email.trim() || !companyName.trim()) {
+      setErrorMsg("Please fill in your name, work email, and portfolio company name.");
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fullName.trim(),
+          email: email.trim(),
+          company: companyName.trim(),
+          phone: phone.trim(),
+          interest: `14-Day Free Trial Signup (${activePlan.name} Plan)`,
+          city: "Self-Serve Trial Onboarding",
+          message: `Trial Signup Details:\n- Plan: ${activePlan.name} ($${activePlan.monthly}/mo)\n- Units Managed: ${unitCount}\n- Portfolio Type: ${portfolioType}\n- Phone: ${phone || "Not provided"}`,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Could not process signup. Please try again.");
+      }
+
+      setSubmitted(true);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="mx-auto max-w-lg p-8 sm:p-10 rounded-3xl bg-[#080C14] border border-white/20 shadow-[0_20px_70px_rgba(0,0,0,0.8),0_0_50px_rgba(56,189,248,0.2)] text-center space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_25px_rgba(52,211,153,0.35)]">
+          <CheckCircle2 size={32} />
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black text-white">Your Trial Account Is Reserved!</h2>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm mx-auto">
+            Welcome to <strong>OperateIQ</strong>, {fullName.split(" ")[0]}. We have registered your <strong>{TRIAL_DAYS}-day free trial</strong> for <strong>{companyName}</strong> on the <strong>{activePlan.name}</strong> tier.
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-left space-y-2 text-xs text-slate-300">
+          <div className="flex items-center gap-2 text-sky-400 font-bold">
+            <Sparkles size={14} />
+            <span>Next Steps:</span>
+          </div>
+          <p>
+            • A confirmation and workspace activation email has been routed to <strong>{email}</strong>.
+          </p>
+          <p>
+            • Your account includes pre-seeded sample regional properties so you can test features right away.
+          </p>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/demo-site"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white font-bold text-xs shadow-lg hover:opacity-95 transition-all flex items-center justify-center gap-1.5"
+          >
+            <span>Explore Demo Website</span>
+            <ExternalLink size={13} />
+          </Link>
+          <Link
+            href="/"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white font-bold text-xs transition-all"
+          >
+            Back to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* ── Left Column: Value Prop (5 Cols) ── */}
+      <div className="lg:col-span-5 space-y-6 text-left">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs font-bold shadow-sm">
+          <Sparkles size={13} className="text-cyan-400 animate-pulse" />
+          <span>{TRIAL_DAYS}-DAY FULL ACCESS TRIAL</span>
+        </div>
+
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+            Run your portfolio on autopilot.
+          </h1>
+          <p className="mt-3 text-sm text-slate-300 leading-relaxed">
+            Zero setup fees. No credit card required. Pre-seeded with realistic regional properties so you can explore immediately.
+          </p>
+        </div>
+
+        {/* Benefits checklist */}
+        <div className="space-y-3 pt-2">
+          {[
+            "Full access to rent ledgers, maintenance & crew portals",
+            "Autonomous AI operations assistant (OpsIQ) included",
+            "Pre-seeded regional property demo data for testing",
+            "Turnkey public property showcase site on Pro tier",
+            "Cancel or upgrade anytime with zero penalties",
+          ].map((item) => (
+            <div key={item} className="flex items-start gap-2.5">
+              <CheckCircle2 size={15} className="text-emerald-400 mt-0.5 shrink-0" />
+              <span className="text-xs text-slate-200 font-medium">{item}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Selected Plan Summary Card */}
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-white uppercase tracking-wider">Selected Plan:</span>
+            <span className="text-xs font-black text-sky-400 font-mono bg-sky-950/80 border border-sky-400/30 px-2 py-0.5 rounded">
+              {activePlan.name} · ${activePlan.monthly}/mo
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-400">{activePlan.blurb}</p>
+          <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-slate-300">
+            <span>Free for {TRIAL_DAYS} days</span>
+            <Link href="/pricing" className="text-sky-400 hover:underline font-bold">
+              Change plan
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right Column: The Intake Form (7 Cols) ── */}
+      <div className="lg:col-span-7">
+        <div className="rounded-3xl border border-white/15 bg-[rgba(12,17,29,0.85)] backdrop-blur-2xl p-6 sm:p-8 shadow-[0_24px_80px_rgba(0,0,0,0.8),0_0_50px_rgba(56,189,248,0.12)] text-left">
+          
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-white">Create Your Free Trial Account</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Takes under 2 minutes. No credit card required.</p>
+          </div>
+
+          {errorMsg && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+              {errorMsg}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            
+            {/* Full Name & Work Email */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                  Full Name *
+                </label>
+                <div className="relative">
+                  <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Robert Neilson"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                  Work Email *
+                </label>
+                <div className="relative">
+                  <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="robert@company.com"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Company Name & Phone */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                  Company / Portfolio Name *
+                </label>
+                <div className="relative">
+                  <Building2 size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    required
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Blue Ridge Properties LLC"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                  Phone Number (Optional)
+                </label>
+                <div className="relative">
+                  <Phone size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="(555) 234-5678"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Units & Portfolio Type */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                  Number of Units Managed
+                </label>
+                <select
+                  value={unitCount}
+                  onChange={(e) => setUnitCount(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                >
+                  <option value="1 - 10 Units">1 – 10 Units</option>
+                  <option value="11 - 50 Units">11 – 50 Units</option>
+                  <option value="51 - 200 Units">51 – 200 Units</option>
+                  <option value="200+ Units">200+ Units</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                  Primary Property Type
+                </label>
+                <select
+                  value={portfolioType}
+                  onChange={(e) => setPortfolioType(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                >
+                  <option value="Mixed-Use (Commercial & Residential)">Mixed-Use (Retail & Lofts)</option>
+                  <option value="Commercial & Medical Office">Medical & Commercial Office</option>
+                  <option value="Multi-Family Residential">Multi-Family Residential</option>
+                  <option value="Contractor Flex & Light Industrial">Contractor Flex & Industrial</option>
+                  <option value="Diversified Portfolio">Diversified Portfolio</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Plan Tier Selector Pills */}
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-300 mb-1.5">
+                Trial Tier Plan
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {PLANS.map((p) => {
+                  const isSelected = p.id === selectedPlan;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedPlan(p.id)}
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        isSelected
+                          ? "bg-sky-500/15 border-sky-400/60 shadow-[0_0_15px_rgba(56,189,248,0.2)]"
+                          : "bg-white/[0.02] border-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white">{p.name}</span>
+                        {p.highlight && (
+                          <span className="text-[9px] font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded">
+                            Popular
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-300 font-mono mt-0.5">${p.monthly}/mo</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-500 via-sky-500 to-indigo-600 text-white font-bold text-xs shadow-[0_0_24px_rgba(56,189,248,0.35)] hover:opacity-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin text-white" />
+                    <span>Creating Your Trial Account…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Start My {TRIAL_DAYS}-Day Free Trial</span>
+                    <ArrowRight size={14} />
+                  </>
+                )}
+              </button>
+            </div>
+
+            <p className="text-center text-[10px] text-slate-500 mt-2">
+              🔒 No credit card required. By signing up, you agree to our Terms of Service and Privacy Policy.
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function SignupPage() {
-  return <ComingSoon title="Free trials open soon" body="Self-serve signup is almost ready. Want early access? Reach out and we'll set up your account." />;
+  return (
+    <div className="min-h-screen bg-[#060911] text-white pt-32 pb-24 px-5">
+      <Suspense fallback={<div className="text-center py-20 text-slate-400">Loading trial portal…</div>}>
+        <SignupForm />
+      </Suspense>
+    </div>
+  );
 }

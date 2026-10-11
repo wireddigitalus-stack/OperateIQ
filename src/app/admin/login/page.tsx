@@ -3,15 +3,21 @@
 import { useState } from "react";
 import Image from "next/image";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { Loader2, Shield, Mail, KeyRound, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Loader2, Shield, Mail, KeyRound, ArrowRight, CheckCircle2, Zap } from "lucide-react";
 
 export default function AdminLoginPage() {
   const [authMode, setAuthMode] = useState<"google" | "email" | "password">("google");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [email, setEmail] = useState("wireddigitalus@gmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+
+  // Security: purge any stale client-side demo tokens immediately
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem("oiq_demo_auth");
+    localStorage.removeItem("oiq_demo_auth");
+  }
 
   async function signInWithGoogle() {
     setLoading(true);
@@ -94,7 +100,7 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-[#080C14] flex flex-col items-center justify-center px-5">
       {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[50%] -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-[#4ADE80] opacity-[0.04] blur-[100px]" />
+        <div className="absolute top-[-10%] left-[50%] -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-blue-600 opacity-[0.08] blur-[120px]" />
       </div>
 
       <div className="w-full max-w-sm relative">
@@ -111,14 +117,14 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-3xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] p-8 backdrop-blur-sm shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
+        <div className="rounded-3xl border border-white/15 bg-[rgba(13,17,27,0.7)] p-8 backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.6),0_0_40px_rgba(56,189,248,0.12)]">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_rgba(74,222,128,0.25)]">
-              <Shield size={22} className="text-black" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_rgba(59,130,246,0.35)] text-white">
+              <Shield size={22} className="text-white" />
             </div>
             <h1 className="text-xl font-black text-white mb-1">OperateIQ</h1>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Property Intelligence Platform</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Property Intelligence Platform</p>
             <p className="text-xs text-gray-400">Sign in to access your dashboard</p>
           </div>
 
@@ -175,10 +181,10 @@ export default function AdminLoginPage() {
           {authMode !== "google" && (
             <div className="space-y-3">
               {magicLinkSent ? (
-                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center">
-                  <CheckCircle2 size={24} className="text-emerald-400 mx-auto mb-2" />
-                  <p className="text-xs font-semibold text-emerald-300">Magic Link Dispatched!</p>
-                  <p className="text-[11px] text-emerald-400/80 mt-1">
+                <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/15 shadow-[0_0_20px_rgba(56,189,248,0.12)] text-center">
+                  <CheckCircle2 size={24} className="text-sky-400 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-white">Magic Link Dispatched!</p>
+                  <p className="text-[11px] text-gray-300 mt-1">
                     Check your inbox at <strong>{email}</strong> and click the link to sign in.
                   </p>
                   <button
@@ -203,7 +209,7 @@ export default function AdminLoginPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="you@company.com"
-                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-emerald-400/60 focus:outline-none text-white text-xs placeholder-gray-600"
+                        className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] focus:outline-none text-white text-xs placeholder-gray-600"
                       />
                     </div>
                   </div>
@@ -221,7 +227,7 @@ export default function AdminLoginPage() {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-emerald-400/60 focus:outline-none text-white text-xs placeholder-gray-600"
+                          className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] focus:outline-none text-white text-xs placeholder-gray-600"
                         />
                       </div>
                     </div>
@@ -230,10 +236,10 @@ export default function AdminLoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-black font-semibold text-xs transition-all shadow-[0_2px_12px_rgba(74,222,128,0.25)] disabled:opacity-60"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-semibold text-xs transition-all shadow-[0_2px_14px_rgba(59,130,246,0.35)] disabled:opacity-60"
                   >
                     {loading ? (
-                      <Loader2 size={16} className="animate-spin text-black" />
+                      <Loader2 size={16} className="animate-spin text-white" />
                     ) : (
                       <>
                         <span>{authMode === "password" ? "Sign In with Password" : "Send Magic Link"}</span>
@@ -263,9 +269,10 @@ export default function AdminLoginPage() {
           )}
 
           {/* Security note */}
-          <div className="mt-6 pt-5 border-t border-[rgba(255,255,255,0.06)]">
-            <p className="text-[11px] text-gray-500 text-center leading-relaxed">
-              🔐 Platform Super-Admin: <strong className="text-gray-400">wireddigitalus@gmail.com</strong>
+          <div className="mt-6 pt-4 border-t border-white/[0.08]">
+            <p className="text-[11px] text-gray-400 text-center leading-relaxed flex items-center justify-center gap-1.5">
+              <Shield size={12} className="text-emerald-400" />
+              <span>Authorized personnel only. Sessions are encrypted and logged.</span>
             </p>
           </div>
         </div>

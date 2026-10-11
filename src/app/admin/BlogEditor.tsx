@@ -176,7 +176,7 @@ function StaticPostsImportBanner({ dbSlugs, onImported }: { dbSlugs: Set<string>
 
   if (done && result) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-[rgba(74,222,128,0.07)] border border-[rgba(74,222,128,0.25)]">
+      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/15 shadow-[0_0_20px_rgba(56,189,248,0.1)]">
         <CheckCircle2 size={15} className="text-[#4ADE80] flex-shrink-0" />
         <p className="text-xs text-[#4ADE80] font-bold">
           {result.imported.length} article{result.imported.length !== 1 ? "s" : ""} imported with full content — fully editable now.
@@ -767,7 +767,7 @@ function AiSeoPanel({
 
         {/* Geo-enhanced Content */}
         <div className={`rounded-xl border p-4 transition-all ${
-          accepted.content ? "border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.04)]" : "border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.01)]"
+          accepted.content ? "border-sky-400/40 bg-blue-500/[0.04] shadow-[0_0_16px_rgba(56,189,248,0.1)]" : "border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.01)]"
         }`}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -792,9 +792,9 @@ function AiSeoPanel({
             </div>
             <button type="button" onClick={() => setAccepted(a => ({ ...a, content: !a.content }))}
               className={`flex-shrink-0 w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${
-                accepted.content ? "bg-[#4ADE80] border-[#4ADE80]" : "border-[rgba(255,255,255,0.15)]"
+                accepted.content ? "bg-gradient-to-r from-blue-500 to-indigo-600 border-transparent shadow-[0_0_12px_rgba(59,130,246,0.35)]" : "border-[rgba(255,255,255,0.15)]"
               }`}>
-              {accepted.content && <CheckCircle2 size={14} className="text-black" />}
+              {accepted.content && <CheckCircle2 size={14} className="text-white" />}
             </button>
           </div>
         </div>
@@ -905,7 +905,7 @@ function BlogImageUploader({ currentUrl, currentAlt, onUrlChange, onAltChange }:
             </button>
           </div>
           {upload.phase === "done" && upload.originalSize > 0 && (
-            <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(10,15,25,0.85)] border border-[rgba(74,222,128,0.3)]">
+            <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(10,15,25,0.85)] border border-white/15 shadow-[0_0_12px_rgba(56,189,248,0.12)]">
               <CheckCircle2 size={11} className="text-[#4ADE80] flex-shrink-0" />
               <p className="text-[10px] text-[#4ADE80]">
                 {formatBytes(upload.originalSize)} → {formatBytes(upload.compressedSize)} <span className="font-black">({savings}% smaller)</span>
@@ -1016,7 +1016,7 @@ function PostCard({ post, onEdit, onTogglePublish, onDelete }: {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
               post.status === "published"
                 ? "border-[rgba(255,255,255,0.08)] text-gray-500 hover:text-yellow-400 hover:border-yellow-500/30"
-                : "border-[rgba(74,222,128,0.3)] text-[#4ADE80] hover:bg-[rgba(74,222,128,0.1)]"
+                : "border border-white/15 bg-white/[0.03] text-sky-400 hover:border-white/25 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)]"
             }`}>
             {post.status === "published" ? <><EyeOff size={10} /> Unpublish</> : <><Globe size={10} /> Publish</>}
           </button>

@@ -309,7 +309,7 @@ export default function HeroBannerManager() {
   const usedPropertyIds = new Set(slides.filter(s => s.type === "property").map(s => s.propertyId));
 
   return (
-    <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] overflow-hidden">
+    <div className="glass rounded-2xl border border-white/12 shadow-[0_0_24px_rgba(56,189,248,0.06)] overflow-hidden">
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
 
@@ -319,13 +319,13 @@ export default function HeroBannerManager() {
         className="w-full flex items-center justify-between p-5 hover:bg-[rgba(255,255,255,0.02)] transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.2)] flex items-center justify-center text-[#4ADE80]">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-sky-400">
             <ImageIcon size={18} />
           </div>
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               Hero Banner Slideshow
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] font-semibold">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[#4ADE80] font-semibold">
                 {enabledCount} active
               </span>
               {dirty && (
@@ -372,10 +372,10 @@ export default function HeroBannerManager() {
                   onDragEnd={handleDragEnd}
                   className={`flex items-stretch gap-3 rounded-xl border transition-all duration-200 ${
                     isDragOver
-                      ? "border-[rgba(74,222,128,0.5)] bg-[rgba(74,222,128,0.04)] scale-[1.01]"
+                      ? "border-sky-400/60 bg-blue-500/[0.04] scale-[1.01] shadow-[0_0_16px_rgba(56,189,248,0.15)]"
                       : slide.enabled
-                      ? "border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]"
-                      : "border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.01)] opacity-50"
+                      ? "border-white/10 bg-white/[0.02]"
+                      : "border-white/[0.04] bg-white/[0.01] opacity-50"
                   }`}
                 >
                   {/* Drag Handle */}
@@ -394,7 +394,7 @@ export default function HeroBannerManager() {
                     )}
                     {isUploading && (
                       <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <Loader2 size={20} className="animate-spin text-[#4ADE80]" />
+                        <Loader2 size={20} className="animate-spin text-sky-400" />
                       </div>
                     )}
                     {/* Order badge */}
@@ -408,7 +408,7 @@ export default function HeroBannerManager() {
                     <input
                       value={label}
                       onChange={e => updateField(idx, "label", e.target.value)}
-                      className="bg-transparent text-sm font-bold text-white w-full outline-none border-b border-transparent focus:border-[rgba(74,222,128,0.3)] transition-colors pb-0.5"
+                      className="bg-transparent text-sm font-bold text-white w-full outline-none border-b border-transparent focus:border-sky-400/50 transition-colors pb-0.5"
                       placeholder="Slide label…"
                     />
                     <input
@@ -433,7 +433,7 @@ export default function HeroBannerManager() {
                     {/* Replace Image */}
                     <button
                       onClick={() => startReplace(idx)}
-                      className="p-2 rounded-lg text-gray-500 hover:text-[#4ADE80] hover:bg-[rgba(74,222,128,0.08)] transition-colors"
+                      className="p-2 rounded-lg text-gray-500 hover:text-sky-400 hover:bg-white/[0.04] transition-colors"
                       title="Replace image"
                     >
                       <Upload size={14} />
@@ -444,7 +444,7 @@ export default function HeroBannerManager() {
                       onClick={() => toggleSlide(idx)}
                       className={`p-2 rounded-lg transition-colors ${
                         slide.enabled
-                          ? "text-[#4ADE80] hover:bg-[rgba(74,222,128,0.08)]"
+                          ? "text-[#4ADE80] hover:bg-white/[0.04]"
                           : "text-gray-600 hover:text-gray-400 hover:bg-[rgba(255,255,255,0.05)]"
                       }`}
                       title={slide.enabled ? "Disable slide" : "Enable slide"}
@@ -471,7 +471,7 @@ export default function HeroBannerManager() {
             {!showAddPicker ? (
               <button
                 onClick={() => setShowAddPicker(true)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-[rgba(255,255,255,0.08)] hover:border-[rgba(74,222,128,0.3)] text-gray-500 hover:text-[#4ADE80] text-sm font-semibold transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-white/10 hover:border-sky-400/40 text-gray-500 hover:text-sky-400 text-sm font-semibold transition-colors"
               >
                 <Plus size={16} />
                 Add Slide
@@ -553,7 +553,7 @@ export default function HeroBannerManager() {
                     value={config?.videoUrl || ""}
                     onChange={e => setVideoUrl(e.target.value)}
                     placeholder="https://… (MP4 URL)"
-                    className="flex-1 bg-transparent text-xs text-white outline-none border-b border-[rgba(255,255,255,0.1)] focus:border-[rgba(74,222,128,0.3)] transition-colors pb-1"
+                    className="flex-1 bg-transparent text-xs text-white outline-none border-b border-[rgba(255,255,255,0.1)] focus:border-sky-400/50 transition-colors pb-1"
                   />
                 </div>
               )}
@@ -584,7 +584,7 @@ export default function HeroBannerManager() {
                 saveSuccess
                   ? "bg-[#4ADE80] text-black"
                   : dirty
-                  ? "bg-[#4ADE80] hover:bg-[#22C55E] text-black shadow-lg shadow-[rgba(74,222,128,0.25)]"
+                  ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-[rgba(59,130,246,0.35)]"
                   : "bg-[rgba(255,255,255,0.06)] text-gray-600 cursor-not-allowed"
               }`}
             >

@@ -53,8 +53,19 @@ export default function PricingTable() {
               <ul className="mt-8 space-y-3 text-sm">
                 {prev && <li className="text-slate-400 font-medium">Everything in {prev.name}, plus:</li>}
                 {shown.map((f) => (
-                  <li key={f} className="flex gap-2 text-slate-200">
-                    <Check size={16} className="text-[var(--oiq-cyan)] mt-0.5 shrink-0" /> {FEATURE_LABELS[f]}
+                  <li key={f} className="flex items-center justify-between gap-2 text-slate-200">
+                    <span className="flex items-start gap-2">
+                      <Check size={16} className="text-[var(--oiq-cyan)] mt-0.5 shrink-0" />
+                      <span>{FEATURE_LABELS[f]}</span>
+                    </span>
+                    {f === "site_builder" && (
+                      <Link
+                        href="/demo-site"
+                        className="text-[11px] font-bold text-sky-400 hover:text-sky-300 hover:underline inline-flex items-center gap-0.5 whitespace-nowrap bg-sky-500/10 border border-sky-400/20 px-2 py-0.5 rounded-md shrink-0"
+                      >
+                        Preview Site ↗
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

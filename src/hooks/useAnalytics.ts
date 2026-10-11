@@ -128,10 +128,12 @@ export function useAnalytics(): void {
   const maxScrollPct = useRef<number>(0);
   const hasTrackedView = useRef<string>("");
 
+  // Skip admin, staff, and platform console pages
+  const isInternal = pathname.startsWith("/admin") || pathname.startsWith("/staff") || pathname.startsWith("/platform");
+
   // Track page view on route change
   useEffect(() => {
-    // Skip admin pages
-    if (pathname.startsWith("/admin")) return;
+    if (isInternal) return;
 
     const sid = getSessionId();
     if (!sid) return;
@@ -163,7 +165,7 @@ export function useAnalytics(): void {
   const scrollThresholds = useRef<Set<number>>(new Set());
 
   useEffect(() => {
-    if (pathname.startsWith("/admin")) return;
+    if (isInternal) return;
 
     // Reset thresholds on new page
     scrollThresholds.current = new Set();
@@ -188,11 +190,11 @@ export function useAnalytics(): void {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [pathname]);
+  }, [pathname, isInternal]);
 
   // Track time-on-page on unmount / page navigation
   const sendTimeOnPage = useCallback(() => {
-    if (pathname.startsWith("/admin")) return;
+    if (isInternal) return;
 
     const sid = getSessionId();
     if (!sid) return;
@@ -209,11 +211,11 @@ export function useAnalytics(): void {
       device_type: getDeviceType(),
       screen_width: window.innerWidth,
     });
-  }, [pathname]);
+  }, [pathname, isInternal]);
 
   // Fire time-on-page when leaving
   useEffect(() => {
-    if (pathname.startsWith("/admin")) return;
+    if (isInternal) return;
 
     const handleBeforeUnload = () => sendTimeOnPage();
     window.addEventListener("beforeunload", handleBeforeUnload);

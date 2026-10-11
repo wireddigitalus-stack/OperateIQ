@@ -246,12 +246,12 @@ export default function PageEditor() {
     Object.keys(DEFAULTS[s] || {}).filter(k => isDirty(s, k)).length;
 
   const inputClass =
-    "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[rgba(74,222,128,0.5)] focus:bg-[rgba(255,255,255,0.06)] transition-all";
+    "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] focus:bg-[rgba(255,255,255,0.06)] transition-all";
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 size={24} className="animate-spin text-[#4ADE80]" />
+        <Loader2 size={24} className="animate-spin text-sky-400" />
         <span className="ml-3 text-gray-400 text-sm">Loading page editor…</span>
       </div>
     );
@@ -260,7 +260,7 @@ export default function PageEditor() {
   return (
     <div className="space-y-4">
       {/* Top bar */}
-      <div className="flex items-center justify-between flex-wrap gap-4 p-5 glass rounded-2xl border border-[rgba(255,255,255,0.06)]">
+      <div className="flex items-center justify-between flex-wrap gap-4 p-5 glass rounded-2xl border border-white/12 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
         <div>
           <h2 className="text-lg font-black text-white flex items-center gap-2">
             <FileText size={20} className="text-[#FACC15]" />
@@ -277,7 +277,7 @@ export default function PageEditor() {
             saveSuccess
               ? "bg-[#4ADE80] text-black"
               : totalDirty > 0
-              ? "bg-[#4ADE80] hover:bg-[#22C55E] text-black shadow-lg shadow-[rgba(74,222,128,0.25)]"
+              ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-[rgba(59,130,246,0.35)]"
               : "bg-[rgba(255,255,255,0.06)] text-gray-600 cursor-not-allowed"
           }`}
         >

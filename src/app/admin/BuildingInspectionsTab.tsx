@@ -527,7 +527,7 @@ export default function BuildingInspectionsTab({
           <button onClick={() => setView("entry")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${view === "entry" ? "bg-[rgba(96,165,250,0.15)] text-[#60A5FA] border border-[rgba(96,165,250,0.3)]" : "text-gray-500 hover:text-gray-300 border border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"}`}>
             <FileSpreadsheet size={13} /> Monthly Entry
           </button>
-          <button onClick={() => setView("compliance")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${view === "compliance" ? "bg-[rgba(74,222,128,0.15)] text-[#4ADE80] border border-[rgba(74,222,128,0.3)]" : "text-gray-500 hover:text-gray-300 border border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"}`}>
+          <button onClick={() => setView("compliance")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${view === "compliance" ? "bg-white/[0.08] text-sky-400 border border-white/20 shadow-[0_0_12px_rgba(56,189,248,0.15)]" : "text-gray-500 hover:text-gray-300 border border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"}`}>
             <BarChart3 size={13} /> Compliance Chart
           </button>
         </div>
@@ -728,7 +728,7 @@ export default function BuildingInspectionsTab({
               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Year</label>
               <div className="flex gap-1">
                 {[new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1].map(y => (
-                  <button key={y} onClick={() => setComplianceYear(y)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${complianceYear === y ? "bg-[rgba(74,222,128,0.15)] text-[#4ADE80] border border-[rgba(74,222,128,0.3)]" : "text-gray-500 border border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"}`}>{y}</button>
+                  <button key={y} onClick={() => setComplianceYear(y)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${complianceYear === y ? "bg-white/[0.08] text-sky-400 border border-white/20 shadow-[0_0_10px_rgba(56,189,248,0.15)]" : "text-gray-500 border border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"}`}>{y}</button>
                 ))}
               </div>
             </div>

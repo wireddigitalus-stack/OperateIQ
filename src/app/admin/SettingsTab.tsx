@@ -89,7 +89,7 @@ function ExportButton({ leads }: { leads: Lead[] }) {
     <button
       onClick={doExport}
       disabled={exporting || leads.length === 0}
-      className="mt-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all"
+      className="mt-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)] text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all"
     >
       {exporting ? <><Loader2 size={13} className="animate-spin" /> Exporting…</> : <><Download size={13} /> Download Excel</>}
     </button>
@@ -456,7 +456,7 @@ Save a shortcut to your phone's Home Screen:
     setPin(p);
   };
 
-  const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-sm text-white focus:border-[rgba(74,222,128,0.4)] outline-none placeholder:text-gray-600";
+  const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-600";
 
   const addUser = async () => {
     if (!isStaffRole && !email.trim()) { setError("Email is required."); return; }
@@ -878,10 +878,10 @@ function NotificationsCard() {
       <div className="space-y-4">
 
         {/* ── Active Email Notifications ── */}
-        <div className="rounded-2xl border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.03)] p-4" style={{ boxShadow: "0 0 20px rgba(74,222,128,0.06)" }}>
+        <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-4 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
           <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-[rgba(74,222,128,0.12)] flex items-center justify-center">
-              <Mail size={16} className="text-[#4ADE80]" />
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+              <Mail size={16} className="text-sky-400" />
             </div>
             <div>
               <p className="text-sm font-black text-white">Email Notifications</p>
@@ -1447,10 +1447,9 @@ function DataExportSection({ leads }: { leads: Lead[] }) {
       {expanded && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.03)] p-5 flex flex-col gap-3"
-              style={{ boxShadow: "0 0 22px rgba(74,222,128,0.08)" }}>
+            <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-5 flex flex-col gap-3 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
               <div className="flex items-center gap-2">
-                <Download size={15} className="text-[#4ADE80]" />
+                <Download size={15} className="text-sky-400" />
                 <p className="text-xs font-black text-white uppercase tracking-widest">Export Leads</p>
               </div>
               <p className="text-xs text-gray-500 leading-relaxed">
@@ -1660,8 +1659,8 @@ function SettingsPanel({ leads, deletingAll, deleteAllConfirm, setDeleteAllConfi
 
         {/* Setup SQL banner */}
         {setupSQL && (
-          <div className="mb-5 p-4 rounded-xl border border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.05)]">
-            <p className="text-xs font-bold text-[#4ADE80] mb-2">One-time Supabase setup required</p>
+          <div className="mb-5 p-4 rounded-xl border border-white/12 bg-white/[0.02] shadow-[0_0_20px_rgba(56,189,248,0.06)]">
+            <p className="text-xs font-bold text-sky-400 mb-2">One-time Supabase setup required</p>
             <p className="text-xs text-gray-400 mb-2">Run this SQL in your <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-[#4ADE80] underline">Supabase SQL Editor</a>, then click Refresh:</p>
             <pre className="text-xs text-gray-300 bg-[rgba(0,0,0,0.5)] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">{`CREATE TABLE IF NOT EXISTS allowed_users (
   id TEXT PRIMARY KEY,
@@ -1747,8 +1746,8 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
       {/* ─ QR Capture Hub ───────────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center">
-            <span className="text-black text-xs font-black">QR</span>
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_12px_rgba(59,130,246,0.35)]">
+            <span className="text-white text-xs font-black">QR</span>
           </div>
           <div className="flex-1">
             <h2 className="text-sm font-black text-white uppercase tracking-widest">QR Capture Cards</h2>
@@ -1791,7 +1790,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
             }
 
             return (
-              <div key={admin.id} className={`rounded-2xl border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.03)] p-4 ${isHidden ? "opacity-40" : ""}`}>
+              <div key={admin.id} className={`rounded-2xl border border-white/12 bg-white/[0.02] p-4 shadow-[0_0_20px_rgba(56,189,248,0.06)] ${isHidden ? "opacity-40" : ""}`}>
                 {isHidden && (
                   <div className="flex items-center justify-between mb-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] px-3 py-2">
                     <span className="text-xs text-gray-500">Card hidden — login access unchanged</span>
@@ -1800,7 +1799,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
                 )}
                 {/* Header row */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4ADE80]/20 to-[#22C55E]/10 border border-[rgba(74,222,128,0.25)] flex items-center justify-center text-xs font-black text-[#4ADE80]">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-600/10 border border-blue-500/25 flex items-center justify-center text-xs font-black text-sky-400">
                     {initials(admin.name || admin.email)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -1810,7 +1809,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
                         value={editName}
                         onChange={e => setEditName(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingQR(null); }}
-                        className="w-full bg-[rgba(255,255,255,0.06)] border border-[rgba(74,222,128,0.4)] rounded-lg px-2 py-1 text-sm text-white outline-none"
+                        className="w-full bg-[rgba(255,255,255,0.06)] border border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] rounded-lg px-2 py-1 text-sm text-white outline-none"
                       />
                     ) : (
                       <p className="text-sm font-bold text-white truncate">{admin.name || admin.email}</p>
@@ -1824,7 +1823,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
                         <button
                           onClick={saveEdit}
                           disabled={savingQR}
-                          className="px-2 py-1 rounded-lg text-xs font-black bg-[rgba(74,222,128,0.15)] border border-[rgba(74,222,128,0.4)] text-[#4ADE80] hover:bg-[rgba(74,222,128,0.25)] disabled:opacity-50 transition-colors"
+                          className="px-2 py-1 rounded-lg text-xs font-black bg-blue-500/15 border border-blue-500/30 text-sky-400 hover:bg-blue-500/25 disabled:opacity-50 transition-colors"
                         >
                           {savingQR ? <Loader2 size={10} className="animate-spin" /> : "Save"}
                         </button>
@@ -1889,7 +1888,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
                   </code>
                   <button
                     onClick={() => { navigator.clipboard.writeText(captureUrl).catch(() => {}); }}
-                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-[rgba(74,222,128,0.25)] text-[#4ADE80] hover:bg-[rgba(74,222,128,0.08)] transition-colors"
+                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-white/12 text-sky-400 hover:border-white/25 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] bg-white/[0.02] transition-colors"
                   >
                     Copy
                   </button>

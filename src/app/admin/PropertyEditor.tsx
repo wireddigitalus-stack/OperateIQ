@@ -274,7 +274,7 @@ export default function PropertyEditor() {
     Object.keys(DEFAULTS[s] || {}).filter(k => isDirty(s, k)).length;
 
   const inputClass =
-    "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[rgba(74,222,128,0.5)] focus:bg-[rgba(255,255,255,0.06)] transition-all";
+    "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] focus:bg-[rgba(255,255,255,0.06)] transition-all";
 
   if (loading) {
     return (
@@ -484,9 +484,9 @@ export default function PropertyEditor() {
                         disabled={dc === 0 || isSaving}
                         className={`flex items-center gap-2 font-bold text-sm px-5 py-2.5 rounded-xl transition-all duration-300 ${
                           isSaved
-                            ? "bg-[#4ADE80] text-black"
+                            ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-[0_0_12px_rgba(74,222,128,0.25)]"
                             : dc > 0
-                            ? "bg-[#4ADE80] hover:bg-[#22C55E] text-black"
+                            ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)]"
                             : "bg-[rgba(255,255,255,0.06)] text-gray-600 cursor-not-allowed"
                         }`}
                         style={dc > 0 && !isSaved ? { animation: "savePulse 2s infinite" } : {}}

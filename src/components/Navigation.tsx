@@ -24,8 +24,10 @@ export default function Navigation() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-colors ${
-        scrolled || open ? "bg-[#0B1020]/90 backdrop-blur border-b border-[var(--oiq-border)]" : "bg-transparent"
+      className={`fixed inset-x-0 top-0 z-50 border-b transform-gpu transition-all duration-300 ease-out ${
+        scrolled || open
+          ? "bg-[#0B1020]/85 backdrop-blur-md border-white/[0.08] shadow-lg shadow-black/20"
+          : "bg-transparent border-transparent backdrop-blur-none"
       }`}
     >
       <nav className="mx-auto max-w-7xl px-5 h-16 flex items-center justify-between">

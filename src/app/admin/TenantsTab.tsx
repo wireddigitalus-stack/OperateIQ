@@ -5,9 +5,10 @@ import {
   AlertTriangle, ChevronDown, ChevronUp, Edit2, Trash2, Save, X, Search,
   Clock, RefreshCw, CheckCircle2, User, Home, BadgePercent, Loader2,
   MessageSquare, FileSpreadsheet, Camera, FileText, Paperclip,
-  Bell, RotateCcw,
+  Bell, RotateCcw, Sparkles,
 } from "lucide-react";
 import TenantImporter from "./TenantImporter";
+import IntakeStagingModal from "./IntakeStagingModal";
 import PrintButton from "./PrintButton";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
@@ -135,7 +136,7 @@ const BLANK = (): Partial<Tenant> => ({
 // ─── Tenant Form ─────────────────────────────────────────────────────────────
 
 const LABEL = "text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1";
-const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-sm text-white focus:border-[rgba(74,222,128,0.4)] outline-none placeholder:text-gray-600";
+const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-600 transition-all";
 const FIELD_SM = FIELD + " text-xs py-1.5";
 
 function TenantForm({
@@ -168,16 +169,16 @@ function TenantForm({
   const isInList = !currentVal || buildingOptions.includes(currentVal);
 
   return (
-    <div className="bg-[rgba(0,0,0,0.4)] border border-[rgba(74,222,128,0.2)] rounded-2xl p-3 sm:p-5 mb-6 space-y-4">
+    <div className="bg-[rgba(0,0,0,0.4)] border border-white/15 rounded-2xl p-3 sm:p-5 mb-6 space-y-4 shadow-[0_0_24px_rgba(56,189,248,0.08)]">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs font-black text-[#4ADE80] uppercase tracking-widest">
+        <p className="text-xs font-black text-sky-400 uppercase tracking-widest">
           {initial.id ? "Edit Tenant" : "Add New Tenant"}
         </p>
         <button onClick={onCancel} className="text-gray-600 hover:text-white transition-colors"><X size={16} /></button>
       </div>
 
       {form.sourceLeadId && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] text-xs font-semibold">
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-sky-400 text-xs font-semibold shadow-[0_0_12px_rgba(56,189,248,0.12)]">
           <Building2 size={14} className="flex-shrink-0" />
           <span>Converting Lead to Tenant — once saved, this lead will be automatically archived.</span>
         </div>
@@ -295,7 +296,7 @@ function TenantForm({
               onClick={() => set("leaseAlertDays", opt.v)}
               className={`py-2 px-2 rounded-xl text-center border transition-all ${
                 form.leaseAlertDays === opt.v
-                  ? "bg-[rgba(74,222,128,0.15)] border-[rgba(74,222,128,0.5)] text-[#4ADE80] shadow-[0_0_12px_rgba(74,222,128,0.2)]"
+                  ? "bg-white/[0.08] border-white/25 text-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.18)]"
                   : "border-[rgba(255,255,255,0.08)] text-gray-400 hover:text-gray-200 hover:border-[rgba(255,255,255,0.2)]"
               }`}
             >
@@ -339,7 +340,7 @@ function TenantForm({
 
       <div className="flex gap-2 pt-1">
         <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-xs font-black hover:opacity-90 transition-opacity disabled:opacity-50">
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-[0_0_14px_rgba(59,130,246,0.35)]">
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
           {saving ? "Saving…" : "Save Tenant"}
         </button>
@@ -377,16 +378,16 @@ function RevenueBanner({ tenants, onTenantClick }: { tenants: Tenant[]; onTenant
     .sort((a, b) => (a.days ?? 999) - (b.days ?? 999));
 
   return (
-    <div className="rounded-2xl border border-[rgba(74,222,128,0.25)] bg-gradient-to-br from-[rgba(74,222,128,0.06)] via-[rgba(74,222,128,0.02)] to-transparent p-3 sm:p-5 mb-6 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-[#4ADE80] opacity-[0.03] blur-3xl pointer-events-none" />
+    <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.04] via-blue-500/[0.03] to-transparent p-3 sm:p-5 mb-6 relative overflow-hidden shadow-[0_0_28px_rgba(56,189,248,0.08)]">
+      <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-blue-500 opacity-[0.06] blur-3xl pointer-events-none" />
 
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-4">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center shadow-[0_0_12px_rgba(74,222,128,0.3)]">
-          <DollarSign size={14} className="text-black" />
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_14px_rgba(59,130,246,0.35)] text-white">
+          <DollarSign size={14} className="text-white" />
         </div>
         <div>
-          <p className="text-xs font-black text-[#4ADE80] uppercase tracking-widest">Revenue Intelligence</p>
+          <p className="text-xs font-black text-sky-400 uppercase tracking-widest">Revenue Intelligence</p>
           <p className="text-[11px] text-gray-500">{active.length} active tenant{active.length !== 1 ? "s" : ""}</p>
         </div>
       </div>
@@ -801,14 +802,14 @@ function TenantCard({
             : urgency.stage === "60d"
               ? "border-[rgba(249,115,22,0.4)] shadow-[0_0_18px_rgba(249,115,22,0.08)]"
               : "border-[rgba(250,204,21,0.35)] shadow-[0_0_16px_rgba(250,204,21,0.06)]"
-          : "border-[rgba(255,255,255,0.07)] hover:border-[rgba(74,222,128,0.2)]"
+          : "border-white/[0.08] hover:border-white/25 hover:shadow-[0_0_18px_rgba(56,189,248,0.12)]"
       }`}>
 
       {/* Header row */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
         <div className="flex items-start gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.2)] flex items-center justify-center flex-shrink-0">
-            <Building2 size={16} className="text-[#4ADE80]" />
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_rgba(56,189,248,0.12)]">
+            <Building2 size={16} className="text-sky-400" />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -869,7 +870,7 @@ function TenantCard({
                 onClick={() => handleUpdateAlertDays(d)}
                 className={`px-1.5 py-0.5 rounded text-[10px] font-black transition-all ${
                   localAlertDays === d
-                    ? "bg-[#4ADE80]/20 text-[#4ADE80] border border-[#4ADE80]/40 shadow-[0_0_8px_rgba(74,222,128,0.25)]"
+                    ? "bg-white/[0.08] text-sky-400 border border-white/20 shadow-[0_0_10px_rgba(56,189,248,0.18)]"
                     : "text-gray-500 hover:text-gray-300 border border-transparent hover:border-white/10"
                 }`}
                 title={`Trigger pending renewal alert ${d} days before lease expiration`}
@@ -898,8 +899,8 @@ function TenantCard({
             onClick={openRenewModal}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
               isPendingRenewal
-                ? "bg-gradient-to-r from-[#4ADE80]/20 to-[#22C55E]/20 border border-[#4ADE80]/40 text-[#4ADE80] hover:bg-[#4ADE80]/30 shadow-[0_0_12px_rgba(74,222,128,0.2)]"
-                : "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-gray-300 hover:text-white hover:border-[rgba(74,222,128,0.3)]"
+                ? "bg-white/[0.08] border border-white/20 text-sky-400 hover:bg-white/[0.12] shadow-[0_0_12px_rgba(56,189,248,0.25)]"
+                : "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-gray-300 hover:text-white hover:border-white/25 hover:shadow-[0_0_10px_rgba(56,189,248,0.12)]"
             }`}
             title="Renew lease in system (clears pending renewal alert)"
           >
@@ -909,7 +910,7 @@ function TenantCard({
 
           <div className="flex gap-1">
             <button onClick={() => onEdit({ ...tenant, leaseAlertDays: localAlertDays, leaseEnd: localLeaseEnd, status: localStatus, monthlyRent: localMonthlyRent, notes: localNotes })}
-              className="p-1.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-gray-600 hover:text-[#4ADE80] hover:border-[rgba(74,222,128,0.3)] transition-all"
+              className="p-1.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-gray-500 hover:text-sky-400 hover:border-white/25 transition-all"
               title="Edit tenant">
               <Edit2 size={12} />
             </button>
@@ -945,11 +946,11 @@ function TenantCard({
 
       {/* Financials grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-        <div className="bg-[rgba(74,222,128,0.05)] rounded-xl p-2.5 border border-[rgba(74,222,128,0.12)]">
+        <div className="bg-white/[0.02] rounded-xl p-2.5 border border-white/[0.08]">
           <p className="text-[10px] text-gray-600 mb-0.5">Monthly Rent</p>
           <p className="text-sm font-black text-[#4ADE80]">{fmtMoney(tenant.monthlyRent)}</p>
         </div>
-        <div className="bg-[rgba(74,222,128,0.05)] rounded-xl p-2.5 border border-[rgba(74,222,128,0.12)]">
+        <div className="bg-white/[0.02] rounded-xl p-2.5 border border-white/[0.08]">
           <p className="text-[10px] text-gray-600 mb-0.5">Annual Value</p>
           <p className="text-sm font-black text-[#4ADE80]">{fmtMoney(annualRent)}</p>
         </div>
@@ -1036,7 +1037,7 @@ function TenantCard({
 
       {/* Escalation row */}
       {tenant.escalationPct > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-[rgba(74,222,128,0.04)] border border-[rgba(74,222,128,0.1)]">
+        <div className="flex flex-wrap items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10 shadow-[0_0_12px_rgba(56,189,248,0.06)]">
           <TrendingUp size={11} className="text-[#4ADE80] flex-shrink-0" />
           <span className="text-xs text-gray-400 break-words min-w-0">
             <span className="text-[#4ADE80] font-bold">+{tenant.escalationPct}% renewal escalation</span>
@@ -1054,7 +1055,7 @@ function TenantCard({
       {/* Action buttons */}
       <div className="flex flex-wrap gap-2 mb-3">
         {tenant.phone && (
-          <a href={`tel:${tenant.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.2)] text-[#4ADE80] text-xs font-bold hover:bg-[rgba(74,222,128,0.14)] transition-colors">
+          <a href={`tel:${tenant.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/15 text-[#4ADE80] text-xs font-bold hover:border-white/30 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)] transition-all">
             <Phone size={11} /> Call
           </a>
         )}
@@ -1160,13 +1161,13 @@ function TenantCard({
               <textarea spellCheck={true} value={note} onChange={e => setNote(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveNote(); } }}
                 rows={2} placeholder="Add a note… (Enter to post)"
-                className="flex-1 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] rounded-lg px-3 py-1.5 text-xs text-white focus:border-[rgba(74,222,128,0.35)] outline-none placeholder:text-gray-700 resize-none transition-colors" />
+                className="flex-1 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] rounded-lg px-3 py-1.5 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-700 resize-none transition-colors" />
               <label className="cursor-pointer p-2.5 rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] text-gray-500 hover:text-white transition-colors flex-shrink-0" title="Attach picture">
                 <Camera size={14} />
                 <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" disabled={savingNote} />
               </label>
               <button onClick={saveNote} disabled={savingNote || !note.trim()}
-                className="px-3 py-2.5 rounded-lg bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] text-xs font-bold hover:bg-[rgba(74,222,128,0.2)] transition-colors disabled:opacity-40 flex-shrink-0">
+                className="px-3 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 border border-blue-400/30 text-white shadow-[0_0_12px_rgba(59,130,246,0.3)] hover:opacity-90 transition-all disabled:opacity-40 flex-shrink-0">
                 {savingNote ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
               </button>
             </div>
@@ -1177,11 +1178,11 @@ function TenantCard({
       {/* Quick Renew Modal */}
       {showRenewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-[#0B1120] border border-[rgba(74,222,128,0.35)] rounded-2xl p-5 shadow-[0_0_40px_rgba(0,0,0,0.8)] relative">
+          <div className="w-full max-w-md bg-[#0B1120] border border-white/15 rounded-2xl p-5 shadow-[0_24px_80px_rgba(0,0,0,0.8),0_0_35px_rgba(56,189,248,0.12)] relative">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-[rgba(255,255,255,0.06)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[rgba(74,222,128,0.12)] border border-[rgba(74,222,128,0.35)] flex items-center justify-center">
-                  <RotateCcw size={16} className="text-[#4ADE80]" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_12px_rgba(59,130,246,0.35)] text-white">
+                  <RotateCcw size={16} className="text-white" />
                 </div>
                 <div>
                   <h4 className="text-white font-bold text-sm">Renew Lease</h4>
@@ -1250,7 +1251,7 @@ function TenantCard({
                   type="date"
                   value={renewEndDate}
                   onChange={e => setRenewEndDate(e.target.value)}
-                  className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-lg px-3 py-2 text-sm text-white focus:border-[rgba(74,222,128,0.4)] outline-none"
+                  className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none"
                 />
               </div>
 
@@ -1277,7 +1278,7 @@ function TenantCard({
                   type="number"
                   value={renewRent}
                   onChange={e => setRenewRent(e.target.value)}
-                  className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-lg px-3 py-2 text-sm text-white focus:border-[rgba(74,222,128,0.4)] outline-none"
+                  className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none"
                 />
               </div>
 
@@ -1299,7 +1300,7 @@ function TenantCard({
                       onClick={() => setRenewAlertDays(opt.v)}
                       className={`py-1.5 rounded-lg text-xs font-black border transition-all ${
                         renewAlertDays === opt.v
-                          ? "bg-[rgba(74,222,128,0.15)] border-[rgba(74,222,128,0.5)] text-[#4ADE80]"
+                          ? "bg-white/[0.08] border-white/25 text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.18)]"
                           : "border-[rgba(255,255,255,0.08)] text-gray-400 hover:text-white"
                       }`}
                     >
@@ -1319,7 +1320,7 @@ function TenantCard({
                   type="button"
                   disabled={renewing || !renewEndDate}
                   onClick={handleConfirmRenew}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black font-black text-xs hover:opacity-95 transition-opacity flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-xs hover:opacity-95 transition-opacity flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-[0_0_14px_rgba(59,130,246,0.35)]"
                 >
                   {renewing ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                   Confirm Renewal & Clear Alert
@@ -1363,6 +1364,7 @@ export default function TenantsTab({
   const [showForm, setShowForm] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [showImporter, setShowImporter] = useState(false);
+  const [showIntakeStaging, setShowIntakeStaging] = useState(false);
 
   useEffect(() => {
     if (prepopulatedTenant) {
@@ -1566,7 +1568,7 @@ export default function TenantsTab({
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       el.style.transition = "box-shadow 0.3s";
-      el.style.boxShadow = "0 0 0 2px #4ADE80, 0 0 24px rgba(74,222,128,0.35)";
+      el.style.boxShadow = "0 0 0 2px #38BDF8, 0 0 24px rgba(56,189,248,0.45)";
       setTimeout(() => { el.style.boxShadow = ""; }, 1800);
     }
   };
@@ -1667,7 +1669,7 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS nn_fee NUMERIC DEFAULT 0;`}</pre>
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search tenants..."
-              className="pl-8 pr-7 py-1.5 w-40 sm:w-48 rounded-xl text-xs border border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.03)] text-white outline-none focus:border-[rgba(74,222,128,0.4)] transition-all placeholder:text-gray-600"
+              className="pl-8 pr-7 py-1.5 w-40 sm:w-48 rounded-xl text-xs border border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.03)] text-white outline-none focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] transition-all placeholder:text-gray-600"
             />
             {searchQuery && (
               <button
@@ -1699,7 +1701,7 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS nn_fee NUMERIC DEFAULT 0;`}</pre>
                   isActive
                     ? isRenewal
                       ? "bg-[rgba(249,115,22,0.15)] border-[rgba(249,115,22,0.5)] text-[#F97316] shadow-[0_0_12px_rgba(249,115,22,0.2)]"
-                      : "bg-[rgba(74,222,128,0.12)] border-[rgba(74,222,128,0.4)] text-[#4ADE80]"
+                      : "bg-white/[0.08] border-white/20 text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.15)]"
                     : "border-[rgba(255,255,255,0.07)] text-gray-500 hover:text-gray-300"
                 }`}
               >
@@ -1725,22 +1727,42 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS nn_fee NUMERIC DEFAULT 0;`}</pre>
           </select>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={fetchTenants} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[rgba(74,222,128,0.06)] border border-[rgba(74,222,128,0.2)] text-[#4ADE80] text-xs hover:bg-[rgba(74,222,128,0.12)] transition-colors">
+          <button onClick={fetchTenants} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-gray-300 hover:text-white hover:border-white/20 hover:shadow-[0_0_10px_rgba(56,189,248,0.12)] text-xs transition-all">
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
           </button>
           <PrintButton zoneId="print-tenants" label="Print Roster" title="Tenant Roster" />
+          <button
+            onClick={() => setShowIntakeStaging(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500/20 via-blue-500/20 to-indigo-500/20 hover:from-sky-500/30 hover:to-indigo-500/30 border border-sky-400/40 text-sky-300 text-xs font-bold shadow-[0_0_15px_rgba(56,189,248,0.2)] hover:shadow-[0_0_22px_rgba(56,189,248,0.35)] transition-all"
+            title="Fast intake from Excel, photos of legal pads, or lease documents"
+          >
+            <Sparkles size={13} className="text-sky-400 animate-pulse" />
+            <span>⚡ AI Intake & Scan</span>
+          </button>
           <button onClick={() => setShowImporter(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[rgba(74,222,128,0.3)] text-[#4ADE80] text-xs font-black hover:bg-[rgba(74,222,128,0.08)] transition-colors">
-            <FileSpreadsheet size={13} /> Import Excel
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-white/15 bg-white/[0.03] text-gray-300 text-xs font-semibold hover:text-white hover:border-white/30 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] transition-all">
+            <FileSpreadsheet size={13} /> Excel Only
           </button>
           <button onClick={() => { setEditingTenant(null); setShowForm(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-xs font-black hover:opacity-90 transition-opacity">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 shadow-[0_0_14px_rgba(59,130,246,0.35)] transition-all">
             <Plus size={13} /> Add Tenant
           </button>
         </div>
       </div>
 
-      {/* Excel Importer Modal */}
+      {/* AI Intake & Staging Modal */}
+      {showIntakeStaging && (
+        <IntakeStagingModal
+          onClose={() => setShowIntakeStaging(false)}
+          onImportSuccess={async () => {
+            await fetchTenants();
+            setShowIntakeStaging(false);
+          }}
+          knownBuildings={buildingOptions}
+        />
+      )}
+
+      {/* Legacy Excel Importer Modal */}
       {showImporter && (
         <TenantImporter
           onImport={handleBatchImport}
@@ -1788,13 +1810,29 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS nn_fee NUMERIC DEFAULT 0;`}</pre>
 
       {/* Empty state */}
       {!loading && displayed.length === 0 && filterStatus === "all" && tenants.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Building2 size={36} className="text-gray-700 mb-3" />
-          <p className="text-gray-500 font-bold">No tenants yet</p>
-          <p className="text-xs text-gray-600 mt-1 mb-4">Add your first tenant to start tracking leases and revenue.</p>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-sm font-black hover:opacity-90 transition-opacity">
-            <Plus size={14} /> Add First Tenant
-          </button>
+        <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+          <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-sky-400 mb-4 shadow-[0_0_24px_rgba(56,189,248,0.1)]">
+            <Building2 size={32} />
+          </div>
+          <p className="text-white text-base font-bold">No tenants in this portfolio yet</p>
+          <p className="text-xs text-gray-400 mt-1 mb-6 max-w-md">
+            Onboard new tenants quickly: drop an Excel spreadsheet, upload photos of legal pad notes or lease documents, or manually key in your first tenant.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => setShowIntakeStaging(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white text-xs font-bold hover:opacity-95 shadow-[0_0_20px_rgba(56,189,248,0.35)] transition-all"
+            >
+              <Sparkles size={14} className="text-white animate-pulse" />
+              ⚡ Fast Intake (Excel, Legal Pad, Leases)
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-white text-xs font-bold transition-all"
+            >
+              <Plus size={14} /> Add Single Tenant
+            </button>
+          </div>
         </div>
       )}
 

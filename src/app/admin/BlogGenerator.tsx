@@ -205,7 +205,7 @@ export default function BlogGenerator() {
           {/* Action buttons */}
           <div className="flex gap-2 flex-wrap">
             <button onClick={() => saveToDB("published")} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-xs font-black hover:opacity-90 disabled:opacity-50 transition-all">
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)] text-xs font-black hover:opacity-90 disabled:opacity-50 transition-all">
               {saving ? <Loader2 size={12} className="animate-spin" /> : <Globe size={12} />}
               Publish to Blog
             </button>
@@ -245,7 +245,7 @@ export default function BlogGenerator() {
                 </div>
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border flex-shrink-0 ${
                   post.status === "published"
-                    ? "text-[#4ADE80] border-[rgba(74,222,128,0.4)] bg-[rgba(74,222,128,0.1)]"
+                    ? "text-[#4ADE80] border-white/12 bg-white/[0.04]"
                     : "text-gray-500 border-[rgba(255,255,255,0.1)]"
                 }`}>
                   {post.status === "published" ? "LIVE" : "DRAFT"}
@@ -254,8 +254,8 @@ export default function BlogGenerator() {
                   <button onClick={() => togglePublish(post)} title={post.status === "published" ? "Unpublish" : "Publish"}
                     className={`p-1.5 rounded-lg border transition-all text-xs ${
                       post.status === "published"
-                        ? "border-[rgba(74,222,128,0.3)] text-[#4ADE80] hover:bg-[rgba(74,222,128,0.1)]"
-                        : "border-[rgba(255,255,255,0.08)] text-gray-500 hover:text-[#4ADE80] hover:border-[rgba(74,222,128,0.3)]"
+                        ? "border-white/12 text-sky-400 hover:border-white/20 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] bg-white/[0.03]"
+                        : "border-[rgba(255,255,255,0.08)] text-gray-500 hover:text-sky-400 hover:border-white/20"
                     }`}>
                     <Globe size={11} />
                   </button>

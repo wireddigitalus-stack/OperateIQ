@@ -576,10 +576,10 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail }:
       {error && <p className="text-xs text-red-400 flex items-center gap-1"><AlertTriangle size={11} />{error}</p>}
 
       {newPinInfo && (
-        <div className="flex items-start gap-3 p-3 rounded-xl bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.3)]">
+        <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/15 shadow-[0_0_16px_rgba(56,189,248,0.12)]">
           <span className="text-lg leading-none">🔐</span>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-black text-[#4ADE80]">New staff portal access created for {newPinInfo.name}</p>
+            <p className="text-xs font-black text-sky-400">New staff portal access created for {newPinInfo.name}</p>
             <p className="text-[11px] text-gray-400 mt-0.5">
               PIN: <span className="font-mono font-black text-white tracking-widest">{newPinInfo.pin}</span>
               <span className="text-gray-600 ml-2">— share this with them to log into the staff portal</span>
@@ -593,7 +593,7 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail }:
 
       <div className="flex gap-2">
         <button onClick={submit} disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-xs font-black hover:opacity-90 disabled:opacity-50 transition-all">
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_0_14px_rgba(59,130,246,0.35)]">
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
           {saving ? "Saving…" : "Create Assignment"}
         </button>
@@ -916,12 +916,12 @@ export default function CleaningTab({ currentUserName, currentUserEmail }: { cur
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          <button onClick={fetchAssignments} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[rgba(74,222,128,0.06)] border border-[rgba(74,222,128,0.2)] text-[#4ADE80] text-xs hover:bg-[rgba(74,222,128,0.12)] transition-colors">
+          <button onClick={fetchAssignments} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-gray-300 hover:text-white hover:border-white/20 hover:shadow-[0_0_10px_rgba(56,189,248,0.12)] text-xs transition-all">
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
           </button>
           <PrintButton zoneId="print-cleaning" label="Print Schedule" title={`Cleaning Schedule — ${viewMode === "today" ? "Today" : weekLabel}`} />
           <button onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-xs font-black hover:opacity-90 transition-opacity">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 shadow-[0_0_14px_rgba(59,130,246,0.35)] transition-all">
             <Plus size={13} /> New Assignment
           </button>
         </div>

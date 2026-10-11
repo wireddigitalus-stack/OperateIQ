@@ -277,12 +277,12 @@ function AskOpsIQModal({ leads, onClose }: { leads: Lead[]; onClose: () => void 
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 pt-16 sm:pt-4 overflow-y-auto">
-      <div className="bg-[#0A0F1A] border border-[rgba(74,222,128,0.25)] rounded-2xl w-full max-w-xl shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden max-h-[calc(100dvh-5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col">
+      <div className="bg-[#0A0F1A] border border-white/15 rounded-2xl w-full max-w-xl shadow-[0_24px_80px_rgba(0,0,0,0.8),0_0_35px_rgba(56,189,248,0.12)] overflow-hidden max-h-[calc(100dvh-5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(74,222,128,0.12)] bg-gradient-to-r from-[rgba(74,222,128,0.06)] to-transparent">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-gradient-to-r from-blue-500/[0.08] via-indigo-500/[0.04] to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center shadow-[0_0_16px_rgba(74,222,128,0.35)]">
-              <Brain size={16} className="text-black" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_18px_rgba(59,130,246,0.35)] text-white">
+              <Brain size={16} className="text-white" />
             </div>
             <div>
               <p className="text-white font-black text-sm">Ask OpsIQ</p>
@@ -305,7 +305,7 @@ function AskOpsIQModal({ leads, onClose }: { leads: Lead[]; onClose: () => void 
                   <button
                     key={q}
                     onClick={() => ask(q)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[rgba(74,222,128,0.05)] border border-[rgba(74,222,128,0.15)] text-xs text-gray-300 hover:text-white hover:border-[rgba(74,222,128,0.4)] hover:bg-[rgba(74,222,128,0.1)] transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-gray-300 hover:text-white hover:border-white/25 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)] transition-all"
                   >
                     {q} <ChevronRight size={10} className="text-gray-600" />
                   </button>
@@ -316,7 +316,7 @@ function AskOpsIQModal({ leads, onClose }: { leads: Lead[]; onClose: () => void 
 
           {/* Response area */}
           {asked && (
-            <div className="rounded-xl border border-[rgba(74,222,128,0.15)] bg-[rgba(74,222,128,0.03)] p-4 min-h-[80px]">
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 min-h-[80px] shadow-[0_0_15px_rgba(56,189,248,0.06)]">
               <p className="text-xs text-[#4ADE80] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Sparkles size={10} /> Ask OpsIQ Analysis
               </p>
@@ -333,7 +333,7 @@ function AskOpsIQModal({ leads, onClose }: { leads: Lead[]; onClose: () => void 
 
           {/* Input */}
           <div className="flex items-end gap-2">
-            <div className="flex-1 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2.5 focus-within:border-[rgba(74,222,128,0.4)] transition-colors">
+            <div className="flex-1 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2.5 focus-within:border-blue-400/60 focus-within:shadow-[0_0_12px_rgba(56,189,248,0.2)] transition-all">
               <textarea
                 ref={inputRef}
                 value={query}
@@ -347,7 +347,7 @@ function AskOpsIQModal({ leads, onClose }: { leads: Lead[]; onClose: () => void 
             <button
               onClick={() => ask()}
               disabled={!query.trim() || loading}
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center text-black hover:opacity-90 disabled:opacity-40 transition-all flex-shrink-0"
+              className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_16px_rgba(59,130,246,0.35)] hover:opacity-90 disabled:opacity-40 transition-all flex-shrink-0"
             >
               <Send size={14} />
             </button>
@@ -433,26 +433,25 @@ Use real names and numbers. Be punchy.`,
   ];
 
   return (
-    <div className="rounded-2xl border border-[rgba(74,222,128,0.3)] bg-gradient-to-br from-[rgba(74,222,128,0.06)] via-[rgba(74,222,128,0.03)] to-transparent p-3 sm:p-5 mb-6 relative overflow-hidden"
-      style={{ boxShadow: "0 0 32px rgba(74,222,128,0.10)" }}>
+    <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.04] via-blue-500/[0.03] to-transparent p-3 sm:p-5 mb-6 relative overflow-hidden shadow-[0_0_28px_rgba(56,189,248,0.10)]">
       {/* Subtle glow */}
-      <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-[#4ADE80] opacity-[0.04] blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-blue-500 opacity-[0.06] blur-3xl pointer-events-none" />
 
       {/* Header row */}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center shadow-[0_0_12px_rgba(74,222,128,0.3)] flex-shrink-0">
-            <Sparkles size={14} className="text-black" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_14px_rgba(59,130,246,0.35)] flex-shrink-0 text-white">
+            <Sparkles size={14} className="text-white" />
           </div>
           <div>
-            <p className="text-xs font-black text-[#4ADE80] uppercase tracking-widest">Daily Brief</p>
+            <p className="text-xs font-black text-sky-400 uppercase tracking-widest">Daily Brief</p>
             <p className="text-xs text-gray-500">{today}</p>
           </div>
         </div>
         <button
           onClick={generateBrief}
           disabled={briefLoading}
-          className="flex items-center gap-1 text-xs text-gray-600 hover:text-[#4ADE80] transition-colors disabled:opacity-40"
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-sky-400 transition-colors disabled:opacity-40"
           title="Regenerate brief"
         >
           <RefreshCw size={10} className={briefLoading ? "animate-spin" : ""} />
@@ -466,7 +465,7 @@ Use real names and numbers. Be punchy.`,
           <button
             key={s.label}
             onClick={() => onBadgeClick(s.filter)}
-            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.07)] hover:border-[rgba(74,222,128,0.35)] hover:bg-[rgba(74,222,128,0.06)] transition-all cursor-pointer group"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-white/25 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)] transition-all cursor-pointer group"
             title={`Filter: ${s.label}`}
           >
             <span className="text-xs sm:text-sm">{s.emoji}</span>
@@ -476,7 +475,7 @@ Use real names and numbers. Be punchy.`,
         ))}
         <button
           onClick={() => onBadgeClick("Verified Lead")}
-          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.2)] hover:bg-[rgba(74,222,128,0.14)] hover:border-[rgba(74,222,128,0.4)] transition-all cursor-pointer group"
+          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-white/[0.04] border border-white/15 hover:border-white/30 hover:shadow-[0_0_14px_rgba(56,189,248,0.2)] transition-all cursor-pointer group"
           title="Filter: Verified Pipeline"
         >
           <DollarSign size={12} className="text-[#4ADE80]" />
@@ -486,7 +485,7 @@ Use real names and numbers. Be punchy.`,
       </div>
 
       {/* AI Brief text */}
-      <div className="border-t border-[rgba(74,222,128,0.1)] pt-3">
+      <div className="border-t border-white/[0.08] pt-3">
         {briefLoading ? (
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <Loader2 size={12} className="animate-spin text-[#4ADE80]" />
@@ -543,7 +542,7 @@ Use real names and numbers. Be punchy.`,
             </p>
             <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
               {myFollowUps.map(l => (
-                <div key={l.id} className="flex items-center justify-between text-xs bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)] hover:border-[rgba(74,222,128,0.2)] rounded-lg px-2.5 py-1.5 transition-all">
+                <div key={l.id} className="flex items-center justify-between text-xs bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)] hover:border-sky-400/30 hover:shadow-[0_0_10px_rgba(56,189,248,0.1)] rounded-lg px-2.5 py-1.5 transition-all">
                   <div className="flex flex-col min-w-0">
                     <button onClick={() => onLeadClick(l.id)} className="font-bold text-gray-300 hover:text-white transition-colors truncate max-w-[180px] text-left">
                       {l.name}
@@ -657,7 +656,7 @@ function LeadComments({ leadId, currentUserName }: { leadId: string; currentUser
           ) : (
             comments.map(c => (
               <div key={c.id} className="flex gap-2.5">
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#4ADE80]/20 to-[#22C55E]/10 border border-[rgba(74,222,128,0.2)] flex items-center justify-center text-[9px] font-black text-[#4ADE80] flex-shrink-0">
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500/20 to-indigo-600/10 border border-blue-500/25 flex items-center justify-center text-[9px] font-black text-sky-400 flex-shrink-0">
                   {c.author.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -677,7 +676,7 @@ function LeadComments({ leadId, currentUserName }: { leadId: string; currentUser
               value={authorName}
               onChange={e => setAuthorName(e.target.value)}
               placeholder="Your name"
-              className="w-full bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] rounded-lg px-3 py-1.5 text-xs text-white focus:border-[rgba(74,222,128,0.35)] outline-none placeholder:text-gray-700 transition-colors"
+              className="w-full bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] rounded-lg px-3 py-1.5 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-700 transition-colors"
             />
             <div className="flex gap-2">
               <textarea
@@ -688,12 +687,12 @@ function LeadComments({ leadId, currentUserName }: { leadId: string; currentUser
                 placeholder="Add a note… (Enter to post)"
                 rows={2}
                 spellCheck={true}
-                className="flex-1 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] rounded-lg px-3 py-1.5 text-xs text-white focus:border-[rgba(74,222,128,0.35)] outline-none placeholder:text-gray-700 transition-colors resize-none"
+                className="flex-1 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] rounded-lg px-3 py-1.5 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-700 transition-colors resize-none"
               />
               <button
                 onClick={postComment}
                 disabled={posting || !newBody.trim() || !authorName.trim()}
-                className="flex-shrink-0 flex items-center justify-center w-9 h-auto rounded-lg bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] hover:bg-[rgba(74,222,128,0.18)] disabled:opacity-40 transition-all"
+                className="flex-shrink-0 flex items-center justify-center w-9 h-auto rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 border border-blue-400/30 text-white shadow-[0_0_12px_rgba(59,130,246,0.3)] hover:opacity-90 disabled:opacity-40 transition-all"
               >
                 {posting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
               </button>
@@ -725,7 +724,7 @@ function derivedLabel(score: number): "Verified Lead" | "MQL" | "Prospect Lead" 
   return "Prospect Lead";
 }
 
-const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2.5 text-sm text-white focus:border-[rgba(74,222,128,0.4)] outline-none placeholder:text-gray-600 transition-colors";
+const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-600 transition-all";
 const LABEL = "block text-xs text-gray-500 font-bold uppercase tracking-wider mb-1";
 
 function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLeadAdded: (lead: Lead) => void; currentUserName?: string; currentUserEmail?: string }) {
@@ -904,8 +903,8 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
         id="add-lead-toggle"
         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${
           open
-            ? "bg-[rgba(74,222,128,0.12)] border-[rgba(74,222,128,0.4)] text-[#4ADE80]"
-            : "bg-[rgba(74,222,128,0.06)] border-[rgba(74,222,128,0.2)] text-[#4ADE80] hover:bg-[rgba(74,222,128,0.1)]"
+            ? "bg-white/[0.08] border-white/30 text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.25)]"
+            : "bg-white/[0.03] border-white/10 text-gray-300 hover:text-white hover:border-white/25 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)]"
         }`}
       >
         <Plus size={15} />
@@ -915,7 +914,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
 
       {/* Collapsible form */}
       {open && (
-        <div className="mt-3 rounded-2xl border border-[rgba(74,222,128,0.25)] bg-gradient-to-br from-[rgba(74,222,128,0.05)] to-[rgba(74,222,128,0.02)] p-5 shadow-[0_8px_40px_rgba(0,0,0,0.4)] animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="mt-3 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.03] via-blue-500/[0.02] to-transparent p-5 shadow-[0_16px_50px_rgba(0,0,0,0.6),0_0_24px_rgba(56,189,248,0.08)] animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-black text-white">New Lead Entry</p>
             <button onClick={() => { clearLocalDraft(); setOpen(false); reset(); }} className="text-gray-600 hover:text-white transition-colors"><X size={15} /></button>
@@ -1042,7 +1041,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
               onClick={submit}
               disabled={submitting || savingDraft || !form.name.trim() || !form.budget || (form.spaceType === "Other" && !form.notes.trim())}
               id="save-lead-btn"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-bold hover:opacity-90 disabled:opacity-40 transition-all shadow-[0_0_16px_rgba(59,130,246,0.35)]"
             >
               {submitting ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : scoreMode === "ai" ? <><Brain size={14} /> Score with AI</> : <><Save size={14} /> Save Lead</>}
             </button>
@@ -1135,16 +1134,16 @@ function EditLeadModal({ lead, onClose, onSave, currentUser, currentUserEmail }:
   };
 
   const LABEL = "text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1";
-  const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-xs sm:text-sm text-white focus:border-[rgba(74,222,128,0.4)] outline-none placeholder:text-gray-700";
+  const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-xs sm:text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-700 transition-all";
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 pt-16 sm:pt-4 overflow-y-auto">
-      <div className="bg-[#0A0F1A] border border-[rgba(74,222,128,0.25)] rounded-2xl w-full max-w-xl shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden max-h-[calc(100dvh-5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col">
+      <div className="bg-[#0A0F1A] border border-white/15 rounded-2xl w-full max-w-xl shadow-[0_24px_80px_rgba(0,0,0,0.8),0_0_35px_rgba(56,189,248,0.12)] overflow-hidden max-h-[calc(100dvh-5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(74,222,128,0.12)] bg-gradient-to-r from-[rgba(74,222,128,0.06)] to-transparent flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-gradient-to-r from-blue-500/[0.08] via-indigo-500/[0.04] to-transparent flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center shadow-[0_0_16px_rgba(74,222,128,0.35)]">
-              <Pencil size={16} className="text-black" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_18px_rgba(59,130,246,0.35)] text-white">
+              <Pencil size={16} className="text-white" />
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">Edit Lead Info</h2>
@@ -1212,7 +1211,7 @@ function EditLeadModal({ lead, onClose, onSave, currentUser, currentUserEmail }:
           <button onClick={onClose} disabled={saving} className="px-4 py-2 border border-[rgba(255,255,255,0.08)] rounded-xl text-xs font-bold text-gray-500 hover:text-white transition-colors">
             Cancel
           </button>
-          <button onClick={submit} disabled={saving} className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-xs font-black hover:opacity-90 disabled:opacity-40 transition-opacity">
+          <button onClick={submit} disabled={saving} className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 disabled:opacity-40 transition-opacity shadow-[0_0_14px_rgba(59,130,246,0.3)]">
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
@@ -1503,13 +1502,23 @@ export default function AdminPage() {
   // Auth check — redirect to login if no session, block if not on allowlist
   useEffect(() => {
     supabaseBrowser.auth.getUser().then(async ({ data }) => {
+      // Security: purge any stale client-side demo tokens immediately
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("oiq_demo_auth");
+        localStorage.removeItem("oiq_demo_auth");
+      }
+
       if (!data.user) {
         router.replace("/admin/login");
-        // intentionally leave authChecking=true so the loading spinner stays up
-        // while navigation completes — prevents dashboard flash
         return;
       }
+
       const email = data.user.email || "";
+      if (!email) {
+        router.replace("/admin/login");
+        return;
+      }
+
       // Check allowed_users table in Supabase (instant, no redeployment needed)
       try {
         const { data: access } = await supabaseBrowser
@@ -1531,7 +1540,7 @@ export default function AdminPage() {
           // ── Log blocked access attempt ──
           try {
             const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-            const resolvedName = data.user.user_metadata?.full_name || email.split("@")[0] || "Team";
+            const resolvedName = data.user?.user_metadata?.full_name || email.split("@")[0] || "Team";
             fetch("/api/activity-log", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -1548,11 +1557,15 @@ export default function AdminPage() {
           return;
         }
       } catch {
-        // If table doesn't exist yet, fall through and allow access
-        // (prevents lockout before first DB setup)
+        // If table doesn't exist yet, verify super-admin or env whitelist
+        if (!isSuperAdmin(email)) {
+          setAccessDenied(true);
+          setAuthChecking(false);
+          return;
+        }
       }
       // Prefer the name stored in allowed_users (admin-set), fall back to Google metadata
-      let resolvedName = data.user.user_metadata?.full_name || email.split("@")[0] || "Team";
+      let resolvedName = data.user?.user_metadata?.full_name || email.split("@")[0] || "Team";
       try {
         const { data: userRow } = await supabaseBrowser
           .from("allowed_users")
@@ -1566,7 +1579,7 @@ export default function AdminPage() {
       setCurrentUser({
         name: resolvedName,
         email,
-        avatar: data.user.user_metadata?.avatar_url,
+        avatar: data.user?.user_metadata?.avatar_url,
       });
       try { localStorage.setItem("oiq_commenter", resolvedName); } catch { /**/ }
 
@@ -1745,7 +1758,14 @@ export default function AdminPage() {
             <br />Contact your administrator to request access.
           </p>
           <button
-            onClick={async () => { await supabaseBrowser.auth.signOut(); router.replace("/admin/login"); }}
+            onClick={async () => {
+              try {
+                localStorage.removeItem("oiq_demo_auth");
+                sessionStorage.removeItem("oiq_demo_auth");
+              } catch {}
+              await supabaseBrowser.auth.signOut();
+              router.replace("/admin/login");
+            }}
             className="px-5 py-2.5 rounded-xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-red-400 text-sm font-bold hover:bg-[rgba(239,68,68,0.18)] transition-colors"
           >
             Sign out and try another account
@@ -1994,8 +2014,8 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-[#080C14] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center mx-auto mb-3 shadow-[0_0_24px_rgba(74,222,128,0.3)] animate-pulse">
-            <Zap size={20} className="text-black" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-[0_0_24px_rgba(59,130,246,0.35)] animate-pulse">
+            <Zap size={20} className="text-white" />
           </div>
           <p className="text-xs text-gray-600">Loading OperateIQ…</p>
         </div>
@@ -2020,14 +2040,14 @@ export default function AdminPage() {
                 to   { opacity: 1; transform: translateX(0); }
               }
             `}</style>
-            <div className="bg-[#0D1117] border border-[rgba(74,222,128,0.4)] rounded-2xl p-4 shadow-[0_8px_40px_rgba(0,0,0,0.6)] flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center flex-shrink-0 shadow-[0_0_16px_rgba(74,222,128,0.4)]">
-                <Radio size={16} className="text-black" />
+            <div className="bg-[#0D1117] border border-white/15 rounded-2xl p-4 shadow-[0_8px_40px_rgba(0,0,0,0.8),0_0_24px_rgba(56,189,248,0.18)] flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-[0_0_16px_rgba(59,130,246,0.35)] text-white">
+                <Radio size={16} className="text-white" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-black text-[#4ADE80] uppercase tracking-wider">New Lead</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
+                  <span className="text-xs font-black text-sky-400 uppercase tracking-wider">New Lead</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
                 </div>
                 <p className="text-sm font-bold text-white truncate">{newLeadToast.name}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
@@ -2050,10 +2070,10 @@ export default function AdminPage() {
                 switchTab("teamboard");
                 setTeamBoardSubTab("chat");
               }}
-              className="glass border border-[#4ADE80] bg-[#051508]/95 rounded-2xl p-4 shadow-[0_0_24px_rgba(74,222,128,0.25)] flex items-center justify-between cursor-pointer hover:bg-[#0a250f] transition-all"
+              className="glass border border-white/20 bg-slate-950/95 rounded-2xl p-4 shadow-[0_0_30px_rgba(56,189,248,0.2)] flex items-center justify-between cursor-pointer hover:bg-slate-900 transition-all"
             >
               <div className="flex-1 min-w-0 pr-4">
-                <p className="text-xs font-black text-[#4ADE80] uppercase tracking-wider">💬 New Mention on Team Board</p>
+                <p className="text-xs font-black text-sky-400 uppercase tracking-wider">💬 New Mention on Team Board</p>
                 <p className="text-sm font-bold text-white truncate mt-1">
                   <span className="text-gray-400 font-semibold">{mentionAlert.author}: </span>
                   {mentionAlert.message}
@@ -2097,9 +2117,9 @@ export default function AdminPage() {
                   <div key={u.email} className="relative" title={`${u.name} — online now`}>
                     {u.avatar ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={u.avatar} alt={u.name} className="w-6 h-6 rounded-full border border-[rgba(74,222,128,0.4)]" />
+                      <img src={u.avatar} alt={u.name} className="w-6 h-6 rounded-full border border-white/20" />
                     ) : (
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#4ADE80]/30 to-[#22C55E]/20 border border-[rgba(74,222,128,0.3)] flex items-center justify-center text-[9px] font-black text-[#4ADE80]">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500/20 to-indigo-600/10 border border-blue-500/25 flex items-center justify-center text-[9px] font-black text-sky-400">
                         {u.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                       </div>
                     )}
@@ -2135,7 +2155,7 @@ export default function AdminPage() {
               <button
                 onClick={fetchLeads}
                 disabled={loading}
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-xl bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.2)] text-[#4ADE80] text-xs hover:bg-[rgba(74,222,128,0.12)] transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-xl bg-white/[0.04] border border-white/12 text-sky-400 text-xs hover:border-white/20 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] transition-colors disabled:opacity-50"
                 title="Refresh leads"
               >
                 <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
@@ -2147,14 +2167,21 @@ export default function AdminPage() {
               <div className="flex items-center gap-2 flex-shrink-0">
                 {currentUser.avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={currentUser.avatar} alt={currentUser.name} className="w-7 h-7 rounded-full border border-[rgba(74,222,128,0.3)] flex-shrink-0" />
+                  <img src={currentUser.avatar} alt={currentUser.name} className="w-7 h-7 rounded-full border border-white/20 flex-shrink-0" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#4ADE80]/30 to-[#22C55E]/20 border border-[rgba(74,222,128,0.3)] flex items-center justify-center text-xs font-black text-[#4ADE80] flex-shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500/20 to-indigo-600/10 border border-blue-500/30 flex items-center justify-center text-xs font-black text-sky-400 flex-shrink-0">
                     {currentUser.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                 )}
                 <button
-                  onClick={async () => { await supabaseBrowser.auth.signOut(); router.replace("/admin/login"); }}
+                  onClick={async () => {
+                    try {
+                      localStorage.removeItem("oiq_demo_auth");
+                      sessionStorage.removeItem("oiq_demo_auth");
+                    } catch {}
+                    await supabaseBrowser.auth.signOut();
+                    router.replace("/admin/login");
+                  }}
                   className="text-xs text-gray-600 hover:text-red-400 transition-colors hidden sm:block"
                   title="Sign out"
                 >
@@ -2213,7 +2240,7 @@ export default function AdminPage() {
               { key: "analytics",   label: "Analytics",   icon: BarChart3, color: "#22D3EE" },
               { key: "marketing",   label: "Marketing",   icon: FileText, color: "#E1306C" },
               { key: "content",     label: "Content",     icon: Pencil, color: "#FACC15" },
-              { key: "teamboard",   label: "Team Board",  icon: Users, color: "#4ADE80" },
+              { key: "teamboard",   label: "Team Board",  icon: Users, color: "#60A5FA" },
               { key: "archived",    label: `Archive (${archivedLeads.length})`, icon: Archive, color: "#9CA3AF" },
             ] as const).map(({ key, label, icon: Icon, color }) => (
               <button
@@ -2242,7 +2269,7 @@ export default function AdminPage() {
         <div className="hidden sm:block bg-[#080C14] -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-5 mb-6">
           <div className="grid grid-cols-5 gap-2">
             {([
-              { key: "leads",       label: "Leads",       count: activeLeads.length, icon: TrendingUp, color: "#4ADE80",  desc: "Inquiries" },
+              { key: "leads",       label: "Leads",       count: activeLeads.length, icon: TrendingUp, color: "#38BDF8",  desc: "Inquiries" },
               { key: "tenants",     label: "Tenants",     icon: Building2, color: "#60A5FA", desc: "Active leases" },
               { key: "propdetails", label: "Prop Details", icon: BarChart3, color: "#A78BFA", desc: "Occupancy & stats" },
               { key: "maintenance", label: "Maintenance", icon: Wrench,    color: "#F97316", desc: "Work orders" },
@@ -2250,7 +2277,7 @@ export default function AdminPage() {
               { key: "analytics",   label: "Analytics",   icon: BarChart3, color: "#22D3EE", desc: "Traffic & KPIs" },
               { key: "marketing",   label: "Marketing",   icon: FileText,  color: "#E1306C", desc: "Promo tools" },
               { key: "content",     label: "Content",     icon: Pencil,    color: "#FACC15", desc: "Site editor" },
-              { key: "teamboard",   label: "Team Board",  icon: Users,      color: "#4ADE80", desc: "Comm & Tasks" },
+              { key: "teamboard",   label: "Team Board",  icon: Users,      color: "#60A5FA", desc: "Comm & Tasks" },
               { key: "archived",    label: "Archived",    count: archivedLeads.length, icon: Archive,   color: "#9CA3AF", desc: "Closed leads" },
             ] as const).map(({ key, label, icon: Icon, color, desc, ...rest }) => {
               const isActive = activeTab === key;
@@ -2334,9 +2361,9 @@ export default function AdminPage() {
               <div className="flex items-center gap-3">
                 {currentUser.avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={currentUser.avatar} alt={currentUser.name} className="w-10 h-10 rounded-full border-2 border-[rgba(74,222,128,0.3)] flex-shrink-0" />
+                  <img src={currentUser.avatar} alt={currentUser.name} className="w-10 h-10 rounded-full border-2 border-white/20 flex-shrink-0" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4ADE80]/30 to-[#22C55E]/20 border-2 border-[rgba(74,222,128,0.3)] flex items-center justify-center text-sm font-black text-[#4ADE80] flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-indigo-600/10 border-2 border-blue-500/30 flex items-center justify-center text-sm font-black text-sky-400 flex-shrink-0">
                     {currentUser.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -2351,11 +2378,11 @@ export default function AdminPage() {
                 onClick={() => switchTab("settings")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 ${
                   activeTab === "settings"
-                    ? "bg-[rgba(74,222,128,0.1)] border-[rgba(74,222,128,0.35)] text-[#4ADE80] shadow-[0_0_12px_rgba(74,222,128,0.08)]"
+                    ? "bg-white/[0.08] border-white/20 text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.18)]"
                     : "bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.06)] text-gray-400 hover:text-white hover:border-[rgba(255,255,255,0.15)]"
                 }`}
               >
-                <Settings size={13} className={activeTab === "settings" ? "text-[#4ADE80]" : "text-gray-400"} />
+                <Settings size={13} className={activeTab === "settings" ? "text-sky-400" : "text-gray-400"} />
                 Settings
               </button>
             </div>
@@ -2395,11 +2422,11 @@ export default function AdminPage() {
             />
 
             {/* Pipeline Banner */}
-            <div className="rounded-2xl border border-[rgba(74,222,128,0.2)] bg-gradient-to-r from-[rgba(74,222,128,0.07)] to-[rgba(74,222,128,0.02)] p-4 sm:p-6 mb-6">
+            <div className="rounded-2xl border border-white/15 bg-gradient-to-r from-white/[0.04] via-blue-500/[0.03] to-transparent p-4 sm:p-6 mb-6 shadow-[0_0_24px_rgba(56,189,248,0.08)]">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[rgba(74,222,128,0.12)] flex items-center justify-center"><DollarSign size={18} className="text-[#4ADE80]" /></div>
-                  <span className="text-xs sm:text-sm font-bold text-[#4ADE80] uppercase tracking-widest">Active Pipeline</span>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-[0_0_12px_rgba(56,189,248,0.15)]"><DollarSign size={18} className="text-[#4ADE80]" /></div>
+                  <span className="text-xs sm:text-sm font-bold text-sky-400 uppercase tracking-widest">Active Pipeline</span>
                 </div>
                 <div className="flex flex-wrap gap-4 sm:gap-8">
                   <div>
@@ -2465,13 +2492,13 @@ export default function AdminPage() {
                   onClick={() => setCallListOpen(o => !o)}
                   className="w-full flex items-center gap-3 px-5 py-4 hover:bg-[rgba(255,255,255,0.03)] transition-colors group"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-[rgba(74,222,128,0.12)] border border-[rgba(74,222,128,0.25)] flex items-center justify-center flex-shrink-0">
-                    <Phone size={13} className="text-[#4ADE80]" />
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/25 flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_rgba(56,189,248,0.15)]">
+                    <Phone size={13} className="text-sky-400" />
                   </div>
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2">
                       <h2 className="text-sm font-black text-white uppercase tracking-widest">Priority Call List</h2>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(74,222,128,0.12)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] font-bold">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/15 text-sky-400 font-bold shadow-[0_0_10px_rgba(56,189,248,0.2)]">
                         {callList.length} lead{callList.length !== 1 ? "s" : ""}
                       </span>
                     </div>
@@ -2495,7 +2522,7 @@ export default function AdminPage() {
                       const dScore = getDecayedScore(lead.score, lead, callLogs);
                       const dLabel = getDecayedLabel(dScore, lead);
                       return (
-                        <div key={lead.id} className="rounded-xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] hover:border-[rgba(74,222,128,0.2)] transition-all overflow-hidden">
+                        <div key={lead.id} className="rounded-xl bg-white/[0.015] border border-white/[0.08] hover:border-white/25 hover:shadow-[0_0_16px_rgba(56,189,248,0.12)] transition-all overflow-hidden">
                           <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-4 py-3">
                             <span className="text-xs font-black w-4 text-center flex-shrink-0" style={{ color: scoreColor(dScore) }}>#{i + 1}</span>
                             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 text-xs sm:text-sm font-black" style={{ backgroundColor: `${scoreColor(dScore)}12`, color: scoreColor(dScore) }}>
@@ -2516,13 +2543,13 @@ export default function AdminPage() {
                             <span className={`text-xs px-2 py-0.5 rounded-lg border font-bold hidden sm:block flex-shrink-0 ${scoreBadge(dLabel)}`}>{dLabel}</span>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               {lead.phone ? (
-                                <a href={`tel:${lead.phone}`} className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-xs font-black hover:opacity-90 transition-opacity">
+                                <a href={`tel:${lead.phone}`} className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 transition-opacity shadow-[0_0_12px_rgba(59,130,246,0.3)]">
                                   <Phone size={11} />
                                   <span className="hidden sm:inline">{lead.phone}</span>
                                   <span className="sm:hidden">Call</span>
                                 </a>
                               ) : lead.email ? (
-                                <a href={`mailto:${lead.email}`} className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] text-black text-xs font-black hover:opacity-90 transition-opacity">
+                                <a href={`mailto:${lead.email}`} className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] text-white text-xs font-bold hover:opacity-90 transition-opacity shadow-[0_0_12px_rgba(96,165,250,0.3)]">
                                   <Mail size={11} />
                                   <span className="hidden sm:inline">{lead.email}</span>
                                   <span className="sm:hidden">Email</span>
@@ -2582,17 +2609,17 @@ export default function AdminPage() {
               });
               const ranked = Object.entries(byAgent).sort((a, b) => b[1].count - a[1].count);
               return (
-                <div className="rounded-2xl border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.03)] p-5 mb-6">
+                <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-5 mb-6 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-base">🏆</span>
-                    <p className="text-xs font-black text-[#4ADE80] uppercase tracking-widest">QR Lead Leaderboard</p>
+                    <p className="text-xs font-black text-sky-400 uppercase tracking-widest">QR Lead Leaderboard</p>
                     <span className="text-xs text-gray-600 ml-1">— in-person captures</span>
                   </div>
                   <div className="space-y-2">
                     {ranked.map(([slug, stats], i) => (
                       <div key={slug} className="flex items-center gap-3">
                         <span className="text-sm font-black w-5 text-center" style={{ color: i === 0 ? "#FACC15" : i === 1 ? "#94A3B8" : "#92400E" }}>#{i + 1}</span>
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4ADE80]/20 to-[#22C55E]/10 border border-[rgba(74,222,128,0.2)] flex items-center justify-center text-xs font-black text-[#4ADE80]">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-600/10 border border-blue-500/25 flex items-center justify-center text-xs font-black text-sky-400">
                           {slug.slice(0, 2).toUpperCase()}
                         </div>
                         <div className="flex-1">
@@ -2627,7 +2654,7 @@ export default function AdminPage() {
                                                "Leads that arrived in the last 24 hours.";
                     return (
                       <Tooltip key={f} text={tip}>
-                        <button onClick={() => setFilter(f)} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold border transition-all ${filter === f ? "bg-[rgba(74,222,128,0.1)] border-[rgba(74,222,128,0.3)] text-[#4ADE80]" : "border-[rgba(255,255,255,0.06)] text-gray-500 hover:text-gray-300"}`}>
+                        <button onClick={() => setFilter(f)} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold border transition-all ${filter === f ? "bg-white/[0.08] border-white/20 text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.15)]" : "border-[rgba(255,255,255,0.06)] text-gray-500 hover:text-gray-300"}`}>
                           {f === "Whale" ? "🐳 Whales" : f === "New Today" ? "🆕 New Today" : f === "Potential Spam" ? "⚠️ Spam" : f}
                           {f === "Whale" && ` (${activeLeads.filter(l => l.isWhale).length})`}
                           {f === "New Today" && ` (${activeLeads.filter(l => (Date.now() - new Date(l.timestamp).getTime()) < 864e5).length})`}
@@ -2704,12 +2731,12 @@ export default function AdminPage() {
                   id={`lead-card-${lead.id}`}
                   className={`glass rounded-2xl border transition-all p-3 sm:p-5 ${
                     lead.isWhale && lead.whaleTier === "gold"
-                      ? "border-[rgba(250,204,21,0.45)] shadow-[0_0_28px_rgba(250,204,21,0.07)]"
+                      ? "border-amber-400/40 shadow-[0_0_28px_rgba(250,204,21,0.12)]"
                       : lead.isWhale
-                      ? "border-[rgba(196,181,253,0.3)]"
+                      ? "border-white/25 shadow-[0_0_24px_rgba(56,189,248,0.18)]"
                       : isLive
-                      ? "border-[rgba(74,222,128,0.5)] shadow-[0_0_24px_rgba(74,222,128,0.1)]"
-                      : "border-[rgba(255,255,255,0.06)] hover:border-[rgba(74,222,128,0.2)]"
+                      ? "border-white/30 shadow-[0_0_24px_rgba(56,189,248,0.25)]"
+                      : "border-white/[0.08] hover:border-white/20 hover:shadow-[0_0_16px_rgba(56,189,248,0.10)]"
                   }`}
                   style={isLive ? { animation: "slideInTop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both" } : undefined}
                 >
@@ -2852,12 +2879,12 @@ export default function AdminPage() {
                         </div>
                         <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
                           {lead.phone && (
-                            <a href={`tel:${lead.phone}`} className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.2)] text-[#4ADE80] text-[11px] sm:text-xs font-bold hover:bg-[rgba(74,222,128,0.14)] transition-colors">
+                            <a href={`tel:${lead.phone}`} className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-white/[0.04] border border-white/15 text-[#4ADE80] text-[11px] sm:text-xs font-bold hover:border-white/30 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)] transition-all">
                               <Phone size={11} /> Call Now
                             </a>
                           )}
                           {lead.email && (
-                            <a href={`mailto:${lead.email}`} className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[rgba(96,165,250,0.08)] border border-[rgba(96,165,250,0.2)] text-[#60A5FA] text-[11px] sm:text-xs font-bold hover:bg-[rgba(96,165,250,0.14)] transition-colors">
+                            <a href={`mailto:${lead.email}`} className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-white/[0.04] border border-white/15 text-[#60A5FA] text-[11px] sm:text-xs font-bold hover:border-white/30 hover:shadow-[0_0_12px_rgba(96,165,250,0.2)] transition-all">
                               <Mail size={11} /> Email
                             </a>
                           )}
@@ -2992,7 +3019,7 @@ export default function AdminPage() {
                                 type="date"
                                 value={newFollowUpDate}
                                 onChange={e => setNewFollowUpDate(e.target.value)}
-                                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-2 py-1.5 text-xs text-white focus:border-[rgba(74,222,128,0.4)] outline-none"
+                                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-2 py-1.5 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none"
                                 style={{ colorScheme: "dark" }}
                               />
                             </div>
@@ -3003,7 +3030,7 @@ export default function AdminPage() {
                                 onChange={e => setRescheduleComment(e.target.value)}
                                 placeholder="Explain why the follow-up date was changed..."
                                 rows={2}
-                                className="w-full bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] rounded-lg px-2.5 py-1 text-xs text-white focus:border-[rgba(74,222,128,0.35)] outline-none resize-none placeholder:text-gray-700"
+                                className="w-full bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] rounded-lg px-2.5 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none resize-none placeholder:text-gray-700"
                               />
                             </div>
                           </div>
@@ -3107,7 +3134,7 @@ export default function AdminPage() {
                               setActiveTab("tenants");
                               window.scrollTo({ top: 0, behavior: "smooth" });
                             }}
-                            className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-lg text-[#4ADE80] border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.03)] hover:bg-[rgba(74,222,128,0.08)] transition-all"
+                            className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-lg text-sky-400 border border-white/12 bg-white/[0.03] hover:border-white/20 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] transition-all"
                           >
                             <Building2 size={11} /> Convert to Tenant
                           </button>
@@ -3424,7 +3451,7 @@ export default function AdminPage() {
                             l.id === lead.id ? { ...l, timestamp: new Date().toISOString() } : l
                           ));
                         }}
-                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(74,222,128,0.2)] text-[#4ADE80] text-xs font-bold hover:bg-[rgba(74,222,128,0.08)] transition-colors"
+                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 text-sky-400 text-xs font-bold hover:border-white/20 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] bg-white/[0.03] transition-colors"
                       >
                         <RefreshCw size={11} /> Reactivate
                       </button>

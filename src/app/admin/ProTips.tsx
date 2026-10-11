@@ -960,8 +960,8 @@ export default function ProTips({ activeTab }: ProTipsProps) {
         onClick={() => setOpen(true)}
         aria-label="Open Pro Tips"
         className={`fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full flex items-center justify-center
-          bg-gradient-to-br from-[#4ADE80] to-[#16A34A] text-black font-black text-lg
-          shadow-[0_0_20px_rgba(74,222,128,0.45)] hover:shadow-[0_0_30px_rgba(74,222,128,0.65)]
+          bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-black text-lg
+          shadow-[0_0_20px_rgba(56,189,248,0.45)] hover:shadow-[0_0_30px_rgba(56,189,248,0.65)]
           hover:scale-110 active:scale-95 transition-all duration-200 select-none
           ${pulse ? "animate-bounce" : ""}`}
         title="Pro Tips"
@@ -969,7 +969,7 @@ export default function ProTips({ activeTab }: ProTipsProps) {
         ?
         {/* Ripple ring when pulsing */}
         {pulse && (
-          <span className="absolute inset-0 rounded-full border-2 border-[#4ADE80] animate-ping opacity-60 pointer-events-none" />
+          <span className="absolute inset-0 rounded-full border-2 border-sky-400 animate-ping opacity-60 pointer-events-none" />
         )}
       </button>
 
@@ -982,14 +982,14 @@ export default function ProTips({ activeTab }: ProTipsProps) {
           {/* Panel */}
           <div
             ref={modalRef}
-            className="relative w-full max-w-md sm:max-w-sm bg-[#0d1117] border border-[rgba(74,222,128,0.25)] rounded-3xl shadow-[0_0_60px_rgba(74,222,128,0.12)] overflow-hidden
+            className="relative w-full max-w-md sm:max-w-sm bg-[#0d1117] border border-white/15 rounded-3xl shadow-[0_0_60px_rgba(56,189,248,0.18)] overflow-hidden
               animate-in slide-in-from-bottom-4 sm:slide-in-from-right-4 duration-300"
           >
             {/* Header */}
             <div className="px-6 pt-6 pb-4 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#16A34A] flex items-center justify-center shadow-[0_0_14px_rgba(74,222,128,0.3)]">
-                  <Lightbulb size={16} className="text-black" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_14px_rgba(59,130,246,0.35)]">
+                  <Lightbulb size={16} />
                 </div>
                 <div>
                   <p className="text-sm font-black text-white leading-none">Pro Tips</p>
@@ -1014,7 +1014,7 @@ export default function ProTips({ activeTab }: ProTipsProps) {
                   <p className="text-[10px] text-gray-600 px-4 py-3">No tips yet.</p>
                 )}
                 {tabTips.length > 0 && (
-                  <p className="text-[9px] font-black text-[#4ADE80] uppercase tracking-widest px-4 pb-1 pt-1">
+                  <p className="text-[9px] font-black text-sky-400 uppercase tracking-widest px-4 pb-1 pt-1">
                     {tabLabel[activeTab]}
                   </p>
                 )}
@@ -1024,12 +1024,12 @@ export default function ProTips({ activeTab }: ProTipsProps) {
                     onClick={() => setSelectedIdx(i)}
                     className={`w-full text-left px-4 py-2.5 flex items-center gap-2 transition-all group ${
                       selectedIdx === i
-                        ? "bg-[rgba(74,222,128,0.1)] border-r-2 border-[#4ADE80]"
+                        ? "bg-white/[0.06] border-r-2 border-sky-400"
                         : "hover:bg-[rgba(255,255,255,0.04)]"
                     }`}
                   >
                     <span className="text-sm leading-none flex-shrink-0">{tip.emoji}</span>
-                    <span className={`text-[10px] font-semibold leading-tight line-clamp-2 ${selectedIdx === i ? "text-[#4ADE80]" : "text-gray-400 group-hover:text-gray-300"}`}>
+                    <span className={`text-[10px] font-semibold leading-tight line-clamp-2 ${selectedIdx === i ? "text-sky-400" : "text-gray-400 group-hover:text-gray-300"}`}>
                       {tip.title}
                     </span>
                   </button>

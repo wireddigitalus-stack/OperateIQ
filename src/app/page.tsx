@@ -5,9 +5,12 @@ import { BRAND } from "@/lib/brand";
 import { TRIAL_DAYS } from "@/lib/plans";
 import { FEATURES } from "@/components/marketing/features";
 import PricingTable from "@/components/marketing/PricingTable";
+import HeroPropertyBackground from "@/components/marketing/HeroPropertyBackground";
+import MockDemoCard from "@/components/marketing/MockDemoCard";
+import ProWebsiteShowcaseCard from "@/components/marketing/ProWebsiteShowcaseCard";
 
 export const metadata: Metadata = {
-  title: `${BRAND.name} — Property management software for small & mid-size owners`,
+  title: `${BRAND.name} — ${BRAND.tagline}`,
   description: BRAND.description,
 };
 
@@ -30,39 +33,32 @@ const FAQS = [
 export default function HomePage() {
   return (
     <div className="oiq-page">
-      {/* Hero */}
-      <section className="oiq-glow pt-36 pb-24 px-5">
-        <div className="mx-auto max-w-5xl text-center">
-          <span className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full border border-[var(--oiq-border)] text-slate-300 bg-white/5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--oiq-cyan)]" /> Meet {BRAND.assistant}, your AI operations assistant
+      {/* Hero with Panoramic Property-to-Data Atmospheric Background */}
+      <section className="relative oiq-glow pt-36 pb-24 px-5 overflow-hidden">
+        {/* Cinematic Property-to-Data Faded Background Banner */}
+        <HeroPropertyBackground />
+
+        {/* Hero Copy & CTA Floating Above Background */}
+        <div className="relative z-10 mx-auto max-w-5xl text-center">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full border border-[var(--oiq-border)] text-slate-300 bg-black/40 backdrop-blur-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--oiq-cyan)] animate-pulse" /> Meet {BRAND.assistant}, your AI operations assistant
           </span>
-          <h1 className="mt-6 text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.05]">
-            Property operations,<br /><span className="oiq-grad-text">finally intelligent.</span>
+          <h1 className="mt-6 text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.05] drop-shadow-md">
+            Property operations,<br /><span className="oiq-grad-text">intelligence Platform.</span>
           </h1>
-          <p className="mt-6 text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
+          <p className="mt-6 text-lg md:text-xl text-slate-300 max-w-2xl mx-auto drop-shadow-sm font-medium">
             Rent, tenants, maintenance, cleaning crews, inspections and reporting — one platform built for small and mid-size property owners.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/signup" className="oiq-btn text-base">Start {TRIAL_DAYS}-day free trial <ArrowRight size={18} /></Link>
-            <Link href="/features" className="oiq-btn-ghost text-base">See all features</Link>
+            <Link href="/signup" className="oiq-btn text-base shadow-xl">Start {TRIAL_DAYS}-day free trial <ArrowRight size={18} /></Link>
+            <Link href="/features" className="oiq-btn-ghost text-base backdrop-blur-md">See all features</Link>
           </div>
-          <p className="mt-4 text-xs text-slate-500">No credit card required · Cancel anytime</p>
+          <p className="mt-4 text-xs text-slate-400 font-medium">No credit card required · Cancel anytime</p>
         </div>
 
-        {/* Product preview */}
-        <div className="mx-auto max-w-5xl mt-16 oiq-card p-4 md:p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[["Occupancy", "94.2%"], ["Rent collected", "$128,450"], ["Open tickets", "7"], ["Inspections due", "3"]].map(([k, v]) => (
-              <div key={k} className="rounded-xl bg-white/[0.03] border border-[var(--oiq-border)] p-4">
-                <p className="text-xs text-slate-400">{k}</p>
-                <p className="text-2xl font-bold text-white mt-1">{v}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-xl bg-white/[0.03] border border-[var(--oiq-border)] p-4 text-left">
-            <p className="text-xs text-slate-400 mb-2">{BRAND.assistant}</p>
-            <p className="text-sm text-slate-200">“3 leases renew in the next 60 days, rent is 98% collected for October, and the HVAC ticket at Building B is waiting on parts.”</p>
-          </div>
+        {/* Clean, Spacious Apple/iOS Frosted Glass Mock Demo Card */}
+        <div className="relative z-10">
+          <MockDemoCard />
         </div>
       </section>
 
@@ -100,6 +96,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Turnkey Property Website Showcase Card (Included with Pro) */}
+      <ProWebsiteShowcaseCard />
 
       {/* Pricing */}
       <section id="pricing" className="py-24 px-5">

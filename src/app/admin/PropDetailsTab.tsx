@@ -739,7 +739,7 @@ function PropertyCard({ property, tenants, detail, onSave, onDelete }: {
                 )}
 
                 <button onClick={handleSave} disabled={saving}
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${saved ? "bg-[#4ADE80] text-black" : "bg-[rgba(74,222,128,0.15)] text-[#4ADE80] hover:bg-[rgba(74,222,128,0.25)]"}`}>
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${saved ? "bg-[#4ADE80] text-black" : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)] hover:opacity-90"}`}>
                   {saving ? <><Loader2 size={12} className="animate-spin" /> Saving…</>
                    : saved ? <><CheckCircle2 size={12} /> Saved!</>
                    : <><Save size={12} /> Save Financials</>}
@@ -1195,7 +1195,7 @@ export default function PropDetailsTab() {
         </div>
         <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#4ADE80] px-3 py-2 rounded-lg border border-[rgba(74,222,128,0.25)] hover:bg-[rgba(74,222,128,0.1)] transition-all">
+            className="flex items-center gap-1.5 text-xs font-bold text-white px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-[0_0_16px_rgba(59,130,246,0.35)] transition-all">
             <Plus size={12} /> Add Property
           </button>
           <button onClick={() => setTick(t => t + 1)}
@@ -1418,7 +1418,7 @@ export default function PropDetailsTab() {
               <div className="flex items-center gap-2 flex-wrap sm:self-start">
                 {totalSpaces > 0 && (
                   <button onClick={exportUnleasedSpacesToCSV}
-                    className="flex items-center gap-1.5 text-xs font-bold text-[#4ADE80] px-3 py-2 rounded-lg border border-[rgba(74,222,128,0.25)] hover:bg-[rgba(74,222,128,0.1)] transition-all">
+                    className="flex items-center gap-1.5 text-xs font-bold text-sky-400 px-3 py-2 rounded-lg border border-white/12 bg-white/[0.03] hover:border-white/20 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] transition-all">
                     <Download size={12} /> Export CSV
                   </button>
                 )}

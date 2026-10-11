@@ -133,7 +133,7 @@ export default function PropertyCreator() {
     setDeleting(null); load();
   }
 
-  const inputCls = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2.5 text-sm text-white focus:border-[rgba(74,222,128,0.4)] outline-none placeholder:text-gray-700";
+  const inputCls = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-700";
   const labelCls = "text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1.5";
 
   return (
@@ -168,11 +168,11 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
       )}
 
       {/* Form */}
-      <div ref={formRef} className="glass rounded-2xl border border-[rgba(74,222,128,0.15)] p-6 space-y-6">
+      <div ref={formRef} className="glass rounded-2xl border border-white/12 shadow-[0_0_24px_rgba(56,189,248,0.06)] p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center">
-              <Building2 size={17} className="text-black" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_12px_rgba(59,130,246,0.35)]">
+              <Building2 size={17} />
             </div>
             <div>
               <h2 className="text-base font-black text-white">{editId ? "Edit Property" : "Add New Property"}</h2>
@@ -282,17 +282,17 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
           <input ref={fileRef} type="file" multiple accept="image/*" className="hidden"
             onChange={e => e.target.files && uploadImages(e.target.files)} />
           <button onClick={() => fileRef.current?.click()} disabled={uploading}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-[rgba(255,255,255,0.12)] text-gray-500 hover:border-[rgba(74,222,128,0.4)] hover:text-[#4ADE80] transition-all text-xs font-bold w-full justify-center">
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-white/10 text-gray-500 hover:border-sky-400/40 hover:text-sky-400 transition-all text-xs font-bold w-full justify-center">
             {uploading ? <><Loader2 size={12} className="animate-spin" /> Uploading…</> : <><Upload size={12} /> Click to upload images</>}
           </button>
           {form.images.length > 0 && (
             <div className="grid grid-cols-4 gap-2 mt-3">
               {form.images.map((url, i) => (
-                <div key={i} className={`relative group rounded-xl overflow-hidden border-2 transition-all ${form.hero_image === url ? "border-[#4ADE80]" : "border-transparent"}`}>
+                <div key={i} className={`relative group rounded-xl overflow-hidden border-2 transition-all ${form.hero_image === url ? "border-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.3)]" : "border-transparent"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={url} alt="" className="w-full h-20 object-cover" />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                    <button onClick={() => set("hero_image", url)} title="Set as hero" className="text-[#4ADE80] hover:scale-110 transition-transform">
+                    <button onClick={() => set("hero_image", url)} title="Set as hero" className="text-sky-400 hover:scale-110 transition-transform">
                       <CheckCircle2 size={14} />
                     </button>
                     <button onClick={() => removeImage(url)} className="text-red-400 hover:scale-110 transition-transform">
@@ -300,7 +300,7 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
                     </button>
                   </div>
                   {form.hero_image === url && (
-                    <div className="absolute top-1 left-1 text-[8px] bg-[#4ADE80] text-black font-black px-1.5 py-0.5 rounded-full">HERO</div>
+                    <div className="absolute top-1 left-1 text-[8px] bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.4)]">HERO</div>
                   )}
                 </div>
               ))}
@@ -312,7 +312,7 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
         <div className="flex flex-wrap gap-4">
           <label className="flex items-center gap-2.5 cursor-pointer group">
             <div onClick={() => set("in_banner", !form.in_banner)}
-              className={`w-10 h-5 rounded-full relative transition-colors ${form.in_banner ? "bg-[#4ADE80]" : "bg-[rgba(255,255,255,0.08)]"}`}>
+              className={`w-10 h-5 rounded-full relative transition-colors ${form.in_banner ? "bg-blue-500" : "bg-[rgba(255,255,255,0.08)]"}`}>
               <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form.in_banner ? "left-5" : "left-0.5"}`} />
             </div>
             <span className="text-xs text-gray-400 group-hover:text-white transition-colors">Include in Homepage Banner rotation</span>
@@ -321,7 +321,7 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
 
         {/* Message */}
         {msg && (
-          <div className={`text-xs px-4 py-2.5 rounded-xl font-medium ${msg.type === "ok" ? "bg-[rgba(74,222,128,0.1)] text-[#4ADE80] border border-[rgba(74,222,128,0.3)]" : "bg-[rgba(239,68,68,0.1)] text-red-400 border border-[rgba(239,68,68,0.3)]"}`}>
+          <div className={`text-xs px-4 py-2.5 rounded-xl font-medium ${msg.type === "ok" ? "bg-white/[0.04] text-sky-400 border border-white/12 shadow-[0_0_12px_rgba(56,189,248,0.1)]" : "bg-[rgba(239,68,68,0.1)] text-red-400 border border-[rgba(239,68,68,0.3)]"}`}>
             {msg.text}
           </div>
         )}
@@ -334,7 +334,7 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
             Save as Draft
           </button>
           <button onClick={() => { set("published", true); save(); }} disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black text-sm font-black hover:opacity-90 disabled:opacity-50 transition-all">
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)] text-sm font-black hover:opacity-90 disabled:opacity-50 transition-all">
             {saving ? <Loader2 size={13} className="animate-spin" /> : null}
             Save & Publish
           </button>

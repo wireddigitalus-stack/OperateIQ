@@ -822,15 +822,15 @@ export default function AnalyticsTab({ leads }: { leads: AnalyticsLead[] }) {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center shadow-[0_0_12px_rgba(74,222,128,0.3)]">
-            <BarChart3 size={14} className="text-black" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_12px_rgba(59,130,246,0.35)]">
+            <BarChart3 size={14} />
           </div>
           <div>
-            <p className="text-xs font-black text-[#4ADE80] uppercase tracking-widest">Analytics</p>
+            <p className="text-xs font-black text-sky-400 uppercase tracking-widest">Analytics</p>
             <p className="text-[11px] text-gray-500">{activeTenants.length} tenants · {activeLeads.length} active leads</p>
           </div>
         </div>
-        <button onClick={fetchTenants} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[rgba(74,222,128,0.06)] border border-[rgba(74,222,128,0.2)] text-[#4ADE80] text-xs hover:bg-[rgba(74,222,128,0.12)] transition-colors">
+        <button onClick={fetchTenants} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/12 text-sky-400 text-xs hover:border-white/20 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] transition-colors">
           <RefreshCw size={12} /> Refresh
         </button>
       </div>
@@ -856,14 +856,14 @@ export default function AnalyticsTab({ leads }: { leads: AnalyticsLead[] }) {
       <ArchitectureSection />
 
       {/* ── AI Market Brief ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.03)]">
+      <div className="rounded-2xl border border-white/12 bg-white/[0.02] shadow-[0_0_24px_rgba(56,189,248,0.06)]">
         <div 
           onClick={() => setBriefCollapsed(c => !c)}
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-4 cursor-pointer select-none hover:bg-[rgba(74,222,128,0.02)] transition-colors"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-4 cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center shadow-[0_0_14px_rgba(74,222,128,0.3)]">
-              <Sparkles size={14} className="text-black" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_14px_rgba(59,130,246,0.35)]">
+              <Sparkles size={14} />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -890,7 +890,7 @@ export default function AnalyticsTab({ leads }: { leads: AnalyticsLead[] }) {
             <button
               onClick={generateBrief}
               disabled={briefLoading}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black font-black text-[11px] hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black text-[11px] shadow-[0_0_14px_rgba(59,130,246,0.35)] hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {briefLoading
                 ? <><Loader2 size={12} className="animate-spin" /> Analyzing…</>
@@ -901,7 +901,7 @@ export default function AnalyticsTab({ leads }: { leads: AnalyticsLead[] }) {
         </div>
 
         {!briefCollapsed && (
-          <div className="px-4 sm:px-5 py-4 border-t border-[rgba(74,222,128,0.1)]">
+          <div className="px-4 sm:px-5 py-4 border-t border-white/[0.08]">
             {briefError && (
               <p className="text-sm text-red-400 bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl px-4 py-3 mb-3">{briefError}</p>
             )}

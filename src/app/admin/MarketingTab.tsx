@@ -420,7 +420,7 @@ export default function MarketingTab({ onSubTabChange }: { onSubTabChange?: (sub
               {/* Save */}
               <button
                 onClick={saveDraft}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#4ADE80] to-[#22C55E] text-black font-black text-sm hover:opacity-90 transition-all"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-sm hover:opacity-90 shadow-[0_0_14px_rgba(59,130,246,0.35)] transition-all"
               >
                 {saved ? <><CheckCircle2 size={13} /> Saved to Queue!</> : <><FileText size={13} /> Save to Review Queue</>}
               </button>

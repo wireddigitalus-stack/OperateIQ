@@ -76,6 +76,12 @@ export default function PlatformDashboardPage() {
 
   // 1. Verify Platform Super-Admin access
   useEffect(() => {
+    // Security: purge any stale client-side demo tokens immediately
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("oiq_demo_auth");
+      localStorage.removeItem("oiq_demo_auth");
+    }
+
     supabaseBrowser.auth.getUser().then(({ data }) => {
       const email = data.user?.email || null;
       setCurrentUserEmail(email);
@@ -84,6 +90,8 @@ export default function PlatformDashboardPage() {
       }
       setAuthChecking(false);
     }).catch(() => {
+      setCurrentUserEmail(null);
+      setAuthorized(false);
       setAuthChecking(false);
     });
   }, []);
@@ -250,10 +258,21 @@ export default function PlatformDashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <span className="text-xs text-slate-400 hidden sm:inline">
             Super-Admin: <strong className="text-white">{currentUserEmail}</strong>
           </span>
+          <a
+            href="/demo-site"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-sky-300 bg-sky-950/60 border border-sky-500/30 hover:bg-sky-900/60 hover:text-white transition-all shadow-sm"
+          >
+            <Building2 size={12} className="text-sky-400" />
+            <span className="hidden md:inline">Demo Property Site</span>
+            <span className="md:hidden">Demo Site</span>
+            <ExternalLink size={11} />
+          </a>
           <Link
             href="/admin"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all"

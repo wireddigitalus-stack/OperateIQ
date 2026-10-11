@@ -5,7 +5,12 @@ import Footer from "./Footer";
 
 export default function FooterConditional() {
   const pathname = usePathname();
-  // No footer on admin dashboard or crew portals — they’re apps, not pages
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/staff")) return null;
+  // No SaaS footer on admin dashboard, crew portals, platform console, or demo property site
+  if (
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/staff") ||
+    pathname?.startsWith("/platform") ||
+    pathname?.startsWith("/demo-site")
+  ) return null;
   return <Footer />;
 }

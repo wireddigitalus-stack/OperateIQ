@@ -5,7 +5,12 @@ import Navigation from "./Navigation";
 
 export default function NavigationConditional() {
   const pathname = usePathname();
-  // Dashboard and crew portals have their own UI — public nav not needed
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/staff")) return null;
+  // Dashboard, crew portals, platform console, and ACME demo property site have their own headers
+  if (
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/staff") ||
+    pathname?.startsWith("/platform") ||
+    pathname?.startsWith("/demo-site")
+  ) return null;
   return <Navigation />;
 }
