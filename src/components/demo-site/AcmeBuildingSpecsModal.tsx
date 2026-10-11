@@ -12,16 +12,19 @@ interface AcmeBuildingSpecsModalProps {
   propertyId: string | null;
   onClose: () => void;
   onOpenTourModal: (propertyId: string) => void;
+  properties?: any[];
 }
 
 export default function AcmeBuildingSpecsModal({
   propertyId,
   onClose,
   onOpenTourModal,
+  properties,
 }: AcmeBuildingSpecsModalProps) {
   if (!propertyId) return null;
 
-  const property = PROPERTIES.find((p) => p.id === propertyId) || PROPERTIES[0];
+  const propList = properties && properties.length > 0 ? properties : PROPERTIES;
+  const property = propList.find((p) => p.id === propertyId) || propList[0];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
@@ -102,13 +105,13 @@ export default function AcmeBuildingSpecsModal({
               Building Amenities & Engineering Systems
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {property.features.map((feat, idx) => (
+              {((property as any).features || (property as any).highlights || []).map((feat: any, idx: number) => (
                 <div
                   key={idx}
                   className="p-3 rounded-xl bg-white/[0.02] border border-white/10 flex items-center gap-2.5 text-xs text-gray-200"
                 >
                   <CheckCircle2 size={14} className="text-emerald-400 flex-shrink-0" />
-                  <span>{feat}</span>
+                  <span>{String(feat)}</span>
                 </div>
               ))}
             </div>

@@ -7,9 +7,18 @@ import { Building2, Sparkles, ExternalLink, ShieldCheck, ArrowUpRight } from "lu
 interface AcmeFooterProps {
   onOpenAiInspector: () => void;
   orgName?: string;
+  phone?: string;
+  email?: string;
+  description?: string;
 }
 
-export default function AcmeFooter({ onOpenAiInspector, orgName }: AcmeFooterProps) {
+export default function AcmeFooter({
+  onOpenAiInspector,
+  orgName,
+  phone,
+  email,
+  description,
+}: AcmeFooterProps) {
   return (
     <footer className="border-t border-white/10 bg-[#04070F] text-gray-400 py-16 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto space-y-12">
@@ -66,8 +75,31 @@ export default function AcmeFooter({ onOpenAiInspector, orgName }: AcmeFooterPro
               </span>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Managing a diversified regional portfolio of historic downtown mixed-use lofts, healthcare plazas, garden-style apartments, and contractor flex parks across Oakridge Valley.
+              {description ||
+                (orgName
+                  ? `Managing premier commercial office suites, tech campuses, creative studios, and residential portfolios for ${orgName}.`
+                  : "Managing a diversified regional portfolio of historic downtown mixed-use lofts, healthcare plazas, garden-style apartments, and contractor flex parks across Oakridge Valley.")}
             </p>
+            {(phone || email) && (
+              <div className="pt-2 text-xs space-y-1">
+                {phone && (
+                  <p className="text-slate-300">
+                    <span className="text-slate-500">Phone: </span>
+                    <a href={`tel:${phone.replace(/[^0-9]/g, "")}`} className="hover:text-sky-300 transition-colors">
+                      {phone}
+                    </a>
+                  </p>
+                )}
+                {email && (
+                  <p className="text-slate-300">
+                    <span className="text-slate-500">Email: </span>
+                    <a href={`mailto:${email}`} className="hover:text-sky-300 transition-colors">
+                      {email}
+                    </a>
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Asset Classes */}

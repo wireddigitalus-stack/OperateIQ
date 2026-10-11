@@ -11,14 +11,21 @@ interface AcmeTourModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedPropertyId?: string;
+  properties?: any[];
+  orgName?: string;
+  orgId?: string;
 }
 
 export default function AcmeTourModal({
   isOpen,
   onClose,
   selectedPropertyId,
+  properties,
+  orgName,
+  orgId,
 }: AcmeTourModalProps) {
-  const [propertyId, setPropertyId] = useState(selectedPropertyId || PROPERTIES[0]?.id || "heritage-square");
+  const propList = properties && properties.length > 0 ? properties : PROPERTIES;
+  const [propertyId, setPropertyId] = useState(selectedPropertyId || propList[0]?.id || "heritage-square");
   const [companyName, setCompanyName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,14 +49,15 @@ export default function AcmeTourModal({
     setSubmitting(true);
     setErrorMsg("");
 
-    const selectedProp = PROPERTIES.find((p) => p.id === propertyId);
-    const buildingName = selectedProp?.name || "Heritage Square Mixed-Use";
+    const selectedProp = propList.find((p) => p.id === propertyId) || propList[0];
+    const buildingName = selectedProp?.name || "Portfolio Property";
 
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          org_id: orgId || null,
           name: contactName.trim(),
           company: companyName.trim(),
           email: email.trim(),
@@ -58,8 +66,14 @@ export default function AcmeTourModal({
           timeline,
           budget: "$30-$50/SF",
           team_size: sqftNeeded,
+          interest: `${buildingName} — Tour Scheduling Request`,
+          city: selectedProp?.city || "Local Market",
+          message: notes.trim()
+            ? `Tour Request for ${buildingName}. Notes: ${notes.trim()}`
+            : `Private Tour Booking Request for ${buildingName}.`,
+          formOpenedAt: Date.now() - 5000,
           additional_info: `Tour Request for ${buildingName}. Space needed: ${sqftNeeded}. Notes: ${notes || "None"}`,
-          source: "acme_demo_site",
+          source: "public_site",
           medium: "tour_modal",
         }),
       });
@@ -149,8 +163,8 @@ export default function AcmeTourModal({
                 onChange={(e) => setPropertyId(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
               >
-                {PROPERTIES.map((p) => (
-                  <option key={p.id} value={p.id}>
+                {propList.map((p) => (
+                  <option key={p.id} value={p.id} className="bg-[#0A1020] text-white">
                     {p.name} ({p.type} · {p.city})
                   </option>
                 ))}

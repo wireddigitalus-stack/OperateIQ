@@ -2484,7 +2484,13 @@ export default function AdminPage() {
                   <span>Site Builder</span>
                 </button>
                 <a
-                  href="/demo-site"
+                  href={
+                    (activeOrg as any)?.custom_domain
+                      ? `https://${(activeOrg as any).custom_domain}`
+                      : activeOrg?.slug === "wired-digital"
+                      ? "/wired-digital"
+                      : `/site/${activeOrg?.slug || "wired-digital"}`
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 sm:px-5 py-3 rounded-2xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-sm sm:text-base font-bold transition-all border border-sky-400/40 flex items-center gap-2 shadow-[0_0_15px_rgba(56,189,248,0.2)]"
@@ -3588,7 +3594,7 @@ export default function AdminPage() {
 
         {activeTab === "content" && (
           <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] p-6 sm:p-8">
-            <ContentTab onSubViewChange={setContentSubView} />
+            <ContentTab onSubViewChange={setContentSubView} activeOrg={activeOrg} />
           </div>
         )}
 
@@ -3632,7 +3638,16 @@ export default function AdminPage() {
 
 
 
-        {activeTab === "settings" && <SettingsTab leads={activeLeads} deletingAll={deletingAll} deleteAllConfirm={deleteAllConfirm} setDeleteAllConfirm={setDeleteAllConfirm} deleteAllLeads={deleteAllLeads} />}
+        {activeTab === "settings" && (
+          <SettingsTab
+            leads={activeLeads}
+            deletingAll={deletingAll}
+            deleteAllConfirm={deleteAllConfirm}
+            setDeleteAllConfirm={setDeleteAllConfirm}
+            deleteAllLeads={deleteAllLeads}
+            activeOrg={activeOrg}
+          />
+        )}
 
         <div className="text-center text-[10px] sm:text-xs text-gray-700 mt-10 mb-6 px-4 space-y-0.5">
           <p className="font-semibold text-gray-600">OperateIQ Property Operations Platform</p>

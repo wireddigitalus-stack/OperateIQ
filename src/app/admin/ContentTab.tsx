@@ -15,6 +15,7 @@ import PropertyImageManager from "./PropertyImageManager";
 import MlsImportMock from "@/components/MlsImportMock";
 import MarketEditor from "./MarketEditor";
 import PageEditor from "./PageEditor";
+import CustomDomainManager from "@/components/admin/CustomDomainManager";
 
 // ── Default values (mirrors what's hardcoded in components) ──────────────────
 
@@ -136,28 +137,38 @@ interface ContentItem { section: string; key: string; value: string }
 
 interface ContentTabProps {
   onSubViewChange?: (view: string) => void;
+  activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null } | null;
 }
 
-export default function ContentTab({ onSubViewChange }: ContentTabProps) {
+export default function ContentTab({ onSubViewChange, activeOrg }: ContentTabProps) {
   const [overrides, setOverrides] = useState<ContentItem[]>([]);
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const siteUrl = activeOrg?.custom_domain
+    ? `https://${activeOrg.custom_domain}`
+    : activeOrg?.slug === "wired-digital"
+    ? "/wired-digital"
+    : activeOrg?.slug
+    ? `/site/${activeOrg.slug}`
+    : "/demo-site";
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [activeMapSection, setActiveMapSection] = useState<string | null>("hero");
   const [mapOpen, setMapOpen] = useState(false);
-  const [activeView, setActiveView] = useState<"content" | "markets" | "pages" | "properties">("properties");
+  const [activeView, setActiveView] = useState<"content" | "markets" | "pages" | "properties" | "domain">("properties");
 
   // Propagate sub-view changes to parent for ProTips context
-  const handleViewChange = (view: "content" | "markets" | "pages" | "properties") => {
+  const handleViewChange = (view: "content" | "markets" | "pages" | "properties" | "domain") => {
     setActiveView(view);
     const viewMap: Record<string, string> = {
       content: "content-homepage",
       markets: "content-markets",
       pages: "content-pages",
       properties: "content-properties",
+      domain: "content-domain",
     };
     onSubViewChange?.(viewMap[view] || "content");
   };
@@ -307,7 +318,7 @@ export default function ContentTab({ onSubViewChange }: ContentTabProps) {
           </div>
         </div>
         <a
-          href="/demo-site"
+          href={siteUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs transition-all shadow-[0_0_16px_rgba(56,189,248,0.25)] flex-shrink-0 self-start sm:self-auto"
@@ -325,6 +336,7 @@ export default function ContentTab({ onSubViewChange }: ContentTabProps) {
             { key: "markets" as const, label: "Markets", icon: <MapPin size={14} /> },
             { key: "pages" as const, label: "Pages", icon: <Type size={14} /> },
             { key: "properties" as const, label: "Properties", icon: <Building2 size={14} /> },
+            { key: "domain" as const, label: "Custom Domain", icon: <Globe size={14} /> },
           ] as const).map(tab => (
             <button
               key={tab.key}
@@ -659,6 +671,17 @@ export default function ContentTab({ onSubViewChange }: ContentTabProps) {
       </div>
 
         </>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════ */}
+      {/* ══  CUSTOM DOMAIN VIEW (GoDaddy & IONOS)                 ══ */}
+      {/* ════════════════════════════════════════════════════════════ */}
+      {activeView === "domain" && (
+        <CustomDomainManager
+          orgId={activeOrg?.id}
+          orgName={activeOrg?.name}
+          currentDomain={activeOrg?.custom_domain}
+        />
       )}
 
     </div>

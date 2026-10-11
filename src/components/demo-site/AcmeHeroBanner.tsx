@@ -9,13 +9,28 @@ import {
 } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
 
+export interface HeroSlideItem {
+  propertyId: string;
+  name: string;
+  tagline: string;
+  submarket: string;
+  image: string;
+  type: string;
+  featuredSuite: string;
+  suiteSpecs: string;
+  rate: string;
+  badge: string;
+}
+
 interface AcmeHeroBannerProps {
   onSelectProperty: (propertyId: string) => void;
   onOpenTourModal: (propertyId?: string) => void;
   onFilterChange: (type: string, minSqft: number) => void;
+  slides?: HeroSlideItem[];
+  orgName?: string;
 }
 
-const HERO_SLIDES = [
+const HERO_SLIDES: HeroSlideItem[] = [
   {
     propertyId: "heritage-square",
     name: "Heritage Square Mixed-Use",
@@ -70,7 +85,10 @@ export default function AcmeHeroBanner({
   onSelectProperty,
   onOpenTourModal,
   onFilterChange,
+  slides,
+  orgName,
 }: AcmeHeroBannerProps) {
+  const activeSlides = slides && slides.length > 0 ? slides : HERO_SLIDES;
   const [currentIdx, setCurrentIdx] = useState(0);
   const [prevIdx, setPrevIdx] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
@@ -82,12 +100,12 @@ export default function AcmeHeroBanner({
     if (!isAutoPlaying) return;
     const interval = setInterval(() => {
       setPrevIdx((current) => current);
-      setCurrentIdx((prev) => (prev + 1) % HERO_SLIDES.length);
+      setCurrentIdx((prev) => (prev + 1) % activeSlides.length);
     }, 7000);
     return () => clearInterval(interval);
-  }, [isAutoPlaying]);
+  }, [isAutoPlaying, activeSlides.length]);
 
-  const slide = HERO_SLIDES[currentIdx];
+  const slide = activeSlides[currentIdx] || activeSlides[0];
 
   const handleApplyFilter = () => {
     onFilterChange(selectedType, selectedSqft);
@@ -106,7 +124,7 @@ export default function AcmeHeroBanner({
       
       {/* ── Background Slides with Silky Apple/Stripe Crossfade ── */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-[#060911]">
-        {HERO_SLIDES.map((item, index) => {
+        {activeSlides.map((item, index) => {
           const isActive = index === currentIdx;
           const isPrev = index === prevIdx && !isActive;
 
@@ -209,7 +227,7 @@ export default function AcmeHeroBanner({
 
         {/* Slide Carousel Selector Buttons */}
         <div className="flex items-center gap-2 mt-8">
-          {HERO_SLIDES.map((item, idx) => (
+          {activeSlides.map((item, idx) => (
             <button
               key={item.propertyId}
               onClick={() => goToSlide(idx)}
@@ -222,7 +240,7 @@ export default function AcmeHeroBanner({
             />
           ))}
           <span className="text-[10px] text-gray-400 ml-2 font-mono">
-            0{currentIdx + 1} / 0{HERO_SLIDES.length}
+            0{currentIdx + 1} / 0{activeSlides.length}
           </span>
         </div>
       </div>

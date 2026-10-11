@@ -13,6 +13,9 @@ interface AcmePropertyGridProps {
   minSqft: number;
   onSelectProperty: (propertyId: string) => void;
   onOpenTourModal: (propertyId?: string) => void;
+  properties?: any[];
+  orgName?: string;
+  tagline?: string;
 }
 
 export default function AcmePropertyGrid({
@@ -20,10 +23,14 @@ export default function AcmePropertyGrid({
   minSqft,
   onSelectProperty,
   onOpenTourModal,
+  properties,
+  orgName,
+  tagline,
 }: AcmePropertyGridProps) {
   const [activeTab, setActiveTab] = useState(filterType || "all");
+  const propList = properties && properties.length > 0 ? properties : PROPERTIES;
 
-  const filtered = PROPERTIES.filter((p) => {
+  const filtered = propList.filter((p) => {
     if (activeTab !== "all" && p.type !== activeTab) return false;
     return true;
   });
@@ -35,13 +42,16 @@ export default function AcmePropertyGrid({
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-widest px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/20">
             <Building2 size={13} />
-            <span>Regional Portfolio Showcase</span>
+            <span>{orgName ? `${orgName} Portfolio Showcase` : "Regional Portfolio Showcase"}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Featured Regional Assets
+            Featured {orgName ? `${orgName} Assets` : "Regional Assets"}
           </h2>
           <p className="text-sm text-gray-400 max-w-xl">
-            Explore downtown Main Street storefronts & lofts, medical plazas, garden-style apartments, and trade flex bays across Oakridge Valley.
+            {tagline ||
+              (orgName
+                ? `Explore premier commercial suites, creative studios, modern apartments, and contractor flex spaces managed by ${orgName}.`
+                : "Explore downtown Main Street storefronts & lofts, medical plazas, garden-style apartments, and trade flex bays across Oakridge Valley.")}
           </p>
         </div>
 
@@ -126,10 +136,10 @@ export default function AcmePropertyGrid({
               {/* Feature Highlights */}
               <div className="pt-2 border-t border-white/10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-gray-300">
-                  {property.features.slice(0, 4).map((f, i) => (
+                  {((property as any).features || (property as any).highlights || []).slice(0, 4).map((f: any, i: number) => (
                     <div key={i} className="flex items-center gap-1.5">
                       <CheckCircle2 size={12} className="text-emerald-400 flex-shrink-0" />
-                      <span className="truncate">{f}</span>
+                      <span className="truncate">{String(f)}</span>
                     </div>
                   ))}
                 </div>

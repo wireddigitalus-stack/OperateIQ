@@ -7,8 +7,9 @@ import {
   Mail, Shield, X, Smartphone, Lock, BellRing, Moon,
   Sparkles, MessageSquare, BarChart3, Wrench,
   FileSpreadsheet, Download, Upload, AlertCircle,
-  ChevronRight, Zap, Share2, Clock, Monitor,
+  ChevronRight, Zap, Share2, Clock, Monitor, Globe,
 } from "lucide-react";
+import CustomDomainManager from "@/components/admin/CustomDomainManager";
 
 // ─── Types (shared with page.tsx) ─────────────────────────────────────────────
 
@@ -1590,12 +1591,20 @@ function DangerZoneSection({ leads, deletingAll, deleteAllConfirm, setDeleteAllC
 }
 
 
-function SettingsPanel({ leads, deletingAll, deleteAllConfirm, setDeleteAllConfirm, deleteAllLeads }: {
+function SettingsPanel({
+  leads,
+  deletingAll,
+  deleteAllConfirm,
+  setDeleteAllConfirm,
+  deleteAllLeads,
+  activeOrg,
+}: {
   leads: Lead[];
   deletingAll: boolean;
   deleteAllConfirm: string;
   setDeleteAllConfirm: (v: string) => void;
   deleteAllLeads: () => void;
+  activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null } | null;
 }) {
   const [adminUsers,  setAdminUsers]  = useState<AllowedUser[]>([]);
   const [maintUsers,  setMaintUsers]  = useState<AllowedUser[]>([]);
@@ -1647,6 +1656,13 @@ function SettingsPanel({ leads, deletingAll, deleteAllConfirm, setDeleteAllConfi
 
   return (
     <div className="space-y-8">
+      {/* ── Public Website Custom Domain Manager (GoDaddy & IONOS) ── */}
+      <CustomDomainManager
+        orgId={activeOrg?.id}
+        orgName={activeOrg?.name}
+        currentDomain={activeOrg?.custom_domain}
+      />
+
       {/* ─ Portal Access ───────────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-1">
