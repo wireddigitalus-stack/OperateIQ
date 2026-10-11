@@ -1,8 +1,7 @@
-import { redirect } from "next/navigation";
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = { title: "Log in | OperateIQ" };
+import AdminLoginPage from "@/app/admin/login/page";
 
 export default function LoginPage() {
-  redirect("/admin/login");
+  return <AdminLoginPage />;
 }

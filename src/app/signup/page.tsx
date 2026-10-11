@@ -98,16 +98,16 @@ function SignupForm() {
             • Admin credentials registered to <strong>{email}</strong>.
           </p>
           <p>
-            • Your dedicated portfolio dashboard is initialized and ready for your properties, rent roll, and maintenance crews.
+            • Sign in instantly via <strong>Google</strong> or request a 1-click <strong>Email Magic Link</strong> to access your workspace.
           </p>
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            href="/admin"
+            href="/admin/login"
             className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white font-bold text-xs shadow-lg hover:opacity-95 transition-all flex items-center justify-center gap-2"
           >
-            <span>Enter Your Dashboard</span>
+            <span>Sign In to Your Dashboard</span>
             <ArrowRight size={14} />
           </Link>
           <Link

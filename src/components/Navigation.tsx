@@ -40,7 +40,7 @@ export default function Navigation() {
           ))}
         </div>
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white">Log in</Link>
+          <Link href="/admin/login" className="text-sm font-medium text-slate-300 hover:text-white">Log in</Link>
           <Link href="/signup" className="oiq-btn !py-2 text-sm">Start free trial</Link>
         </div>
         <button className="md:hidden text-white" onClick={() => setOpen(!open)} aria-label="Toggle menu">
@@ -54,7 +54,7 @@ export default function Navigation() {
               {l.label}
             </Link>
           ))}
-          <Link href="/login" onClick={() => setOpen(false)} className="text-slate-200 font-medium">Log in</Link>
+          <Link href="/admin/login" onClick={() => setOpen(false)} className="text-slate-200 font-medium">Log in</Link>
           <Link href="/signup" onClick={() => setOpen(false)} className="oiq-btn">Start free trial</Link>
         </div>
       )}
