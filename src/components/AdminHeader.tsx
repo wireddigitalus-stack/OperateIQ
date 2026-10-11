@@ -81,11 +81,19 @@ export default function AdminHeader() {
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/10 border border-sky-400/30 text-sky-300 hover:bg-sky-500/20 hover:text-white shadow-[0_0_12px_rgba(56,189,248,0.15)] transition-all"
-          title="Open the public ACME Commercial property demo site"
+          title={
+            activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001"
+              ? "Preview sample tenant-facing public website"
+              : "Open the public demo property website"
+          }
         >
           <Building2 size={12} className="text-sky-400" />
-          <span className="hidden md:inline">ACME Property Site</span>
-          <span className="md:hidden">Property Site</span>
+          <span className="hidden md:inline">
+            {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001"
+              ? "Sample Site Preview"
+              : "Demo Property Site"}
+          </span>
+          <span className="md:hidden">Site Preview</span>
           <ExternalLink size={10} />
         </a>
 

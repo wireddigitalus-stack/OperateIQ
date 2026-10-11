@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { IMPERSONATE_COOKIE } from "@/lib/platform";
 import { LEADS_STORE, type Lead } from "@/lib/leads-store";
 import { detectWhale } from "@/lib/whale-detector";
 import { supabaseAdmin, rowToLead } from "@/lib/supabase";
@@ -293,6 +295,12 @@ export async function POST(req: NextRequest) {
         progress: lead.progress || "0-25%",
       };
 
+      const cookieStore = await cookies();
+      const targetOrgId = (body as any)?.org_id || cookieStore.get(IMPERSONATE_COOKIE)?.value || null;
+      if (targetOrgId) {
+        dbPayload.org_id = targetOrgId;
+      }
+
       let insertRes = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
         method: "POST",
         headers: {
@@ -387,34 +395,39 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/leads?select=*&order=timestamp.desc&limit=50`,
-      {
-        headers: {
-          "apikey": SUPABASE_KEY,
-          "Authorization": `Bearer ${SUPABASE_KEY}`,
-        },
-      }
-    );
+    const cookieStore = await cookies();
+    const activeOrgId = req.nextUrl?.searchParams?.get("org_id") || cookieStore.get(IMPERSONATE_COOKIE)?.value || null;
+
+    let url = `${SUPABASE_URL}/rest/v1/leads?select=*&order=timestamp.desc&limit=50`;
+    if (activeOrgId) {
+      url += `&org_id=eq.${encodeURIComponent(activeOrgId)}`;
+    }
+
+    const res = await fetch(url, {
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+      },
+    });
 
     if (!res.ok) throw new Error(`Supabase GET failed: ${res.status}`);
     const data = await res.json();
 
     const leads: Lead[] = (data || []).map(rowToLead);
-    // Also sync into memory store so the same-process cache is warm
-    LEADS_STORE.length = 0;
-    LEADS_STORE.push(...leads);
+    if (!activeOrgId || activeOrgId === "00000000-0000-0000-0000-000000000001") {
+      LEADS_STORE.length = 0;
+      LEADS_STORE.push(...leads);
+    }
 
     return NextResponse.json({ leads });
   } catch (err) {
     console.error("Supabase fetch error:", err);
-    // Graceful fallback: return whatever is in-memory
-    return NextResponse.json({ leads: LEADS_STORE });
+    return NextResponse.json({ leads: [] });
   }
 }
 

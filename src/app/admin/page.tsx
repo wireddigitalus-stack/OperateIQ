@@ -1639,7 +1639,8 @@ export default function AdminPage() {
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/lease-bot");
+      const orgParam = activeOrg?.id ? `?org_id=${encodeURIComponent(activeOrg.id)}` : "";
+      const res = await fetch(`/api/lease-bot${orgParam}`);
       const data = await res.json();
       if (data.leads && Array.isArray(data.leads)) {
         const fetched: Lead[] = data.leads;
@@ -1691,7 +1692,7 @@ export default function AdminPage() {
     // Also run once on mount in case chatbot already fired
     pollLocalStorage();
     return () => { clearInterval(apiInterval); clearInterval(lsInterval); };
-  }, [pollLocalStorage]);
+  }, [activeOrg?.id, pollLocalStorage]);
 
   // Remove NEW badge after 60s
   useEffect(() => {
@@ -2103,16 +2104,22 @@ export default function AdminPage() {
         {/* Page Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/operateiq-icon.svg" alt="OperateIQ" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.25)] object-cover" />
-            <div>
+            <img src="/operateiq-icon.svg" alt="OperateIQ" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.25)] object-cover" />
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-white font-black text-xl tracking-tight">OperateIQ</h1>
-                <span className="flex items-center gap-1.5 text-xs font-bold text-[#4ADE80] bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] px-2 py-0.5 rounded-lg">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
+                <h1 className="text-white font-black text-xl tracking-tight truncate">
+                  {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001" ? activeOrg.name : "OperateIQ"}
+                </h1>
+                <span className="flex items-center gap-1.5 text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-400/25 px-2 py-0.5 rounded-lg flex-shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
                   LIVE
                 </span>
               </div>
-              <p className="text-xs font-semibold text-gray-500 tracking-widest uppercase -mt-0.5 hidden sm:block">Property Intelligence Platform</p>
+              <p className="text-xs font-semibold text-gray-500 tracking-widest uppercase -mt-0.5 hidden sm:block truncate">
+                {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001"
+                  ? "Operations & Property Intelligence Dashboard"
+                  : "Property Intelligence Platform"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
@@ -2240,7 +2247,7 @@ export default function AdminPage() {
           <div className="scrollbar-none flex items-center gap-1 overflow-x-auto py-2 pr-6" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
             <style>{`.scrollbar-none::-webkit-scrollbar { display: none; }`}</style>
             {([
-              { key: "leads",       label: `Leads (${activeLeads.length})`, icon: TrendingUp, color: "#4ADE80" },
+              { key: "leads",       label: `Leads (${activeLeads.length})`, icon: TrendingUp, color: "#38BDF8" },
               { key: "tenants",     label: "Tenants",     icon: Building2, color: "#60A5FA" },
               { key: "propdetails", label: "Prop Details", icon: BarChart3, color: "#A78BFA" },
               { key: "maintenance", label: "Maint.",       icon: Wrench, color: "#F97316" },
@@ -2363,7 +2370,8 @@ export default function AdminPage() {
         {currentUser && (() => {
           const hour = new Date().getHours();
           const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-          const firstName = currentUser.name.split(" ")[0];
+          const isCompanyEntity = /\b(llc|inc|corp|co\.|ltd)\b/i.test(currentUser.name);
+          const displayName = isCompanyEntity ? currentUser.name : currentUser.name.split(" ")[0];
           return (
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[rgba(255,255,255,0.015)] border border-[rgba(255,255,255,0.03)] rounded-2xl p-4">
               <div className="flex items-center gap-3">
@@ -2376,7 +2384,7 @@ export default function AdminPage() {
                   </div>
                 )}
                 <div>
-                  <h2 className="text-lg sm:text-xl font-black text-white">{greeting}, {firstName} 👋</h2>
+                  <h2 className="text-lg sm:text-xl font-black text-white">{greeting}, {displayName} 👋</h2>
                   <p className="text-[11px] sm:text-xs text-gray-500">Here&apos;s your portfolio snapshot for today.</p>
                 </div>
               </div>
