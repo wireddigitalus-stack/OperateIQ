@@ -6,6 +6,7 @@ import FooterConditional from "@/components/FooterConditional";
 import AIChatWidgetConditional from "@/components/AIChatWidgetConditional";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import UnsupportedBrowserBanner from "@/components/UnsupportedBrowserBanner";
+import AuthHashRedirect from "@/components/AuthHashRedirect";
 import { BRAND } from "@/lib/brand";
 
 const dmSans = DM_Sans({
@@ -42,7 +43,16 @@ export const metadata: Metadata = {
     description: BRAND.description,
   },
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   // Pre-launch: noindex everywhere until NEXT_PUBLIC_ALLOW_INDEXING=true
   robots: ALLOW_INDEXING
@@ -72,6 +82,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
       </head>
       <body className="bg-mesh antialiased">
+        <AuthHashRedirect />
         <UnsupportedBrowserBanner />
         <AnalyticsTracker />
         <NavigationConditional />

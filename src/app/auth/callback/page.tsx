@@ -17,6 +17,37 @@ export default function AuthCallbackPage() {
       router.replace("/admin");
     }
 
+    // Direct hash inspection (Supabase OAuth sends #access_token=...&refresh_token=...)
+    if (typeof window !== "undefined" && window.location.hash) {
+      const hashStr = window.location.hash.replace(/^#/, "");
+      const params = new URLSearchParams(hashStr);
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      const errorDesc = params.get("error_description");
+
+      if (errorDesc) {
+        setStatus(`Sign-in error: ${decodeURIComponent(errorDesc)}`);
+        setTimeout(() => router.replace("/admin/login"), 2500);
+        return;
+      }
+
+      if (accessToken && refreshToken) {
+        supabaseBrowser.auth
+          .setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          .then(({ data, error }) => {
+            if (!error && data.session) {
+              goToAdmin();
+            }
+          })
+          .catch(() => {
+            // Let fallback listener / poll handle it
+          });
+      }
+    }
+
     // Listen for ANY auth event that has a session — Supabase fires
     // INITIAL_SESSION (not SIGNED_IN) after PKCE token extraction
     const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange(
@@ -49,10 +80,11 @@ export default function AuthCallbackPage() {
   return (
     <div className="min-h-screen bg-[#080C14] flex items-center justify-center">
       <div className="text-center">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center mx-auto mb-4 shadow-[0_0_32px_rgba(74,222,128,0.3)]">
-          <Loader2 size={22} className="text-black animate-spin" />
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-[0_0_32px_rgba(59,130,246,0.35)]">
+          <Loader2 size={24} className="text-white animate-spin" />
         </div>
-        <p className="text-sm text-gray-400">{status}</p>
+        <h2 className="text-base font-bold text-white mb-1">OperateIQ</h2>
+        <p className="text-xs text-gray-400">{status}</p>
       </div>
     </div>
   );

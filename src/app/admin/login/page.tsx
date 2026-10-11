@@ -23,10 +23,15 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError("");
     try {
+      const redirectBase =
+        typeof window !== "undefined" && window.location.origin
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_SITE_URL || "https://operateiq-peach.vercel.app");
+
       const { error } = await supabaseBrowser.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${redirectBase}/auth/callback`,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -55,10 +60,15 @@ export default function AdminLoginPage() {
     setMagicLinkSent(false);
 
     try {
+      const redirectBase =
+        typeof window !== "undefined" && window.location.origin
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_SITE_URL || "https://operateiq-peach.vercel.app");
+
       const { error } = await supabaseBrowser.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${redirectBase}/auth/callback`,
         },
       });
       if (error) {
