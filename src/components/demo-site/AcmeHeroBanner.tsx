@@ -120,7 +120,7 @@ export default function AcmeHeroBanner({
   };
 
   return (
-    <section className="relative min-h-[92vh] pt-24 pb-16 flex flex-col justify-between overflow-hidden bg-[#060911]">
+    <section className="relative min-h-[90vh] pt-8 sm:pt-12 pb-16 flex flex-col justify-between overflow-hidden bg-[#060911]">
       
       {/* ── Background Slides with Silky Apple/Stripe Crossfade ── */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-[#060911]">

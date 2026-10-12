@@ -23,9 +23,8 @@ export default function TenantPublicSitePage() {
   const slugParam = typeof params?.slug === "string" ? params.slug : "wired-digital";
 
   const isWiredDigital =
-    slugParam.toLowerCase() === "wired-digital" ||
-    slugParam.toLowerCase() === "wireddigitalllc" ||
-    slugParam.toLowerCase() === "wired";
+    slugParam.toLowerCase().includes("wired") ||
+    slugParam.toLowerCase().includes("digital");
 
   const [org, setOrg] = useState<{
     id: string;
@@ -69,6 +68,10 @@ export default function TenantPublicSitePage() {
           const orgData = await orgRes.json();
           if (orgData.organization) {
             setOrg(orgData.organization);
+
+            const isOrgWired =
+              orgData.organization.name?.toLowerCase().includes("wired") ||
+              orgData.organization.slug?.toLowerCase().includes("wired");
 
             // Fetch real properties for this organization if any exist
             const propsRes = await fetch(`/api/properties?org_id=${encodeURIComponent(orgData.organization.id)}`);
@@ -121,7 +124,15 @@ export default function TenantPublicSitePage() {
                   badge: p.badge,
                 }));
                 setHeroSlides(slides);
+              } else if (isOrgWired || isWiredDigital) {
+                setProperties(WIRED_DIGITAL_PROPERTIES);
+                setHeroSlides(WIRED_DIGITAL_HERO_SLIDES);
+                setTourPropertyId("wired-tech-hub");
               }
+            } else if (isOrgWired || isWiredDigital) {
+              setProperties(WIRED_DIGITAL_PROPERTIES);
+              setHeroSlides(WIRED_DIGITAL_HERO_SLIDES);
+              setTourPropertyId("wired-tech-hub");
             }
           }
         }
@@ -179,7 +190,7 @@ export default function TenantPublicSitePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060911] text-white selection:bg-sky-500 selection:text-white pt-10">
+    <div className="min-h-screen bg-[#060911] text-white selection:bg-sky-500 selection:text-white pt-[120px]">
       {/* ── Ultra SEO & Generative Engine Optimization (GEO) Structured Data ── */}
       <script
         type="application/ld+json"
@@ -221,7 +232,7 @@ export default function TenantPublicSitePage() {
 
       {/* Navigation */}
       <AcmeNavbar
-        onOpenAiInspector={() => setIsAiInspectorOpen(true)}
+        onOpenAiInspector={() => {}}
         onOpenTourModal={handleOpenTour}
         orgName={org.name}
         hasTopBar={true}
@@ -246,12 +257,6 @@ export default function TenantPublicSitePage() {
         orgName={org.name}
       />
 
-      {/* AI Search & Generative Engine Optimization (GEO) Drawer Modal */}
-      <AcmeAiSearchInspector
-        isOpen={isAiInspectorOpen}
-        onClose={() => setIsAiInspectorOpen(false)}
-      />
-
       {/* Schedule Private Tour Modal */}
       <AcmeTourModal
         isOpen={isTourModalOpen}
@@ -272,7 +277,7 @@ export default function TenantPublicSitePage() {
 
       {/* Footer */}
       <AcmeFooter
-        onOpenAiInspector={() => setIsAiInspectorOpen(true)}
+        onOpenAiInspector={() => {}}
         orgName={org.name}
         phone={org.contact_phone}
         email={org.contact_email}

@@ -10,7 +10,10 @@ export default function AIChatWidgetConditional() {
     pathname?.startsWith("/admin") ||
     pathname?.startsWith("/staff") ||
     pathname?.startsWith("/platform") ||
-    pathname?.startsWith("/demo-site")
+    pathname?.startsWith("/demo-site") ||
+    pathname?.startsWith("/site") ||
+    pathname?.startsWith("/wired-digital") ||
+    pathname?.toLowerCase().includes("-admin")
   ) return null;
   return <OpsIQWidget />;
 }

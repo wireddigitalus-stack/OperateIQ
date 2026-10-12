@@ -40,13 +40,6 @@ export default function AcmeFooter({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={onOpenAiInspector}
-              className="px-3.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-300 text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
-            >
-              <Sparkles size={12} />
-              <span>AI Search SEO</span>
-            </button>
             <Link
               href="/admin?tab=content"
               className="px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/20 text-white text-xs font-bold transition-all whitespace-nowrap"
@@ -57,7 +50,7 @@ export default function AcmeFooter({
               href="/admin"
               className="px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black text-xs font-bold transition-all whitespace-nowrap shadow-sm"
             >
-              {orgName ? `${orgName} Dashboard` : "Dashboard"}
+              Dashboard
             </Link>
           </div>
         </div>

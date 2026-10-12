@@ -45,7 +45,7 @@ export default function AcmeNavbar({
         </div>
 
         {/* Center / Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-gray-300">
+        <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-gray-300">
           <a href="#portfolio" className="hover:text-white transition-colors">
             Featured Assets
           </a>
@@ -55,43 +55,17 @@ export default function AcmeNavbar({
           <a href="#amenities" className="hover:text-white transition-colors">
             Tenant Amenities
           </a>
-          <button
-            onClick={onOpenAiInspector}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/30 text-sky-300 text-xs font-bold transition-all shadow-[0_0_12px_rgba(56,189,248,0.15)]"
-          >
-            <Sparkles size={12} className="text-sky-400 animate-pulse" />
-            <span>AI Search & GEO Engine</span>
-          </button>
         </nav>
 
-        {/* Right Action Buttons */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={onOpenAiInspector}
-            className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-sky-500/10 border border-sky-400/30 text-sky-300 text-xs font-bold"
-            title="Inspect how ChatGPT and Perplexity index listings"
-          >
-            <Sparkles size={13} className="text-sky-400" />
-            <span className="hidden sm:inline">AI Search</span>
-          </button>
-
+        {/* Right Action Button: Schedule Tour */}
+        <div className="flex items-center gap-3">
           <button
             onClick={() => onOpenTourModal()}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-95 shadow-[0_0_18px_rgba(59,130,246,0.35)] transition-all flex items-center gap-1.5"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white text-xs font-bold shadow-[0_0_18px_rgba(59,130,246,0.35)] transition-all flex items-center gap-2"
           >
-            <Calendar size={13} />
+            <Calendar size={14} />
             <span>Schedule Tour</span>
           </button>
-
-          <Link
-            href="/admin"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-sky-400/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 hover:text-white text-xs font-bold transition-all shadow-[0_0_12px_rgba(56,189,248,0.15)]"
-            title={`Return to ${orgName || "OperateIQ"} Admin Dashboard`}
-          >
-            <Building2 size={13} className="text-sky-400" />
-            <span className="hidden sm:inline">{orgName ? `${orgName} Dashboard` : "Admin Dashboard"}</span>
-            <span className="sm:hidden">Dashboard</span>
-          </Link>
         </div>
       </div>
     </header>

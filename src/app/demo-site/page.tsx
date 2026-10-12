@@ -105,7 +105,7 @@ export default function DemoPropertySitePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060911] text-white selection:bg-sky-500 selection:text-white pt-10">
+    <div className="min-h-screen bg-[#060911] text-white selection:bg-sky-500 selection:text-white pt-[120px]">
       {/* ── Ultra SEO & Generative Engine Optimization (GEO) Structured Data ── */}
       <script
         type="application/ld+json"
@@ -141,7 +141,7 @@ export default function DemoPropertySitePage() {
 
       {/* Navigation */}
       <AcmeNavbar
-        onOpenAiInspector={() => setIsAiInspectorOpen(true)}
+        onOpenAiInspector={() => {}}
         onOpenTourModal={handleOpenTour}
         orgName={activeOrg?.name}
         hasTopBar={true}
@@ -166,12 +166,6 @@ export default function DemoPropertySitePage() {
         orgName={activeOrg?.name}
       />
 
-      {/* AI Search & Generative Engine Optimization (GEO) Drawer Modal */}
-      <AcmeAiSearchInspector
-        isOpen={isAiInspectorOpen}
-        onClose={() => setIsAiInspectorOpen(false)}
-      />
-
       {/* Schedule Private Tour Modal */}
       <AcmeTourModal
         isOpen={isTourModalOpen}
@@ -192,7 +186,7 @@ export default function DemoPropertySitePage() {
 
       {/* Footer */}
       <AcmeFooter
-        onOpenAiInspector={() => setIsAiInspectorOpen(true)}
+        onOpenAiInspector={() => {}}
         orgName={activeOrg?.name}
       />
     </div>
