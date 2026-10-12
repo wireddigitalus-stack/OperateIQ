@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -11,9 +12,13 @@ const H = {
 
 // ─── GET — list all contacts ────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const service = req.nextUrl.searchParams.get("service");
 
-  let url = `${SUPABASE_URL}/rest/v1/subcontractor_contacts?order=name.asc`;
+  let url = `${SUPABASE_URL}/rest/v1/subcontractor_contacts?org_id=eq.${orgId}&order=name.asc`;
   if (service && service !== "All") {
     url += `&service_type=eq.${encodeURIComponent(service)}`;
   }
@@ -25,9 +30,14 @@ export async function GET(req: NextRequest) {
 
 // ─── POST — create new contact ──────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, user } = g.ctx;
+
   try {
     const body = await req.json();
     const record = {
+      org_id: orgId,
       id: `sub_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: body.name?.trim() || "",
       phone: body.phone?.trim() || "",
@@ -36,7 +46,7 @@ export async function POST(req: NextRequest) {
       email: body.email?.trim() || "",
       notes: body.notes?.trim() || "",
       rating: body.rating || 0,
-      updated_by: body.updatedBy?.trim() || "Staff",
+      updated_by: body.updatedBy?.trim() || user?.name || "Staff",
       updated_at: new Date().toISOString(),
     };
 
@@ -52,8 +62,9 @@ export async function POST(req: NextRequest) {
     }
 
     writeActivityLog({
-      actor_email: "unknown",
-      actor_name: record.updated_by,
+      org_id: orgId,
+      actor_email: user?.email || "unknown",
+      actor_name: user?.name || record.updated_by,
       action: "created",
       resource_type: "maintenance",
       resource_name: `Subcontractor: ${record.name}`,
@@ -69,6 +80,10 @@ export async function POST(req: NextRequest) {
 
 // ─── PATCH — update contact ─────────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
@@ -85,7 +100,7 @@ export async function PATCH(req: NextRequest) {
     if (body.updatedBy !== undefined) patch.updated_by = body.updatedBy.trim();
 
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/subcontractor_contacts?id=eq.${encodeURIComponent(id)}`,
+      `${SUPABASE_URL}/rest/v1/subcontractor_contacts?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`,
       { method: "PATCH", headers: H, body: JSON.stringify(patch) }
     );
 
@@ -101,12 +116,16 @@ export async function PATCH(req: NextRequest) {
 
 // ─── DELETE — remove contact ────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/subcontractor_contacts?id=eq.${encodeURIComponent(id)}`,
+      `${SUPABASE_URL}/rest/v1/subcontractor_contacts?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`,
       { method: "DELETE", headers: H }
     );
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -10,19 +11,23 @@ const H = {
 };
 
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const month = req.nextUrl.searchParams.get("month");
   const compliance = req.nextUrl.searchParams.get("compliance");
   const config = req.nextUrl.searchParams.get("config");
 
   if (config === "true") {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/building_inspection_config`, { headers: H, cache: "no-store" });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/building_inspection_config?org_id=eq.${orgId}`, { headers: H, cache: "no-store" });
     if (!res.ok) return NextResponse.json({ config: [] });
     return NextResponse.json({ config: await res.json() });
   }
 
   if (compliance) {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/building_inspections?month=like.${encodeURIComponent(compliance)}*&order=property.asc`,
+      `${SUPABASE_URL}/rest/v1/building_inspections?org_id=eq.${orgId}&month=like.${encodeURIComponent(compliance)}*&order=property.asc`,
       { headers: H, cache: "no-store" }
     );
     if (!res.ok) return NextResponse.json({ records: [] });
@@ -31,7 +36,7 @@ export async function GET(req: NextRequest) {
 
   if (month) {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/building_inspections?month=eq.${encodeURIComponent(month)}&order=property.asc,inspection_type.asc`,
+      `${SUPABASE_URL}/rest/v1/building_inspections?org_id=eq.${orgId}&month=eq.${encodeURIComponent(month)}&order=property.asc,inspection_type.asc`,
       { headers: H, cache: "no-store" }
     );
     if (!res.ok) return NextResponse.json({ records: [] });
@@ -39,7 +44,7 @@ export async function GET(req: NextRequest) {
   }
 
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/building_inspections?order=property.asc`,
+    `${SUPABASE_URL}/rest/v1/building_inspections?org_id=eq.${orgId}&order=property.asc`,
     { headers: H, cache: "no-store" }
   );
   if (!res.ok) return NextResponse.json({ records: [] });
@@ -47,19 +52,25 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, user } = g.ctx;
+
   try {
     const body = await req.json();
 
     if (body.configUpdate) {
       const cfgId = `cfg_${body.property}_${body.inspectionType}`.replace(/[^a-zA-Z0-9_]/g, '_');
       const configRecord = {
+        org_id: orgId,
         id: cfgId,
         property: body.property,
         inspection_type: body.inspectionType,
         enabled: body.enabled !== undefined ? body.enabled : true,
       };
 
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/building_inspection_config`, {
+      // Conflict target is the org-scoped primary key (org_id, id)
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/building_inspection_config?on_conflict=org_id,id`, {
         method: "POST",
         headers: { ...H, "Prefer": "return=representation,resolution=merge-duplicates" },
         body: JSON.stringify(configRecord),
@@ -74,6 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     const record = {
+      org_id: orgId,
       id: `insp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       property: body.property?.trim() || "",
       inspection_type: body.inspectionType?.trim() || "",
@@ -82,7 +94,7 @@ export async function POST(req: NextRequest) {
       notes: body.notes?.trim() || "",
       month: body.month || null,
       status: body.inspectionDate ? "completed" : "pending",
-      updated_by: body.updatedBy?.trim() || "Staff",
+      updated_by: body.updatedBy?.trim() || user?.name || "Staff",
       updated_at: new Date().toISOString(),
     };
 
@@ -100,8 +112,9 @@ export async function POST(req: NextRequest) {
     const records = await res.json();
 
     writeActivityLog({
-      actor_email: "unknown",
-      actor_name: record.updated_by,
+      org_id: orgId,
+      actor_email: user?.email || "unknown",
+      actor_name: user?.name || record.updated_by,
       action: "created",
       resource_type: "maintenance",
       resource_name: record.property,
@@ -116,6 +129,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, user } = g.ctx;
+
   try {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
@@ -135,7 +152,7 @@ export async function PATCH(req: NextRequest) {
     if (body.status !== undefined) patchPayload.status = body.status;
     if (body.updatedBy !== undefined) patchPayload.updated_by = body.updatedBy.trim();
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/building_inspections?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/building_inspections?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
       method: "PATCH",
       headers: H,
       body: JSON.stringify(patchPayload),
@@ -147,8 +164,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     writeActivityLog({
-      actor_email: "unknown",
-      actor_name: patchPayload.updated_by || "Staff",
+      org_id: orgId,
+      actor_email: user?.email || "unknown",
+      actor_name: user?.name || patchPayload.updated_by || "Staff",
       action: "updated",
       resource_type: "maintenance",
       resource_name: patchPayload.property || id,
@@ -163,11 +181,15 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/building_inspections?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/building_inspections?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
       method: "DELETE",
       headers: H,
     });

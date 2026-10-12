@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrgProfile } from "@/lib/org-profile";
+import { requireOrg } from "@/lib/server-auth";
+import { profileForOrg } from "@/lib/org-ai-profile";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 export async function POST(req: NextRequest) {
+  // Auth required: protects LLM spend from anonymous abuse.
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+
   try {
     if (!GEMINI_API_KEY) {
       return NextResponse.json({ error: "Gemini API key not configured." }, { status: 500 });
@@ -19,7 +24,7 @@ export async function POST(req: NextRequest) {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
 
-    const org = getOrgProfile();
+    const org = profileForOrg(g.ctx.org);
 
     const prompt = `You are a commercial real estate market analyst for ${org.name}, a commercial property firm in ${org.location}.
 

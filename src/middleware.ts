@@ -3,48 +3,83 @@ import { NextRequest, NextResponse } from "next/server";
 export const config = {
   matcher: [
     /*
-     * Match all paths except:
-     * 1. /api routes that don't need rewrites
-     * 2. /_next (Next.js internals)
-     * 3. /_static (inside /public)
-     * 4. Static files (e.g. /favicon.ico, /icon.png, *.svg, *.jpg, *.png)
+     * Match all paths except Next.js internals and static assets.
      */
     "/((?!_next/static|_next/image|_static|favicon.ico|apple-touch-icon.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)).*)",
   ],
 };
 
-export default function middleware(req: NextRequest) {
-  const url = req.nextUrl;
-  const hostname = req.headers.get("host")?.toLowerCase() || "";
-  const host = hostname.split(":")[0]; // Strip port if present
+const PLATFORM_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
+  "operateiq.com",
+  "www.operateiq.com",
+  "getoperateiq.com",
+  "www.getoperateiq.com",
+]);
 
-  // Platform and local domain patterns that shouldn't be treated as tenant custom domains
-  const isPlatformHost =
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host.endsWith(".vercel.app") ||
-    host === "operateiq.com" ||
-    host === "www.operateiq.com";
+function isPlatformHost(host: string): boolean {
+  if (PLATFORM_HOSTS.has(host) || host.endsWith(".vercel.app")) return true;
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
+  return !!site && (host === site || host === `www.${site}`);
+}
 
-  // If request arrives via a custom domain from GoDaddy, IONOS, etc.
-  if (!isPlatformHost) {
-    const requestHeaders = new Headers(req.headers);
-    requestHeaders.set("x-custom-domain", host);
+// Small edge-local cache: host → org slug (or null for unknown hosts).
+const domainCache = new Map<string, { slug: string | null; expires: number }>();
+const TTL_MS = 60_000;
 
-    // If visiting the root of their custom domain, rewrite internally to their public site
-    if (url.pathname === "/") {
-      return NextResponse.rewrite(new URL("/wired-digital", req.url), {
-        headers: requestHeaders,
-      });
+async function resolveOrgSlugForHost(host: string): Promise<string | null> {
+  const bare = host.replace(/^www\./, "");
+  const hit = domainCache.get(bare);
+  if (hit && hit.expires > Date.now()) return hit.slug;
+
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  let slug: string | null = null;
+  if (url && key) {
+    try {
+      const res = await fetch(
+        `${url}/rest/v1/organizations?select=slug&custom_domain=in.(${encodeURIComponent(bare)},${encodeURIComponent(`www.${bare}`)})&limit=1`,
+        { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+      );
+      if (res.ok) {
+        const rows = (await res.json()) as { slug: string }[];
+        slug = rows[0]?.slug || null;
+      }
+    } catch {
+      /* treat as unknown */
     }
+  }
+  domainCache.set(bare, { slug, expires: Date.now() + TTL_MS });
+  return slug;
+}
 
-    // For other paths on custom domain, pass through with custom domain header
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+export default async function middleware(req: NextRequest) {
+  const url = req.nextUrl;
+  const host = (req.headers.get("host") || "").toLowerCase().split(":")[0];
+
+  if (isPlatformHost(host)) return NextResponse.next();
+
+  // ── Tenant custom domain (GoDaddy / IONOS → Vercel) ──────────────────────
+  const slug = await resolveOrgSlugForHost(host);
+  if (!slug) {
+    // Unknown host (e.g. a platform alias not listed above): serve the app normally.
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-custom-domain", host);
+  requestHeaders.set("x-tenant-slug", slug);
+
+  // Public site lives at the domain root.
+  if (url.pathname === "/") {
+    return NextResponse.rewrite(new URL(`/site/${slug}`, req.url), { request: { headers: requestHeaders } });
+  }
+
+  // Never expose the platform console on a tenant's domain.
+  if (url.pathname.startsWith("/platform")) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }

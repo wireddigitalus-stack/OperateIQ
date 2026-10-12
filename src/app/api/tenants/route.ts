@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
+import { requireOrg, requireOrgAdmin, type RequestContext } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -10,10 +11,22 @@ const HEADERS = {
   "Content-Type": "application/json",
 };
 
+/** Verified actor identity for audit logs (never trust client-sent actor fields). */
+function actorOf(ctx: RequestContext) {
+  return {
+    actor_email: ctx.user?.email || "staff",
+    actor_name: ctx.user?.name || ctx.staff?.name || "Staff",
+  };
+}
+
 // GET /api/tenants
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/tenants?order=created_at.desc`,
+    `${SUPABASE_URL}/rest/v1/tenants?org_id=eq.${orgId}&order=created_at.desc`,
     { headers: HEADERS, cache: "no-store" }  // always fresh — never serve stale after a save
   );
   if (!res.ok) {
@@ -28,12 +41,18 @@ export async function GET() {
 
 // POST /api/tenants — create
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+  const actor = actorOf(g.ctx);
+
   try {
     const body = await req.json();
     const isBatch = Array.isArray(body) || Array.isArray(body.tenants);
     const rawList: Record<string, unknown>[] = isBatch ? (Array.isArray(body) ? body : body.tenants) : [body];
 
     const tenants = rawList.map((item, idx) => ({
+      org_id: orgId,
       id: (item.id as string) || `tenant_${Date.now()}_${idx}`,
       name: String(item.name || "").trim(),
       contact_name: String(item.contactName || item.contact_name || "").trim(),
@@ -82,7 +101,7 @@ export async function POST(req: NextRequest) {
     // Auto-archive source lead if converted from a single lead
     if (!isBatch && tenants[0].source_lead_id) {
       try {
-        const leadUrl = `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(tenants[0].source_lead_id)}`;
+        const leadUrl = `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(tenants[0].source_lead_id)}&org_id=eq.${orgId}`;
         await fetch(leadUrl, {
           method: "PATCH",
           headers: { ...HEADERS, "Prefer": "return-minimal" },
@@ -92,8 +111,8 @@ export async function POST(req: NextRequest) {
         });
 
         writeActivityLog({
-          actor_email:   String(body.actorEmail || "unknown"),
-          actor_name:    String(body.actorName || "Staff"),
+          ...actor,
+          org_id:        orgId,
           action:        "updated",
           resource_type: "lead",
           resource_name: tenants[0].name,
@@ -107,8 +126,8 @@ export async function POST(req: NextRequest) {
 
     // Audit log
     writeActivityLog({
-      actor_email:   String(body.actorEmail || "unknown"),
-      actor_name:    String(body.actorName || "Staff"),
+      ...actor,
+      org_id:        orgId,
       action:        "created",
       resource_type: "tenant",
       resource_name: isBatch ? `${tenants.length} tenants imported` : tenants[0].name,
@@ -125,6 +144,11 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/tenants?id=xxx — update fields
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+  const actor = actorOf(g.ctx);
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
@@ -160,7 +184,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const authKey = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY;
-  const url = `${SUPABASE_URL}/rest/v1/tenants?id=eq.${encodeURIComponent(id)}`;
+  const url = `${SUPABASE_URL}/rest/v1/tenants?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`;
 
   // Attempt PATCH — if Supabase returns 400 "column not found", strip that column and retry
   async function attemptPatch(fields: Record<string, unknown>): Promise<NextResponse> {
@@ -170,7 +194,7 @@ export async function PATCH(req: NextRequest) {
         "apikey": authKey,
         "Authorization": `Bearer ${authKey}`,
         "Content-Type": "application/json",
-        "Prefer": "return=minimal",
+        "Prefer": "return=representation",
       },
       body: JSON.stringify(fields),
     });
@@ -178,6 +202,12 @@ export async function PATCH(req: NextRequest) {
     const responseText = await res.text();
 
     if (res.status === 204 || res.status === 200) {
+      let rows: unknown = null;
+      try { rows = JSON.parse(responseText); } catch { /* ignore */ }
+      if (Array.isArray(rows) && rows.length === 0) {
+        return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+      }
+
       // Build human-readable metadata from the frontend diff (_changes) if provided
       const frontendChanges = body._changes as Record<string, { from: unknown; to: unknown }> | undefined;
       let metadata: Record<string, unknown>;
@@ -197,8 +227,8 @@ export async function PATCH(req: NextRequest) {
       }
 
       writeActivityLog({
-        actor_email:   (body.actorEmail as string) || "unknown",
-        actor_name:    (body.actorName as string) || (body.actorEmail as string)?.split("@")[0] || "Staff",
+        ...actor,
+        org_id:        orgId,
         action:        "updated",
         resource_type: "tenant",
         resource_name: (body.name       as string) || (id as string),
@@ -234,10 +264,14 @@ export async function PATCH(req: NextRequest) {
 }
 // DELETE /api/tenants?id=xxx
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrgAdmin(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${encodeURIComponent(id)}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
     method: "DELETE",
     headers: HEADERS,
   });
@@ -249,8 +283,8 @@ export async function DELETE(req: NextRequest) {
 
   // Audit log — fire and forget
   writeActivityLog({
-    actor_email:   req.nextUrl.searchParams.get("actorEmail") || "unknown",
-    actor_name:    req.nextUrl.searchParams.get("actorName") || req.nextUrl.searchParams.get("actorEmail")?.split("@")[0] || "Staff",
+    ...actorOf(g.ctx),
+    org_id:        orgId,
     action:        "deleted",
     resource_type: "tenant",
     resource_name: req.nextUrl.searchParams.get("name")       || id,

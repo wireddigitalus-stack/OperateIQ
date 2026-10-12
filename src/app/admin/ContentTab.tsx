@@ -149,8 +149,6 @@ export default function ContentTab({ onSubViewChange, activeOrg }: ContentTabPro
 
   const siteUrl = activeOrg?.custom_domain
     ? `https://${activeOrg.custom_domain}`
-    : activeOrg?.slug === "wired-digital"
-    ? "/wired-digital"
     : activeOrg?.slug
     ? `/site/${activeOrg.slug}`
     : "/demo-site";

@@ -1,77 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE } from "@/lib/platform";
+import { getAuthUser, getRequestContext } from "@/lib/server-auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
+/**
+ * Switch the signed-in user's active workspace.
+ * Body: { orgId } or { slug }. The user MUST be a member of the target org.
+ * The cookie is only a preference — server-auth re-checks membership on every request.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { orgId, slug } = body;
-    const cookieStore = await cookies();
+    const user = await getAuthUser(req);
+    if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
 
-    let resolvedOrgId = orgId;
-    let resolvedOrgName = "WIRED DIGITAL LLC";
-    let resolvedSlug = slug || "wired-digital";
+    const ctx = await getRequestContext(req);
+    if (!ctx) return NextResponse.json({ error: "No organization is linked to this account." }, { status: 403 });
 
-    if (!resolvedOrgId && (slug || !orgId)) {
-      const searchSlug = (slug || "wired-digital").toLowerCase().trim();
+    const { orgId, slug } = await req.json().catch(() => ({}));
+    let targetId: string | null = orgId || null;
 
-      if (supabaseAdmin) {
-        let { data: org } = await supabaseAdmin
-          .from("organizations")
-          .select("*")
-          .ilike("slug", searchSlug)
-          .maybeSingle();
+    if (!targetId && slug) {
+      const { data: org } = await supabaseAdmin
+        .from("organizations")
+        .select("id")
+        .eq("slug", String(slug).toLowerCase().trim())
+        .maybeSingle();
+      targetId = org?.id || null;
+    }
+    if (!targetId) targetId = ctx.orgId;
 
-        if (!org && (searchSlug === "wired-digital" || searchSlug === "wireddigitalllc")) {
-          const { data: created } = await supabaseAdmin
-            .from("organizations")
-            .upsert(
-              {
-                name: "WIRED DIGITAL LLC",
-                slug: "wired-digital",
-                tier: "pro",
-                subscription_status: "active",
-                contact_email: "wireddigitalus@gmail.com",
-                brand_name: "WIRED DIGITAL LLC",
-              },
-              { onConflict: "slug" }
-            )
-            .select()
-            .single();
-          org = created;
-        }
-
-        if (org) {
-          resolvedOrgId = org.id;
-          resolvedOrgName = org.name;
-          resolvedSlug = org.slug;
-        }
-      }
-
-      if (!resolvedOrgId) {
-        // Fallback demo/wired org ID
-        resolvedOrgId = "11111111-2222-3333-4444-555555555555";
-      }
+    if (!ctx.memberships.some((m) => m.org_id === targetId)) {
+      return NextResponse.json({ error: "You are not a member of that organization." }, { status: 403 });
     }
 
-    // Set active organization cookie for 30 days
-    cookieStore.set(ACTIVE_ORG_COOKIE, resolvedOrgId, {
+    const { data: org } = await supabaseAdmin
+      .from("organizations")
+      .select("id,name,slug,tier")
+      .eq("id", targetId)
+      .maybeSingle();
+    if (!org) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+
+    const res = NextResponse.json({ success: true, activeOrgId: org.id, orgName: org.name, slug: org.slug, tier: org.tier });
+    res.cookies.set(ACTIVE_ORG_COOKIE, org.id, {
       path: "/",
       httpOnly: false,
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 30,
     });
-
-    // Remove any lingering impersonation
-    cookieStore.delete(IMPERSONATE_COOKIE);
-
-    return NextResponse.json({
-      success: true,
-      activeOrgId: resolvedOrgId,
-      orgName: resolvedOrgName,
-      slug: resolvedSlug,
-    });
+    res.cookies.delete(IMPERSONATE_COOKIE);
+    return res;
   } catch (error) {
     console.error("[set-active-org] error:", error);
     return NextResponse.json({ error: "Failed to switch active organization" }, { status: 500 });

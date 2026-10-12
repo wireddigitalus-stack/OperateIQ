@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 import { PROPERTIES } from "@/lib/data";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -14,14 +15,15 @@ const STATIC_PROPERTY_IMAGES: { url: string; label: string }[] = PROPERTIES.flat
   }))
 );
 
-async function listBucket(bucket: string): Promise<string[]> {
+// Lists only objects inside the tenant prefix `<orgId>/`.
+async function listBucket(bucket: string, orgId: string): Promise<string[]> {
   try {
     const res = await fetch(
       `${SUPABASE_URL}/storage/v1/object/list/${bucket}`,
       {
         method: "POST",
         headers: { ...AUTH, "Content-Type": "application/json" },
-        body: JSON.stringify({ limit: 200, offset: 0, sortBy: { column: "created_at", order: "desc" } }),
+        body: JSON.stringify({ prefix: `${orgId}/`, limit: 200, offset: 0, sortBy: { column: "created_at", order: "desc" } }),
       }
     );
     if (!res.ok) return [];
@@ -30,7 +32,7 @@ async function listBucket(bucket: string): Promise<string[]> {
     return files
       .filter((f: { name?: string; metadata?: { size?: number } }) => f.name && f.metadata?.size)
       .map((f: { name: string }) =>
-        `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${f.name}`
+        `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${orgId}/${f.name}`
       );
   } catch {
     return [];
@@ -44,11 +46,15 @@ async function listBucket(bucket: string): Promise<string[]> {
  *   - uploaded images from Supabase property-images bucket
  *   - uploaded images from Supabase blog-images bucket
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   // Fetch both Supabase buckets in parallel
   const [propertyBucketUrls, blogBucketUrls] = await Promise.all([
-    listBucket("property-images"),
-    listBucket("blog-images"),
+    listBucket("property-images", orgId),
+    listBucket("blog-images", orgId),
   ]);
 
   // Built-in catalogue images

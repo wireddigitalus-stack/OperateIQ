@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
+import { requireOrg, type RequestContext } from "@/lib/server-auth";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -9,19 +10,37 @@ const H = {
   "Content-Type": "application/json",
 };
 
-export async function GET() {
+/** Verified actor identity for audit logs (never trust client-sent actor fields). */
+function actorOf(ctx: RequestContext) {
+  return {
+    actor_email: ctx.user?.email || (ctx.staff ? `staff:${ctx.staff.uid}` : "unknown"),
+    actor_name: ctx.user?.name || ctx.staff?.name || "Staff",
+  };
+}
+
+// Used by the admin Maintenance tab AND the PIN-based crew portals (staff cookie).
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req, { allowStaff: true });
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/maintenance_tickets?order=priority.asc,created_at.desc`,
-    { headers: H }
+    `${SUPABASE_URL}/rest/v1/maintenance_tickets?org_id=eq.${orgId}&order=priority.asc,created_at.desc`,
+    { headers: H, cache: "no-store" }
   );
   if (!res.ok) return NextResponse.json({ tickets: [] });
   return NextResponse.json({ tickets: await res.json() });
 }
 
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req, { allowStaff: true });
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const body = await req.json();
   const ticket = {
-    id: `maint_${Date.now()}`,
+    org_id: orgId,
+    id: `maint_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     title: body.title?.trim() || "",
     description: body.description?.trim() || "",
     building: body.building?.trim() || "",
@@ -59,8 +78,8 @@ export async function POST(req: NextRequest) {
   }
 
   writeActivityLog({
-    actor_email:   body.actorEmail  || "unknown",
-    actor_name:    body.actorName || body.actorEmail?.split("@")[0] || "Staff",
+    ...actorOf(g.ctx),
+    org_id:        orgId,
     action:        "created",
     resource_type: "maintenance",
     resource_name: ticket.title,
@@ -72,12 +91,19 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req, { allowStaff: true });
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const body = await req.json();
 
-  // Fetch current ticket state to handle SLA timestamps
-  const currentRes = await fetch(`${SUPABASE_URL}/rest/v1/maintenance_tickets?id=eq.${encodeURIComponent(id)}`, { headers: H });
+  // Fetch current ticket state to handle SLA timestamps (and confirm org ownership)
+  const currentRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/maintenance_tickets?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`,
+    { headers: H, cache: "no-store" }
+  );
   let currentTicket: any = null;
   if (currentRes.ok) {
     const list = await currentRes.json();
@@ -85,6 +111,7 @@ export async function PATCH(req: NextRequest) {
       currentTicket = list[0];
     }
   }
+  if (!currentTicket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
   const map: Record<string, string> = {
     title: "title", description: "description", building: "building", unit: "unit", tenant: "tenant",
@@ -121,7 +148,7 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/maintenance_tickets?id=eq.${encodeURIComponent(id)}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/maintenance_tickets?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
     method: "PATCH",
     headers: { ...H, "Prefer": "return=representation" },
     body: JSON.stringify(patch),
@@ -133,11 +160,11 @@ export async function PATCH(req: NextRequest) {
   }
 
   writeActivityLog({
-    actor_email:   body.actorEmail || "unknown",
-    actor_name:    body.actorName || body.actorEmail?.split("@")[0] || "Staff",
+    ...actorOf(g.ctx),
+    org_id:        orgId,
     action:        "updated",
     resource_type: "maintenance",
-    resource_name: body.title     || id,
+    resource_name: body.title     || currentTicket.title || id,
     resource_id:   id,
     metadata: { status: body.status, fields_changed: Object.keys(patch) },
   });
@@ -146,18 +173,31 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req, { allowStaff: true });
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+  // Cleaning crew may report tickets but not delete them
+  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "maintenance") {
+    return NextResponse.json({ error: "You do not have access to this resource." }, { status: 403 });
+  }
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
-  await fetch(`${SUPABASE_URL}/rest/v1/maintenance_tickets?id=eq.${encodeURIComponent(id)}`, {
-    method: "DELETE", headers: H,
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/maintenance_tickets?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
+    method: "DELETE", headers: { ...H, "Prefer": "return=representation" },
   });
+  if (!res.ok) return NextResponse.json({ error: "Delete failed" }, { status: 500 });
+  const deleted = await res.json().catch(() => []);
+  if (!Array.isArray(deleted) || !deleted.length) {
+    return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+  }
 
   writeActivityLog({
-    actor_email:   req.nextUrl.searchParams.get("actorEmail") || "unknown",
-    actor_name:    req.nextUrl.searchParams.get("actorName") || req.nextUrl.searchParams.get("actorEmail")?.split("@")[0] || "Staff",
+    ...actorOf(g.ctx),
+    org_id:        orgId,
     action:        "deleted",
     resource_type: "maintenance",
-    resource_name: req.nextUrl.searchParams.get("name")       || id,
+    resource_name: deleted[0]?.title || req.nextUrl.searchParams.get("name") || id,
     resource_id:   id,
   });
 

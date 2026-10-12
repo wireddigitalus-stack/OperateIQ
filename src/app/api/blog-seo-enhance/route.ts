@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrgProfile, orgContactLine } from "@/lib/org-profile";
+import { orgContactLine } from "@/lib/org-profile";
+import { requireOrg } from "@/lib/server-auth";
+import { profileForOrg } from "@/lib/org-ai-profile";
 import { GEO_PAGES, PROPERTIES } from "@/lib/data";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY!;
@@ -17,6 +19,9 @@ const ENDPOINT   = `https://generativelanguage.googleapis.com/v1beta/models/${MO
  *  - seoNotes         (plain-English explanation of what changed and why)
  */
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+
   const { title, content, category, tags, currentMeta, currentExcerpt } = await req.json();
 
   if (!title || !content) {
@@ -26,7 +31,7 @@ export async function POST(req: NextRequest) {
   // Truncate content for very long articles (keep first 6000 chars — enough for full context)
   const contentSample = content.length > 6000 ? content.slice(0, 6000) + "\n\n[... article continues ...]" : content;
 
-  const org = getOrgProfile();
+  const org = profileForOrg(g.ctx.org);
   const contact = orgContactLine(org);
   const geoTerms = Array.from(new Set([
     org.location,

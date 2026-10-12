@@ -1373,6 +1373,11 @@ export default function MaintenanceStaffPage() {
   useEffect(() => {
     const saved = localStorage.getItem("oiq_staff_name");
     if (saved) setWorkerName(saved);
+    // Crew sessions expire after a shift — if the signed session is gone, return to PIN entry.
+    fetch("/api/staff-auth")
+      .then(r => r.json())
+      .then(d => { if (!d.authenticated) { localStorage.removeItem("oiq_staff_name"); setWorkerName(null); } })
+      .catch(() => {});
   }, []);
 
   // Fetch known maintenance staff for assignments and filters
@@ -1566,7 +1571,7 @@ export default function MaintenanceStaffPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { localStorage.removeItem("oiq_staff_name"); setWorkerName(null); }}
+          <button onClick={() => { localStorage.removeItem("oiq_staff_name"); setWorkerName(null); fetch("/api/staff-auth", { method: "DELETE" }).catch(() => {}); }}
             className="text-xs text-gray-400 hover:text-white px-3 py-2 rounded-xl border border-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.05)] transition-all">
             Switch
           </button>

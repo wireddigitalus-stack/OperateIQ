@@ -680,42 +680,63 @@ export default function IntakeStagingModal({
       const uniqueBuildingNames = Array.from(new Set(payload.map((p) => p.building).filter(Boolean)));
       const createdBuildingList: string[] = [];
 
-      for (const bName of uniqueBuildingNames) {
-        try {
-          const propSlug = bName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-          const unitsInThisBuilding = payload.filter((p) => p.building === bName).length;
+      // Skip buildings that already exist in this org's catalogue (safe to retry after a failure)
+      const existingRes = await fetch("/api/properties-dynamic?admin=1");
+      if (!existingRes.ok) {
+        const errData = await existingRes.json().catch(() => ({}));
+        throw new Error(errData.error || `Could not load existing properties (HTTP ${existingRes.status})`);
+      }
+      const existingData = await existingRes.json().catch(() => ({}));
+      const existingNames = new Set(
+        (Array.isArray(existingData.properties) ? existingData.properties : [])
+          .map((p: { name?: string }) => (p.name || "").trim().toLowerCase())
+      );
 
-          // Enroll in dynamic properties catalog
-          await fetch("/api/properties-dynamic", {
+      for (const bName of uniqueBuildingNames) {
+        const propSlug = bName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+        const unitsInThisBuilding = payload.filter((p) => p.building === bName).length;
+
+        // Existing buildings keep their catalogue entry AND their P&L details untouched
+        if (existingNames.has(bName.trim().toLowerCase())) continue;
+
+        {
+          // Enroll in dynamic properties catalog as an unpublished draft —
+          // address/city are left blank for the operator to fill in.
+          const propRes = await fetch("/api/properties-dynamic", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               name: bName,
               type: "Commercial / Residential",
-              address: `${bName} Boulevard`,
-              city: "Local Portfolio",
+              address: "",
+              city: "",
               lease_status: "active",
-              published: true,
-              in_banner: true,
+              published: false,
+              in_banner: false,
               description: `Auto-enrolled via OperateIQ AI Multi-Tenant Intake on ${new Date().toLocaleDateString()}`,
             }),
-          }).catch(() => null);
-
-          // Register in property_details for occupancy and P&L tracking
-          await fetch("/api/property-details", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              propertyId: propSlug || bName,
-              displayName: bName,
-              totalUnits: unitsInThisBuilding,
-              notes: `Auto-enrolled via AI Intake with ${unitsInThisBuilding} staged unit(s).`,
-            }),
-          }).catch(() => null);
-
+          });
+          if (!propRes.ok) {
+            const errData = await propRes.json().catch(() => ({}));
+            throw new Error(`Failed to create property "${bName}": ${errData.error || `HTTP ${propRes.status}`}`);
+          }
           createdBuildingList.push(bName);
-        } catch (enrollErr) {
-          console.warn("Building auto-enrollment notice for", bName, enrollErr);
+        }
+
+        // Register in property_details for occupancy and P&L tracking
+        const detailsRes = await fetch("/api/property-details", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            propertyId: propSlug || bName,
+            displayName: bName,
+            totalUnits: unitsInThisBuilding,
+            notes: `Auto-enrolled via AI Intake with ${unitsInThisBuilding} staged unit(s).`,
+          }),
+        });
+        if (!detailsRes.ok) {
+          const errData = await detailsRes.json().catch(() => ({}));
+          throw new Error(`Failed to register property details for "${bName}": ${errData.error || `HTTP ${detailsRes.status}`}`);
         }
       }
 

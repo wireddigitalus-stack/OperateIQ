@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { requireOrgAdmin } from "@/lib/server-auth";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
@@ -33,12 +34,17 @@ JSON Schema:
 `;
 
 export async function POST(req: NextRequest) {
-  try {
-    const { logs } = await req.json();
+  const g = await requireOrgAdmin(req);
+  if (!g.ok) return g.res;
 
-    if (!logs || !Array.isArray(logs)) {
+  try {
+    const { logs: rawLogs } = await req.json();
+
+    if (!rawLogs || !Array.isArray(rawLogs)) {
       return NextResponse.json({ error: "Logs array is required" }, { status: 400 });
     }
+    // Cap payload size to bound LLM cost.
+    const logs = rawLogs.slice(0, 200);
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({

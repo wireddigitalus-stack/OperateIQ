@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -9,8 +10,12 @@ const H = {
 };
 
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const leadId = req.nextUrl.searchParams.get("lead_id");
-  let url = `${SUPABASE_URL}/rest/v1/call_logs?order=created_at.desc`;
+  let url = `${SUPABASE_URL}/rest/v1/call_logs?org_id=eq.${orgId}&order=created_at.desc`;
   if (leadId) url += `&lead_id=eq.${encodeURIComponent(leadId)}`;
 
   const res = await fetch(url, { headers: H });
@@ -20,6 +25,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const body = await req.json();
   const { lead_id, lead_name, called_by, notes, outcome, follow_up_date } = body;
 
@@ -31,6 +40,7 @@ export async function POST(req: NextRequest) {
     method: "POST",
     headers: { ...H, Prefer: "return=representation" },
     body: JSON.stringify({
+      org_id: orgId,
       lead_id,
       lead_name: lead_name || "",
       called_by: called_by || "Staff",
@@ -46,8 +56,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
-  await fetch(`${SUPABASE_URL}/rest/v1/call_logs?id=eq.${id}`, { method: "DELETE", headers: H });
+  await fetch(`${SUPABASE_URL}/rest/v1/call_logs?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, { method: "DELETE", headers: H });
   return NextResponse.json({ success: true });
 }

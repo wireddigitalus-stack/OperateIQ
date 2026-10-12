@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrgProfile } from "@/lib/org-profile";
 import { BRAND } from "@/lib/brand";
+import { requireOrg } from "@/lib/server-auth";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// Crew AI assistant — used by the PIN-based staff portals (staff cookie) and admins.
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req, { allowStaff: true });
+  if (!g.ok) return g.res;
+
   try {
     const { question, role, context } = await req.json();
     if (!question) return NextResponse.json({ error: "Question is required" }, { status: 400 });
@@ -14,7 +19,8 @@ export async function POST(req: NextRequest) {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
 
-    const org = getOrgProfile();
+    const base = getOrgProfile();
+    const org = { ...base, name: g.ctx.org.brand_name || g.ctx.org.name || base.name };
 
     const systemPrompts: Record<string, string> = {
       maintenance: `You are ${BRAND.assistant} Maintenance Assistant — a knowledgeable field assistant for ${org.name} maintenance workers in ${org.location}.

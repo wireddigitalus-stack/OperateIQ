@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import Logo from "./Logo";
+import { supabaseBrowser } from "@/lib/supabase-browser";
 
 const links = [
   { label: "Features", href: "/features" },
@@ -15,6 +16,13 @@ const links = [
 export default function Navigation() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    supabaseBrowser.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    const { data: sub } = supabaseBrowser.auth.onAuthStateChange((_e, session) => setSignedIn(!!session));
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -40,8 +48,14 @@ export default function Navigation() {
           ))}
         </div>
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/admin/login" className="text-sm font-medium text-slate-300 hover:text-white">Log in</Link>
-          <Link href="/signup" className="oiq-btn !py-2 text-sm">Start free trial</Link>
+          {signedIn ? (
+            <Link href="/admin" className="oiq-btn !py-2 text-sm">Go to Dashboard</Link>
+          ) : (
+            <>
+              <Link href="/admin/login" className="text-sm font-medium text-slate-300 hover:text-white">Log in</Link>
+              <Link href="/signup" className="oiq-btn !py-2 text-sm">Start free trial</Link>
+            </>
+          )}
         </div>
         <button className="md:hidden text-white" onClick={() => setOpen(!open)} aria-label="Toggle menu">
           {open ? <X size={24} /> : <Menu size={24} />}
@@ -54,8 +68,14 @@ export default function Navigation() {
               {l.label}
             </Link>
           ))}
-          <Link href="/admin/login" onClick={() => setOpen(false)} className="text-slate-200 font-medium">Log in</Link>
-          <Link href="/signup" onClick={() => setOpen(false)} className="oiq-btn">Start free trial</Link>
+          {signedIn ? (
+            <Link href="/admin" onClick={() => setOpen(false)} className="oiq-btn">Go to Dashboard</Link>
+          ) : (
+            <>
+              <Link href="/admin/login" onClick={() => setOpen(false)} className="text-slate-200 font-medium">Log in</Link>
+              <Link href="/signup" onClick={() => setOpen(false)} className="oiq-btn">Start free trial</Link>
+            </>
+          )}
         </div>
       )}
     </header>

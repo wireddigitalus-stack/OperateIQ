@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrgProfile, orgContactLine } from "@/lib/org-profile";
+import { requireOrg } from "@/lib/server-auth";
+import { orgContactLine } from "@/lib/org-profile";
+import { profileForOrg } from "@/lib/org-ai-profile";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -14,6 +16,10 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  // Auth required: protects LLM spend from anonymous abuse.
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+
   try {
     if (!GEMINI_API_KEY) {
       return NextResponse.json({ error: "Gemini API key not configured." }, { status: 500 });
@@ -27,7 +33,7 @@ export async function POST(req: NextRequest) {
     const typeLabel = TYPE_LABELS[type] || "Press Release";
     const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
-    const org = getOrgProfile();
+    const org = profileForOrg(g.ctx.org);
     const contact = orgContactLine(org);
     const dateline = org.location.toUpperCase();
 

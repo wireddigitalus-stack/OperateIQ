@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -11,11 +12,15 @@ const HEADERS = {
 
 // GET /api/lead-comments?lead_id=xxx
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const leadId = req.nextUrl.searchParams.get("lead_id");
   if (!leadId) return NextResponse.json({ error: "lead_id required" }, { status: 400 });
 
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/lead_comments?lead_id=eq.${encodeURIComponent(leadId)}&order=timestamp.asc`,
+    `${SUPABASE_URL}/rest/v1/lead_comments?org_id=eq.${orgId}&lead_id=eq.${encodeURIComponent(leadId)}&order=timestamp.asc`,
     { headers: HEADERS }
   );
 
@@ -31,15 +36,30 @@ export async function GET(req: NextRequest) {
 
 // POST /api/lead-comments
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const { lead_id, author, body } = await req.json();
     if (!lead_id || !author?.trim() || !body?.trim()) {
       return NextResponse.json({ error: "lead_id, author, and body are required" }, { status: 400 });
     }
 
+    // Make sure the lead belongs to the caller's org before attaching a comment.
+    const leadRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads?select=id&id=eq.${encodeURIComponent(String(lead_id))}&org_id=eq.${orgId}&limit=1`,
+      { headers: HEADERS }
+    );
+    const leadRows = leadRes.ok ? await leadRes.json() : [];
+    if (!Array.isArray(leadRows) || leadRows.length === 0) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    }
+
     const comment = {
       id: `comment_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      lead_id,
+      org_id: orgId,
+      lead_id: String(lead_id),
       author: author.trim(),
       body: body.trim(),
       timestamp: new Date().toISOString(),

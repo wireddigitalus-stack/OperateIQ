@@ -465,6 +465,11 @@ export default function CleaningStaffPage() {
   useEffect(() => {
     const saved = localStorage.getItem("oiq_cleaning_name");
     if (saved) setWorkerName(saved);
+    // Crew sessions expire after a shift — if the signed session is gone, return to PIN entry.
+    fetch("/api/staff-auth")
+      .then(r => r.json())
+      .then(d => { if (!d.authenticated) { localStorage.removeItem("oiq_cleaning_name"); setWorkerName(null); } })
+      .catch(() => {});
     setCheckState(loadChecks());
   }, []);
 
@@ -540,7 +545,7 @@ export default function CleaningStaffPage() {
             <p className="text-base font-black text-white leading-none">{workerName}</p>
           </div>
         </div>
-        <button onClick={() => { localStorage.removeItem("oiq_cleaning_name"); setWorkerName(null); }}
+        <button onClick={() => { localStorage.removeItem("oiq_cleaning_name"); setWorkerName(null); fetch("/api/staff-auth", { method: "DELETE" }).catch(() => {}); }}
           className="text-xs text-gray-600 px-3 py-2 rounded-xl border border-[rgba(255,255,255,0.07)]">Switch</button>
       </div>
 

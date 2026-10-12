@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -24,6 +25,10 @@ export interface ExtractedTenantCandidate {
 }
 
 export async function POST(req: NextRequest) {
+  // Auth required: protects LLM spend from anonymous abuse.
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+
   try {
     if (!GEMINI_API_KEY) {
       return NextResponse.json(

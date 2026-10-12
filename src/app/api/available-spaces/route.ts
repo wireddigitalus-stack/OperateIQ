@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -10,10 +11,14 @@ const HEADERS = {
   "Content-Type": "application/json",
 };
 
-// GET /api/available-spaces — fetch all rows
-export async function GET() {
+// GET /api/available-spaces — fetch all rows for the caller's org
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/available_spaces?order=created_at.desc`,
+    `${SUPABASE_URL}/rest/v1/available_spaces?org_id=eq.${orgId}&order=created_at.desc`,
     { headers: HEADERS, cache: "no-store" }
   );
   if (!res.ok) {
@@ -31,8 +36,12 @@ export async function GET() {
   });
 }
 
-// POST /api/available-spaces — insert/update a space
+// POST /api/available-spaces — insert a space
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const body = await req.json();
     const { propertyId, name, monthlyRent, sqft, nnnFee, nnFee, utilityFee } = body;
@@ -41,6 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const row = {
+      org_id: orgId,
       property_id: propertyId,
       name: name.trim(),
       monthly_rent: Number(monthlyRent) || 0,
@@ -53,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(`${SUPABASE_URL}/rest/v1/available_spaces`, {
       method: "POST",
-      headers: { ...HEADERS, "Prefer": "resolution=merge-duplicates,return=representation" },
+      headers: { ...HEADERS, "Prefer": "return=representation" },
       body: JSON.stringify(row),
     });
 
@@ -75,11 +85,15 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/available-spaces?id=xxx
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/available_spaces?id=eq.${encodeURIComponent(id)}`,
+    `${SUPABASE_URL}/rest/v1/available_spaces?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`,
     { method: "DELETE", headers: HEADERS }
   );
 

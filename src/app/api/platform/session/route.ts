@@ -1,47 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, isSuperAdmin } from "@/lib/platform";
+import { IMPERSONATE_COOKIE, isSuperAdmin } from "@/lib/platform";
+import { getAuthUser, getRequestContext } from "@/lib/server-auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
+/**
+ * Who am I + which workspace am I in — derived ONLY from the verified session.
+ * Response shape kept backward-compatible: { isSuperAdmin, activeOrg, impersonatingOrg }
+ * plus { user, role, memberships } for org switchers.
+ */
 export async function GET(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const activeOrgId = cookieStore.get(ACTIVE_ORG_COOKIE)?.value || null;
-    const impersonateOrgId = cookieStore.get(IMPERSONATE_COOKIE)?.value || null;
-    const orgToFetch = activeOrgId || impersonateOrgId;
+    const user = await getAuthUser(req);
+    if (!user) {
+      return NextResponse.json({ authenticated: false, isSuperAdmin: false, activeOrg: null, impersonatingOrg: null, memberships: [] });
+    }
 
-    // Check query param or header for email if passed from client
-    const emailHeader = req.headers.get("x-user-email");
-    const emailQuery = req.nextUrl.searchParams.get("email");
-    const userEmail = emailHeader || emailQuery || "";
-
-    const userIsSuperAdmin = isSuperAdmin(userEmail);
-
-    let activeOrg: { id: string; name: string; slug: string; tier: string } | null = null;
-    let impersonatingOrg: { id: string; name: string; slug: string; tier: string } | null = null;
-
-    if (orgToFetch && supabaseAdmin) {
-      const { data: org } = await supabaseAdmin
+    const ctx = await getRequestContext(req);
+    let memberships: { id: string; name: string; slug: string; tier: string; role: string }[] = [];
+    if (ctx?.memberships.length) {
+      const { data: orgs } = await supabaseAdmin
         .from("organizations")
-        .select("id, name, slug, tier, subscription_status")
-        .eq("id", orgToFetch)
-        .maybeSingle();
+        .select("id,name,slug,tier")
+        .in("id", ctx.memberships.map((m) => m.org_id));
+      memberships = (orgs || []).map((o: { id: string; name: string; slug: string; tier: string }) => ({
+        ...o,
+        role: ctx.memberships.find((m) => m.org_id === o.id)?.role || "member",
+      }));
+    }
 
-      if (org) {
-        activeOrg = org;
-        if (impersonateOrgId && !activeOrgId) {
-          impersonatingOrg = org;
+    const org = ctx?.org || null;
+    const activeOrg = org
+      ? {
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+          tier: org.tier,
+          subscription_status: org.subscription_status,
+          trial_ends_at: org.trial_ends_at,
+          custom_domain: org.custom_domain,
         }
-      }
+      : null;
+
+    // Clean up a stale impersonation cookie for non-super-admins.
+    if (!ctx?.isSuperAdmin) {
+      try {
+        const store = await cookies();
+        if (store.get(IMPERSONATE_COOKIE)) store.delete(IMPERSONATE_COOKIE);
+      } catch { /* read-only context */ }
     }
 
     return NextResponse.json({
-      isSuperAdmin: userIsSuperAdmin,
+      authenticated: true,
+      user: { email: user.email, name: user.name },
+      isSuperAdmin: !!ctx?.isSuperAdmin || isSuperAdmin(user.email),
+      role: ctx?.role || null,
       activeOrg,
-      impersonatingOrg,
+      impersonatingOrg: ctx?.impersonating ? activeOrg : null,
+      memberships,
     });
   } catch (error) {
     console.error("[platform/session] error:", error);
-    return NextResponse.json({ isSuperAdmin: false, activeOrg: null, impersonatingOrg: null });
+    return NextResponse.json({ authenticated: false, isSuperAdmin: false, activeOrg: null, impersonatingOrg: null, memberships: [] });
   }
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import AdminHeader from "@/components/AdminHeader";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 export const metadata: Metadata = {
   title: "OperateIQ | Property Intelligence Platform",
@@ -27,6 +28,7 @@ export default function AdminLayout({
   return (
     <>
       <AdminHeader />
+      <ImpersonationBanner />
       <div className="admin-content-wrapper pt-16">
         <Suspense fallback={<div className="min-h-screen bg-[#040812]" />}>
           {children}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrgProfile } from "@/lib/org-profile";
+import { requireOrg } from "@/lib/server-auth";
+import { profileForOrg } from "@/lib/org-ai-profile";
 import { BRAND } from "@/lib/brand";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -38,6 +39,10 @@ function buildLeadsContext(leads: LeanLead[]) {
 }
 
 export async function POST(req: NextRequest) {
+  // Auth required: protects LLM spend from anonymous abuse.
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+
   try {
     const body = await req.json();
     const { question, leads } = body;
@@ -51,7 +56,7 @@ export async function POST(req: NextRequest) {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
 
-    const org = getOrgProfile();
+    const org = profileForOrg(g.ctx.org);
 
     const prompt = `You are Ask ${BRAND.assistant} — AI lead advisor for ${org.name}'s CRM in ${org.location}.
 Today: ${today}

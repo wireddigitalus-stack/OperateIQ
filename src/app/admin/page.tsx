@@ -22,7 +22,7 @@ import SettingsTab, { SocialLinksCard } from "./SettingsTab";
 import IntakeStagingModal from "./IntakeStagingModal";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { isSuperAdmin } from "@/lib/platform";
+import { signOutEverywhere } from "@/lib/sign-out";
 import * as XLSX from "xlsx";
 import {
   Zap, RefreshCw, Phone, Clock, Building2, TrendingUp,
@@ -1502,99 +1502,58 @@ export default function AdminPage() {
       .catch(() => {});
   }, []);
 
-  // Auth check — redirect to login if no session, block if not on allowlist
+  // Auth check — the server decides: verified session → membership → active org.
   useEffect(() => {
-    fetch("/api/platform/session")
-      .then((res) => res.json())
-      .then((d) => {
-        if (d.activeOrg) setActiveOrg(d.activeOrg);
-        else if (d.impersonatingOrg) setActiveOrg(d.impersonatingOrg);
-      })
-      .catch(() => {});
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("oiq_demo_auth");
+      localStorage.removeItem("oiq_demo_auth");
+    }
 
     supabaseBrowser.auth.getUser().then(async ({ data }) => {
-      // Security: purge any stale client-side demo tokens immediately
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem("oiq_demo_auth");
-        localStorage.removeItem("oiq_demo_auth");
+      if (!data.user?.email) {
+        router.replace("/admin/login");
+        return;
       }
+      const email = data.user.email.toLowerCase();
 
-      if (!data.user) {
+      let session: {
+        authenticated?: boolean;
+        isSuperAdmin?: boolean;
+        activeOrg?: typeof activeOrg;
+        impersonatingOrg?: typeof activeOrg;
+        user?: { name?: string };
+      } = {};
+      try {
+        session = await fetch("/api/platform/session", { cache: "no-store" }).then((r) => r.json());
+      } catch { /* handled below */ }
+
+      if (!session.authenticated) {
         router.replace("/admin/login");
         return;
       }
 
-      const email = data.user.email || "";
-      if (!email) {
-        router.replace("/admin/login");
+      const org = session.impersonatingOrg || session.activeOrg || null;
+      if (!org) {
+        // Signed in, but not a member of any organization.
+        if (session.isSuperAdmin) {
+          router.replace("/platform");
+          return;
+        }
+        setAccessDenied(true);
+        setAuthChecking(false);
         return;
       }
+      setActiveOrg(org);
 
-      // Check allowed_users table in Supabase (instant, no redeployment needed)
-      try {
-        const { data: access } = await supabaseBrowser
-          .from("allowed_users")
-          .select("id")
-          .eq("email", email.toLowerCase())
-          .eq("role", "admin")
-          .eq("active", true)
-          .maybeSingle();
-
-        // Fallback: also honour the old NEXT_PUBLIC_ADMIN_EMAILS env var during transition
-        const rawList = process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "";
-        const envAllowed = rawList.split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
-        const isEnvAllowed = envAllowed.length > 0 && envAllowed.includes(email.toLowerCase());
-
-        if (!access && !isEnvAllowed && !isSuperAdmin(email)) {
-          setAccessDenied(true);
-          setAuthChecking(false);
-          // ── Log blocked access attempt ──
-          try {
-            const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-            const resolvedName = data.user?.user_metadata?.full_name || email.split("@")[0] || "Team";
-            fetch("/api/activity-log", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                action: "admin_blocked",
-                resource_type: "auth",
-                resource_name: resolvedName,
-                actor_name: resolvedName,
-                actor_email: email,
-                metadata: { device: isMobile ? "mobile" : "desktop", reason: "Unauthorized admin email attempt" },
-              }),
-            }).catch(() => {});
-          } catch { /**/ }
-          return;
-        }
-      } catch {
-        // If table doesn't exist yet, verify super-admin or env whitelist
-        if (!isSuperAdmin(email)) {
-          setAccessDenied(true);
-          setAuthChecking(false);
-          return;
-        }
-      }
-      // Prefer the name stored in allowed_users (admin-set), fall back to Google metadata
-      let resolvedName = data.user?.user_metadata?.full_name || email.split("@")[0] || "Team";
-      try {
-        const { data: userRow } = await supabaseBrowser
-          .from("allowed_users")
-          .select("name")
-          .eq("email", email.toLowerCase())
-          .maybeSingle();
-        if (userRow?.name && userRow.name.trim() && userRow.name.trim().toLowerCase() !== "admin") {
-          resolvedName = userRow.name.trim();
-        }
-      } catch { /**/ }
+      const resolvedName = session.user?.name || data.user.user_metadata?.full_name || email.split("@")[0] || "Team";
       setCurrentUser({
         name: resolvedName,
         email,
-        avatar: data.user?.user_metadata?.avatar_url,
+        avatar: data.user.user_metadata?.avatar_url,
       });
       try { localStorage.setItem("oiq_commenter", resolvedName); } catch { /**/ }
 
-      // ── Log this login to activity_log ──────────────────────────────────
+      // ── Log this login to activity_log (server stamps org + actor) ──────
       try {
         const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
         fetch("/api/activity-log", {
@@ -1613,6 +1572,12 @@ export default function AdminPage() {
 
       setAuthChecking(false);
     });
+
+    // Session expiry / sign-out in another tab → back to login.
+    const { data: sub } = supabaseBrowser.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") router.replace("/admin/login");
+    });
+    return () => sub.subscription.unsubscribe();
   }, [router]);
 
   // Clear stale localStorage on mount — Supabase is now source of truth
@@ -1766,16 +1731,12 @@ export default function AdminPage() {
           </div>
           <h1 className="text-xl font-black text-white mb-2">Access Denied</h1>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-            Your Google account is not authorized to access OperateIQ.
-            <br />Contact your administrator to request access.
+            This account isn&apos;t linked to an OperateIQ workspace yet.
+            <br />Ask your company&apos;s admin to add your email, or start a free trial.
           </p>
           <button
             onClick={async () => {
-              try {
-                localStorage.removeItem("oiq_demo_auth");
-                sessionStorage.removeItem("oiq_demo_auth");
-              } catch {}
-              await supabaseBrowser.auth.signOut();
+              await signOutEverywhere();
               router.replace("/admin/login");
             }}
             className="px-5 py-2.5 rounded-xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-red-400 text-sm font-bold hover:bg-[rgba(239,68,68,0.18)] transition-colors"
@@ -2202,14 +2163,10 @@ export default function AdminPage() {
                 )}
                 <button
                   onClick={async () => {
-                    try {
-                      localStorage.removeItem("oiq_demo_auth");
-                      sessionStorage.removeItem("oiq_demo_auth");
-                    } catch {}
-                    await supabaseBrowser.auth.signOut();
+                    await signOutEverywhere();
                     router.replace("/admin/login");
                   }}
-                  className="text-xs text-gray-600 hover:text-red-400 transition-colors hidden sm:block"
+                  className="text-xs text-gray-500 hover:text-red-400 transition-colors"
                   title="Sign out"
                 >
                   Sign out
@@ -2487,9 +2444,7 @@ export default function AdminPage() {
                   href={
                     (activeOrg as any)?.custom_domain
                       ? `https://${(activeOrg as any).custom_domain}`
-                      : activeOrg?.slug === "wired-digital"
-                      ? "/wired-digital"
-                      : `/site/${activeOrg?.slug || "wired-digital"}`
+                      : `/site/${activeOrg.slug}`
                   }
                   target="_blank"
                   rel="noopener noreferrer"

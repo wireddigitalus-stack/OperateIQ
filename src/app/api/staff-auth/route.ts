@@ -1,44 +1,70 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { encodeStaffSession, readStaffSession, STAFF_COOKIE } from "@/lib/staff-session";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const H = {
-  "Content-Type": "application/json",
-  apikey: KEY,
-  Authorization: `Bearer ${KEY}`,
-};
-
-// POST — authenticate staff by 6-digit PIN
+/**
+ * POST /api/staff-auth  { pin }   → crew PIN login
+ * Issues a signed httpOnly `oiq_staff` session cookie bound to the worker's org.
+ * DELETE /api/staff-auth           → crew logout
+ */
 export async function POST(req: NextRequest) {
   try {
-    const { pin } = await req.json();
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+    if (!checkRateLimit(`staff-auth:${ip}`, 8, 10 * 60 * 1000)) {
+      return NextResponse.json({ error: "Too many attempts. Please wait a few minutes." }, { status: 429 });
+    }
 
+    const { pin } = await req.json();
     if (!pin || typeof pin !== "string" || !/^\d{6}$/.test(pin)) {
       return NextResponse.json({ error: "A valid 6-digit PIN is required." }, { status: 400 });
     }
 
-    // Look up active user with this PIN (maintenance or cleaning only)
-    const url = `${SUPABASE_URL}/rest/v1/allowed_users?pin=eq.${encodeURIComponent(pin)}&active=eq.true&role=in.(maintenance,cleaning)&select=id,name,role`;
-    const res = await fetch(url, { headers: H });
+    const { data: users, error } = await supabaseAdmin
+      .from("allowed_users")
+      .select("id,name,role,org_id")
+      .eq("pin", pin)
+      .eq("active", true)
+      .in("role", ["maintenance", "cleaning"])
+      .limit(2);
 
-    if (!res.ok) {
-      return NextResponse.json({ error: "Auth service unavailable." }, { status: 500 });
-    }
-
-    const users = await res.json();
-
-    if (!Array.isArray(users) || users.length === 0) {
-      return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
+    if (error) return NextResponse.json({ error: "Auth service unavailable." }, { status: 500 });
+    if (!users || users.length === 0) return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
+    if (users.length > 1) {
+      // Legacy duplicate PIN across orgs — refuse rather than guess the company.
+      return NextResponse.json({ error: "This PIN must be reset by your manager." }, { status: 409 });
     }
 
     const user = users[0];
-    return NextResponse.json({
-      success: true,
-      name: user.name,
-      role: user.role,
-      id: user.id,
+    const { value, maxAge } = encodeStaffSession({
+      uid: user.id,
+      orgId: user.org_id,
+      role: user.role as "maintenance" | "cleaning",
+      name: user.name || "",
     });
+
+    const res = NextResponse.json({ success: true, name: user.name, role: user.role, id: user.id });
+    res.cookies.set(STAFF_COOKIE, value, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge,
+    });
+    return res;
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
+}
+
+/** GET → is there a valid crew session? */
+export async function GET() {
+  const s = await readStaffSession();
+  return NextResponse.json(s ? { authenticated: true, name: s.name, role: s.role } : { authenticated: false });
+}
+
+export async function DELETE() {
+  const res = NextResponse.json({ success: true });
+  res.cookies.delete(STAFF_COOKIE);
+  return res;
 }

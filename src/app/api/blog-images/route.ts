@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -36,6 +37,10 @@ async function ensureBucket() {
  * Returns: { success: true, url: string }
  */
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const form = await req.formData();
     const file = form.get("file") as File | null;
@@ -61,8 +66,10 @@ export async function POST(req: NextRequest) {
       "image/png": "png",
       "image/gif": "gif",
     };
-    const ext = mimeToExt[file.type] || file.name.split(".").pop()?.toLowerCase() || "webp";
-    const filename = `blog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const rawExt = mimeToExt[file.type] || file.name.split(".").pop()?.toLowerCase() || "webp";
+    const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : "webp";
+    // Objects are namespaced per tenant: <orgId>/blog-....
+    const filename = `${orgId}/blog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const buffer = await file.arrayBuffer();
 
@@ -104,15 +111,24 @@ export async function POST(req: NextRequest) {
  * Optional — the blog post record still needs to be updated separately.
  */
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const url = req.nextUrl.searchParams.get("url");
   if (!url) return NextResponse.json({ error: "url required" }, { status: 400 });
 
   // Extract filename from the public URL
   const filename = url.split(`/storage/v1/object/public/${BUCKET}/`)[1];
   if (!filename) return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  // Only allow deleting objects inside the caller's own org prefix.
+  const objectPath = decodeURIComponent(filename.split("?")[0]);
+  if (!objectPath.startsWith(`${orgId}/`) || objectPath.includes("..")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const res = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURIComponent(filename)}`,
+    `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${objectPath.split("/").map(encodeURIComponent).join("/")}`,
     {
       method: "DELETE",
       headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },

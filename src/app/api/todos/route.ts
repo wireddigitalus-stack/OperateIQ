@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg, sanitizeUpdate } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -9,8 +10,20 @@ const HEADERS = {
   "Content-Type": "application/json",
 };
 
-export async function GET() {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?order=created_at.desc`, {
+const TODO_COLUMNS = ["task", "description", "assigned_to", "due_date", "status", "priority", "is_private", "created_by"] as const;
+
+function pickTodo(body: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of TODO_COLUMNS) if (k in body) out[k] = body[k];
+  return out;
+}
+
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?org_id=eq.${orgId}&order=created_at.desc`, {
     headers: HEADERS,
     cache: "no-store",
   });
@@ -20,12 +33,16 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
+  const body = (await req.json()) as Record<string, unknown>;
   const id = `todo_${Date.now()}`;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/todos`, {
     method: "POST",
     headers: { ...HEADERS, Prefer: "return=representation" },
-    body: JSON.stringify({ ...body, id }),
+    body: JSON.stringify({ ...pickTodo(body), id, org_id: orgId }),
   });
   if (!res.ok) return NextResponse.json({ error: "Failed to create" }, { status: 500 });
   const data = await res.json();
@@ -33,24 +50,32 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const id = req.nextUrl.searchParams.get("id");
-  const body = await req.json();
+  const body = (await req.json()) as Record<string, unknown>;
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?id=eq.${id}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
     method: "PATCH",
     headers: { ...HEADERS, Prefer: "return=representation" },
-    body: JSON.stringify({ ...body, updated_at: new Date().toISOString() }),
+    body: JSON.stringify({ ...pickTodo(sanitizeUpdate(body)), updated_at: new Date().toISOString() }),
   });
   if (!res.ok) return NextResponse.json({ error: "Update failed" }, { status: 500 });
   return NextResponse.json({ success: true });
 }
 
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?id=eq.${id}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
     method: "DELETE",
     headers: HEADERS,
   });

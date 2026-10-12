@@ -1,82 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
-const KEY         = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const H = {
-  "Content-Type": "application/json",
-  "apikey":        KEY,
-  "Authorization": `Bearer ${KEY}`,
-};
+import { supabaseAdmin } from "@/lib/supabase";
+import { requireOrgAdmin } from "@/lib/server-auth";
 
 /**
- * POST /api/ensure-staff
+ * POST /api/ensure-staff   (org admins only, scoped to their org)
  * Body: { name: string, role: "cleaning" | "maintenance" }
  *
- * Looks up allowed_users by name+role (case-insensitive).
- *   • If found  → returns { user, isNew: false }
- *   • If missing → creates with a fresh 6-digit PIN and returns { user, isNew: true, pin }
- *
- * This is called automatically whenever a worker name is saved in the
- * Cleaning or Maintenance job forms so that staff are always provisioned.
+ * Looks up the org's crew member by name+role (case-insensitive).
+ *   • If found   → { user (no PIN), isNew: false }
+ *   • If missing → creates with a fresh, globally-unique 6-digit PIN → { user, isNew: true, pin }
  */
 export async function POST(req: NextRequest) {
+  const g = await requireOrgAdmin(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
-    if (!KEY) {
-      return NextResponse.json({ error: "Server misconfiguration — service role key missing" }, { status: 500 });
-    }
-
     const { name, role } = await req.json();
-
-    if (!name?.trim() || !role) {
-      return NextResponse.json({ error: "name and role are required" }, { status: 400 });
+    if (!name?.trim() || !["cleaning", "maintenance"].includes(role)) {
+      return NextResponse.json({ error: "name and a valid role are required" }, { status: 400 });
     }
+    const trimmedName = String(name).trim();
 
-    const trimmedName = name.trim();
+    const { data: existing, error: lookupErr } = await supabaseAdmin
+      .from("allowed_users")
+      .select("id,name,role,active")
+      .eq("org_id", orgId)
+      .eq("role", role)
+      .ilike("name", trimmedName)
+      .limit(1);
+    if (lookupErr) return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
+    if (existing && existing.length) return NextResponse.json({ user: existing[0], isNew: false });
 
-    // 1. Check if this name already exists for this role (case-insensitive)
-    const searchUrl = `${SUPABASE_URL}/rest/v1/allowed_users`
-      + `?role=eq.${encodeURIComponent(role)}`
-      + `&name=ilike.${encodeURIComponent(trimmedName)}`;
-
-    const checkRes = await fetch(searchUrl, { headers: H });
-    if (!checkRes.ok) {
-      console.error("[ensure-staff] Lookup failed:", await checkRes.text());
-      return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
+    let pin = "";
+    for (let i = 0; i < 20; i++) {
+      const candidate = Math.floor(100000 + Math.random() * 900000).toString();
+      const { data: clash } = await supabaseAdmin.from("allowed_users").select("id").eq("pin", candidate).eq("active", true).limit(1);
+      if (!clash?.length) { pin = candidate; break; }
     }
+    if (!pin) return NextResponse.json({ error: "Could not generate a unique PIN" }, { status: 500 });
 
-    const existing = await checkRes.json() as Array<{ id: string; name: string; role: string; pin: string; active: boolean }>;
-
-    if (existing.length > 0) {
-      // Already exists — return without creating
-      return NextResponse.json({ user: existing[0], isNew: false });
-    }
-
-    // 2. Generate a random 6-digit PIN
-    const pin = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // 3. Create the staff member
-    const createRes = await fetch(`${SUPABASE_URL}/rest/v1/allowed_users`, {
-      method: "POST",
-      headers: { ...H, "Prefer": "return=representation" },
-      body: JSON.stringify({
+    const { data: created, error } = await supabaseAdmin
+      .from("allowed_users")
+      .insert({
+        id: `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        org_id: orgId,
         name: trimmedName,
         role,
         pin,
         active: true,
-        created_at: new Date().toISOString(),
-      }),
-    });
-
-    if (!createRes.ok) {
-      const err = await createRes.text();
-      console.error("[ensure-staff] Create failed:", err);
-      return NextResponse.json({ error: "Failed to create staff member", detail: err }, { status: 500 });
+      })
+      .select("id,name,role,pin")
+      .single();
+    if (error) {
+      console.error("[ensure-staff] Create failed:", error.message);
+      return NextResponse.json({ error: "Failed to create staff member" }, { status: 500 });
     }
-
-    const [created] = await createRes.json() as Array<{ id: string; name: string; role: string; pin: string }>;
-
     return NextResponse.json({ user: created, isNew: true, pin });
-
   } catch (err) {
     console.error("[ensure-staff] Unexpected error:", err);
     return NextResponse.json({ error: "Unexpected error" }, { status: 500 });

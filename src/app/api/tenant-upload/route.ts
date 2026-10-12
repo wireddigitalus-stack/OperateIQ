@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireOrg } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -28,7 +29,22 @@ async function ensureBucket() {
   }
 }
 
+/** Confirms the tenant id belongs to the caller's org. */
+async function tenantInOrg(tenantId: string, orgId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("tenants")
+    .select("id")
+    .eq("id", tenantId)
+    .eq("org_id", orgId)
+    .maybeSingle();
+  return !!data;
+}
+
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const contentType = req.headers.get("content-type") || "";
 
@@ -41,15 +57,19 @@ export async function POST(req: NextRequest) {
       if (!filename || !tenantId) {
         return NextResponse.json({ error: "Filename and tenant ID are required." }, { status: 400 });
       }
+      if (!(await tenantInOrg(tenantId, orgId))) {
+        return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
+      }
 
       await ensureBucket();
 
       const safeTenantId = tenantId.trim().replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80) || "tenant";
       const lastDotIndex = filename.lastIndexOf(".");
       const baseName = lastDotIndex !== -1 ? filename.slice(0, lastDotIndex) : filename;
-      const ext = lastDotIndex !== -1 ? filename.slice(lastDotIndex + 1).toLowerCase() : "pdf";
+      const ext = (lastDotIndex !== -1 ? filename.slice(lastDotIndex + 1).toLowerCase() : "pdf").replace(/[^a-z0-9]/g, "") || "pdf";
       const cleanBaseName = baseName.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 60).toLowerCase() || "document";
-      const path = `${safeTenantId}/${Date.now()}-${cleanBaseName}.${ext}`;
+      // Always namespace objects under the caller's org
+      const path = `${orgId}/${safeTenantId}/${Date.now()}-${cleanBaseName}.${ext}`;
 
       const { data, error } = await supabaseAdmin.storage
         .from(BUCKET)
@@ -83,6 +103,9 @@ export async function POST(req: NextRequest) {
     if (!file || !tenantId) {
       return NextResponse.json({ error: "File and tenant ID are required." }, { status: 400 });
     }
+    if (!(await tenantInOrg(tenantId, orgId))) {
+      return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
+    }
 
     if (file.size > 50 * 1024 * 1024) {
       return NextResponse.json({ error: "File is too large. Maximum size is 50MB." }, { status: 400 });
@@ -93,9 +116,9 @@ export async function POST(req: NextRequest) {
     const safeTenantId = tenantId.trim().replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80) || "tenant";
     const lastDotIndex = file.name.lastIndexOf(".");
     const baseName = lastDotIndex !== -1 ? file.name.slice(0, lastDotIndex) : file.name;
-    const ext = lastDotIndex !== -1 ? file.name.slice(lastDotIndex + 1).toLowerCase() : "pdf";
+    const ext = (lastDotIndex !== -1 ? file.name.slice(lastDotIndex + 1).toLowerCase() : "pdf").replace(/[^a-z0-9]/g, "") || "pdf";
     const cleanBaseName = baseName.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 60).toLowerCase() || "document";
-    const filename = `${safeTenantId}/${Date.now()}-${cleanBaseName}.${ext}`;
+    const filename = `${orgId}/${safeTenantId}/${Date.now()}-${cleanBaseName}.${ext}`;
 
     const buffer = await file.arrayBuffer();
     const fileContentType = file.type || (ext === "pdf" ? "application/pdf" : "application/octet-stream");

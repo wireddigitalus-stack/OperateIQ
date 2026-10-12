@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrgProfile } from "@/lib/org-profile";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -20,6 +21,9 @@ function nameToSlug(name: string): string {
 
 // GET /api/team-member?slug=jane
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const orgId = g.ctx.orgId;
   const slug = req.nextUrl.searchParams.get("slug")?.toLowerCase().trim();
   if (!slug) {
     return NextResponse.json({ name: getOrgProfile().name, title: "Commercial Real Estate" });
@@ -27,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/allowed_users?active=eq.true&select=name,role`,
+      `${SUPABASE_URL}/rest/v1/allowed_users?active=eq.true&org_id=eq.${orgId}&select=name,role`,
       { headers: H }
     );
     if (!res.ok) {

@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrgProfile } from "@/lib/org-profile";
+import { requireOrg } from "@/lib/server-auth";
+import { profileForOrg } from "@/lib/org-ai-profile";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const MODEL = "gemini-2.5-flash";
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
 
 export async function POST(req: NextRequest) {
+  // Auth required: protects LLM spend from anonymous abuse.
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+
   if (!GEMINI_KEY) {
     return NextResponse.json(
       { error: "GEMINI_KEY_MISSING", message: "Add GEMINI_API_KEY to your environment variables to use AI enhancement." },
@@ -18,7 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "name, type, and city are required" }, { status: 400 });
   }
 
-  const org = getOrgProfile();
+  const org = profileForOrg(g.ctx.org);
 
   const prompt = `You are an expert commercial real estate copywriter for ${org.name}, a commercial real estate firm in ${org.location}.
 

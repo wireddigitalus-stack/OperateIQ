@@ -5,6 +5,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
+import { resolveOrgIdBySlug } from "@/lib/public-org";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -54,6 +55,26 @@ function sanitize(val: unknown, maxLen = 500): string {
   return String(val ?? "").trim().slice(0, maxLen);
 }
 
+// ── Tenant attribution ──────────────────────────────────────────────────────
+// Public tracking stays unauthenticated. If the tracked page lives under a
+// tenant microsite (/site/<slug>/...) we attribute the event to that org;
+// otherwise the DB default (platform/demo org) applies. org_id is never taken
+// directly from the payload.
+const slugCache = new Map<string, { orgId: string | null; expires: number }>();
+
+async function orgIdForPath(pagePath: string): Promise<string | null> {
+  const m = pagePath.match(/^\/site\/([A-Za-z0-9-]{1,63})(?:[/?#]|$)/);
+  if (!m) return null;
+  const slug = m[1];
+  const now = Date.now();
+  const hit = slugCache.get(slug);
+  if (hit && hit.expires > now) return hit.orgId;
+  const orgId = await resolveOrgIdBySlug(slug);
+  if (slugCache.size > 1000) slugCache.clear();
+  slugCache.set(slug, { orgId, expires: now + 5 * 60_000 });
+  return orgId;
+}
+
 // ── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -92,17 +113,21 @@ export async function POST(req: NextRequest) {
       return new NextResponse(null, { status: 204 });
     }
 
+    const pagePath = sanitize(body.page_path || "/", 300);
+    const orgId = await orgIdForPath(pagePath);
+
     // Build the row
     const row = {
+      ...(orgId ? { org_id: orgId } : {}),
       session_id: sessionId,
       event_type: eventType,
-      page_path: sanitize(body.page_path || "/", 300),
+      page_path: pagePath,
       page_title: sanitize(body.page_title, 200) || null,
       referrer: sanitize(body.referrer, 500) || null,
       utm_source: sanitize(body.utm_source, 100) || null,
       utm_medium: sanitize(body.utm_medium, 100) || null,
       utm_campaign: sanitize(body.utm_campaign, 200) || null,
-      event_data: typeof body.event_data === "object" ? body.event_data : {},
+      event_data: body.event_data && typeof body.event_data === "object" && !Array.isArray(body.event_data) ? body.event_data : {},
       duration_ms: Math.max(0, Math.min(Number(body.duration_ms) || 0, 3_600_000)), // Cap at 1hr
       device_type: sanitize(body.device_type, 20) || "desktop",
       screen_width: Math.max(0, Math.min(Number(body.screen_width) || 0, 10000)),

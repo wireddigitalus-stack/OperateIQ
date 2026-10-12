@@ -34,6 +34,7 @@ function SignupForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [created, setCreated] = useState<{ slug: string; signedIn: boolean } | null>(null);
 
   const activePlan = PLANS.find((p) => p.id === selectedPlan) || PLANS[2];
 
@@ -67,6 +68,7 @@ function SignupForm() {
         throw new Error(data.error || "Could not process signup. Please try again.");
       }
 
+      setCreated({ slug: data.slug, signedIn: !!data.signedIn });
       setSubmitted(true);
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -98,23 +100,24 @@ function SignupForm() {
             • Admin credentials registered to <strong>{email}</strong>.
           </p>
           <p>
-            • Sign in instantly via <strong>Google</strong> or request a 1-click <strong>Email Magic Link</strong> to access your workspace.
+            • Sign in with <strong>Google</strong> or a 1-click <strong>Email Magic Link</strong> using <strong>{email}</strong> — that email is your workspace owner login.
           </p>
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            href="/admin/login"
+            href={created?.signedIn ? "/admin" : `/admin/login?email=${encodeURIComponent(email.trim())}`}
             className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white font-bold text-xs shadow-lg hover:opacity-95 transition-all flex items-center justify-center gap-2"
           >
-            <span>Sign In to Your Dashboard</span>
+            <span>{created?.signedIn ? "Open Your Dashboard" : "Sign In to Your Dashboard"}</span>
             <ArrowRight size={14} />
           </Link>
           <Link
-            href="/demo-site"
+            href={created?.slug ? `/site/${created.slug}` : "/demo-site"}
+            target="_blank"
             className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5"
           >
-            <span>Explore Demo Site</span>
+            <span>{created?.slug ? "Preview Your Public Site" : "Explore Demo Site"}</span>
             <ExternalLink size={13} />
           </Link>
         </div>

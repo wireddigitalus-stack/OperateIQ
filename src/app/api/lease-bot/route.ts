@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE } from "@/lib/platform";
-import { LEADS_STORE, type Lead } from "@/lib/leads-store";
+import { type Lead } from "@/lib/leads-store";
 import { detectWhale } from "@/lib/whale-detector";
-import { supabaseAdmin, rowToLead } from "@/lib/supabase";
+import { rowToLead } from "@/lib/supabase";
 import { writeActivityLog } from "@/lib/activity-log";
 import { PROPERTIES } from "@/lib/data";
 import { getOrgProfile } from "@/lib/org-profile";
 import { BRAND } from "@/lib/brand";
+import { requireOrg, requireOrgAdmin } from "@/lib/server-auth";
 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -113,8 +112,9 @@ ${PROPERTIES.map(
 ).join("\n")}
 `;
 
-const SCORING_PROMPT = (lead: Partial<Lead>) => {
-  const org = getOrgProfile();
+const SCORING_PROMPT = (lead: Partial<Lead>, orgName?: string) => {
+  const profile = getOrgProfile();
+  const org = { ...profile, name: orgName || profile.name };
   return `
 You are a commercial real estate lead scoring AI for ${org.name} in ${org.location}.
 
@@ -173,6 +173,11 @@ Include 1-2 best matching properties only.
 };
 
 export async function POST(req: NextRequest) {
+  // Only the admin dashboard calls this route (no public lead form posts here).
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, org, user } = g.ctx;
+
   try {
     const body = await req.json();
     const { name, email, phone, spaceType, budget, timeline, teamSize, additionalInfo,
@@ -198,7 +203,7 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: SCORING_PROMPT(leadData) }] }],
+          contents: [{ parts: [{ text: SCORING_PROMPT(leadData, org.brand_name || org.name) }] }],
           generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
           // NOTE: no thinkingConfig — not supported by this API key
         }),
@@ -261,8 +266,8 @@ export async function POST(req: NextRequest) {
       progress: "0-25%",
     };
 
-    LEADS_STORE.unshift(lead);
-    if (LEADS_STORE.length > 50) LEADS_STORE.pop();
+    // NOTE: the old process-global LEADS_STORE cache was removed — it mixed
+    // leads from every tenant in one array.
 
     // Persist to Supabase via direct REST API (supabase-js was silently failing)
     try {
@@ -295,11 +300,8 @@ export async function POST(req: NextRequest) {
         progress: lead.progress || "0-25%",
       };
 
-      const cookieStore = await cookies();
-      const targetOrgId = (body as any)?.org_id || cookieStore.get(ACTIVE_ORG_COOKIE)?.value || cookieStore.get(IMPERSONATE_COOKIE)?.value || null;
-      if (targetOrgId) {
-        dbPayload.org_id = targetOrgId;
-      }
+      // Tenant comes ONLY from the verified session — never body/cookie.
+      dbPayload.org_id = orgId;
 
       let insertRes = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
         method: "POST",
@@ -336,8 +338,9 @@ export async function POST(req: NextRequest) {
       } else {
         // Audit log — fire and forget
         writeActivityLog({
-          actor_email:   actorEmail   || "unknown",
-          actor_name:    actorName || actorEmail?.split("@")[0] || "Staff",
+          org_id:        orgId,
+          actor_email:   user?.email || actorEmail   || "unknown",
+          actor_name:    actorName || user?.name || actorEmail?.split("@")[0] || "Staff",
           action:        "created",
           resource_type: "lead",
           resource_name: lead.name,
@@ -355,7 +358,13 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Send email notification to team ──────────────────────────────────────
-    if (RESEND_API_KEY && LEAD_NOTIFY_TO.length > 0) {
+    // Each tenant's leads go to that tenant's contact email. The env-configured
+    // LEAD_NOTIFY_TO list is only used for the platform demo org.
+    const DEMO_ORG_ID = "00000000-0000-0000-0000-000000000001";
+    const notifyTo = org.contact_email
+      ? [org.contact_email]
+      : orgId === DEMO_ORG_ID ? LEAD_NOTIFY_TO : [];
+    if (RESEND_API_KEY && notifyTo.length > 0) {
       try {
         const scoreEmoji = lead.score >= 70 ? "🔥" : lead.score >= 40 ? "📋" : "📎";
         const budgetStr = lead.budget ? ` ($${lead.budget.toLocaleString()}/mo)` : "";
@@ -367,7 +376,7 @@ export async function POST(req: NextRequest) {
           },
           body: JSON.stringify({
             from: FROM_EMAIL,
-            to: LEAD_NOTIFY_TO,
+            to: notifyTo,
             reply_to: lead.email || undefined,
             subject: `${scoreEmoji} ${lead.scoreLabel}: ${lead.name} — ${lead.spaceType}${budgetStr}`,
             html: buildLeadEmailHtml(lead),
@@ -396,17 +405,16 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-    const cookieStore = await cookies();
-    const activeOrgId = req.nextUrl?.searchParams?.get("org_id") || cookieStore.get(ACTIVE_ORG_COOKIE)?.value || cookieStore.get(IMPERSONATE_COOKIE)?.value || null;
-
-    let url = `${SUPABASE_URL}/rest/v1/leads?select=*&order=timestamp.desc&limit=50`;
-    if (activeOrgId) {
-      url += `&org_id=eq.${encodeURIComponent(activeOrgId)}`;
-    }
+    // Any ?org_id= query param is ignored — tenancy comes from the session.
+    const url = `${SUPABASE_URL}/rest/v1/leads?select=*&org_id=eq.${orgId}&order=timestamp.desc&limit=50`;
 
     const res = await fetch(url, {
       headers: {
@@ -419,10 +427,6 @@ export async function GET(req: NextRequest) {
     const data = await res.json();
 
     const leads: Lead[] = (data || []).map(rowToLead);
-    if (!activeOrgId || activeOrgId === "00000000-0000-0000-0000-000000000001") {
-      LEADS_STORE.length = 0;
-      LEADS_STORE.push(...leads);
-    }
 
     return NextResponse.json({ leads });
   } catch (err) {
@@ -432,6 +436,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrgAdmin(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const body = await req.json();
     const { id, all } = body as { id?: string; all?: boolean };
@@ -445,9 +453,9 @@ export async function DELETE(req: NextRequest) {
     };
 
     if (all) {
-      // Bulk delete: remove ALL leads
+      // Bulk delete: remove ALL leads for the caller's org only
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/leads?id=not.is.null`,
+        `${SUPABASE_URL}/rest/v1/leads?org_id=eq.${orgId}`,
         { method: "DELETE", headers }
       );
       if (!res.ok) {
@@ -455,7 +463,6 @@ export async function DELETE(req: NextRequest) {
         console.error("Supabase bulk delete failed:", res.status, errText);
         return NextResponse.json({ error: "Bulk delete failed" }, { status: 500 });
       }
-      LEADS_STORE.length = 0;
       return NextResponse.json({ success: true, deleted: "all" });
     }
 
@@ -465,7 +472,7 @@ export async function DELETE(req: NextRequest) {
 
     // Single delete via REST API (supabase-js was silently failing)
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(id)}`,
+      `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`,
       { method: "DELETE", headers }
     );
     if (!res.ok) {
@@ -473,10 +480,6 @@ export async function DELETE(req: NextRequest) {
       console.error("Supabase delete failed:", res.status, errText);
       return NextResponse.json({ error: "Delete failed" }, { status: 500 });
     }
-
-    // Remove from memory store
-    const idx = LEADS_STORE.findIndex(l => l.id === id);
-    if (idx !== -1) LEADS_STORE.splice(idx, 1);
 
     return NextResponse.json({ success: true, deleted: id });
   } catch (err) {

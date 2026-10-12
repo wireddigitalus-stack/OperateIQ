@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const BUCKET = "maintenance-photos";
 
+// Used by the admin Maintenance tab and the PIN-based maintenance crew portal.
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req, { allowStaff: true });
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const form = await req.formData();
     const file = form.get("file") as File | null;
     if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
     const bytes = await file.arrayBuffer();
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const ext = (file.name.split(".").pop()?.toLowerCase() || "jpg").replace(/[^a-z0-9]/g, "") || "jpg";
+    // Object paths are always namespaced by the caller's org
+    const filename = `${orgId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
     // Ensure bucket exists (idempotent)
     await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {

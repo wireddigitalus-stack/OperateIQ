@@ -74,13 +74,13 @@ export default function TenantPublicSitePage() {
               orgData.organization.slug?.toLowerCase().includes("wired");
 
             // Fetch real properties for this organization if any exist
-            const propsRes = await fetch(`/api/properties?org_id=${encodeURIComponent(orgData.organization.id)}`);
+            const propsRes = await fetch(`/api/properties-dynamic?org_slug=${encodeURIComponent(orgData.organization.slug)}`);
             if (propsRes.ok) {
               const propsData = await propsRes.json();
               if (Array.isArray(propsData.properties) && propsData.properties.length > 0) {
                 // Map database properties into the UI format
                 const formatted = propsData.properties.map((p: any) => ({
-                  id: p.id || p.slug || `prop-${Math.random().toString(36).slice(2, 6)}`,
+                  id: p.id || p.slug,
                   name: p.name || "Commercial Asset",
                   type: p.type || "Commercial Office",
                   city: p.city || "Commercial District",

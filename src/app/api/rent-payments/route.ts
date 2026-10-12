@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
+import { requireOrg, requireOrgAdmin, type RequestContext } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -9,6 +10,14 @@ const HEADERS = {
   Authorization: `Bearer ${SUPABASE_KEY}`,
   "Content-Type": "application/json",
 };
+
+/** Verified actor identity for audit logs (never trust client-sent actor fields). */
+function actorOf(ctx: RequestContext) {
+  return {
+    actor_email: ctx.user?.email || "staff",
+    actor_name: ctx.user?.name || ctx.staff?.name || "Staff",
+  };
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Migration SQL — returned when the table doesn't exist
@@ -60,13 +69,17 @@ function isTableMissing(text: string): boolean {
 // GET /api/rent-payments?history=true           → submitted month summaries
 // ────────────────────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const month = req.nextUrl.searchParams.get("month");
   const history = req.nextUrl.searchParams.get("history");
 
   if (history === "true") {
     // Return distinct submitted months with aggregate totals
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/rent_payments?is_submitted=eq.true&order=month.desc`,
+      `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&is_submitted=eq.true&order=month.desc`,
       { headers: HEADERS, cache: "no-store" },
     );
     if (!res.ok) {
@@ -103,7 +116,7 @@ export async function GET(req: NextRequest) {
   }
 
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/rent_payments?month=eq.${encodeURIComponent(month)}&order=tenant_name.asc`,
+    `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&month=eq.${encodeURIComponent(month)}&order=tenant_name.asc`,
     { headers: HEADERS, cache: "no-store" },
   );
   if (!res.ok) {
@@ -125,20 +138,41 @@ export async function GET(req: NextRequest) {
 // Body: { month: "2025-06", tenants: [{ id, name, building, unit, monthlyRent }] }
 // ────────────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+  const actor = actorOf(g.ctx);
+
   try {
     const body = await req.json();
-    const { month, tenants, actorEmail, actorName } = body as {
+    const { month, tenants: requested } = body as {
       month: string;
       tenants: Array<{ id: string; name: string; building: string; unit: string; monthlyRent: number; nnFee?: number; nnnFee?: number; utilityFee?: number; cleaningFee?: number; camFee?: number }>;
-      actorEmail?: string;
-      actorName?: string;
     };
 
-    if (!month || !tenants?.length) {
+    if (!month || !requested?.length) {
       return NextResponse.json({ error: "month and tenants[] required" }, { status: 400 });
+    }
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      return NextResponse.json({ error: "month must be YYYY-MM" }, { status: 400 });
+    }
+
+    // Only allow tenants that belong to the caller's org
+    const ids = requested.map(t => String(t.id)).filter(Boolean);
+    const inList = ids.map(id => `"${id.replace(/"/g, "")}"`).join(",");
+    const ownRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/tenants?select=id&org_id=eq.${orgId}&id=in.(${encodeURIComponent(inList)})`,
+      { headers: HEADERS, cache: "no-store" },
+    );
+    const ownRows = ownRes.ok ? ((await ownRes.json()) as { id: string }[]) : [];
+    const owned = new Set(ownRows.map(r => r.id));
+    const tenants = requested.filter(t => owned.has(String(t.id)));
+    if (!tenants.length) {
+      return NextResponse.json({ error: "No matching tenants in your organization" }, { status: 400 });
     }
 
     const rows = tenants.map(t => ({
+      org_id: orgId,
       id: `rp_${t.id}_${month}`,
       tenant_id: t.id,
       tenant_name: t.name,
@@ -165,7 +199,7 @@ export async function POST(req: NextRequest) {
     }));
 
     // Upsert — on conflict do nothing (don't overwrite existing entries)
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rent_payments`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rent_payments?on_conflict=org_id,tenant_id,month`, {
       method: "POST",
       headers: {
         ...HEADERS,
@@ -182,7 +216,6 @@ export async function POST(req: NextRequest) {
 
     // Sync fee columns for existing rows so tenant-card changes are reflected
     for (const t of tenants) {
-      const rowId = `rp_${t.id}_${month}`;
       const feePatch = {
         nn_fee: Math.round((t.nnFee || 0) * 100) / 100,
         nnn_fee: Math.round((t.nnnFee || 0) * 100) / 100,
@@ -192,7 +225,7 @@ export async function POST(req: NextRequest) {
         updated_at: new Date().toISOString(),
       };
       await fetch(
-        `${SUPABASE_URL}/rest/v1/rent_payments?id=eq.${encodeURIComponent(rowId)}&is_submitted=eq.false`,
+        `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&tenant_id=eq.${encodeURIComponent(t.id)}&month=eq.${encodeURIComponent(month)}&is_submitted=eq.false`,
         {
           method: "PATCH",
           headers: { ...HEADERS, Prefer: "return=minimal" },
@@ -202,8 +235,8 @@ export async function POST(req: NextRequest) {
     }
 
     writeActivityLog({
-      actor_email: actorEmail || "unknown",
-      actor_name: actorName || actorEmail?.split("@")[0] || "Staff",
+      ...actor,
+      org_id: orgId,
       action: "created",
       resource_type: "rent_ledger",
       resource_name: `${month} rent entries`,
@@ -213,7 +246,7 @@ export async function POST(req: NextRequest) {
 
     // Return ALL rows for the month (including previously existing ones)
     const getRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/rent_payments?month=eq.${encodeURIComponent(month)}&order=tenant_name.asc`,
+      `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&month=eq.${encodeURIComponent(month)}&order=tenant_name.asc`,
       { headers: HEADERS, cache: "no-store" },
     );
     const payments = getRes.ok ? await getRes.json() : [];
@@ -229,6 +262,10 @@ export async function POST(req: NextRequest) {
 // PATCH /api/rent-payments?id=xxx — update a single payment row
 // ────────────────────────────────────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
@@ -262,7 +299,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/rent_payments?id=eq.${encodeURIComponent(id)}`,
+    `${SUPABASE_URL}/rest/v1/rent_payments?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`,
     {
       method: "PATCH",
       headers: { ...HEADERS, Prefer: "return=minimal" },
@@ -290,11 +327,16 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "id or month required" }, { status: 400 });
   }
 
-  let url = `${SUPABASE_URL}/rest/v1/rent_payments`;
+  // Resetting a whole month is destructive → admin only
+  const g = id ? await requireOrg(req) : await requireOrgAdmin(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
+  let url = `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}`;
   if (id) {
-    url += `?id=eq.${encodeURIComponent(id)}`;
+    url += `&id=eq.${encodeURIComponent(id)}`;
   } else if (month) {
-    url += `?month=eq.${encodeURIComponent(month)}`;
+    url += `&month=eq.${encodeURIComponent(month)}`;
   }
 
   const res = await fetch(url, { method: "DELETE", headers: HEADERS });
@@ -307,8 +349,8 @@ export async function DELETE(req: NextRequest) {
   // If a month was deleted/reset, write to activity log
   if (month) {
     writeActivityLog({
-      actor_email: "unknown",
-      actor_name: "Staff",
+      ...actorOf(g.ctx),
+      org_id: orgId,
       action: "deleted",
       resource_type: "rent_ledger",
       resource_name: `${month} rent entries (Reset)`,

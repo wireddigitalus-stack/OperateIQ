@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -9,25 +10,34 @@ const H = {
   "Content-Type": "application/json",
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/filter_changes?order=property.asc`,
-    { headers: H }
+    `${SUPABASE_URL}/rest/v1/filter_changes?org_id=eq.${orgId}&order=property.asc`,
+    { headers: H, cache: "no-store" }
   );
   if (!res.ok) return NextResponse.json({ records: [] });
   return NextResponse.json({ records: await res.json() });
 }
 
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, user } = g.ctx;
+
   try {
     const body = await req.json();
     const record = {
+      org_id: orgId,
       id: `filt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       property: body.property?.trim() || "",
       last_changed: body.lastChanged || null,
       next_due: body.nextDue || null,
       notes: body.notes?.trim() || "",
-      updated_by: body.updatedBy?.trim() || "Staff",
+      updated_by: body.updatedBy?.trim() || user?.name || "Staff",
       updated_at: new Date().toISOString(),
     };
 
@@ -43,8 +53,9 @@ export async function POST(req: NextRequest) {
     }
 
     writeActivityLog({
-      actor_email: "unknown",
-      actor_name: record.updated_by,
+      org_id: orgId,
+      actor_email: user?.email || "unknown",
+      actor_name: user?.name || record.updated_by,
       action: "created",
       resource_type: "maintenance",
       resource_name: record.property,
@@ -59,6 +70,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, user } = g.ctx;
+
   try {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
@@ -73,7 +88,7 @@ export async function PATCH(req: NextRequest) {
     if (body.notes !== undefined) patchPayload.notes = body.notes.trim();
     if (body.updatedBy !== undefined) patchPayload.updated_by = body.updatedBy.trim();
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/filter_changes?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/filter_changes?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
       method: "PATCH",
       headers: H,
       body: JSON.stringify(patchPayload),
@@ -85,8 +100,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     writeActivityLog({
-      actor_email: "unknown",
-      actor_name: patchPayload.updated_by || "Staff",
+      org_id: orgId,
+      actor_email: user?.email || "unknown",
+      actor_name: user?.name || patchPayload.updated_by || "Staff",
       action: "updated",
       resource_type: "maintenance",
       resource_name: patchPayload.property || id,
@@ -101,11 +117,15 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/filter_changes?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/filter_changes?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
       method: "DELETE",
       headers: H,
     });

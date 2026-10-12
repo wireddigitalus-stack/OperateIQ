@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -8,6 +9,10 @@ const H = {
   "Content-Type": "application/json",
 };
 const BUCKET = "property-images";
+// Upserts are always resolved against the org-scoped primary key (org_id, property_id)
+const UPSERT_URL = `${SUPABASE_URL}/rest/v1/property_image_overrides?on_conflict=org_id,property_id`;
+
+const encodePath = (p: string) => p.split("/").map(encodeURIComponent).join("/");
 
 async function ensureBucket() {
   await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
@@ -18,11 +23,15 @@ async function ensureBucket() {
   // Ignore 409 (already exists)
 }
 
-/** GET — fetch all overrides (hero_url + all_urls) */
-export async function GET() {
+/** GET — fetch all overrides (hero_url + all_urls) for the caller's org */
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/property_image_overrides`,
-    { headers: H }
+    `${SUPABASE_URL}/rest/v1/property_image_overrides?org_id=eq.${orgId}`,
+    { headers: H, cache: "no-store" }
   );
   const data = await res.json();
   return NextResponse.json({ overrides: Array.isArray(data) ? data : [] });
@@ -30,6 +39,10 @@ export async function GET() {
 
 /** POST — upload a single image file for a property, append to its gallery */
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const form = await req.formData();
   const file       = form.get("file") as File | null;
   const propertyId = form.get("propertyId") as string | null;
@@ -39,12 +52,14 @@ export async function POST(req: NextRequest) {
 
   await ensureBucket();
 
-  const ext      = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const filename = `${propertyId}-${Date.now()}.${ext}`;
+  const ext      = (file.name.split(".").pop()?.toLowerCase() || "jpg").replace(/[^a-z0-9]/g, "") || "jpg";
+  const safeProp = propertyId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  // Object paths are always namespaced by the caller's org
+  const filename = `${orgId}/${safeProp}-${Date.now()}.${ext}`;
   const buffer   = await file.arrayBuffer();
 
   const uploadRes = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${filename}`,
+    `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodePath(filename)}`,
     {
       method: "POST",
       headers: {
@@ -67,8 +82,8 @@ export async function POST(req: NextRequest) {
 
   // Fetch existing record to merge all_urls
   const existingRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/property_image_overrides?property_id=eq.${encodeURIComponent(propertyId)}`,
-    { headers: H }
+    `${SUPABASE_URL}/rest/v1/property_image_overrides?org_id=eq.${orgId}&property_id=eq.${encodeURIComponent(propertyId)}`,
+    { headers: H, cache: "no-store" }
   );
   const existing = await existingRes.json();
   const existingRow = Array.isArray(existing) ? existing[0] : null;
@@ -78,10 +93,11 @@ export async function POST(req: NextRequest) {
   const heroUrl = existingRow?.hero_url || existingRow?.image_url || publicUrl;
 
   // Upsert with merged all_urls + preserve/set hero_url
-  await fetch(`${SUPABASE_URL}/rest/v1/property_image_overrides`, {
+  await fetch(UPSERT_URL, {
     method: "POST",
     headers: { ...H, Prefer: "resolution=merge-duplicates" },
     body: JSON.stringify({
+      org_id:      orgId,
       property_id: propertyId,
       image_url:   heroUrl,       // legacy compat field
       hero_url:    heroUrl,
@@ -95,6 +111,10 @@ export async function POST(req: NextRequest) {
 
 /** PATCH — update hero_url and/or all_urls for a property (no file upload) */
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const { propertyId, heroUrl, allUrls } = await req.json();
 
   if (!propertyId)
@@ -106,7 +126,7 @@ export async function PATCH(req: NextRequest) {
 
   // ── Step 1: Try to UPDATE the existing row by property_id ───────────────
   const updateRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/property_image_overrides?property_id=eq.${encodeURIComponent(propertyId)}`,
+    `${SUPABASE_URL}/rest/v1/property_image_overrides?org_id=eq.${orgId}&property_id=eq.${encodeURIComponent(propertyId)}`,
     {
       method: "PATCH",
       headers: { ...H, Prefer: "return=representation" },
@@ -118,10 +138,10 @@ export async function PATCH(req: NextRequest) {
 
   // ── Step 2: If no row existed, INSERT a new one ─────────────────────────
   if (!Array.isArray(updated) || updated.length === 0) {
-    await fetch(`${SUPABASE_URL}/rest/v1/property_image_overrides`, {
+    await fetch(UPSERT_URL, {
       method: "POST",
       headers: { ...H, Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify({ property_id: propertyId, ...body }),
+      body: JSON.stringify({ ...body, property_id: propertyId, org_id: orgId }),
     });
   }
 
@@ -134,18 +154,26 @@ export async function PATCH(req: NextRequest) {
  * Body: { propertyId: string, url: string }
  */
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const { propertyId, url } = await req.json();
 
   if (!propertyId || !url)
     return NextResponse.json({ error: "propertyId and url required" }, { status: 400 });
 
   // ── 1. Extract the storage filename from the public URL ─────────────────
-  // URL format: <SUPABASE_URL>/storage/v1/object/public/property-images/<filename>
-  const filename = url.split(`/storage/v1/object/public/${BUCKET}/`)[1];
+  // URL format: <SUPABASE_URL>/storage/v1/object/public/property-images/<orgId>/<filename>
+  const rawName = String(url).split(`/storage/v1/object/public/${BUCKET}/`)[1];
+  const filename = rawName ? decodeURIComponent(rawName.split("?")[0]) : "";
 
-  if (filename) {
+  // Only objects inside the caller's org folder may be deleted from storage.
+  // Legacy (un-prefixed) or foreign objects are left in place; the URL is still
+  // removed from this org's gallery below.
+  if (filename && filename.startsWith(`${orgId}/`) && !filename.includes("..")) {
     const deleteRes = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURIComponent(filename)}`,
+      `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodePath(filename)}`,
       {
         method: "DELETE",
         headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
@@ -160,8 +188,8 @@ export async function DELETE(req: NextRequest) {
 
   // ── 2. Fetch the current DB record ──────────────────────────────────────
   const existingRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/property_image_overrides?property_id=eq.${encodeURIComponent(propertyId)}`,
-    { headers: H }
+    `${SUPABASE_URL}/rest/v1/property_image_overrides?org_id=eq.${orgId}&property_id=eq.${encodeURIComponent(propertyId)}`,
+    { headers: H, cache: "no-store" }
   );
   const existing = await existingRes.json();
   const row = Array.isArray(existing) ? existing[0] : null;
@@ -174,10 +202,11 @@ export async function DELETE(req: NextRequest) {
   const currentHero: string | null = row.hero_url || row.image_url || null;
   const newHero = currentHero === url ? (newAll[0] ?? null) : currentHero;
 
-  await fetch(`${SUPABASE_URL}/rest/v1/property_image_overrides`, {
+  await fetch(UPSERT_URL, {
     method: "POST",
     headers: { ...H, Prefer: "resolution=merge-duplicates" },
     body: JSON.stringify({
+      org_id:      orgId,
       property_id: propertyId,
       hero_url:    newHero,
       image_url:   newHero, // legacy compat

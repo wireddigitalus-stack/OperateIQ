@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -9,9 +10,13 @@ const H = {
   "Content-Type": "application/json",
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/sales_leads?order=created_at.desc`,
+    `${SUPABASE_URL}/rest/v1/sales_leads?org_id=eq.${orgId}&order=created_at.desc`,
     { headers: H }
   );
   if (!res.ok) return NextResponse.json({ leads: [] });
@@ -19,10 +24,15 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, user } = g.ctx;
+
   try {
     const body = await req.json();
     const record = {
       id: `sale_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      org_id: orgId,
       poc_name: body.pocName?.trim() || "",
       poc_phone: body.pocPhone?.trim() || "",
       poc_email: body.pocEmail?.trim() || "",
@@ -50,8 +60,9 @@ export async function POST(req: NextRequest) {
     }
 
     writeActivityLog({
-      actor_email: "unknown",
-      actor_name: "Staff",
+      org_id: orgId,
+      actor_email: user?.email || "unknown",
+      actor_name: user?.name || "Staff",
       action: "created",
       resource_type: "lead",
       resource_name: `${record.poc_name} (Sales)`,
@@ -66,6 +77,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, user } = g.ctx;
+
   try {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
@@ -86,7 +101,7 @@ export async function PATCH(req: NextRequest) {
     if (body.offerPrice !== undefined) patchPayload.offer_price = Number(body.offerPrice) || 0;
     if (body.notes !== undefined) patchPayload.notes = body.notes.trim();
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/sales_leads?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/sales_leads?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
       method: "PATCH",
       headers: H,
       body: JSON.stringify(patchPayload),
@@ -98,8 +113,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     writeActivityLog({
-      actor_email: "unknown",
-      actor_name: "Staff",
+      org_id: orgId,
+      actor_email: user?.email || "unknown",
+      actor_name: user?.name || "Staff",
       action: "updated",
       resource_type: "lead",
       resource_name: patchPayload.poc_name || id,
@@ -114,11 +130,15 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const id = req.nextUrl.searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/sales_leads?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/sales_leads?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
       method: "DELETE",
       headers: H,
     });

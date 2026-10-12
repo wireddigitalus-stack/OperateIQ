@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
+import { requireOrg, type RequestContext } from "@/lib/server-auth";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -9,21 +10,38 @@ const H = {
   "Content-Type": "application/json",
 };
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Verified actor identity for audit logs (never trust client-sent actor fields). */
+function actorOf(ctx: RequestContext) {
+  return {
+    actor_email: ctx.user?.email || (ctx.staff ? `staff:${ctx.staff.uid}` : "unknown"),
+    actor_name: ctx.user?.name || ctx.staff?.name || "Staff",
+  };
+}
+
+// GET — admin Cleaning tab and the PIN-based cleaning crew portal (staff cookie).
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req, { allowStaff: true });
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const from   = req.nextUrl.searchParams.get("from");
   const to     = req.nextUrl.searchParams.get("to");
   const date   = req.nextUrl.searchParams.get("date");
   const worker = req.nextUrl.searchParams.get("worker");
 
-  let url = `${SUPABASE_URL}/rest/v1/cleaning_assignments?order=scheduled_date.asc,property.asc,area.asc`;
+  let url = `${SUPABASE_URL}/rest/v1/cleaning_assignments?org_id=eq.${orgId}&order=scheduled_date.asc,property.asc,area.asc`;
   if (from && to) {
+    if (!DATE_RE.test(from) || !DATE_RE.test(to)) return NextResponse.json({ assignments: [] });
     url += `&scheduled_date=gte.${from}&scheduled_date=lte.${to}`;
   } else if (date) {
+    if (!DATE_RE.test(date)) return NextResponse.json({ assignments: [] });
     url += `&scheduled_date=eq.${date}`;
   }
   if (worker) url += `&worker_name=eq.${encodeURIComponent(worker)}`;
 
-  const res = await fetch(url, { headers: H });
+  const res = await fetch(url, { headers: H, cache: "no-store" });
   if (!res.ok) {
     console.error("[cleaning GET] Supabase error:", await res.text());
     return NextResponse.json({ assignments: [] });
@@ -32,10 +50,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const body = await req.json();
 
   // Do NOT send `id` — let Supabase generate a UUID via DEFAULT gen_random_uuid()
   const assignment = {
+    org_id:         orgId,
     worker_name:    body.workerName?.trim()  || "",
     property:       body.property?.trim()    || "",
     area:           body.area?.trim()        || "",
@@ -65,8 +88,8 @@ export async function POST(req: NextRequest) {
   const [saved] = await res.json() as Array<{ id: string }>;
 
   await writeActivityLog({
-    actor_email:   body.actorEmail  || "unknown",
-    actor_name:    body.actorName   || "Staff",
+    ...actorOf(g.ctx),
+    org_id:        orgId,
     action:        "created",
     resource_type: "cleaning",
     resource_name: `${assignment.property} — ${assignment.area}`,
@@ -77,7 +100,12 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, assignment: saved ?? assignment });
 }
 
+// PATCH — admin Cleaning tab and the cleaning crew portal (mark complete).
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req, { allowStaff: true });
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
@@ -91,7 +119,7 @@ export async function PATCH(req: NextRequest) {
   if (body.estimatedCost    !== undefined) patch.estimated_cost    = Number(body.estimatedCost) || 0;
   if (body.actualCost       !== undefined) patch.actual_cost       = Number(body.actualCost) || 0;
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments?id=eq.${encodeURIComponent(id)}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
     method: "PATCH",
     headers: { ...H, "Prefer": "return=representation" },
     body: JSON.stringify(patch),
@@ -102,10 +130,14 @@ export async function PATCH(req: NextRequest) {
     console.error("[cleaning PATCH] Supabase update failed:", err);
     return NextResponse.json({ error: "Update failed", detail: err }, { status: 500 });
   }
+  const updated = await res.json().catch(() => []);
+  if (!Array.isArray(updated) || !updated.length) {
+    return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+  }
 
   await writeActivityLog({
-    actor_email:   body.actorEmail || "unknown",
-    actor_name:    body.actorName  || "Staff",
+    ...actorOf(g.ctx),
+    org_id:        orgId,
     action:        "updated",
     resource_type: "cleaning",
     resource_name: body.resourceName || id,
@@ -117,10 +149,14 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments?id=eq.${encodeURIComponent(id)}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
     method: "DELETE", headers: H,
   });
 
@@ -131,8 +167,8 @@ export async function DELETE(req: NextRequest) {
   }
 
   await writeActivityLog({
-    actor_email:   req.nextUrl.searchParams.get("actorEmail") || "unknown",
-    actor_name:    req.nextUrl.searchParams.get("actorName")  || "Staff",
+    ...actorOf(g.ctx),
+    org_id:        orgId,
     action:        "deleted",
     resource_type: "cleaning",
     resource_name: req.nextUrl.searchParams.get("name")       || id,

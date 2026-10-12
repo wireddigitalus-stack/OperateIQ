@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Lock } from "lucide-react";
 import Logo from "./Logo";
 import { BRAND } from "@/lib/brand";
 
@@ -41,15 +40,6 @@ export default function Footer() {
         <div className="flex items-center gap-3">
           <Link href="/demo-site" className="text-slate-500 hover:text-slate-300 transition-colors">
             Demo Property Site
-          </Link>
-          <span className="text-slate-700">·</span>
-          <Link
-            href="/platform"
-            className="text-slate-600 hover:text-slate-400 transition-colors inline-flex items-center gap-1 opacity-60 hover:opacity-100"
-            title="Master Admin Console"
-          >
-            <Lock size={11} className="text-slate-600" />
-            <span>Admin</span>
           </Link>
         </div>
       </div>

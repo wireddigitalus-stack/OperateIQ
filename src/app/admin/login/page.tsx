@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { Loader2, Shield, Mail, KeyRound, ArrowRight, CheckCircle2, Zap } from "lucide-react";
@@ -12,6 +12,13 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+
+  // Already signed in? Skip the login screen.
+  useEffect(() => {
+    supabaseBrowser.auth.getSession().then(({ data }) => {
+      if (data.session) window.location.replace("/admin");
+    });
+  }, []);
 
   // Security: purge any stale client-side demo tokens immediately
   if (typeof window !== "undefined") {
@@ -26,7 +33,7 @@ export default function AdminLoginPage() {
       const redirectBase =
         typeof window !== "undefined" && window.location.origin
           ? window.location.origin
-          : (process.env.NEXT_PUBLIC_SITE_URL || "https://operateiq-peach.vercel.app");
+          : (process.env.NEXT_PUBLIC_SITE_URL || "");
 
       const { error } = await supabaseBrowser.auth.signInWithOAuth({
         provider: "google",
@@ -63,7 +70,7 @@ export default function AdminLoginPage() {
       const redirectBase =
         typeof window !== "undefined" && window.location.origin
           ? window.location.origin
-          : (process.env.NEXT_PUBLIC_SITE_URL || "https://operateiq-peach.vercel.app");
+          : (process.env.NEXT_PUBLIC_SITE_URL || "");
 
       const { error } = await supabaseBrowser.auth.signInWithOtp({
         email: email.trim().toLowerCase(),

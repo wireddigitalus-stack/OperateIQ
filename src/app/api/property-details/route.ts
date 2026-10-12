@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -11,10 +12,14 @@ const HEADERS = {
   "Content-Type": "application/json",
 };
 
-// GET /api/property-details — fetch all rows
-export async function GET() {
+// GET /api/property-details — fetch all rows for the caller's org
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/property_details?order=property_id.asc`,
+    `${SUPABASE_URL}/rest/v1/property_details?org_id=eq.${orgId}&order=property_id.asc`,
     { headers: HEADERS, cache: "no-store" }
   );
   if (!res.ok) {
@@ -34,6 +39,10 @@ export async function GET() {
 
 // POST /api/property-details — upsert (create or replace) a property row
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const body = await req.json();
     const { propertyId, ...fields } = body;
@@ -44,6 +53,7 @@ export async function POST(req: NextRequest) {
     const computedTaxesAnnual = taxesCounty + taxesCity;
 
     const row: Record<string, unknown> = {
+      org_id:           orgId,
       property_id:      propertyId,
       total_units:      Number(fields.totalUnits)    || 0,
       taxes_county_annual: taxesCounty,
@@ -68,7 +78,7 @@ export async function POST(req: NextRequest) {
       row.display_name = fields.displayName.trim() || null;
     }
 
-    let res = await fetch(`${SUPABASE_URL}/rest/v1/property_details`, {
+    let res = await fetch(`${SUPABASE_URL}/rest/v1/property_details?on_conflict=org_id,property_id`, {
       method: "POST",
       headers: { ...HEADERS, "Prefer": "resolution=merge-duplicates,return=representation" },
       body: JSON.stringify(row),
@@ -93,7 +103,7 @@ export async function POST(req: NextRequest) {
           "electric_annual", "water_annual", "trash_annual"
         ].forEach(col => delete fallbackRow[col]);
         
-        res = await fetch(`${SUPABASE_URL}/rest/v1/property_details`, {
+        res = await fetch(`${SUPABASE_URL}/rest/v1/property_details?on_conflict=org_id,property_id`, {
           method: "POST",
           headers: { ...HEADERS, "Prefer": "resolution=merge-duplicates,return=representation" },
           body: JSON.stringify(fallbackRow),

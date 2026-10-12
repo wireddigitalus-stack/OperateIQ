@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 import { PROPERTIES } from "@/lib/data";
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
@@ -47,14 +48,19 @@ async function safeFetch<T>(path: string): Promise<T[]> {
 // Computes today's portfolio snapshot from LIVE tenant + property + maintenance
 // data and upserts it into the portfolio_snapshots table.
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+  const scope = `org_id=eq.${orgId}`;
+
   try {
     // Pull live data from Supabase in parallel
     const [tenants, details, tickets, dynProps] = await Promise.all([
-      safeFetch<Record<string, unknown>>("tenants?select=*"),
-      safeFetch<Record<string, unknown>>("property_details?select=*"),
-      safeFetch<Record<string, unknown>>("maintenance_tickets?status=eq.open&select=id"),
-      safeFetch<Record<string, unknown>>("properties?select=*"),
+      safeFetch<Record<string, unknown>>(`tenants?select=*&${scope}`),
+      safeFetch<Record<string, unknown>>(`property_details?select=*&${scope}`),
+      safeFetch<Record<string, unknown>>(`maintenance_tickets?status=eq.open&select=id&${scope}`),
+      safeFetch<Record<string, unknown>>(`properties?select=*&${scope}`),
     ]);
 
     // Build property list (static + dynamic)
@@ -125,6 +131,7 @@ export async function POST() {
 
     const today = new Date().toISOString().split("T")[0];
     const payload = {
+      org_id:         orgId,
       snapshot_date:  today,
       total_revenue:  Math.round(totalRevenue * 100) / 100,
       total_expenses: Math.round(totalExpenses * 100) / 100,

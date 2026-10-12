@@ -5,6 +5,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -25,6 +26,10 @@ async function supabaseQuery(table: string, params: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const { searchParams } = new URL(req.url);
     const days = Math.min(Number(searchParams.get("days")) || 30, 90);
@@ -39,17 +44,17 @@ export async function GET(req: NextRequest) {
       // 1. Recent events count by type
       supabaseQuery(
         "site_analytics",
-        `select=event_type,session_id,device_type&created_at=gte.${since}&order=created_at.desc&limit=10000`
+        `select=event_type,session_id,device_type&org_id=eq.${orgId}&created_at=gte.${since}&order=created_at.desc&limit=10000`
       ),
       // 2. Page views for sparkline (last N days)
       supabaseQuery(
         "site_analytics",
-        `select=created_at&event_type=eq.page_view&created_at=gte.${since}&order=created_at.asc&limit=10000`
+        `select=created_at&org_id=eq.${orgId}&event_type=eq.page_view&created_at=gte.${since}&order=created_at.asc&limit=10000`
       ),
       // 3. Top pages
       supabaseQuery(
         "site_analytics",
-        `select=page_path&event_type=eq.page_view&created_at=gte.${since}&limit=10000`
+        `select=page_path&org_id=eq.${orgId}&event_type=eq.page_view&created_at=gte.${since}&limit=10000`
       ),
     ]);
 

@@ -7,6 +7,7 @@ import AIChatWidgetConditional from "@/components/AIChatWidgetConditional";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import UnsupportedBrowserBanner from "@/components/UnsupportedBrowserBanner";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
+import AuthFetchBridge from "@/components/AuthFetchBridge";
 import { BRAND } from "@/lib/brand";
 
 const dmSans = DM_Sans({
@@ -82,6 +83,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
       </head>
       <body className="bg-mesh antialiased">
+        <AuthFetchBridge />
         <AuthHashRedirect />
         <UnsupportedBrowserBanner />
         <AnalyticsTracker />

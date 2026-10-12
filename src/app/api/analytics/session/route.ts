@@ -4,11 +4,16 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const sid = req.nextUrl.searchParams.get("sid");
   if (!sid) {
     return NextResponse.json({ error: "sid parameter required" }, { status: 400 });
@@ -16,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/site_analytics?session_id=eq.${encodeURIComponent(sid)}&order=created_at.asc&limit=500`,
+      `${SUPABASE_URL}/rest/v1/site_analytics?org_id=eq.${orgId}&session_id=eq.${encodeURIComponent(sid)}&order=created_at.asc&limit=500`,
       {
         headers: {
           apikey: KEY,

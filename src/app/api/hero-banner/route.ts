@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PROPERTIES } from "@/lib/data";
 import { getOrgProfile } from "@/lib/org-profile";
+import { requireOrg } from "@/lib/server-auth";
+import { getPublicOrgSlug, resolveOrgIdBySlug } from "@/lib/public-org";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -21,8 +23,8 @@ interface HeroConfig { slides: SlideConfig[]; videoUrl: string | null; videoEnab
 const MAIN_IDS = PROPERTIES.map(p => p.id);
 
 /** Returns { value, tableExists } */
-async function getRaw(): Promise<{ value: HeroConfig | null; tableExists: boolean }> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=eq.hero_config&select=value`, { headers: H, cache: "no-store" });
+async function getRaw(orgId: string): Promise<{ value: HeroConfig | null; tableExists: boolean }> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?org_id=eq.${orgId}&key=eq.hero_config&select=value`, { headers: H, cache: "no-store" });
   if (!res.ok) {
     // Supabase returns 400/404 with code 42P01 when table doesn't exist
     const body = await res.text().catch(() => "");
@@ -33,19 +35,8 @@ async function getRaw(): Promise<{ value: HeroConfig | null; tableExists: boolea
   return { value: rows[0]?.value || null, tableExists: true };
 }
 
-/** Auto-create the site_settings table via Supabase Management API if service role key present */
-async function ensureTable() {
-  // Try via REST SQL endpoint (available with service role key)
-  const sql = `CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW());`;
-  await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
-    method: "POST",
-    headers: H,
-    body: JSON.stringify({ sql }),
-  }).catch(() => null); // Ignore — not all plans expose this
-}
-
-async function getOverrides(): Promise<Record<string, string>> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/property_image_overrides`, { headers: H, cache: "no-store" });
+async function getOverrides(orgId: string): Promise<Record<string, string>> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/property_image_overrides?org_id=eq.${orgId}`, { headers: H, cache: "no-store" });
   if (!res.ok) return {};
   const data = await res.json();
   const map: Record<string, string> = {};
@@ -83,9 +74,24 @@ function defaultConfig(): HeroConfig {
   };
 }
 
-export async function GET() {
+/**
+ * GET /api/hero-banner
+ *  • Public: `?org_slug=<org>` → that org's hero config.
+ *  • Authenticated: the caller's org.
+ */
+export async function GET(req: NextRequest) {
   try {
-    const [{ value: raw, tableExists }, overrides] = await Promise.all([getRaw(), getOverrides()]);
+    let orgId: string | null;
+    const publicSlug = getPublicOrgSlug(req);
+    if (publicSlug) {
+      orgId = await resolveOrgIdBySlug(publicSlug);
+      if (!orgId) return NextResponse.json({ error: "Unknown organization" }, { status: 404 });
+    } else {
+      const g = await requireOrg(req);
+      if (!g.ok) return g.res;
+      orgId = g.ctx.orgId;
+    }
+    const [{ value: raw, tableExists }, overrides] = await Promise.all([getRaw(orgId), getOverrides(orgId)]);
     const cfg = raw || defaultConfig();
     return NextResponse.json({
       raw: cfg,
@@ -97,41 +103,34 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   try {
     const body = await req.json();
     const config: HeroConfig = {
-      slides: body.slides || [],
+      slides: Array.isArray(body.slides) ? body.slides : [],
       videoUrl: body.videoUrl || null,
       videoEnabled: !!body.videoEnabled,
     };
 
-    // Try to save
-    let res = await fetch(`${SUPABASE_URL}/rest/v1/site_settings`, {
+    // Upsert on the (org_id, key) primary key
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?on_conflict=org_id,key`, {
       method: "POST",
       headers: { ...H, Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify({ key: "hero_config", value: config, updated_at: new Date().toISOString() }),
+      body: JSON.stringify({ org_id: orgId, key: "hero_config", value: config, updated_at: new Date().toISOString() }),
     });
 
-    // If table doesn't exist, try auto-creating it then retry once
     if (!res.ok) {
       const errBody = await res.text();
       if (errBody.includes("42P01") || errBody.includes("does not exist")) {
-        await ensureTable();
-        // Retry
-        res = await fetch(`${SUPABASE_URL}/rest/v1/site_settings`, {
-          method: "POST",
-          headers: { ...H, Prefer: "resolution=merge-duplicates" },
-          body: JSON.stringify({ key: "hero_config", value: config, updated_at: new Date().toISOString() }),
-        });
-        if (!res.ok) {
-          return NextResponse.json({
-            error: "TABLE_MISSING",
-            message: "The site_settings table doesn't exist yet. Please run the setup SQL in Supabase, then try saving again.",
-          }, { status: 422 });
-        }
-      } else {
-        return NextResponse.json({ error: errBody }, { status: 500 });
+        return NextResponse.json({
+          error: "TABLE_MISSING",
+          message: "The site_settings table doesn't exist yet. Please run the setup SQL in Supabase, then try saving again.",
+        }, { status: 422 });
       }
+      return NextResponse.json({ error: errBody }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

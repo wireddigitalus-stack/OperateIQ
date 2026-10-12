@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import dns from "node:dns/promises";
 import { supabaseAdmin } from "@/lib/supabase";
+import { requireOrgAdmin } from "@/lib/server-auth";
+import { hasFeature } from "@/lib/plans";
 
 export async function POST(req: NextRequest) {
   try {
+    const g = await requireOrgAdmin(req);
+    if (!g.ok) return g.res;
     const body = await req.json();
-    const { domain, orgId } = body;
+    const { domain } = body;
+    // Tenants may only manage their own org. Super-admins in support mode act on the impersonated org.
+    const orgId = g.ctx.orgId;
+    if (!hasFeature(g.ctx.org.tier, "custom_domain")) {
+      return NextResponse.json({ error: "Custom domains are available on the Pro plan." }, { status: 403 });
+    }
 
     if (!domain || !domain.trim()) {
       return NextResponse.json({ error: "Domain name is required" }, { status: 400 });
@@ -35,9 +44,7 @@ export async function POST(req: NextRequest) {
         if (
           cnameRecords.some(
             (r) =>
-              r.toLowerCase().includes("vercel-dns.com") ||
-              r.toLowerCase().includes("vercel.app") ||
-              r.toLowerCase().includes("operateiq")
+              r.toLowerCase().replace(/\.$/, "").endsWith("vercel-dns.com")
           )
         ) {
           isConfigured = true;
@@ -62,6 +69,16 @@ export async function POST(req: NextRequest) {
 
     // Update database if orgId is provided
     if (orgId && supabaseAdmin) {
+      // Prevent claiming a domain already connected to another organization.
+      const { data: taken } = await supabaseAdmin
+        .from("organizations")
+        .select("id")
+        .eq("custom_domain", cleanDomain)
+        .neq("id", orgId)
+        .maybeSingle();
+      if (taken) {
+        return NextResponse.json({ error: "This domain is already connected to another account." }, { status: 409 });
+      }
       await supabaseAdmin
         .from("organizations")
         .update({
@@ -81,7 +98,7 @@ export async function POST(req: NextRequest) {
       verified: isConfigured,
       message: isConfigured
         ? `DNS successfully configured! ${cleanDomain} is ready for traffic.`
-        : `Domain registered in your account. DNS records are propagating (this typically takes 5–30 minutes across GoDaddy and IONOS).`,
+        : `Domain saved to your account but NOT verified yet. Add the DNS record shown below at GoDaddy/IONOS; propagation usually takes 5–30 minutes, then click Verify again.`,
     });
   } catch (error) {
     console.error("[verify-domain] error:", error);

@@ -1,16 +1,7 @@
-import DirectAdminRedirect from "@/components/DirectAdminRedirect";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "WIRED DIGITAL LLC Admin Workspace — OperateIQ",
-  description: "Direct workspace entry for WIRED DIGITAL LLC property operations.",
-};
-
-export default function WiredDigitalAdminPage() {
-  return (
-    <DirectAdminRedirect
-      orgSlug="wired-digital"
-      orgName="WIRED DIGITAL LLC"
-      targetPath="/admin"
-    />
-  );
+// Legacy bookmark. Workspace access is decided by the signed-in user's
+// membership on /admin — this URL no longer grants or switches anything.
+export default function LegacyAdminAlias() {
+  redirect("/admin");
 }

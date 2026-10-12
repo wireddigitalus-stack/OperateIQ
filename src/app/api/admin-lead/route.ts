@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -18,6 +19,10 @@ function parseBudgetNum(val: string | number | null | undefined): number {
 
 // POST — insert a manually-scored lead directly to Supabase
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, user } = g.ctx;
+
   try {
     const body = await req.json();
     const {
@@ -41,6 +46,7 @@ export async function POST(req: NextRequest) {
 
     const lead = {
       id: `manual_${Date.now()}`,
+      org_id: orgId,
       timestamp: new Date().toISOString(),
       name: name.trim(),
       email: email?.trim() || "",
@@ -104,8 +110,9 @@ export async function POST(req: NextRequest) {
 
     // Audit log — fire and forget
     writeActivityLog({
-      actor_email:   body.actorEmail  || "unknown",
-      actor_name:    body.actorName   || "Staff",
+      org_id:        orgId,
+      actor_email:   user?.email || body.actorEmail  || "unknown",
+      actor_name:    body.actorName || user?.name || "Staff",
       action:        "created",
       resource_type: "lead",
       resource_name: lead.name,
@@ -150,6 +157,10 @@ export async function POST(req: NextRequest) {
 
 // PATCH — archive, unarchive, reschedule, or edit a lead
 export async function PATCH(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, user } = g.ctx;
+
   try {
     const body = await req.json();
     const {
@@ -188,12 +199,12 @@ export async function PATCH(req: NextRequest) {
     if (additionalInfo !== undefined) patchPayload.additional_info = additionalInfo.trim();
     if (progress !== undefined) patchPayload.progress = progress;
 
-    const url = `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(id)}`;
+    const url = `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`;
     const headers = {
       "Content-Type": "application/json",
       "apikey": SUPABASE_SERVICE_KEY,
       "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}`,
-      "Prefer": "return-minimal",
+      "Prefer": "return=representation",
     };
 
     let res = await fetch(url, {
@@ -221,10 +232,16 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Update failed" }, { status: 500 });
     }
 
+    const updatedRows = await res.json().catch(() => []);
+    if (Object.keys(patchPayload).length > 0 && (!Array.isArray(updatedRows) || updatedRows.length === 0)) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    }
+
     // If rescheduled and comment is provided, insert comment
     if (followUpDate !== undefined && comment && comment.trim()) {
       const commentRecord = {
         id: `comment_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        org_id: orgId,
         lead_id: id,
         author: actorName?.trim() || "Staff",
         body: comment.trim(),
@@ -265,8 +282,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     writeActivityLog({
-      actor_email:   actorEmail  || "unknown",
-      actor_name:    actorName   || "Staff",
+      org_id:        orgId,
+      actor_email:   user?.email || actorEmail  || "unknown",
+      actor_name:    actorName || user?.name || "Staff",
       action:        "updated",
       resource_type: "lead",
       resource_name: leadName || id,

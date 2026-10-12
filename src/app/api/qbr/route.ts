@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
@@ -10,30 +11,35 @@ const H = {
   "Content-Type": "application/json",
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+  const scope = `org_id=eq.${orgId}`;
+
   if (!GEMINI_API_KEY) {
     return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
   }
 
   try {
     // 1. Fetch leads
-    const leadsRes = await fetch(`${SUPABASE_URL}/rest/v1/leads`, { headers: H });
+    const leadsRes = await fetch(`${SUPABASE_URL}/rest/v1/leads?${scope}`, { headers: H });
     const leads = leadsRes.ok ? await leadsRes.json() : [];
 
     // 2. Fetch tenants
-    const tenantsRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, { headers: H });
+    const tenantsRes = await fetch(`${SUPABASE_URL}/rest/v1/tenants?${scope}`, { headers: H });
     const tenants = tenantsRes.ok ? await tenantsRes.json() : [];
 
     // 3. Fetch maintenance tickets
-    const maintRes = await fetch(`${SUPABASE_URL}/rest/v1/maintenance_tickets`, { headers: H });
+    const maintRes = await fetch(`${SUPABASE_URL}/rest/v1/maintenance_tickets?${scope}`, { headers: H });
     const tickets = maintRes.ok ? await maintRes.json() : [];
 
     // 4. Fetch cleaning assignments
-    const cleaningRes = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments`, { headers: H });
+    const cleaningRes = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments?${scope}`, { headers: H });
     const cleanings = cleaningRes.ok ? await cleaningRes.json() : [];
 
     // 5. Fetch activity logs
-    const activityRes = await fetch(`${SUPABASE_URL}/rest/v1/activity_log?limit=100&order=created_at.desc`, { headers: H });
+    const activityRes = await fetch(`${SUPABASE_URL}/rest/v1/activity_log?${scope}&limit=100&order=created_at.desc`, { headers: H });
     const logs = activityRes.ok ? await activityRes.json() : [];
 
     // Perform aggregations

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -14,16 +15,23 @@ async function ensureBucket() {
 }
 
 export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const form = await req.formData();
   const file = form.get("file") as File | null;
-  const type = (form.get("type") as string) || "image";
+  const rawType = (form.get("type") as string) || "image";
+  const type = rawType === "video" ? "video" : "image";
 
   if (!file) return NextResponse.json({ error: "file required" }, { status: 400 });
 
   await ensureBucket();
 
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const filename = `hero-${type}-${Date.now()}.${ext}`;
+  const rawExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : "jpg";
+  // Objects are namespaced per tenant: <orgId>/hero-....
+  const filename = `${orgId}/hero-${type}-${Date.now()}.${ext}`;
   const buffer = await file.arrayBuffer();
 
   const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${filename}`, {

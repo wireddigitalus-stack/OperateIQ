@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireOrg } from "@/lib/server-auth";
 import { BLOG_POSTS } from "@/lib/blog-data";
 import { getOrgProfile } from "@/lib/org-profile";
 
@@ -16,7 +17,12 @@ const H = {
  * Only imports slugs that don't already exist (idempotent).
  * Returns { imported: string[], skipped: string[], errors: string[] }
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId, org } = g.ctx;
+  const orgName = org.brand_name || org.name || getOrgProfile().name;
+
   const imported: string[] = [];
   const skipped: string[] = [];
   const errors: string[] = [];
@@ -24,7 +30,7 @@ export async function POST() {
   for (const post of BLOG_POSTS) {
     // Check if slug already exists in DB
     const checkRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/blog_posts?slug=eq.${encodeURIComponent(post.slug)}&select=slug`,
+      `${SUPABASE_URL}/rest/v1/blog_posts?org_id=eq.${orgId}&slug=eq.${encodeURIComponent(post.slug)}&select=slug`,
       { headers: H }
     );
     const existing = await checkRes.json();
@@ -38,6 +44,7 @@ export async function POST() {
       method: "POST",
       headers: { ...H, Prefer: "return=minimal" },
       body: JSON.stringify({
+        org_id: orgId,
         slug: post.slug,
         title: post.title,
         meta_title: post.metaTitle || post.title,
@@ -51,7 +58,7 @@ export async function POST() {
         published_at: post.publishedAt
           ? new Date(post.publishedAt).toISOString()
           : new Date().toISOString(),
-        author: post.author || getOrgProfile().name,
+        author: post.author || orgName,
         author_title: post.authorTitle || "Commercial Real Estate",
         image_url: post.image || "",
         image_alt: post.imageAlt || "",
@@ -78,11 +85,15 @@ export async function POST() {
  * GET /api/blog-import-static
  * Returns which static posts are already in the DB vs. not yet imported.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+
   const slugs = BLOG_POSTS.map(p => p.slug);
 
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/blog_posts?slug=in.(${slugs.map(s => `"${s}"`).join(",")})&select=slug`,
+    `${SUPABASE_URL}/rest/v1/blog_posts?org_id=eq.${orgId}&slug=in.(${slugs.map(s => `"${s}"`).join(",")})&select=slug`,
     { headers: H }
   );
 

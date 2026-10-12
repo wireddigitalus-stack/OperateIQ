@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
-import { getOrgProfile } from "@/lib/org-profile";
+import { NextRequest, NextResponse } from "next/server";
+import { getOrgProfile, type OrgProfile } from "@/lib/org-profile";
+import { requireOrg } from "@/lib/server-auth";
+import { profileForOrg } from "@/lib/org-ai-profile";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -110,7 +112,7 @@ async function fetchFeed(url: string, source: string): Promise<FeedItem[]> {
 }
 
 // ── AI scoring ────────────────────────────────────────────────────────────
-async function scoreWithAI(items: FeedItem[]): Promise<{ title: string; link: string; source: string; pubDate: string; score: string; reason: string }[]> {
+async function scoreWithAI(items: FeedItem[], profile?: OrgProfile): Promise<{ title: string; link: string; source: string; pubDate: string; score: string; reason: string }[]> {
   if (!GEMINI_API_KEY || items.length === 0) {
     console.warn("[MarketIntel] No GEMINI_API_KEY or empty items — skipping AI scoring");
     return items.map(i => ({
@@ -123,7 +125,7 @@ async function scoreWithAI(items: FeedItem[]): Promise<{ title: string; link: st
     }));
   }
 
-  const org = getOrgProfile();
+  const org = profile || getOrgProfile();
   const regionLabel = MARKET_REGION
     ? MARKET_REGION.replace(/"/g, "").replace(/\s+OR\s+/gi, " / ")
     : "the United States (national)";
@@ -261,7 +263,10 @@ ${items.map((item, i) => `[${i}] "${item.title}" — ${item.snippet.slice(0, 150
 }
 
 // ── GET Handler ───────────────────────────────────────────────────────────
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+
   try {
     // 1. Fetch Google News RSS for each query
     const googlePromises = SEARCH_QUERIES.map(q => {
@@ -296,7 +301,7 @@ export async function GET() {
     const capped = recent.slice(0, 25);
 
     // 3. Score with AI
-    const scored = await scoreWithAI(capped);
+    const scored = await scoreWithAI(capped, profileForOrg(g.ctx.org));
 
     // Filter out "skip" items and sort by score
     const scoreOrder: Record<string, number> = { hot: 0, warm: 1, cold: 2, unknown: 3 };

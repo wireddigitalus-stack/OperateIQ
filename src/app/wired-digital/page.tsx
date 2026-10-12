@@ -1,11 +1,6 @@
-import TenantPublicSitePage from "@/app/site/[slug]/page";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "WIRED DIGITAL LLC — Premier Commercial & Residential Properties",
-  description:
-    "Explore tech campuses, executive suites, creative studios, and residential lofts managed by WIRED DIGITAL LLC.",
-};
-
-export default function WiredDigitalPublicSitePage() {
-  return <TenantPublicSitePage />;
+// Legacy URL → the organization's canonical public site.
+export default function LegacyWiredSiteAlias() {
+  redirect("/site/wired-digital-llc");
 }

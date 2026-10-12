@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrgProfile, orgContactLine } from "@/lib/org-profile";
+import { requireOrg } from "@/lib/server-auth";
+import { orgContactLine } from "@/lib/org-profile";
+import { profileForOrg } from "@/lib/org-ai-profile";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 export async function POST(req: NextRequest) {
+  // Auth required: protects LLM spend from anonymous abuse.
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+
   try {
     if (!GEMINI_API_KEY) {
       return NextResponse.json({ error: "Gemini API key not configured." }, { status: 500 });
@@ -21,7 +27,7 @@ export async function POST(req: NextRequest) {
       luxury:       "aspirational and premium — speak to success, prestige, and exclusivity",
     };
 
-    const org = getOrgProfile();
+    const org = profileForOrg(g.ctx.org);
     const contact = orgContactLine(org);
     const brandTag = org.name.replace(/[^A-Za-z0-9]/g, "");
 
