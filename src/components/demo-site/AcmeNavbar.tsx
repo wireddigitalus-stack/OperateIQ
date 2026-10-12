@@ -5,9 +5,12 @@ import Link from "next/link";
 import { Building2, Sparkles, Calendar, ArrowRight, ShieldCheck, Search, Phone, ExternalLink } from "lucide-react";
 
 interface AcmeNavbarProps {
-  onOpenAiInspector: () => void;
+  onOpenAiInspector?: () => void;
   onOpenTourModal: (propertyId?: string) => void;
   orgName?: string;
+  orgSlug?: string;
+  customDomain?: string | null;
+  tier?: string;
   hasTopBar?: boolean;
 }
 
@@ -15,15 +18,21 @@ export default function AcmeNavbar({
   onOpenAiInspector,
   onOpenTourModal,
   orgName,
+  orgSlug,
+  customDomain,
+  tier,
   hasTopBar,
 }: AcmeNavbarProps) {
+  const homeHref = customDomain ? "/" : orgSlug ? `/site/${orgSlug}` : "/demo-site";
+  const isStarter = tier === "starter";
+
   return (
     <header className={`fixed ${hasTopBar ? "top-10" : "top-0"} left-0 right-0 z-40 h-20 bg-[#080C14]/90 backdrop-blur-xl border-b border-white/10 transition-all`}>
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 flex items-center justify-between">
         
         {/* Brand & Subtitle */}
         <div className="flex items-center gap-3">
-          <Link href="/demo-site" className="flex items-center gap-3 group">
+          <Link href={homeHref} className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/20 flex items-center justify-center text-white shadow-[0_0_18px_rgba(59,130,246,0.35)] group-hover:scale-105 transition-transform">
               <Building2 size={20} />
             </div>

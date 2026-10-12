@@ -63,18 +63,10 @@ export async function POST(req: NextRequest) {
       safeFetch<Record<string, unknown>>(`properties?select=*&${scope}`),
     ]);
 
-    // Build property list (static + dynamic)
-    const staticProps = PROPERTIES.map(p => ({
-      id: p.id, name: p.name,
-    }));
-    const staticIds = new Set(staticProps.map(p => p.id));
-    const allProps = [
-      ...staticProps,
-      ...dynProps.filter(p => !staticIds.has(String(p.id))).map(p => ({
-        id: String(p.id),
-        name: String(p.name || ""),
-      })),
-    ];
+    // Build property list: use database properties if any exist; fall back to static properties only for the demo org
+    const allProps = dynProps.length > 0
+      ? dynProps.map(p => ({ id: String(p.id), name: String(p.name || "") }))
+      : PROPERTIES.map(p => ({ id: p.id, name: p.name }));
 
     // Build detail map
     const detailMap: Record<string, Record<string, unknown>> = {};

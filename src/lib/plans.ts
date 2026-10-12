@@ -10,7 +10,7 @@ export type Feature =
   | "opsiq_basic" | "opsiq_full"
   | "weekly_report" | "portfolio_snapshots"
   | "sales_crm" | "marketing_studio" | "market_intel"
-  | "site_basic" | "site_builder" | "blog" | "custom_domain";
+  | "site_card" | "site_basic" | "site_builder" | "blog" | "custom_domain";
 
 export interface Plan {
   id: Tier;
@@ -25,7 +25,7 @@ export interface Plan {
 
 const STARTER: Feature[] = [
   "properties", "tenants", "rent_ledger", "security_deposits",
-  "maintenance", "staff_mobile", "opsiq_basic",
+  "maintenance", "staff_mobile", "opsiq_basic", "site_card",
 ];
 const GROWTH: Feature[] = [
   ...STARTER,
@@ -79,6 +79,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   sales_crm: "Leads & sales CRM",
   marketing_studio: "Social & marketing studio",
   market_intel: "Market intelligence",
+  site_card: "Digital business card website",
   site_basic: "Basic listings website",
   site_builder: "Full website builder",
   blog: "Blog with AI writer & SEO tools",

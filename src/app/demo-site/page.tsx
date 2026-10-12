@@ -11,10 +11,6 @@ import AcmeTourModal from "@/components/demo-site/AcmeTourModal";
 import AcmeBuildingSpecsModal from "@/components/demo-site/AcmeBuildingSpecsModal";
 import AcmeFooter from "@/components/demo-site/AcmeFooter";
 import { PROPERTIES } from "@/lib/data";
-import {
-  WIRED_DIGITAL_PROPERTIES,
-  WIRED_DIGITAL_HERO_SLIDES,
-} from "@/lib/seeded-tenant-data";
 
 export default function DemoPropertySitePage() {
   const [activeOrg, setActiveOrg] = useState<{ id: string; name: string; slug: string; tier: string } | null>(null);
@@ -24,16 +20,7 @@ export default function DemoPropertySitePage() {
   const [filterType, setFilterType] = useState("all");
   const [minSqft, setMinSqft] = useState(0);
 
-  const isWired =
-    activeOrg?.slug?.toLowerCase() === "wired-digital" ||
-    activeOrg?.name?.toLowerCase().includes("wired digital");
-
-  const currentProperties = isWired ? WIRED_DIGITAL_PROPERTIES : PROPERTIES;
-  const currentHeroSlides = isWired ? WIRED_DIGITAL_HERO_SLIDES : undefined;
-
-  const [tourPropertyId, setTourPropertyId] = useState<string | undefined>(
-    isWired ? "wired-tech-hub" : "heritage-square"
-  );
+  const [tourPropertyId, setTourPropertyId] = useState<string | undefined>("heritage-square");
 
   useEffect(() => {
     fetch("/api/platform/session")
@@ -41,12 +28,6 @@ export default function DemoPropertySitePage() {
       .then((data) => {
         if (data.activeOrg) {
           setActiveOrg(data.activeOrg);
-          if (
-            data.activeOrg.slug?.toLowerCase() === "wired-digital" ||
-            data.activeOrg.name?.toLowerCase().includes("wired digital")
-          ) {
-            setTourPropertyId("wired-tech-hub");
-          }
         } else if (data.impersonatingOrg) {
           setActiveOrg(data.impersonatingOrg);
         }
@@ -152,7 +133,7 @@ export default function DemoPropertySitePage() {
         onSelectProperty={(id) => setSpecsPropertyId(id)}
         onOpenTourModal={handleOpenTour}
         onFilterChange={handleFilterChange}
-        slides={currentHeroSlides}
+        slides={undefined}
         orgName={activeOrg?.name}
       />
 
@@ -162,7 +143,7 @@ export default function DemoPropertySitePage() {
         minSqft={minSqft}
         onSelectProperty={(id) => setSpecsPropertyId(id)}
         onOpenTourModal={handleOpenTour}
-        properties={currentProperties}
+        properties={PROPERTIES}
         orgName={activeOrg?.name}
       />
 
@@ -171,7 +152,7 @@ export default function DemoPropertySitePage() {
         isOpen={isTourModalOpen}
         onClose={() => setIsTourModalOpen(false)}
         selectedPropertyId={tourPropertyId}
-        properties={currentProperties}
+        properties={PROPERTIES}
         orgName={activeOrg?.name}
         orgId={activeOrg?.id}
       />
@@ -181,7 +162,7 @@ export default function DemoPropertySitePage() {
         propertyId={specsPropertyId}
         onClose={() => setSpecsPropertyId(null)}
         onOpenTourModal={handleOpenTour}
-        properties={currentProperties}
+        properties={PROPERTIES}
       />
 
       {/* Footer */}

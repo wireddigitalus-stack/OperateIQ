@@ -168,38 +168,42 @@ export async function POST(req: NextRequest) {
     const turnstileToken = body.turnstileToken;
     const secretKey = process.env.TURNSTILE_SECRET_KEY || "1x00000000000000000000000000000000";
 
-    if (turnstileToken || process.env.TURNSTILE_SECRET_KEY) {
-      if (!turnstileToken) {
+    // ── 3. Cloudflare Turnstile verification (required on marketing contact, optional on tour modals)
+    const isTourRequest = body.source === "public_site" || body.medium === "tour_modal";
+    if (turnstileToken || (process.env.TURNSTILE_SECRET_KEY && !isTourRequest)) {
+      if (!turnstileToken && !isTourRequest) {
         return NextResponse.json(
           { error: "Security check token is missing. Please reload the page and try again." },
           { status: 400 }
         );
       }
 
-      try {
-        const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            secret: secretKey,
-            response: turnstileToken,
-            remoteip: ip,
-          }),
-        });
-        const verifyData = await verifyRes.json();
-        if (!verifyData.success) {
-          return NextResponse.json(
-            { error: "Security check failed. Please refresh and try again." },
-            { status: 400 }
-          );
-        }
-      } catch (err) {
-        console.error("Turnstile verification error:", err);
-        if (process.env.TURNSTILE_SECRET_KEY) {
-          return NextResponse.json(
-            { error: "Security service temporarily unavailable. Please try again later." },
-            { status: 503 }
-          );
+      if (turnstileToken) {
+        try {
+          const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              secret: secretKey,
+              response: turnstileToken,
+              remoteip: ip,
+            }),
+          });
+          const verifyData = await verifyRes.json();
+          if (!verifyData.success) {
+            return NextResponse.json(
+              { error: "Security check failed. Please refresh and try again." },
+              { status: 400 }
+            );
+          }
+        } catch (err) {
+          console.error("Turnstile verification error:", err);
+          if (process.env.TURNSTILE_SECRET_KEY && !isTourRequest) {
+            return NextResponse.json(
+              { error: "Security service temporarily unavailable. Please try again later." },
+              { status: 503 }
+            );
+          }
         }
       }
     }
@@ -213,9 +217,9 @@ export async function POST(req: NextRequest) {
     const cleanCity     = sanitize(city);
     const cleanMessage  = sanitize(message);
 
-    if (!cleanName || !cleanEmail || !cleanInterest || !cleanPhone) {
+    if (!cleanName || !cleanEmail || !cleanInterest) {
       return NextResponse.json(
-        { error: "Name, phone, email, and interest are required." },
+        { error: "Name, email, and interest are required." },
         { status: 400 }
       );
     }
@@ -228,7 +232,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── 5. Store in Supabase audit table (optional — table may not exist) ───
+    // ── Resolve Organization if submitted for a specific tenant ─────────────
+    let targetOrg: { id: string; name: string; contact_email: string | null } | null = null;
+    const requestedOrgId = body.org_id || null;
+    const requestedOrgSlug = body.org_slug || null;
+
+    if (supabaseAdmin && (requestedOrgId || requestedOrgSlug)) {
+      let q = supabaseAdmin.from("organizations").select("id, name, contact_email");
+      if (requestedOrgId) {
+        q = q.eq("id", requestedOrgId);
+      } else if (requestedOrgSlug) {
+        q = q.eq("slug", String(requestedOrgSlug).toLowerCase().trim());
+      }
+      const { data: orgData } = await q.maybeSingle();
+      if (orgData) targetOrg = orgData;
+    }
+
+    // ── 5. Store in Supabase leads CRM table & contact audit table ─────────
+    if (supabaseAdmin && targetOrg) {
+      try {
+        await supabaseAdmin.from("leads").insert({
+          id: `lead_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          org_id: targetOrg.id,
+          timestamp: new Date().toISOString(),
+          name: cleanName,
+          email: cleanEmail,
+          phone: cleanPhone || "",
+          space_type: sanitize(body.space_type) || "Commercial Office",
+          budget: sanitize(body.budget) || "$30-$50/SF",
+          timeline: sanitize(body.timeline) || "Immediate",
+          team_size: sanitize(body.team_size) || "Flexible",
+          additional_info: cleanMessage || `Tour request for ${cleanInterest}`,
+          score: 85,
+          score_label: "Verified Lead",
+          source: sanitize(body.source) || "public_site",
+          medium: sanitize(body.medium) || "tour_modal",
+          progress: "0-25%",
+        });
+      } catch (leadErr) {
+        console.warn("[contact] Failed to insert into tenant leads CRM:", leadErr);
+      }
+    }
+
     try {
       await supabaseAdmin.from("contact_submissions").insert({
         id: `contact_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -236,15 +281,16 @@ export async function POST(req: NextRequest) {
         name: cleanName,
         email: cleanEmail,
         company: cleanCompany,
-        phone: cleanPhone,
+        phone: cleanPhone || "",
         interest: cleanInterest,
         city: cleanCity,
         message: cleanMessage,
-        ip_hash: ip.split(".").slice(0, 3).join(".") + ".x", // partially mask IP
-        session_id: sessionId || null,  // Link to analytics session
+        org_id: targetOrg?.id || null,
+        ip_hash: ip.split(".").slice(0, 3).join(".") + ".x",
+        session_id: sessionId || null,
       });
     } catch {
-      console.warn("[contact] Supabase audit insert skipped (table may not exist)");
+      console.warn("[contact] Supabase audit insert skipped");
     }
 
     // ── 5b. AI Spam Check for notification email ────────────────────────────

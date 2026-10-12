@@ -5,11 +5,12 @@ import Link from "next/link";
 import { Building2, Sparkles, ExternalLink, ShieldCheck, ArrowUpRight } from "lucide-react";
 
 interface AcmeFooterProps {
-  onOpenAiInspector: () => void;
+  onOpenAiInspector?: () => void;
   orgName?: string;
   phone?: string;
   email?: string;
   description?: string;
+  isMember?: boolean;
 }
 
 export default function AcmeFooter({
@@ -18,42 +19,45 @@ export default function AcmeFooter({
   phone,
   email,
   description,
+  isMember = false,
 }: AcmeFooterProps) {
   return (
     <footer className="border-t border-white/10 bg-[#04070F] text-gray-400 py-16 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto space-y-12">
         
-        {/* Top Disclaimer Banner */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-950/20 via-blue-950/20 to-purple-950/20 border border-sky-400/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400 flex-shrink-0">
-              <Sparkles size={16} />
+        {/* Top Disclaimer Banner - Only for Authenticated Org Members */}
+        {isMember && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-950/20 via-blue-950/20 to-purple-950/20 border border-sky-400/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400 flex-shrink-0">
+                <Sparkles size={16} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">
+                  {orgName ? `${orgName} Public Property Website` : "Live Commercial Property Website"}
+                </p>
+                <p className="text-[11px] text-gray-400">
+                  Workspace active · Managed by OperateIQ Site Engine.
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold text-white">
-                {orgName ? `${orgName} Public Property Website` : "Live Commercial Property Website"}
-              </p>
-              <p className="text-[11px] text-gray-400">
-                Generated and managed by OperateIQ's Site Engine with Ultra SEO & Generative AI Search (GEO).
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <Link
-              href="/admin?tab=content"
-              className="px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/20 text-white text-xs font-bold transition-all whitespace-nowrap"
-            >
-              Site Builder
-            </Link>
-            <Link
-              href="/admin"
-              className="px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black text-xs font-bold transition-all whitespace-nowrap shadow-sm"
-            >
-              Dashboard
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/admin?tab=content"
+                className="px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/20 text-white text-xs font-bold transition-all whitespace-nowrap"
+              >
+                Site Builder
+              </Link>
+              <Link
+                href="/admin"
+                className="px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black text-xs font-bold transition-all whitespace-nowrap shadow-sm"
+              >
+                Dashboard
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Links Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -121,29 +125,38 @@ export default function AcmeFooter({
             </ul>
           </div>
 
-          {/* OperateIQ Ecosystem */}
+          {/* Quick Links / Ecosystem */}
           <div className="space-y-2">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-              OperateIQ Architecture
+              {isMember ? "OperateIQ Architecture" : "Company & Platform"}
             </h4>
             <ul className="text-xs space-y-1.5">
-              <li>
-                <Link href="/admin" className="text-sky-400 hover:underline flex items-center gap-1">
-                  <span>Owner Admin Dashboard</span>
-                  <ArrowUpRight size={11} />
-                </Link>
-              </li>
-              <li>
-                <Link href="/platform" className="text-sky-400 hover:underline flex items-center gap-1">
-                  <span>Platform Master Console</span>
-                  <ArrowUpRight size={11} />
-                </Link>
-              </li>
+              {isMember && (
+                <>
+                  <li>
+                    <Link href="/admin" className="text-sky-400 hover:underline flex items-center gap-1">
+                      <span>Owner Admin Dashboard</span>
+                      <ArrowUpRight size={11} />
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/platform" className="text-sky-400 hover:underline flex items-center gap-1">
+                      <span>Platform Master Console</span>
+                      <ArrowUpRight size={11} />
+                    </Link>
+                  </li>
+                </>
+              )}
               <li>
                 <Link href="/" className="text-gray-400 hover:text-white flex items-center gap-1">
-                  <span>OperateIQ SaaS Product Site</span>
+                  <span>OperateIQ Platform</span>
                   <ArrowUpRight size={11} />
                 </Link>
+              </li>
+              <li>
+                <a href="#contact" className="text-gray-400 hover:text-white flex items-center gap-1">
+                  <span>Contact Leasing Office</span>
+                </a>
               </li>
             </ul>
           </div>

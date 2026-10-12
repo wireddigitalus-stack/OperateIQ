@@ -79,15 +79,16 @@ export default function AcmeTourModal({
       });
 
       if (!res.ok) {
-        // Fallback: still treat as success for demo purposes if contact endpoint is unconfigured
-        console.warn("Contact endpoint returned non-200, simulating demo submission");
+        const data = await res.json().catch(() => null);
+        const msg = data?.error || "We could not submit your tour request. Please try again.";
+        setErrorMsg(msg);
+        return;
       }
 
       setSuccess(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Tour booking submission failed:", err);
-      // Fallback for offline/demo presentation
-      setSuccess(true);
+      setErrorMsg(err?.message || "A network error occurred. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -108,7 +109,7 @@ export default function AcmeTourModal({
                 Schedule a Private Property Tour
               </h3>
               <p className="text-xs text-gray-400">
-                Direct inquiry · Connected to OperateIQ CRM in real-time
+                Direct leasing inquiry · Instant confirmation
               </p>
             </div>
           </div>
@@ -129,7 +130,7 @@ export default function AcmeTourModal({
             <div className="space-y-2">
               <h4 className="text-lg font-bold text-white">Tour Request Received!</h4>
               <p className="text-xs text-gray-300 max-w-sm mx-auto leading-relaxed">
-                Your tour request has been routed to ACME Regional's leasing team and logged as a new lead on the <strong>OperateIQ Admin CRM Board</strong>.
+                Your tour request has been routed to {orgName ? `${orgName}'s` : "the"} leasing team. We will reach out shortly to confirm your scheduled time and prepare your walkthrough.
               </p>
             </div>
             <div className="pt-2">

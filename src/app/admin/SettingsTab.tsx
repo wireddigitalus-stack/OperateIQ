@@ -39,7 +39,7 @@ interface AllowedUser {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "maintenance" | "cleaning";
+  role: "admin" | "manager" | "maintenance" | "cleaning";
   active: boolean;
   pin?: string;
   created_at?: string;
@@ -433,12 +433,19 @@ function UserSection({ title, role, icon, color, users, onRefresh }: {
 
   const getInviteMessage = (u: AllowedUser) => {
     const domain = typeof window !== "undefined" ? window.location.origin : "";
+    if (u.role === "admin" || u.role === "manager") {
+      return `Hi ${u.name.split(" ")[0] || "there"}, you've been invited to join our team on the OperateIQ workspace:
+
+${domain}/admin/login
+
+Sign in with your work email (${u.email}) using Google or request an Email Magic Link to access the dashboard.`;
+    }
     const portalUrl = `${domain}/staff/${u.role}`;
     return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your OperateIQ ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
 
 ${portalUrl}
 
-PIN Code: ${u.pin || "123456"}
+PIN Code: ${u.pin || ""}
 
 Save a shortcut to your phone's Home Screen:
 📱 iPhone (Safari): Open link -> Tap Share -> "Add to Home Screen"
@@ -466,7 +473,7 @@ Save a shortcut to your phone's Home Screen:
     try {
       const payload: Record<string, string> = { name: name.trim(), role };
       if (email.trim()) payload.email = email.trim();
-      if (isStaffRole) payload.pin = pin || "123456";
+      if (isStaffRole && pin.trim()) payload.pin = pin.trim();
       const res = await fetch("/api/allowed-users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

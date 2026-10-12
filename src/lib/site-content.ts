@@ -16,19 +16,18 @@ export type ContentMap = Record<string, string>;
  * Returns an object like { headline: "...", subtext: "..." }.
  * If the table doesn't exist or the fetch fails, returns {}.
  */
-export async function getSiteContent(section: string): Promise<ContentMap> {
+export async function getSiteContent(section: string, orgId?: string): Promise<ContentMap> {
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/site_content?section=eq.${encodeURIComponent(section)}&select=key,value`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SERVICE_KEY,
-          Authorization: `Bearer ${SERVICE_KEY}`,
-        },
-        next: { revalidate: 60 },
-      }
-    );
+    let url = `${SUPABASE_URL}/rest/v1/site_content?section=eq.${encodeURIComponent(section)}&select=key,value`;
+    if (orgId) url += `&org_id=eq.${encodeURIComponent(orgId)}`;
+    const res = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+      },
+      next: { revalidate: 60 },
+    });
 
     if (!res.ok) return {};
 
@@ -44,21 +43,20 @@ export async function getSiteContent(section: string): Promise<ContentMap> {
 }
 
 /**
- * Fetch ALL sections at once (used by the homepage to avoid multiple fetches).
+ * Fetch ALL sections at once (used by pages to avoid multiple fetches).
  */
-export async function getAllSiteContent(): Promise<Record<string, ContentMap>> {
+export async function getAllSiteContent(orgId?: string): Promise<Record<string, ContentMap>> {
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/site_content?select=section,key,value`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SERVICE_KEY,
-          Authorization: `Bearer ${SERVICE_KEY}`,
-        },
-        next: { revalidate: 60 },
-      }
-    );
+    let url = `${SUPABASE_URL}/rest/v1/site_content?select=section,key,value`;
+    if (orgId) url += `&org_id=eq.${encodeURIComponent(orgId)}`;
+    const res = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+      },
+      next: { revalidate: 60 },
+    });
 
     if (!res.ok) return {};
 
@@ -78,19 +76,18 @@ export async function getAllSiteContent(): Promise<Record<string, ContentMap>> {
  * Fetch all property-related overrides (sections starting with "property:").
  * Returns { "city-centre": { name: "...", description: "..." }, ... }
  */
-export async function getPropertyOverrides(): Promise<Record<string, ContentMap>> {
+export async function getPropertyOverrides(orgId?: string): Promise<Record<string, ContentMap>> {
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/site_content?section=like.property:*&select=section,key,value`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SERVICE_KEY,
-          Authorization: `Bearer ${SERVICE_KEY}`,
-        },
-        next: { revalidate: 60 },
-      }
-    );
+    let url = `${SUPABASE_URL}/rest/v1/site_content?section=like.property:*&select=section,key,value`;
+    if (orgId) url += `&org_id=eq.${encodeURIComponent(orgId)}`;
+    const res = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+      },
+      next: { revalidate: 60 },
+    });
 
     if (!res.ok) return {};
 
