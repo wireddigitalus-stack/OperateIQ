@@ -154,7 +154,6 @@ export default function DemoPropertySitePage() {
         selectedPropertyId={tourPropertyId}
         properties={PROPERTIES}
         orgName={activeOrg?.name}
-        orgId={activeOrg?.id}
       />
 
       {/* Building Specifications Modal */}

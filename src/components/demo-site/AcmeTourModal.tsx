@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Calendar, X, CheckCircle2, Building2, User, Mail,
   Phone, Clock, ArrowRight, Loader2, Sparkles, ShieldCheck
@@ -14,6 +14,7 @@ interface AcmeTourModalProps {
   properties?: any[];
   orgName?: string;
   orgId?: string;
+  orgSlug?: string;
 }
 
 export default function AcmeTourModal({
@@ -23,9 +24,10 @@ export default function AcmeTourModal({
   properties,
   orgName,
   orgId,
+  orgSlug,
 }: AcmeTourModalProps) {
-  const propList = properties && properties.length > 0 ? properties : PROPERTIES;
-  const [propertyId, setPropertyId] = useState(selectedPropertyId || propList[0]?.id || "heritage-square");
+  const propList = properties ?? PROPERTIES; // demo data only when no list is passed (/demo-site)
+  const [propertyId, setPropertyId] = useState(selectedPropertyId || propList[0]?.id || "");
   const [companyName, setCompanyName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
@@ -36,6 +38,12 @@ export default function AcmeTourModal({
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Re-sync the selected building each time the modal opens for a property.
+  useEffect(() => {
+    if (isOpen) setPropertyId(selectedPropertyId || propList[0]?.id || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedPropertyId]);
 
   if (!isOpen) return null;
 
@@ -50,7 +58,7 @@ export default function AcmeTourModal({
     setErrorMsg("");
 
     const selectedProp = propList.find((p) => p.id === propertyId) || propList[0];
-    const buildingName = selectedProp?.name || "Portfolio Property";
+    const buildingName = selectedProp?.name || "General Inquiry";
 
     try {
       const res = await fetch("/api/contact", {
@@ -58,21 +66,18 @@ export default function AcmeTourModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           org_id: orgId || null,
+          org_slug: orgSlug || null,
           name: contactName.trim(),
           company: companyName.trim(),
           email: email.trim(),
           phone: phone.trim(),
-          space_type: selectedProp?.type || "Commercial Office",
+          space_type: selectedProp?.type || "",
           timeline,
-          budget: "$30-$50/SF",
           team_size: sqftNeeded,
           interest: `${buildingName} — Tour Scheduling Request`,
-          city: selectedProp?.city || "Local Market",
-          message: notes.trim()
-            ? `Tour Request for ${buildingName}. Notes: ${notes.trim()}`
-            : `Private Tour Booking Request for ${buildingName}.`,
+          city: selectedProp?.city || "",
+          message: `Space needed: ${sqftNeeded}.${notes.trim() ? ` Notes: ${notes.trim()}` : ""}`,
           formOpenedAt: Date.now() - 5000,
-          additional_info: `Tour Request for ${buildingName}. Space needed: ${sqftNeeded}. Notes: ${notes || "None"}`,
           source: "public_site",
           medium: "tour_modal",
         }),
@@ -164,6 +169,9 @@ export default function AcmeTourModal({
                 onChange={(e) => setPropertyId(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
               >
+                {propList.length === 0 && (
+                  <option value="" className="bg-[#0A1020] text-white">General Inquiry</option>
+                )}
                 {propList.map((p) => (
                   <option key={p.id} value={p.id} className="bg-[#0A1020] text-white">
                     {p.name} ({p.type} · {p.city})

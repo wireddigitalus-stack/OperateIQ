@@ -23,7 +23,7 @@ export default function AcmeBuildingSpecsModal({
 }: AcmeBuildingSpecsModalProps) {
   if (!propertyId) return null;
 
-  const propList = properties && properties.length > 0 ? properties : PROPERTIES;
+  const propList = properties ?? PROPERTIES; // demo data only when no list is passed (/demo-site)
   const property = propList.find((p) => p.id === propertyId) || propList[0];
 
   return (

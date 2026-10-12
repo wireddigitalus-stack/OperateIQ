@@ -164,12 +164,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── 3.4 Resolve tenant organization (public tenant-site forms) ───────────
+    // The org is looked up server-side; an unknown id/slug resolves to null.
+    let targetOrg: { id: string; name: string; contact_email: string | null } | null = null;
+    const requestedOrgId = typeof body.org_id === "string" ? body.org_id : null;
+    const requestedOrgSlug = typeof body.org_slug === "string" ? body.org_slug : null;
+
+    if (supabaseAdmin && (requestedOrgId || requestedOrgSlug)) {
+      let q = supabaseAdmin.from("organizations").select("id, name, contact_email");
+      if (requestedOrgSlug) {
+        q = q.eq("slug", requestedOrgSlug.toLowerCase().trim());
+      } else if (requestedOrgId && /^[0-9a-f-]{36}$/i.test(requestedOrgId)) {
+        q = q.eq("id", requestedOrgId);
+      }
+      const { data: orgData } = await q.maybeSingle();
+      if (orgData) targetOrg = orgData;
+    }
+
     // ── 3.5 Turnstile Verification ───────────────────────────────────────────
     const turnstileToken = body.turnstileToken;
     const secretKey = process.env.TURNSTILE_SECRET_KEY || "1x00000000000000000000000000000000";
 
-    // ── 3. Cloudflare Turnstile verification (required on marketing contact, optional on tour modals)
-    const isTourRequest = body.source === "public_site" || body.medium === "tour_modal";
+    // Required on the marketing contact form. Tenant-site forms (which resolved
+    // to a real org) don't embed Turnstile yet and rely on honeypot + timing + rate limit.
+    const isTourRequest = Boolean(targetOrg);
     if (turnstileToken || (process.env.TURNSTILE_SECRET_KEY && !isTourRequest)) {
       if (!turnstileToken && !isTourRequest) {
         return NextResponse.json(
@@ -232,66 +250,56 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Resolve Organization if submitted for a specific tenant ─────────────
-    let targetOrg: { id: string; name: string; contact_email: string | null } | null = null;
-    const requestedOrgId = body.org_id || null;
-    const requestedOrgSlug = body.org_slug || null;
-
-    if (supabaseAdmin && (requestedOrgId || requestedOrgSlug)) {
-      let q = supabaseAdmin.from("organizations").select("id, name, contact_email");
-      if (requestedOrgId) {
-        q = q.eq("id", requestedOrgId);
-      } else if (requestedOrgSlug) {
-        q = q.eq("slug", String(requestedOrgSlug).toLowerCase().trim());
-      }
-      const { data: orgData } = await q.maybeSingle();
-      if (orgData) targetOrg = orgData;
-    }
-
-    // ── 5. Store in Supabase leads CRM table & contact audit table ─────────
-    if (supabaseAdmin && targetOrg) {
-      try {
-        await supabaseAdmin.from("leads").insert({
-          id: `lead_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          org_id: targetOrg.id,
-          timestamp: new Date().toISOString(),
-          name: cleanName,
-          email: cleanEmail,
-          phone: cleanPhone || "",
-          space_type: sanitize(body.space_type) || "Commercial Office",
-          budget: sanitize(body.budget) || "$30-$50/SF",
-          timeline: sanitize(body.timeline) || "Immediate",
-          team_size: sanitize(body.team_size) || "Flexible",
-          additional_info: cleanMessage || `Tour request for ${cleanInterest}`,
-          score: 85,
-          score_label: "Verified Lead",
-          source: sanitize(body.source) || "public_site",
-          medium: sanitize(body.medium) || "tour_modal",
-          progress: "0-25%",
-        });
-      } catch (leadErr) {
-        console.warn("[contact] Failed to insert into tenant leads CRM:", leadErr);
-      }
-    }
-
-    try {
-      await supabaseAdmin.from("contact_submissions").insert({
-        id: `contact_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        submitted_at: new Date().toISOString(),
+    // ── 5. Store in the tenant's leads CRM (must succeed for tenant forms) ──
+    if (targetOrg) {
+      const { error: leadErr } = await supabaseAdmin.from("leads").insert({
+        id: `lead_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        org_id: targetOrg.id,
+        timestamp: new Date().toISOString(),
         name: cleanName,
         email: cleanEmail,
-        company: cleanCompany,
         phone: cleanPhone || "",
-        interest: cleanInterest,
-        city: cleanCity,
-        message: cleanMessage,
-        org_id: targetOrg?.id || null,
-        ip_hash: ip.split(".").slice(0, 3).join(".") + ".x",
-        session_id: sessionId || null,
+        space_type: sanitize(body.space_type) || null,
+        budget: sanitize(body.budget) || null,
+        timeline: sanitize(body.timeline) || null,
+        team_size: sanitize(body.team_size) || null,
+        additional_info: [cleanInterest, cleanCompany && `Company: ${cleanCompany}`, cleanMessage]
+          .filter(Boolean)
+          .join(" — "),
+        score: 0,
+        score_label: "New",
+        source: sanitize(body.source) || "public_site",
+        medium: sanitize(body.medium) || "website_form",
+        progress: "0-25%",
       });
-    } catch {
-      console.warn("[contact] Supabase audit insert skipped");
+      if (leadErr) {
+        console.error("[contact] Tenant lead insert failed:", leadErr);
+        return NextResponse.json(
+          { error: "We couldn't save your request. Please try again in a moment." },
+          { status: 500 }
+        );
+      }
     }
+
+    // ── 5a. Contact audit row (best effort). Only send org_id when known so the
+    // platform's own form keeps using the DB default until 002 is applied.
+    const auditRow: Record<string, unknown> = {
+      id: `contact_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      submitted_at: new Date().toISOString(),
+      name: cleanName,
+      email: cleanEmail,
+      company: cleanCompany,
+      phone: cleanPhone || "",
+      interest: cleanInterest,
+      city: cleanCity,
+      message: cleanMessage,
+      ip_hash: ip.split(".").slice(0, 3).join(".") + ".x",
+      session_id: sessionId || null,
+    };
+    const auditOrgId = targetOrg?.id || process.env.PLATFORM_ORG_ID;
+    if (auditOrgId) auditRow.org_id = auditOrgId;
+    const { error: auditErr } = await supabaseAdmin.from("contact_submissions").insert(auditRow);
+    if (auditErr) console.warn("[contact] Audit insert skipped:", auditErr.message);
 
     // ── 5b. AI Spam Check for notification email ────────────────────────────
     let isSpam = false;
@@ -315,7 +323,11 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 6. Send email via Resend REST API ────────────────────────────────────
-    if (RESEND_API_KEY && TO_EMAILS.length > 0) {
+    // Tenant-site leads go to that tenant only; platform leads go to the platform inbox.
+    const recipients = targetOrg
+      ? (targetOrg.contact_email ? [targetOrg.contact_email] : [])
+      : TO_EMAILS;
+    if (RESEND_API_KEY && recipients.length > 0) {
       const emailRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -324,9 +336,9 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           from: FROM_EMAIL,
-          to: TO_EMAILS,
+          to: recipients,
           reply_to: cleanEmail,
-          subject: `${isSpam ? "[POTENTIAL SPAM] " : ""}New Inquiry: ${cleanInterest} — ${cleanName}`,
+          subject: `${isSpam ? "[POTENTIAL SPAM] " : ""}${targetOrg ? `[${targetOrg.name}] ` : ""}New Inquiry: ${cleanInterest} — ${cleanName}`,
           html: buildHtml({
             name: cleanName, email: cleanEmail, company: cleanCompany,
             phone: cleanPhone, interest: cleanInterest, city: cleanCity,

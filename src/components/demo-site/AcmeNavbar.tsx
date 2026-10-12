@@ -53,27 +53,29 @@ export default function AcmeNavbar({
           </Link>
         </div>
 
-        {/* Center / Navigation Links */}
+        {/* Center / Navigation Links (only sections that exist on the page) */}
         <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-gray-300">
-          <a href="#portfolio" className="hover:text-white transition-colors">
-            Featured Assets
-          </a>
-          <a href="#spaces" className="hover:text-white transition-colors">
-            Available Spaces
-          </a>
-          <a href="#amenities" className="hover:text-white transition-colors">
-            Tenant Amenities
+          {!isStarter && (
+            <a href="#portfolio" className="hover:text-white transition-colors">
+              Properties
+            </a>
+          )}
+          <a href="#contact" className="hover:text-white transition-colors">
+            Contact
           </a>
         </nav>
 
         {/* Right Action Button: Schedule Tour */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => onOpenTourModal()}
+            onClick={() => {
+              if (isStarter) document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+              else onOpenTourModal();
+            }}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white text-xs font-bold shadow-[0_0_18px_rgba(59,130,246,0.35)] transition-all flex items-center gap-2"
           >
             <Calendar size={14} />
-            <span>Schedule Tour</span>
+            <span>{isStarter ? "Contact Us" : "Schedule Tour"}</span>
           </button>
         </div>
       </div>

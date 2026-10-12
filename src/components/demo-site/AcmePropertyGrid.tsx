@@ -28,7 +28,7 @@ export default function AcmePropertyGrid({
   tagline,
 }: AcmePropertyGridProps) {
   const [activeTab, setActiveTab] = useState(filterType || "all");
-  const propList = properties && properties.length > 0 ? properties : PROPERTIES;
+  const propList = properties ?? PROPERTIES; // demo data only when no list is passed (/demo-site)
 
   const filtered = propList.filter((p) => {
     if (activeTab !== "all" && p.type !== activeTab) return false;

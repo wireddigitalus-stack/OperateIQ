@@ -11,7 +11,26 @@ interface AcmeFooterProps {
   email?: string;
   description?: string;
   isMember?: boolean;
+  /** Tenant property types. Omit (undefined) only on /demo-site to show ACME samples. */
+  assetClasses?: string[];
+  /** Tenant cities/markets. Omit (undefined) only on /demo-site to show ACME samples. */
+  markets?: string[];
+  /** Anchor id for in-page "Contact" links (pages with their own contact form pass another id). */
+  anchorId?: string;
 }
+
+const DEMO_ASSET_CLASSES = [
+  "Main Street Mixed-Use & Lofts",
+  "Medical & Professional Plazas",
+  "Garden-Style Multi-Family",
+  "Contractor Flex & Trade Bays",
+];
+const DEMO_MARKETS = [
+  "Historic Downtown Main St",
+  "Valley Medical Corridor",
+  "Pinecrest Residential District",
+  "Industrial Trade District",
+];
 
 export default function AcmeFooter({
   onOpenAiInspector,
@@ -20,9 +39,14 @@ export default function AcmeFooter({
   email,
   description,
   isMember = false,
+  assetClasses,
+  markets,
+  anchorId = "contact",
 }: AcmeFooterProps) {
+  const assetList = (assetClasses ?? DEMO_ASSET_CLASSES).slice(0, 6);
+  const marketList = (markets ?? DEMO_MARKETS).slice(0, 6);
   return (
-    <footer className="border-t border-white/10 bg-[#04070F] text-gray-400 py-16 px-4 sm:px-6">
+    <footer id={anchorId} className="border-t border-white/10 bg-[#04070F] text-gray-400 py-16 px-4 sm:px-6 scroll-mt-24">
       <div className="max-w-7xl mx-auto space-y-12">
         
         {/* Top Disclaimer Banner - Only for Authenticated Org Members */}
@@ -74,7 +98,7 @@ export default function AcmeFooter({
             <p className="text-xs text-gray-400 leading-relaxed">
               {description ||
                 (orgName
-                  ? `Managing premier commercial office suites, tech campuses, creative studios, and residential portfolios for ${orgName}.`
+                  ? `Property leasing and management by ${orgName}.`
                   : "Managing a diversified regional portfolio of historic downtown mixed-use lofts, healthcare plazas, garden-style apartments, and contractor flex parks across Oakridge Valley.")}
             </p>
             {(phone || email) && (
@@ -99,31 +123,29 @@ export default function AcmeFooter({
             )}
           </div>
 
-          {/* Asset Classes */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-              Asset Classes
-            </h4>
-            <ul className="text-xs space-y-1.5 text-gray-400">
-              <li>Main Street Mixed-Use & Lofts</li>
-              <li>Medical & Professional Plazas</li>
-              <li>Garden-Style Multi-Family</li>
-              <li>Contractor Flex & Trade Bays</li>
-            </ul>
-          </div>
+          {/* Property Types (tenant data; ACME defaults only on /demo-site) */}
+          {assetList.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                Property Types
+              </h4>
+              <ul className="text-xs space-y-1.5 text-gray-400">
+                {assetList.map((a) => <li key={a}>{a}</li>)}
+              </ul>
+            </div>
+          )}
 
-          {/* Submarkets */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-              Regional Markets
-            </h4>
-            <ul className="text-xs space-y-1.5 text-gray-400">
-              <li>Historic Downtown Main St</li>
-              <li>Valley Medical Corridor</li>
-              <li>Pinecrest Residential District</li>
-              <li>Industrial Trade District</li>
-            </ul>
-          </div>
+          {/* Markets */}
+          {marketList.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                Markets
+              </h4>
+              <ul className="text-xs space-y-1.5 text-gray-400">
+                {marketList.map((m) => <li key={m}>{m}</li>)}
+              </ul>
+            </div>
+          )}
 
           {/* Quick Links / Ecosystem */}
           <div className="space-y-2">
@@ -152,11 +174,6 @@ export default function AcmeFooter({
                   <span>OperateIQ Platform</span>
                   <ArrowUpRight size={11} />
                 </Link>
-              </li>
-              <li>
-                <a href="#contact" className="text-gray-400 hover:text-white flex items-center gap-1">
-                  <span>Contact Leasing Office</span>
-                </a>
               </li>
             </ul>
           </div>

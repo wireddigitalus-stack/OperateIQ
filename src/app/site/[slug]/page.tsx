@@ -26,7 +26,6 @@ import AcmePropertyGrid from "@/components/demo-site/AcmePropertyGrid";
 import AcmeTourModal from "@/components/demo-site/AcmeTourModal";
 import AcmeBuildingSpecsModal from "@/components/demo-site/AcmeBuildingSpecsModal";
 import AcmeFooter from "@/components/demo-site/AcmeFooter";
-import { PROPERTIES } from "@/lib/data";
 
 interface OrgData {
   id: string;
@@ -59,6 +58,7 @@ export default function TenantPublicSitePage() {
   const [properties, setProperties] = useState<any[]>([]);
   const [heroSlides, setHeroSlides] = useState<HeroSlideItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   // Modals & interaction state
   const [isTourModalOpen, setIsTourModalOpen] = useState(false);
@@ -94,68 +94,61 @@ export default function TenantPublicSitePage() {
           }
         }
 
-        // If organization found, fetch real properties for this organization
-        if (currentOrg) {
-          const propsRes = await fetch(
-            `/api/properties-dynamic?org_slug=${encodeURIComponent(currentOrg.slug)}`
-          );
-          if (propsRes.ok) {
-            const propsData = await propsRes.json();
-            if (Array.isArray(propsData.properties) && propsData.properties.length > 0) {
-              const formatted = propsData.properties.map((p: any) => ({
+        if (!currentOrg) {
+          setNotFound(true);
+          return;
+        }
+
+        // Published properties for this organization only (no demo fallback).
+        const propsRes = await fetch(
+          `/api/properties-dynamic?org_slug=${encodeURIComponent(currentOrg.slug)}`
+        );
+        if (propsRes.ok) {
+          const propsData = await propsRes.json();
+          if (Array.isArray(propsData.properties) && propsData.properties.length > 0) {
+            const formatted = propsData.properties.map((p: any) => {
+              const sqftNum = Number(p.total_sqft || p.sqft || 0);
+              const features = Array.isArray(p.features)
+                ? p.features
+                : Array.isArray(p.highlights)
+                  ? p.highlights
+                  : [];
+              return {
                 id: p.id || p.slug,
-                name: p.name || "Commercial Asset",
-                type: p.type || "Commercial Office",
-                city: p.city || currentOrg?.city || "Commercial District",
-                address: p.address || `${p.name}, Suite 100`,
-                sqft: p.total_sqft ? `${Number(p.total_sqft).toLocaleString()} RSF` : "1,200 – 5,000",
+                name: p.name || "Property",
+                type: p.type || "Property",
+                city: p.city || "",
+                address: [p.address, p.city, p.state].filter(Boolean).join(", "),
+                // Grid/specs append "RSF" themselves.
+                sqft: sqftNum > 0 ? sqftNum.toLocaleString() : "—",
                 status: p.status || "Available",
-                badge: p.type || "Featured Asset",
+                badge: p.type || "Property",
                 badgeColor: "blue",
-                image: p.featured_image || p.image || "/demo-properties/oakridge-professional-plaza.jpg",
-                specs: {
-                  yearBuilt: p.year_built || "2022",
-                  floors: p.floors || 2,
-                  parking: p.parking || "On-site dedicated parking",
-                  zoning: p.zoning || "Commercial",
-                  hvac: "Central Climate Controlled",
-                  fiber: "Dedicated High-Speed Fiber",
-                  power: "Commercial Standard",
-                  ceilingHeight: "12 ft",
-                },
-                description: p.description || `${p.name} managed by ${currentOrg?.name}.`,
-                highlights: [
-                  "High-speed fiber connectivity",
-                  "Dedicated parking & tenant access control",
-                  "Turnkey condition ready for immediate occupancy",
-                ],
-              }));
+                image:
+                  p.featured_image || p.image || p.hero_image ||
+                  "/demo-properties/oakridge-professional-plaza.jpg",
+                description: p.description || "",
+                highlights: features,
+              };
+            });
 
-              setProperties(formatted);
-              setTourPropertyId(formatted[0]?.id);
+            setProperties(formatted);
+            setTourPropertyId(formatted[0]?.id);
 
-              // Build hero slides from real properties
-              const slides: HeroSlideItem[] = formatted.slice(0, 4).map((p: any) => ({
-                propertyId: p.id,
-                name: p.name,
-                tagline: p.description?.slice(0, 80) || "Premier Commercial Space",
-                submarket: `${p.city} · Commercial Corridor`,
-                image: p.image,
-                type: p.type,
-                featuredSuite: "Suite 100 · Prime Location",
-                suiteSpecs: p.sqft,
-                rate: "Competitive Market Rate",
-                badge: p.badge,
-              }));
-              setHeroSlides(slides);
-            } else if (slugParam === "demo" || slugParam === "acme-regional") {
-              setProperties(PROPERTIES);
-              setTourPropertyId(PROPERTIES[0]?.id);
-            }
+            const slides: HeroSlideItem[] = formatted.slice(0, 4).map((p: any) => ({
+              propertyId: p.id,
+              name: p.name,
+              tagline: p.description?.slice(0, 80) || p.type,
+              submarket: p.city || p.type,
+              image: p.image,
+              type: p.type,
+              featuredSuite: p.status,
+              suiteSpecs: p.sqft !== "—" ? `${p.sqft} RSF` : "",
+              rate: "Contact for pricing",
+              badge: p.badge,
+            }));
+            setHeroSlides(slides);
           }
-        } else if (slugParam === "demo" || slugParam === "acme-regional") {
-          setProperties(PROPERTIES);
-          setTourPropertyId(PROPERTIES[0]?.id);
         }
       } catch (err) {
         console.warn("[TenantPublicSite] Error loading org and properties:", err);
@@ -250,22 +243,27 @@ export default function TenantPublicSitePage() {
     }
   };
 
+  const siteBase =
+    org.custom_domain
+      ? `https://${org.custom_domain}`
+      : `${process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")}/site/${org.slug}`;
+
   // Structured Schema.org JSON-LD for Generative Engine Optimization (GEO) & SEO
   const jsonLdData = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "RealEstateAgent",
-        "@id": `https://${org.custom_domain || "operateiq-peach.vercel.app"}/site/${org.slug}#organization`,
+        "@id": `${siteBase}#organization`,
         name: org.name,
-        url: `https://${org.custom_domain || "operateiq-peach.vercel.app"}/site/${org.slug}`,
+        url: siteBase,
         description: org.description || `Premier properties managed by ${org.name}.`,
         telephone: org.contact_phone || undefined,
         email: org.contact_email || undefined,
       },
       ...properties.map((prop) => ({
         "@type": "RealEstateListing",
-        "@id": `https://${org.custom_domain || "operateiq-peach.vercel.app"}/site/${org.slug}/properties/${prop.id}#listing`,
+        "@id": `${siteBase}#listing-${prop.id}`,
         name: prop.name,
         description: prop.description,
         image: prop.image,
@@ -288,6 +286,28 @@ export default function TenantPublicSitePage() {
   const isStarterTier = currentTier === "starter";
   const isGrowthTier = currentTier === "growth";
   const isProTier = currentTier === "pro";
+
+  const assetClasses = Array.from(new Set(properties.map((p) => p.type).filter(Boolean))) as string[];
+  const markets = Array.from(new Set(properties.map((p) => p.city).filter(Boolean))) as string[];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#060911] flex items-center justify-center text-gray-400">
+        <Loader2 size={28} className="animate-spin text-sky-400" />
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-[#060911] flex flex-col items-center justify-center gap-3 text-center px-6">
+        <Building2 size={36} className="text-gray-500" />
+        <h1 className="text-xl font-bold text-white">Site not found</h1>
+        <p className="text-sm text-gray-400">There is no property website at this address.</p>
+        <Link href="/" className="text-sky-400 text-sm hover:underline">Go to OperateIQ</Link>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -582,7 +602,7 @@ export default function TenantPublicSitePage() {
           </div>
 
           {/* Simple Property Cards Grid */}
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+          <section id="portfolio" className="scroll-mt-24 max-w-7xl mx-auto px-4 sm:px-6 py-12">
             {properties.length === 0 ? (
               <div className="p-12 text-center rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
                 <Building2 size={36} className="mx-auto text-gray-500" />
@@ -618,7 +638,7 @@ export default function TenantPublicSitePage() {
                         {p.type}
                       </div>
                       <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/80 text-[11px] font-mono text-white">
-                        {p.sqft}
+                        {p.sqft !== "—" ? `${p.sqft} RSF` : "Contact for size"}
                       </div>
                     </div>
 
@@ -655,7 +675,27 @@ export default function TenantPublicSitePage() {
       )}
 
       {/* ── TIER 3: PRO TIER (Full Interactive Commercial Showcase & Spec Hub) ── */}
-      {isProTier && (
+      {isProTier && properties.length === 0 && (
+        <main id="portfolio" className="max-w-3xl mx-auto px-4 sm:px-6 py-24 text-center space-y-4">
+          <Building2 size={40} className="mx-auto text-gray-500" />
+          <h1 className="text-3xl font-black text-white">{org.name}</h1>
+          <p className="text-sm text-gray-400">
+            {isMember
+              ? "No published properties yet. Add and publish properties in your Dashboard and they will appear here automatically."
+              : `New listings from ${org.name} are coming soon. Use the contact details below to get in touch.`}
+          </p>
+          {isMember && (
+            <Link
+              href="/admin?tab=properties"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs"
+            >
+              Add Properties in Dashboard
+            </Link>
+          )}
+        </main>
+      )}
+
+      {isProTier && properties.length > 0 && (
         <main>
           {/* Animated Image Hero Banner */}
           <AcmeHeroBanner
@@ -694,6 +734,7 @@ export default function TenantPublicSitePage() {
         properties={properties}
         orgName={org.name}
         orgId={org.id}
+        orgSlug={org.slug}
       />
 
       {/* Footer */}
@@ -704,6 +745,9 @@ export default function TenantPublicSitePage() {
         email={org.contact_email}
         description={org.description}
         isMember={isMember}
+        assetClasses={assetClasses}
+        markets={markets}
+        anchorId={isStarterTier ? "site-footer" : "contact"}
       />
     </div>
   );
