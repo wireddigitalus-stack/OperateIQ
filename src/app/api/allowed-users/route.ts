@@ -27,9 +27,11 @@ async function pinTaken(pin: string, exceptId?: string): Promise<boolean> {
   return !!data?.length;
 }
 
+import { randomInt } from "crypto";
+
 async function generateUniquePin(): Promise<string> {
   for (let i = 0; i < 20; i++) {
-    const pin = Math.floor(100000 + Math.random() * 900000).toString();
+    const pin = randomInt(100000, 1000000).toString();
     if (!(await pinTaken(pin))) return pin;
   }
   throw new Error("Could not generate a unique PIN");

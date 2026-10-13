@@ -1,17 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { Loader2, Shield, Mail, KeyRound, ArrowRight, CheckCircle2, Zap } from "lucide-react";
 
-export default function AdminLoginPage() {
-  const [authMode, setAuthMode] = useState<"google" | "email" | "password">("google");
+function AdminLoginForm() {
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get("email") || "";
+
+  const [authMode, setAuthMode] = useState<"google" | "email" | "password">(
+    emailParam ? "email" : "google"
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+
+  useEffect(() => {
+    if (emailParam) {
+      setEmail(emailParam);
+      setAuthMode("email");
+    }
+  }, [emailParam]);
 
   // Already signed in? Skip the login screen.
   useEffect(() => {
@@ -299,5 +312,19 @@ export default function AdminLoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#080C14] flex items-center justify-center">
+          <Loader2 size={24} className="text-sky-400 animate-spin" />
+        </div>
+      }
+    >
+      <AdminLoginForm />
+    </Suspense>
   );
 }

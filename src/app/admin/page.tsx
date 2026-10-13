@@ -3601,6 +3601,7 @@ export default function AdminPage() {
             setDeleteAllConfirm={setDeleteAllConfirm}
             deleteAllLeads={deleteAllLeads}
             activeOrg={activeOrg}
+            onDomainUpdated={(domain) => setActiveOrg(prev => prev ? { ...prev, custom_domain: domain } : null)}
           />
         )}
 

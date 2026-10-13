@@ -430,15 +430,18 @@ function UserSection({ title, role, icon, color, users, onRefresh }: {
 
   const [inviteUser, setInviteUser] = useState<AllowedUser | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const getInviteMessage = (u: AllowedUser) => {
     const domain = typeof window !== "undefined" ? window.location.origin : "";
     if (u.role === "admin" || u.role === "manager") {
-      return `Hi ${u.name.split(" ")[0] || "there"}, you've been invited to join our team on the OperateIQ workspace:
+      const loginUrl = `${domain}/admin/login?email=${encodeURIComponent(u.email || "")}`;
+      return `Hi ${u.name.split(" ")[0] || "there"}, you've been invited to join our team on OperateIQ:
 
-${domain}/admin/login
+${loginUrl}
 
-Sign in with your work email (${u.email}) using Google or request an Email Magic Link to access the dashboard.`;
+Sign in with your email (${u.email}) using Google or request a 1-click Email Magic Link to access the dashboard.`;
     }
     const portalUrl = `${domain}/staff/${u.role}`;
     return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your OperateIQ ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
@@ -459,8 +462,38 @@ Save a shortcut to your phone's Home Screen:
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSendEmailInvite = async (u: AllowedUser) => {
+    if (!u.email) return;
+    setSendingEmail(true);
+    setEmailStatus(null);
+    try {
+      const res = await fetch("/api/team-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: u.email, name: u.name, role: u.role }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEmailStatus({ ok: true, msg: data.message || "Invitation email sent successfully!" });
+      } else {
+        setEmailStatus({ ok: false, msg: data.error || data.message || "Failed to send email. Please copy link instead." });
+      }
+    } catch {
+      setEmailStatus({ ok: false, msg: "Network error sending invitation email." });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const generatePin = () => {
-    const p = Math.floor(100000 + Math.random() * 900000).toString();
+    let p: string;
+    if (typeof window !== "undefined" && window.crypto && window.crypto.getRandomValues) {
+      const arr = new Uint32Array(1);
+      window.crypto.getRandomValues(arr);
+      p = (100000 + (arr[0] % 900000)).toString();
+    } else {
+      p = Math.floor(100000 + Math.random() * 900000).toString();
+    }
     setPin(p);
   };
 
@@ -666,15 +699,20 @@ Save a shortcut to your phone's Home Screen:
               ) : (
                 <span className="text-xs text-[#4ADE80] font-bold px-2 py-0.5 rounded-lg border border-[rgba(74,222,128,0.25)] bg-[rgba(74,222,128,0.06)]">Active</span>
               )}
-              {isStaffRole && u.active && u.pin && (
-                <button onClick={() => setInviteUser(u)}
+              {u.active && (isStaffRole ? !!u.pin : !!u.email) && (
+                <button
+                  onClick={() => {
+                    setInviteUser(u);
+                    setEmailStatus(null);
+                  }}
                   className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider transition-all px-2 py-1 rounded-md border hover:brightness-110 active:scale-95 whitespace-nowrap"
                   style={{
                     color,
                     borderColor: `${color}40`,
                     backgroundColor: `${color}15`,
                   }}
-                  title="Share setup instructions & link">
+                  title={isStaffRole ? "Share setup instructions & PIN" : "Share invite link or send email"}
+                >
                   <Share2 size={10} />
                   <span>Invite</span>
                 </button>
@@ -705,25 +743,79 @@ Save a shortcut to your phone's Home Screen:
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center animate-pulse" style={{ backgroundColor: `${color}15`, color, border: `1px solid ${color}30` }}>
-                  <Smartphone size={16} />
+                  {isStaffRole ? <Smartphone size={16} /> : <Mail size={16} />}
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">Share Portal Invite</h3>
-                  <p className="text-xs text-gray-500">{inviteUser.name} · {title}</p>
+                  <h3 className="text-base font-black text-white">
+                    {isStaffRole ? "Share Portal Invite" : "Team Workspace Invitation"}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {inviteUser.name} · {inviteUser.email || title}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setInviteUser(null)} className="w-8 h-8 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors">
+              <button
+                onClick={() => {
+                  setInviteUser(null);
+                  setEmailStatus(null);
+                }}
+                className="w-8 h-8 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+              >
                 <X size={16} className="text-gray-400" />
               </button>
             </div>
 
             {/* Content */}
             <div className="space-y-4">
+              {/* Admin / Manager specific 1-click email invitation */}
+              {!isStaffRole && (
+                <div className="p-3.5 rounded-xl border border-sky-500/20 bg-sky-500/[0.04] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+                      <Mail size={13} /> 1-Click Email Invitation
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-mono truncate max-w-[180px]">{inviteUser.email}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    Send a branded invitation email via Resend with a direct login link and workspace details.
+                  </p>
+                  <button
+                    onClick={() => handleSendEmailInvite(inviteUser)}
+                    disabled={sendingEmail}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-black text-white bg-sky-600 hover:bg-sky-500 active:scale-95 disabled:opacity-50 transition-all shadow-md"
+                  >
+                    {sendingEmail ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" /> Sending Email...
+                      </>
+                    ) : (
+                      <>
+                        <Mail size={13} /> Send Email Invitation
+                      </>
+                    )}
+                  </button>
+                  {emailStatus && (
+                    <div
+                      className={`text-xs p-2.5 rounded-lg border flex items-center gap-2 ${
+                        emailStatus.ok
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                          : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                      }`}
+                    >
+                      <CheckCircle2 size={13} className="flex-shrink-0" />
+                      <span>{emailStatus.msg}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
-                <label className="text-[10px] text-gray-500 font-black uppercase tracking-wider block mb-1.5">Invite Text Message</label>
+                <label className="text-[10px] text-gray-500 font-black uppercase tracking-wider block mb-1.5">
+                  {isStaffRole ? "SMS / Message Text" : "Direct Invitation Link & Message"}
+                </label>
                 <textarea
                   readOnly
-                  rows={8}
+                  rows={isStaffRole ? 8 : 5}
                   className="w-full bg-[rgba(0,0,0,0.35)] border border-[rgba(255,255,255,0.08)] rounded-xl p-3 text-xs font-mono text-gray-300 outline-none resize-none leading-relaxed mb-2.5"
                   value={getInviteMessage(inviteUser)}
                 />
@@ -742,38 +834,47 @@ Save a shortcut to your phone's Home Screen:
                     </>
                   )}
                 </button>
-                <p className="text-[10px] text-gray-600 mt-1.5">Copy this text and send it to the staff member to help them get set up.</p>
+                <p className="text-[10px] text-gray-600 mt-1.5">
+                  {isStaffRole
+                    ? "Copy this text and send it to the crew member so they can bookmark their portal on mobile."
+                    : "Share this link directly or paste it into Slack, Teams, or SMS."}
+                </p>
               </div>
 
-              {/* Instructions */}
-              <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-3.5 space-y-2">
-                <p className="text-xs font-black text-white flex items-center gap-1.5">
-                  📌 Saving to Phone's Home Screen
-                </p>
-                <div className="grid grid-cols-2 gap-3 text-[11px] text-gray-400">
-                  <div>
-                    <p className="font-bold text-gray-300 mb-0.5">📱 iPhone (Safari):</p>
-                    <ol className="list-decimal list-inside space-y-0.5">
-                      <li>Open portal link</li>
-                      <li>Tap Share button</li>
-                      <li>Tap "Add to Home Screen"</li>
-                    </ol>
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-300 mb-0.5">🤖 Android (Chrome):</p>
-                    <ol className="list-decimal list-inside space-y-0.5">
-                      <li>Open portal link</li>
-                      <li>Tap 3-dot Menu</li>
-                      <li>Tap "Add to Home Screen"</li>
-                    </ol>
+              {/* Instructions for Staff Mobile shortcut */}
+              {isStaffRole && (
+                <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-3.5 space-y-2">
+                  <p className="text-xs font-black text-white flex items-center gap-1.5">
+                    📌 Saving to Phone's Home Screen
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 text-[11px] text-gray-400">
+                    <div>
+                      <p className="font-bold text-gray-300 mb-0.5">📱 iPhone (Safari):</p>
+                      <ol className="list-decimal list-inside space-y-0.5">
+                        <li>Open portal link</li>
+                        <li>Tap Share button</li>
+                        <li>Tap "Add to Home Screen"</li>
+                      </ol>
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-300 mb-0.5">🤖 Android (Chrome):</p>
+                      <ol className="list-decimal list-inside space-y-0.5">
+                        <li>Open portal link</li>
+                        <li>Tap 3-dot Menu</li>
+                        <li>Tap "Add to Home Screen"</li>
+                      </ol>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="flex justify-end mt-5">
               <button
-                onClick={() => setInviteUser(null)}
+                onClick={() => {
+                  setInviteUser(null);
+                  setEmailStatus(null);
+                }}
                 className="px-4 py-2 rounded-lg border border-[rgba(255,255,255,0.08)] text-gray-400 text-xs font-bold hover:text-white hover:bg-[rgba(255,255,255,0.05)] transition-all"
               >
                 Close
@@ -1605,6 +1706,7 @@ function SettingsPanel({
   setDeleteAllConfirm,
   deleteAllLeads,
   activeOrg,
+  onDomainUpdated,
 }: {
   leads: Lead[];
   deletingAll: boolean;
@@ -1612,6 +1714,7 @@ function SettingsPanel({
   setDeleteAllConfirm: (v: string) => void;
   deleteAllLeads: () => void;
   activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null } | null;
+  onDomainUpdated?: (domain: string | null) => void;
 }) {
   const [adminUsers,  setAdminUsers]  = useState<AllowedUser[]>([]);
   const [maintUsers,  setMaintUsers]  = useState<AllowedUser[]>([]);
@@ -1668,6 +1771,7 @@ function SettingsPanel({
         orgId={activeOrg?.id}
         orgName={activeOrg?.name}
         currentDomain={activeOrg?.custom_domain}
+        onDomainUpdated={onDomainUpdated}
       />
 
       {/* ─ Portal Access ───────────────────────────────────────── */}
