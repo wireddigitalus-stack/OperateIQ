@@ -7,6 +7,8 @@ import {
   Search,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Flame,
   Printer,
   PlusCircle,
@@ -689,6 +691,18 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
   const prevTab = useRef<TabKey>(activeTab);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // Scroll refs & state for modern scroll UI graphics
+  const categoryBarRef = useRef<HTMLDivElement>(null);
+  const [canScrollCatLeft, setCanScrollCatLeft] = useState(false);
+  const [canScrollCatRight, setCanScrollCatRight] = useState(true);
+
+  const sidebarListRef = useRef<HTMLDivElement>(null);
+  const [sidebarScrollState, setSidebarScrollState] = useState<{
+    canScrollDown: boolean;
+    canScrollUp: boolean;
+    progress: number;
+  }>({ canScrollDown: false, canScrollUp: false, progress: 0 });
+
   // Sync selectedCategory when user switches tabs in the dashboard
   useEffect(() => {
     if (prevTab.current !== activeTab) {
@@ -770,7 +784,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
 
     const primary = TIPS[selectedCategory] ?? [];
     // If a marketing-* or content-* sub-tab has only 1 tip, also append the other related marketing/content tips for convenience
-    let combined: (Tip & { categoryLabel: string })[] = primary.map((t) => ({
+    const combined: (Tip & { categoryLabel: string })[] = primary.map((t) => ({
       ...t,
       categoryLabel: TAB_LABELS[selectedCategory] || "Current Section",
     }));
@@ -818,6 +832,67 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
 
   const safeIdx = Math.min(selectedIdx, Math.max(0, displayedTips.length - 1));
   const current = displayedTips[safeIdx] ?? null;
+
+  // Update horizontal category bar scroll indicators
+  const updateCategoryScrollState = () => {
+    const el = categoryBarRef.current;
+    if (!el) return;
+    setCanScrollCatLeft(el.scrollLeft > 8);
+    setCanScrollCatRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  };
+
+  // Update vertical sidebar scroll state & progress
+  const updateSidebarScrollState = () => {
+    const el = sidebarListRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollHeight - el.clientHeight;
+    if (maxScroll <= 6) {
+      setSidebarScrollState({ canScrollDown: false, canScrollUp: false, progress: 100 });
+      return;
+    }
+    const progress = Math.min(100, Math.max(0, Math.round((el.scrollTop / maxScroll) * 100)));
+    setSidebarScrollState({
+      canScrollUp: el.scrollTop > 10,
+      canScrollDown: el.scrollTop < maxScroll - 10,
+      progress,
+    });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => {
+      updateCategoryScrollState();
+      updateSidebarScrollState();
+    }, 60);
+    return () => clearTimeout(t);
+  }, [open, selectedCategory, displayedTips.length, searchQuery]);
+
+  // Smooth scroll selected topic button into view when navigating via Prev/Next or Segmented Bar
+  useEffect(() => {
+    if (!open || !sidebarListRef.current) return;
+    const activeBtn = sidebarListRef.current.querySelector(
+      `[data-tip-idx="${safeIdx}"]`
+    ) as HTMLElement | null;
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [safeIdx, open]);
+
+  const scrollCategoryBar = (dir: "left" | "right") => {
+    const el = categoryBarRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -260 : 260, behavior: "smooth" });
+  };
+
+  const scrollSidebarStep = () => {
+    const el = sidebarListRef.current;
+    if (!el) return;
+    if (sidebarScrollState.canScrollDown) {
+      el.scrollBy({ top: 220, behavior: "smooth" });
+    } else {
+      el.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   return (
     <>
@@ -919,103 +994,215 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
               </div>
             </div>
 
-            {/* ── Category Switcher Bar ── */}
+            {/* ── Category Switcher Carousel Bar (Modern Scroll UI with Fade Masks & Glide Arrows) ── */}
             {!searchQuery && (
-              <div className="px-6 sm:px-8 py-3 border-b border-white/10 bg-[#080D1A] flex items-center gap-2 overflow-x-auto no-scrollbar flex-shrink-0">
-                {SECTION_CATEGORIES.map((cat) => {
-                  const Icon = cat.icon;
-                  const isActive =
-                    selectedCategory === cat.key ||
-                    (cat.key === "marketing-blog" && selectedCategory.startsWith("marketing")) ||
-                    (cat.key === "content-properties" && selectedCategory.startsWith("content"));
-                  return (
+              <div className="relative border-b border-white/10 bg-[#080D1A] flex items-center flex-shrink-0">
+                {/* Left fade + glide button */}
+                {canScrollCatLeft && (
+                  <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-2 pr-6 bg-gradient-to-r from-[#080D1A] via-[#080D1A]/95 to-transparent pointer-events-none">
                     <button
-                      key={cat.key}
-                      onClick={() => {
-                        setSelectedCategory(cat.key);
-                        setSelectedIdx(0);
-                      }}
-                      className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
-                        isActive
-                          ? "bg-sky-500/20 border border-sky-400/50 text-white shadow-[0_0_15px_rgba(56,189,248,0.2)]"
-                          : "bg-white/[0.03] border border-white/[0.07] text-slate-300 hover:text-white hover:bg-white/[0.07]"
-                      }`}
+                      onClick={() => scrollCategoryBar("left")}
+                      aria-label="Scroll categories left"
+                      className="pointer-events-auto w-8 h-8 rounded-full bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/40 text-sky-200 hover:text-white flex items-center justify-center shadow-[0_0_16px_rgba(56,189,248,0.35)] transition-all cursor-pointer"
                     >
-                      <Icon size={15} className={isActive ? "text-sky-400" : "text-slate-400"} />
-                      <span>{cat.label}</span>
+                      <ChevronLeft size={16} />
                     </button>
-                  );
-                })}
+                  </div>
+                )}
+
+                <div
+                  ref={categoryBarRef}
+                  onScroll={updateCategoryScrollState}
+                  className="px-6 sm:px-8 py-3 flex items-center gap-2 overflow-x-auto scrollbar-none scroll-smooth w-full"
+                >
+                  {SECTION_CATEGORIES.map((cat) => {
+                    const Icon = cat.icon;
+                    const isActive =
+                      selectedCategory === cat.key ||
+                      (cat.key === "marketing-blog" && selectedCategory.startsWith("marketing")) ||
+                      (cat.key === "content-properties" && selectedCategory.startsWith("content"));
+                    return (
+                      <button
+                        key={cat.key}
+                        onClick={(e) => {
+                          setSelectedCategory(cat.key);
+                          setSelectedIdx(0);
+                          e.currentTarget.scrollIntoView({
+                            behavior: "smooth",
+                            inline: "center",
+                            block: "nearest",
+                          });
+                        }}
+                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
+                          isActive
+                            ? "bg-sky-500/20 border border-sky-400/50 text-white shadow-[0_0_15px_rgba(56,189,248,0.2)]"
+                            : "bg-white/[0.03] border border-white/[0.07] text-slate-300 hover:text-white hover:bg-white/[0.07]"
+                        }`}
+                      >
+                        <Icon size={15} className={isActive ? "text-sky-400" : "text-slate-400"} />
+                        <span>{cat.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Right fade + glide button */}
+                {canScrollCatRight && (
+                  <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-2 pl-6 bg-gradient-to-l from-[#080D1A] via-[#080D1A]/95 to-transparent pointer-events-none">
+                    <button
+                      onClick={() => scrollCategoryBar("right")}
+                      aria-label="Scroll categories right"
+                      className="pointer-events-auto w-8 h-8 rounded-full bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/40 text-sky-200 hover:text-white flex items-center justify-center shadow-[0_0_16px_rgba(56,189,248,0.35)] transition-all cursor-pointer"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
             {/* ── Main Split Body: Left Topic List + Right Guide Content ── */}
             <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-              {/* Left Sidebar: Topic List */}
-              <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-white/10 bg-[#090E1C] overflow-y-auto p-3 sm:p-4 space-y-1.5 max-h-56 md:max-h-none flex-shrink-0">
-                <div className="px-3 py-1.5 flex items-center justify-between">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400">
+              {/* Left Sidebar: Topic List with Modern Scroll UI Graphic */}
+              <div className="relative w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-white/10 bg-[#090E1C] flex flex-col max-h-60 md:max-h-none flex-shrink-0">
+                {/* Sidebar Header with Scroll Progress Graphic */}
+                <div className="px-5 pt-3.5 pb-2.5 border-b border-white/[0.06] flex items-center justify-between gap-2 flex-shrink-0">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400 truncate">
                     {searchQuery
                       ? `Search Results (${displayedTips.length})`
-                      : `${TAB_LABELS[selectedCategory] || "Section"} Guides (${displayedTips.length})`}
+                      : `${TAB_LABELS[selectedCategory] || "Section"} (${displayedTips.length})`}
                   </span>
+                  {(sidebarScrollState.canScrollDown || sidebarScrollState.canScrollUp) && (
+                    <div className="flex items-center gap-2 flex-shrink-0" title="Scroll progress">
+                      <div className="w-14 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-400 transition-all duration-150"
+                          style={{ width: `${Math.max(15, sidebarScrollState.progress)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {displayedTips.length === 0 ? (
-                  <div className="px-4 py-8 text-center">
-                    <p className="text-base font-bold text-slate-300">No matching guides found</p>
-                    <p className="text-sm text-slate-400 mt-1">
-                      Try a different keyword or clear the search filter.
-                    </p>
-                  </div>
-                ) : (
-                  displayedTips.map((tip, i) => {
-                    const Icon = tip.icon;
-                    const accent = ACCENT_STYLES[tip.accent || "blue"];
-                    const isSelected = safeIdx === i;
-                    return (
-                      <button
-                        key={`${tip.title}-${i}`}
-                        onClick={() => setSelectedIdx(i)}
-                        className={`w-full text-left p-3.5 rounded-2xl flex items-start gap-3.5 transition-all cursor-pointer border ${
-                          isSelected
-                            ? "bg-gradient-to-r from-sky-500/20 to-indigo-500/10 border-sky-400/50 shadow-[0_0_20px_rgba(56,189,248,0.12)]"
-                            : "bg-white/[0.02] border-transparent hover:bg-white/[0.05] hover:border-white/10"
-                        }`}
-                      >
-                        <div
-                          className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 mt-0.5 ${accent.badgeBg} ${accent.badgeBorder}`}
-                        >
-                          <Icon size={20} className={accent.iconText} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p
-                            className={`text-sm sm:text-[15px] font-bold leading-snug ${
-                              isSelected ? "text-white" : "text-slate-200"
-                            }`}
-                          >
-                            {tip.title}
-                          </p>
-                          <p className="text-xs text-slate-400 mt-1 truncate">
-                            {tip.categoryLabel}
-                          </p>
-                        </div>
-                        <ChevronRight
-                          size={18}
-                          className={`flex-shrink-0 mt-2 transition-transform ${
-                            isSelected ? "text-sky-400 translate-x-0.5" : "text-slate-600"
+                {/* Scrollable Topic List */}
+                <div
+                  ref={sidebarListRef}
+                  onScroll={updateSidebarScrollState}
+                  className="flex-1 overflow-y-auto help-scroll p-3 sm:p-4 pb-14 space-y-1.5"
+                >
+                  {displayedTips.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-base font-bold text-slate-300">No matching guides found</p>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Try a different keyword or clear the search filter.
+                      </p>
+                    </div>
+                  ) : (
+                    displayedTips.map((tip, i) => {
+                      const Icon = tip.icon;
+                      const accent = ACCENT_STYLES[tip.accent || "blue"];
+                      const isSelected = safeIdx === i;
+                      return (
+                        <button
+                          key={`${tip.title}-${i}`}
+                          data-tip-idx={i}
+                          onClick={() => setSelectedIdx(i)}
+                          className={`w-full text-left p-3.5 rounded-2xl flex items-start gap-3.5 transition-all cursor-pointer border ${
+                            isSelected
+                              ? "bg-gradient-to-r from-sky-500/20 to-indigo-500/10 border-sky-400/50 shadow-[0_0_20px_rgba(56,189,248,0.12)]"
+                              : "bg-white/[0.02] border-transparent hover:bg-white/[0.05] hover:border-white/10"
                           }`}
-                        />
-                      </button>
-                    );
-                  })
+                        >
+                          <div
+                            className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 mt-0.5 ${accent.badgeBg} ${accent.badgeBorder}`}
+                          >
+                            <Icon size={20} className={accent.iconText} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className={`text-sm sm:text-[15px] font-bold leading-snug ${
+                                isSelected ? "text-white" : "text-slate-200"
+                              }`}
+                            >
+                              {tip.title}
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1 truncate">
+                              {tip.categoryLabel}
+                            </p>
+                          </div>
+                          <ChevronRight
+                            size={18}
+                            className={`flex-shrink-0 mt-2 transition-transform ${
+                              isSelected ? "text-sky-400 translate-x-0.5" : "text-slate-600"
+                            }`}
+                          />
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Floating Modern Scroll Indicator Pill Graphic at Bottom of Sidebar */}
+                {(sidebarScrollState.canScrollDown || sidebarScrollState.canScrollUp) && (
+                  <div className="absolute bottom-0 left-0 right-0 pt-6 pb-2.5 px-4 bg-gradient-to-t from-[#090E1C] via-[#090E1C]/95 to-transparent flex justify-center pointer-events-none">
+                    <button
+                      onClick={scrollSidebarStep}
+                      className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/35 text-xs font-bold text-sky-200 hover:text-white shadow-[0_4px_20px_rgba(0,0,0,0.6),0_0_15px_rgba(56,189,248,0.25)] backdrop-blur-md transition-all cursor-pointer group"
+                    >
+                      {/* Animated Mouse / Scroll Wheel Graphic */}
+                      <span className="w-3.5 h-5 rounded-full border-2 border-sky-400/80 flex items-start justify-center p-0.5">
+                        <span className="w-1 h-1.5 rounded-full bg-sky-300 animate-bounce" />
+                      </span>
+                      <span>
+                        {sidebarScrollState.canScrollDown ? "Scroll for more guides" : "Back to top"}
+                      </span>
+                      {sidebarScrollState.canScrollDown ? (
+                        <ChevronDown size={14} className="text-sky-400 group-hover:translate-y-0.5 transition-transform" />
+                      ) : (
+                        <ChevronUp size={14} className="text-sky-400 group-hover:-translate-y-0.5 transition-transform" />
+                      )}
+                    </button>
+                  </div>
                 )}
               </div>
 
               {/* Right Content Pane */}
-              <div className="flex-1 flex flex-col justify-between p-6 sm:p-8 md:p-10 overflow-y-auto bg-[#0B1120]">
+              <div className="flex-1 flex flex-col justify-between p-6 sm:p-8 md:p-10 overflow-y-auto help-scroll bg-[#0B1120]">
                 {current ? (
                   <div key={`${current.title}-${safeIdx}`} className="animate-in fade-in duration-200">
+                    {/* Interactive Segmented Topic Stepper Graphic */}
+                    {displayedTips.length > 1 && (
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-2">
+                          <span className="uppercase tracking-wider text-sky-400">
+                            Guide {safeIdx + 1} of {displayedTips.length}
+                          </span>
+                          <span>Click any bar to jump</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {displayedTips.map((t, idx) => {
+                            const isCurrent = idx === safeIdx;
+                            const isPast = idx < safeIdx;
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => setSelectedIdx(idx)}
+                                title={t.title}
+                                aria-label={`Jump to guide ${idx + 1}: ${t.title}`}
+                                className={`h-2 flex-1 rounded-full transition-all cursor-pointer ${
+                                  isCurrent
+                                    ? "bg-gradient-to-r from-sky-400 to-indigo-400 shadow-[0_0_12px_rgba(56,189,248,0.6)] scale-y-125"
+                                    : isPast
+                                    ? "bg-sky-500/45 hover:bg-sky-400/70"
+                                    : "bg-white/10 hover:bg-white/25"
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Category Pill + Icon Header */}
                     {(() => {
                       const Icon = current.icon;
@@ -1118,3 +1305,4 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
     </>
   );
 }
+
