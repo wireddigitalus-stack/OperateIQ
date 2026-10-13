@@ -1,9 +1,10 @@
 import { BLOG_POSTS, type BlogPost } from "@/lib/blog-data";
+import { DEFAULT_PLATFORM_ORG_ID, platformOrgId } from "@/lib/platform-org";
 
-// Public blog reads use the ANON key + status=published only (RLS-enforced),
-// so drafts can never leak to the public site.
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Public blog reads use service role (or anon key) + status=published only,
+// strictly scoped by org_id so tenant blog posts never leak across orgs.
+const URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toPost(r: any): BlogPost {
@@ -27,13 +28,16 @@ function toPost(r: any): BlogPost {
   };
 }
 
-async function query(params: string): Promise<BlogPost[]> {
+async function query(params: string, orgId: string): Promise<BlogPost[]> {
   if (!URL || !KEY) return [];
   try {
-    const res = await fetch(`${URL}/rest/v1/blog_posts?status=eq.published&${params}`, {
-      headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
-      next: { revalidate: 60 },
-    });
+    const res = await fetch(
+      `${URL}/rest/v1/blog_posts?status=eq.published&org_id=eq.${encodeURIComponent(orgId)}&${params}`,
+      {
+        headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
+        next: { revalidate: 60 },
+      }
+    );
     if (!res.ok) return [];
     return (await res.json()).map(toPost);
   } catch {
@@ -41,13 +45,22 @@ async function query(params: string): Promise<BlogPost[]> {
   }
 }
 
-export async function getPublishedPosts(): Promise<BlogPost[]> {
-  const db = await query("order=published_at.desc");
+export async function getPublishedPosts(orgId?: string): Promise<BlogPost[]> {
+  const targetOrgId = orgId || platformOrgId();
+  const db = await query("order=published_at.desc", targetOrgId);
+  if (targetOrgId !== DEFAULT_PLATFORM_ORG_ID) {
+    return db;
+  }
   const seen = new Set(db.map((p) => p.slug));
   return [...db, ...BLOG_POSTS.filter((p) => !seen.has(p.slug))];
 }
 
-export async function getPublishedPost(slug: string): Promise<BlogPost | null> {
-  const [db] = await query(`slug=eq.${encodeURIComponent(slug)}&select=*`);
-  return db || BLOG_POSTS.find((p) => p.slug === slug) || null;
+export async function getPublishedPost(slug: string, orgId?: string): Promise<BlogPost | null> {
+  const targetOrgId = orgId || platformOrgId();
+  const [db] = await query(`slug=eq.${encodeURIComponent(slug)}&select=*`, targetOrgId);
+  if (db) return db;
+  if (targetOrgId === DEFAULT_PLATFORM_ORG_ID) {
+    return BLOG_POSTS.find((p) => p.slug === slug) || null;
+  }
+  return null;
 }

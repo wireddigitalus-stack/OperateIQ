@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   TrendingUp, TrendingDown, Minus, AlertTriangle,
   Building2, DollarSign, Users, BarChart3,
@@ -31,7 +31,7 @@ interface PropDetail {
 }
 
 interface Props {
-  properties: PropertyItem[];
+  properties?: PropertyItem[];
   tenants: Tenant[];
   details: PropDetail[];
   availableSpaces?: AvailableSpace[];
@@ -156,7 +156,7 @@ function BarChart({ data }: { data: BarDatum[] }) {
 
       {/* X-axis labels */}
       <div className="flex gap-2 w-full">
-        {data.map((d, i) => (
+        {data.map((d) => (
           <div key={d.label} className="flex-1 text-center">
             <span className="text-xs text-gray-300 font-medium leading-tight block truncate px-0.5">
               {d.label}
@@ -180,7 +180,45 @@ function BarChart({ data }: { data: BarDatum[] }) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export default function PortfolioOverviewCard({ properties, tenants, details, availableSpaces }: Props) {
+export default function PortfolioOverviewCard({ properties: propProperties, tenants, details, availableSpaces }: Props) {
+  const [fetchedProperties, setFetchedProperties] = useState<PropertyItem[]>([]);
+
+  useEffect(() => {
+    if (propProperties !== undefined) return;
+    let cancelled = false;
+    Promise.all([
+      fetch("/api/properties-list").then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch("/api/platform/session", { cache: "no-store" }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+    ]).then(([list, sess]) => {
+      if (cancelled) return;
+      const s = sess as { impersonatingOrg?: { id?: string }; activeOrg?: { id?: string } };
+      const orgId = s?.impersonatingOrg?.id || s?.activeOrg?.id || null;
+      const isDemo = orgId === "00000000-0000-0000-0000-000000000001";
+      const dynList: PropertyItem[] = Array.isArray(list)
+        ? list.map((p: any) => ({
+            id: String(p.id),
+            name: p.name || "Untitled",
+            type: p.type || "Commercial",
+            city: p.city || "",
+            sqft: p.sqft || "TBD",
+            isDynamic: true,
+          }))
+        : [];
+      if (isDemo) {
+        const staticProps: PropertyItem[] = PROPERTIES.map(p => ({
+          id: p.id, name: p.name, type: p.type, city: p.city, address: p.address, sqft: p.sqft,
+        }));
+        const staticIds = new Set(staticProps.map(p => p.id));
+        setFetchedProperties([...staticProps, ...dynList.filter(p => !staticIds.has(p.id))]);
+      } else {
+        setFetchedProperties(dynList);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [propProperties]);
+
+  const properties = propProperties ?? fetchedProperties;
+
   const detailMap = useMemo(() =>
     Object.fromEntries(details.map(d => [d.property_id, d])), [details]);
 

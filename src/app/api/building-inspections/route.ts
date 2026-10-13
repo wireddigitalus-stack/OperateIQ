@@ -11,7 +11,7 @@ const H = {
 };
 
 export async function GET(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { allowStaff: true, requireFeature: "inspections" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -52,9 +52,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { allowStaff: true, requireFeature: "inspections" });
   if (!g.ok) return g.res;
-  const { orgId, user } = g.ctx;
+  const { orgId, user, staff } = g.ctx;
 
   try {
     const body = await req.json();
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       notes: body.notes?.trim() || "",
       month: body.month || null,
       status: body.inspectionDate ? "completed" : "pending",
-      updated_by: body.updatedBy?.trim() || user?.name || "Staff",
+      updated_by: body.updatedBy?.trim() || user?.name || staff?.name || "Staff",
       updated_at: new Date().toISOString(),
     };
 
@@ -113,8 +113,8 @@ export async function POST(req: NextRequest) {
 
     writeActivityLog({
       org_id: orgId,
-      actor_email: user?.email || "unknown",
-      actor_name: user?.name || record.updated_by,
+      actor_email: user?.email || staff?.name || "unknown",
+      actor_name: user?.name || staff?.name || record.updated_by,
       action: "created",
       resource_type: "maintenance",
       resource_name: record.property,
@@ -129,9 +129,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { allowStaff: true, requireFeature: "inspections" });
   if (!g.ok) return g.res;
-  const { orgId, user } = g.ctx;
+  const { orgId, user, staff } = g.ctx;
 
   try {
     const id = req.nextUrl.searchParams.get("id");
@@ -165,8 +165,8 @@ export async function PATCH(req: NextRequest) {
 
     writeActivityLog({
       org_id: orgId,
-      actor_email: user?.email || "unknown",
-      actor_name: user?.name || patchPayload.updated_by || "Staff",
+      actor_email: user?.email || staff?.name || "unknown",
+      actor_name: user?.name || staff?.name || patchPayload.updated_by || "Staff",
       action: "updated",
       resource_type: "maintenance",
       resource_name: patchPayload.property || id,
@@ -181,7 +181,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "inspections" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 

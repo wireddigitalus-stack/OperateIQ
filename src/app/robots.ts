@@ -1,16 +1,26 @@
 import { MetadataRoute } from "next";
+import { headers } from "next/headers";
 
-// Pre-launch: block ALL crawlers until OperateIQ goes live.
-// This prevents any preview deploy from being indexed as duplicate content
-// (which could hurt the original site this codebase was cloned from).
-// To launch: set NEXT_PUBLIC_ALLOW_INDEXING=true in Vercel env.
-const ALLOW_INDEXING = process.env.NEXT_PUBLIC_ALLOW_INDEXING === "true";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+// Allow indexing on production and custom domains unless explicitly disabled via NEXT_PUBLIC_ALLOW_INDEXING=false.
+const ALLOW_INDEXING = process.env.NEXT_PUBLIC_ALLOW_INDEXING !== "false";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://operateiq.com";
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
   if (!ALLOW_INDEXING) {
     return { rules: [{ userAgent: "*", disallow: "/" }] };
   }
+
+  let baseUrl = SITE_URL.replace(/\/$/, "");
+  try {
+    const h = await headers();
+    const customDomain = h.get("x-custom-domain");
+    if (customDomain) {
+      baseUrl = `https://${customDomain}`;
+    }
+  } catch {
+    // Fallback to SITE_URL if headers() is unavailable at static build time
+  }
+
   return {
     rules: [
       {
@@ -19,7 +29,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/admin", "/api/", "/auth/", "/staff/"],
       },
     ],
-    sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
+    sitemap: `${baseUrl}/sitemap.xml`,
+    host: baseUrl,
   };
 }

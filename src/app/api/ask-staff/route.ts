@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrgProfile } from "@/lib/org-profile";
+import { profileForOrg } from "@/lib/org-ai-profile";
 import { BRAND } from "@/lib/brand";
 import { requireOrg } from "@/lib/server-auth";
 
@@ -19,8 +19,7 @@ export async function POST(req: NextRequest) {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
 
-    const base = getOrgProfile();
-    const org = { ...base, name: g.ctx.org.brand_name || g.ctx.org.name || base.name };
+    const org = profileForOrg(g.ctx.org);
 
     const systemPrompts: Record<string, string> = {
       maintenance: `You are ${BRAND.assistant} Maintenance Assistant — a knowledgeable field assistant for ${org.name} maintenance workers in ${org.location}.

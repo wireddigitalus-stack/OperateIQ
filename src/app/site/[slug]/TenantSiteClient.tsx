@@ -32,7 +32,12 @@ export interface OrgData {
   custom_domain?: string | null;
   description?: string;
   city?: string;
+  state?: string;
   address?: string;
+  brand_name?: string | null;
+  brand_logo_url?: string | null;
+  brand_primary_color?: string | null;
+  brand_accent_color?: string | null;
 }
 
 export interface FormattedProperty {
@@ -65,6 +70,7 @@ export default function TenantSiteClient({
   const [properties] = useState<FormattedProperty[]>(initialProperties);
   const [heroSlides] = useState<HeroSlideItem[]>(initialHeroSlides);
   const [isMember, setIsMember] = useState(false);
+  const brandName = org.brand_name || org.name;
 
   // Modals & interaction state
   const [isTourModalOpen, setIsTourModalOpen] = useState(false);
@@ -229,11 +235,13 @@ export default function TenantSiteClient({
       <AcmeNavbar
         onOpenAiInspector={() => {}}
         onOpenTourModal={handleOpenTour}
-        orgName={org.name}
+        orgName={brandName}
         orgSlug={org.slug}
         customDomain={org.custom_domain}
         tier={org.tier}
         hasTopBar={isMember}
+        brandLogoUrl={org.brand_logo_url}
+        brandPrimaryColor={org.brand_primary_color}
       />
 
       {/* ── TIER 1: STARTER TIER (Digital Business Card & Direct Lead Capture) ── */}
@@ -250,11 +258,11 @@ export default function TenantSiteClient({
                   <span>Commercial & Residential Management</span>
                 </div>
                 <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-                  {org.name}
+                  {brandName}
                 </h1>
                 <p className="text-base text-gray-300 leading-relaxed">
                   {org.description ||
-                    `${org.name} provides premier property management, commercial leasing, and residential holdings with personalized service and tenant support.`}
+                    `${brandName} provides premier property management, commercial leasing, and residential holdings with personalized service and tenant support.`}
                 </p>
 
                 {/* Direct Contact Pills */}
@@ -288,10 +296,22 @@ export default function TenantSiteClient({
 
               {/* Verified Badge Icon */}
               <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white/[0.03] border border-white/10 text-center min-w-[200px]">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg mb-3">
-                  <Building2 size={28} />
-                </div>
-                <span className="text-sm font-bold text-white">{org.name}</span>
+                {org.brand_logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={org.brand_logo_url}
+                    alt={brandName}
+                    className="h-9 w-auto rounded-lg object-contain mb-3"
+                  />
+                ) : (
+                  <div
+                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg mb-3"
+                    style={org.brand_primary_color ? { background: org.brand_primary_color } : undefined}
+                  >
+                    <Building2 size={28} />
+                  </div>
+                )}
+                <span className="text-sm font-bold text-white">{brandName}</span>
                 <span className="text-[11px] text-gray-400">Verified Portfolio</span>
               </div>
             </div>
@@ -303,7 +323,7 @@ export default function TenantSiteClient({
               <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold text-white">Inquire or Request Information</h2>
                 <p className="text-xs text-gray-400">
-                  Send a direct message to {org.name}&apos;s leasing team. Inquiries are logged in real-time.
+                  Send a direct message to {brandName}&apos;s leasing team. Inquiries are logged in real-time.
                 </p>
               </div>
 
@@ -569,7 +589,8 @@ export default function TenantSiteClient({
             onOpenTourModal={handleOpenTour}
             onFilterChange={handleFilterChange}
             slides={heroSlides}
-            orgName={org.name}
+            properties={properties}
+            orgName={brandName}
           />
 
           {/* Featured Properties Grid & Space Catalog */}
@@ -579,7 +600,7 @@ export default function TenantSiteClient({
             onSelectProperty={(id) => setSpecsPropertyId(id)}
             onOpenTourModal={handleOpenTour}
             properties={properties}
-            orgName={org.name}
+            orgName={brandName}
           />
 
           {/* Building Specifications Modal */}
@@ -598,7 +619,7 @@ export default function TenantSiteClient({
         onClose={() => setIsTourModalOpen(false)}
         selectedPropertyId={tourPropertyId}
         properties={properties}
-        orgName={org.name}
+        orgName={brandName}
         orgId={org.id}
         orgSlug={org.slug}
       />
@@ -606,7 +627,7 @@ export default function TenantSiteClient({
       {/* Footer */}
       <AcmeFooter
         onOpenAiInspector={() => {}}
-        orgName={org.name}
+        orgName={brandName}
         phone={org.contact_phone}
         email={org.contact_email}
         description={org.description}

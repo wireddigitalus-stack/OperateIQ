@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrg } from "@/lib/server-auth";
 import { PROPERTIES } from "@/lib/data";
+import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform-org";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -57,13 +58,15 @@ export async function GET(req: NextRequest) {
     listBucket("blog-images", orgId),
   ]);
 
-  // Built-in catalogue images
-  const staticImages = STATIC_PROPERTY_IMAGES.map(img => ({
-    url: img.url,
-    label: img.label,
-    source: "static" as const,
-    thumbnail: img.url,
-  }));
+  // Built-in catalogue images (demo org only)
+  const staticImages = orgId === DEFAULT_PLATFORM_ORG_ID
+    ? STATIC_PROPERTY_IMAGES.map(img => ({
+        url: img.url,
+        label: img.label,
+        source: "static" as const,
+        thumbnail: img.url,
+      }))
+    : [];
 
   // Supabase property-images bucket (previously uploaded property photos)
   const propertyUploaded = propertyBucketUrls.map(url => ({

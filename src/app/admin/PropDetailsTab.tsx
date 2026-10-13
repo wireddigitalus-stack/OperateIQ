@@ -835,16 +835,24 @@ export default function PropDetailsTab() {
   const [parkingLots, setParkingLots] = useState<any[]>([]);
   const [showAddParkingLot, setShowAddParkingLot] = useState(false);
   const [parkingLotMigrationSql, setParkingLotMigrationSql] = useState<string | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [seedingDemo, setSeedingDemo] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [tRes, dRes, pRes, sRes, plRes] = await Promise.all([
+    const [tRes, dRes, pRes, sRes, plRes, sessRes] = await Promise.all([
       fetch("/api/tenants").catch(() => null),
       fetch("/api/property-details").catch(() => null),
       fetch("/api/properties-dynamic?admin=1").catch(() => null),
       fetch("/api/available-spaces").catch(() => null),
       fetch("/api/parking-lots").catch(() => null),
+      fetch("/api/platform/session", { cache: "no-store" }).catch(() => null),
     ]);
+    if (sessRes?.ok) {
+      const sess = await sessRes.json().catch(() => ({}));
+      const activeId = sess?.impersonatingOrg?.id || sess?.activeOrg?.id || null;
+      setOrgId(activeId);
+    }
     if (tRes?.ok) { const d = await tRes.json(); if (Array.isArray(d.tenants)) setTenants(d.tenants.map(rowToTenant)); }
     if (dRes?.ok) {
       const d = await dRes.json();
@@ -882,21 +890,58 @@ export default function PropDetailsTab() {
 
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("all");
 
-  // Merge static + dynamic properties (deduplicate by id)
+  const isDemoOrg = orgId === "00000000-0000-0000-0000-000000000001";
+
+  // Merge static + dynamic properties only for the Demo org; real orgs see ONLY their DB properties
   const allProperties: PropertyItem[] = useMemo(() => {
-    const staticProps: PropertyItem[] = PROPERTIES.map(p => ({
-      id: p.id, name: p.name, type: p.type, city: p.city, address: p.address, sqft: p.sqft,
-    }));
+    const staticProps: PropertyItem[] = isDemoOrg
+      ? PROPERTIES.map(p => ({
+          id: p.id, name: p.name, type: p.type, city: p.city, address: p.address, sqft: p.sqft,
+        }))
+      : [];
     const staticIds = new Set(staticProps.map(p => p.id));
     const uniqueDyn = dynProps.filter(p => !staticIds.has(p.id));
-    return [...staticProps, ...uniqueDyn].filter(p => {
-      const id = p.id.toLowerCase();
-      const name = p.name.toLowerCase();
-      // Hook for excluding specific properties from the dashboard (none by default)
-      void id; void name;
-      return true;
-    });
-  }, [dynProps]);
+    return [...staticProps, ...uniqueDyn];
+  }, [dynProps, isDemoOrg]);
+
+  const handleSeedDemo = async () => {
+    setSeedingDemo(true);
+    try {
+      const res = await fetch("/api/properties-dynamic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "seed_demo" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      // Fallback if the endpoint didn't handle seed_demo directly
+      if (!res.ok || (!data.seeded && !data.properties && (!data.property || data.property.name === undefined))) {
+        for (const p of PROPERTIES) {
+          await fetch("/api/properties-dynamic", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: p.name,
+              type: p.type,
+              address: p.address,
+              city: p.city,
+              sqft: p.sqft,
+              lease_status: p.status || "available",
+              badge: p.badge || "Available",
+              badge_color: p.badgeColor || "#4ADE80",
+              description: p.description,
+              features: p.features || [],
+              images: p.images || [],
+              hero_image: p.image || null,
+              published: false,
+            }),
+          });
+        }
+      }
+      setTick(t => t + 1);
+    } finally {
+      setSeedingDemo(false);
+    }
+  };
 
   // Filtered properties based on the scrolling tab selection
   const displayedProperties = useMemo(() => {
@@ -1288,6 +1333,32 @@ export default function PropDetailsTab() {
         <div className="flex items-center justify-center py-16">
           <Loader2 size={22} className="animate-spin text-[#A78BFA]" />
           <span className="ml-3 text-sm text-gray-500">Loading…</span>
+        </div>
+      ) : allProperties.length === 0 ? (
+        <div className="rounded-2xl border-2 border-dashed border-[rgba(167,139,250,0.3)] bg-gradient-to-br from-[rgba(167,139,250,0.06)] via-[rgba(56,189,248,0.03)] to-transparent p-8 sm:p-12 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[rgba(167,139,250,0.12)] border border-[rgba(167,139,250,0.3)] flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_rgba(167,139,250,0.15)]">
+            <Building2 size={26} className="text-[#A78BFA]" />
+          </div>
+          <h3 className="text-lg sm:text-xl font-black text-white mb-2">Welcome to Your Property Portfolio</h3>
+          <p className="text-xs sm:text-sm text-gray-400 max-w-lg mx-auto leading-relaxed mb-6">
+            Your workspace currently has 0 properties. Add your first building to start tracking tenants, P&amp;L, expenses, and maintenance — or load editable sample properties to explore the dashboard first.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#A78BFA] to-[#7C3AED] text-white text-xs sm:text-sm font-black hover:opacity-90 transition-all shadow-lg shadow-[rgba(167,139,250,0.25)]"
+            >
+              <Plus size={15} /> + Add Your First Property
+            </button>
+            <button
+              onClick={handleSeedDemo}
+              disabled={seedingDemo}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl border border-sky-400/35 bg-sky-500/10 text-sky-300 text-xs sm:text-sm font-bold hover:bg-sky-500/20 transition-all disabled:opacity-50"
+            >
+              {seedingDemo ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+              {seedingDemo ? "Loading Sample Properties…" : "Load Sample Demo Properties (Editable)"}
+            </button>
+          </div>
         </div>
       ) : (
         <>

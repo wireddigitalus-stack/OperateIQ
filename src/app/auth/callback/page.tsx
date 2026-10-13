@@ -17,6 +17,30 @@ export default function AuthCallbackPage() {
       router.replace("/admin");
     }
 
+    // Check for PKCE ?code= query parameter
+    if (typeof window !== "undefined" && window.location.search) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const code = searchParams.get("code");
+      const errorDesc = searchParams.get("error_description");
+      if (errorDesc) {
+        setStatus(`Sign-in error: ${decodeURIComponent(errorDesc)}`);
+        setTimeout(() => router.replace("/admin/login"), 2500);
+        return;
+      }
+      if (code) {
+        supabaseBrowser.auth
+          .exchangeCodeForSession(code)
+          .then(({ data, error }) => {
+            if (!error && data.session) {
+              goToAdmin();
+            }
+          })
+          .catch(() => {
+            // Let fallback listener / poll handle it
+          });
+      }
+    }
+
     // Direct hash inspection (Supabase OAuth sends #access_token=...&refresh_token=...)
     if (typeof window !== "undefined" && window.location.hash) {
       const hashStr = window.location.hash.replace(/^#/, "");

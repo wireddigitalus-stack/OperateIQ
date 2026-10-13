@@ -27,6 +27,7 @@ interface AcmeHeroBannerProps {
   onOpenTourModal: (propertyId?: string) => void;
   onFilterChange: (type: string, minSqft: number) => void;
   slides?: HeroSlideItem[];
+  properties?: any[];
   orgName?: string;
 }
 
@@ -86,14 +87,48 @@ export default function AcmeHeroBanner({
   onOpenTourModal,
   onFilterChange,
   slides,
+  properties,
   orgName,
 }: AcmeHeroBannerProps) {
+  const isCustomTenant = Boolean((slides && slides.length > 0) || (properties && properties.length > 0));
   const activeSlides = slides && slides.length > 0 ? slides : HERO_SLIDES;
   const [currentIdx, setCurrentIdx] = useState(0);
   const [prevIdx, setPrevIdx] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [selectedType, setSelectedType] = useState("all");
   const [selectedSqft, setSelectedSqft] = useState(0);
+
+  const dynamicTypes = isCustomTenant
+    ? Array.from(
+        new Set(
+          (properties && properties.length > 0
+            ? properties.map((p: any) => p.type)
+            : activeSlides.map((s) => s.type)
+          ).filter(Boolean)
+        )
+      )
+    : [
+        "Mixed-Use & Lofts",
+        "Medical & Office",
+        "Residential Apartments",
+        "Contractor Flex",
+      ];
+
+  const dynamicMarkets = isCustomTenant
+    ? Array.from(
+        new Set(
+          (properties && properties.length > 0
+            ? properties.map((p: any) => p.city)
+            : activeSlides.map((s) => s.submarket)
+          ).filter(Boolean)
+        )
+      )
+    : [
+        "Historic Downtown Main St",
+        "Valley Medical Corridor",
+        "Pinecrest Residential District",
+        "Industrial Trade District",
+      ];
 
   // Auto-advance banner smoothly every 7s
   useEffect(() => {
@@ -261,10 +296,11 @@ export default function AcmeHeroBanner({
                 className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
               >
                 <option value="all">All Asset Classes</option>
-                <option value="Mixed-Use & Lofts">Mixed-Use & Downtown Lofts</option>
-                <option value="Medical & Office">Medical & Professional Office</option>
-                <option value="Residential Apartments">Residential Apartments</option>
-                <option value="Contractor Flex">Contractor Flex & Trade Bays</option>
+                {dynamicTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -293,10 +329,11 @@ export default function AcmeHeroBanner({
               </label>
               <select className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors">
                 <option value="all">All Regional Markets</option>
-                <option value="downtown">Historic Downtown Main St</option>
-                <option value="medical">Valley Medical Corridor</option>
-                <option value="pinecrest">Pinecrest Residential District</option>
-                <option value="trade">Industrial Trade District</option>
+                {dynamicMarkets.map((market) => (
+                  <option key={market} value={market}>
+                    {market}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -308,7 +345,7 @@ export default function AcmeHeroBanner({
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-500 via-sky-500 to-indigo-600 text-white font-bold text-xs shadow-[0_0_20px_rgba(56,189,248,0.35)] hover:opacity-95 transition-all flex items-center justify-center gap-2"
               >
                 <Search size={14} />
-                <span>Search 12 Available Suites</span>
+                <span>Search Available Spaces</span>
               </button>
             </div>
           </div>

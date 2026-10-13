@@ -362,8 +362,8 @@ function SummaryBanner({ tickets, onSelectTicket }: { tickets: Ticket[]; onSelec
 
 const MAINT_DRAFT_KEY = "oiq_draft_maintenance_new";
 
-function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName }:
-  { initial: Partial<Ticket>; onSave: (d: Partial<Ticket>) => Promise<void>; onSaveDraft: (d: Partial<Ticket>) => Promise<void>; onCancel: () => void; currentUserName?: string }) {
+function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName, buildings = [] }:
+  { initial: Partial<Ticket>; onSave: (d: Partial<Ticket>) => Promise<void>; onSaveDraft: (d: Partial<Ticket>) => Promise<void>; onCancel: () => void; currentUserName?: string; buildings?: string[] }) {
   const isNew = !initial.id;
   const [form, setForm] = useState<Partial<Ticket>>({ ...initial });
   const [saving, setSaving] = useState(false);
@@ -457,6 +457,8 @@ function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName }:
     }
   };
 
+  const buildingList = Array.from(new Set([...buildings, ...(form.building ? [form.building] : [])])).filter(Boolean);
+
   return (
     <div className="bg-[rgba(0,0,0,0.4)] border border-[rgba(250,204,21,0.2)] rounded-2xl p-5 mb-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -503,23 +505,30 @@ function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName }:
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="sm:col-span-2">
           <label className={LABEL}>Building / Property</label>
-          <select value={form.building || ""} onChange={e => set("building", e.target.value)} className={FIELD}>
-            <option value="" className="bg-[#0A0F1A]">Select property…</option>
-            <option value="Sample Office Building" className="bg-[#0A0F1A]">Sample Office Building</option>
-            <option value="Downtown Center" className="bg-[#0A0F1A]">Downtown Center</option>
-            <option value="Mill Building" className="bg-[#0A0F1A]">Mill Building</option>
-            <option value="Riverside Commons" className="bg-[#0A0F1A]">Riverside Commons</option>
-            <option value="250 Commerce Ave" className="bg-[#0A0F1A]">250 Commerce Ave</option>
-            <option value="100 Main St" className="bg-[#0A0F1A]">100 Main St</option>
-            <option value="215 Highway Dr" className="bg-[#0A0F1A]">215 Highway Dr</option>
-            <option value="221 Oak St" className="bg-[#0A0F1A]">221 Oak St</option>
-            <option value="142 Main St" className="bg-[#0A0F1A]">142 Main St</option>
-            <option value="134 Main St" className="bg-[#0A0F1A]">134 Main St</option>
-            <option value="720 Main St" className="bg-[#0A0F1A]">720 Main St</option>
-            <option value="209 Park Rd" className="bg-[#0A0F1A]">209 Park Rd</option>
-            <option value="1825 Parkway Blvd" className="bg-[#0A0F1A]">1825 Parkway Blvd</option>
-            <option value="Farm" className="bg-[#0A0F1A]">Farm</option>
-          </select>
+          {buildingList.length > 0 ? (
+            <select value={form.building || ""} onChange={e => set("building", e.target.value)} className={FIELD}>
+              <option value="" className="bg-[#0A0F1A]">Select property…</option>
+              {buildingList.map(b => (
+                <option key={b} value={b} className="bg-[#0A0F1A]">{b}</option>
+              ))}
+              {!buildingList.includes("General / Unassigned") && (
+                <option value="General / Unassigned" className="bg-[#0A0F1A]">General / Unassigned</option>
+              )}
+            </select>
+          ) : (
+            <>
+              <input
+                list="maint-building-fallback"
+                value={form.building || ""}
+                onChange={e => set("building", e.target.value)}
+                placeholder="Type building name or select General / Unassigned…"
+                className={FIELD}
+              />
+              <datalist id="maint-building-fallback">
+                <option value="General / Unassigned" />
+              </datalist>
+            </>
+          )}
         </div>
         <div>
           <div className="grid grid-cols-2 gap-2">
@@ -994,6 +1003,7 @@ function TicketCard({ ticket, onEdit, onDelete, onUpdate, currentUserName }:
 
 export default function MaintenanceTab({ currentUserName, currentUserEmail }: { currentUserName?: string; currentUserEmail?: string }) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [orgProperties, setOrgProperties] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [setupError, setSetupError] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -1012,7 +1022,16 @@ export default function MaintenanceTab({ currentUserName, currentUserEmail }: { 
   const fetch_ = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/maintenance");
+      const [res, propRes] = await Promise.all([
+        fetch("/api/maintenance"),
+        fetch("/api/properties-list").catch(() => null),
+      ]);
+      if (propRes?.ok) {
+        const pList = await propRes.json().catch(() => []);
+        if (Array.isArray(pList)) {
+          setOrgProperties(pList.map((p: { name?: string }) => p.name || "").filter(Boolean));
+        }
+      }
       const data = await res.json();
       if (Array.isArray(data.tickets)) {
         setTickets(data.tickets.map(rowToTicket));
@@ -1191,8 +1210,8 @@ export default function MaintenanceTab({ currentUserName, currentUserEmail }: { 
     }, 120);
   };
 
-  // Unique values for dropdowns — derived from all tickets (not just filtered)
-  const uniqueBuildings = Array.from(new Set(tickets.map(t => t.building).filter(Boolean))).sort();
+  // Unique values for dropdowns — derived from org properties + all tickets
+  const uniqueBuildings = Array.from(new Set([...orgProperties, ...tickets.map(t => t.building).filter(Boolean)])).sort();
   const uniqueAssigned  = Array.from(new Set(tickets.map(t => t.assignedTo).filter(Boolean))).sort();
 
   const q = searchQuery.trim().toLowerCase();
@@ -1544,8 +1563,8 @@ ALTER TABLE maintenance_tickets ENABLE ROW LEVEL SECURITY;`}</pre>
       </div>
 
       {/* Forms */}
-      {showForm && !editingTicket && <TicketForm initial={BLANK_TICKET()} onSave={handleSaveNew} onSaveDraft={handleSaveDraftNew} onCancel={() => setShowForm(false)} currentUserName={currentUserName} />}
-      {editingTicket && <TicketForm initial={editingTicket} onSave={handleSaveEdit} onSaveDraft={handleSaveDraftEdit} onCancel={() => setEditingTicket(null)} currentUserName={currentUserName} />}
+      {showForm && !editingTicket && <TicketForm initial={BLANK_TICKET()} onSave={handleSaveNew} onSaveDraft={handleSaveDraftNew} onCancel={() => setShowForm(false)} currentUserName={currentUserName} buildings={uniqueBuildings} />}
+      {editingTicket && <TicketForm initial={editingTicket} onSave={handleSaveEdit} onSaveDraft={handleSaveDraftEdit} onCancel={() => setEditingTicket(null)} currentUserName={currentUserName} buildings={uniqueBuildings} />}
 
       {/* Loading */}
       {loading && (

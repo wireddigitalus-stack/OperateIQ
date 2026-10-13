@@ -13,17 +13,38 @@ const supabaseAdmin = createClient(SUPABASE_URL, KEY, {
   auth: { persistSession: false },
 });
 
+const ALLOWED_EXTS = new Set(["pdf", "doc", "docx", "png", "jpg", "jpeg", "webp"]);
+const ALLOWED_MIMES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+
+const encodeStoragePath = (p: string) => p.split("/").map(encodeURIComponent).join("/");
+
 async function ensureBucket() {
   try {
-    await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+    const headers = {
+      apikey: KEY,
+      Authorization: `Bearer ${KEY}`,
+      "Content-Type": "application/json",
+    };
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
       method: "POST",
-      headers: {
-        apikey: KEY,
-        Authorization: `Bearer ${KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true }),
+      headers,
+      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }),
     });
+    if (!res.ok) {
+      await fetch(`${SUPABASE_URL}/storage/v1/bucket/${BUCKET}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }),
+      });
+    }
   } catch (err) {
     console.error("[tenant-upload] ensureBucket error:", err);
   }
@@ -40,6 +61,48 @@ async function tenantInOrg(tenantId: string, orgId: string): Promise<boolean> {
   return !!data;
 }
 
+export async function GET(req: NextRequest) {
+  const g = await requireOrg(req);
+  if (!g.ok) return g.res;
+
+  const storagePath = (req.nextUrl.searchParams.get("path") || "").trim().replace(/^\/+/, "");
+  if (!storagePath || !storagePath.startsWith(`${g.ctx.orgId}/`) || storagePath.includes("..")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const signRes = await fetch(
+    `${SUPABASE_URL}/storage/v1/object/sign/${BUCKET}/${encodeStoragePath(storagePath)}`,
+    {
+      method: "POST",
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ expiresIn: 3600 }),
+    }
+  );
+
+  if (!signRes.ok) {
+    const errText = await signRes.text();
+    return NextResponse.json({ error: `Failed to sign URL: ${errText}` }, { status: 404 });
+  }
+
+  const signedData = await signRes.json();
+  const rawSigned: string = signedData.signedURL || signedData.signedUrl || "";
+  if (!rawSigned) {
+    return NextResponse.json({ error: "Failed to generate signed URL" }, { status: 500 });
+  }
+
+  const fullSignedUrl = rawSigned.startsWith("http")
+    ? rawSigned
+    : rawSigned.startsWith("/storage/v1")
+      ? `${SUPABASE_URL}${rawSigned}`
+      : `${SUPABASE_URL}/storage/v1${rawSigned.startsWith("/") ? "" : "/"}${rawSigned}`;
+
+  return NextResponse.redirect(fullSignedUrl);
+}
+
 export async function POST(req: NextRequest) {
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
@@ -53,10 +116,26 @@ export async function POST(req: NextRequest) {
       const body = await req.json().catch(() => ({}));
       const filename = body.filename as string | undefined;
       const tenantId = body.tenantId as string | undefined;
+      const fileSize = body.size !== undefined ? Number(body.size) : undefined;
+      const mimeType = typeof body.contentType === "string" ? body.contentType.toLowerCase() : "";
 
       if (!filename || !tenantId) {
         return NextResponse.json({ error: "Filename and tenant ID are required." }, { status: 400 });
       }
+      if (fileSize !== undefined && fileSize > MAX_BYTES) {
+        return NextResponse.json({ error: "File is too large. Maximum size is 10MB." }, { status: 400 });
+      }
+
+      const lastDotIndex = filename.lastIndexOf(".");
+      const baseName = lastDotIndex !== -1 ? filename.slice(0, lastDotIndex) : filename;
+      const ext = (lastDotIndex !== -1 ? filename.slice(lastDotIndex + 1).toLowerCase() : "").replace(/[^a-z0-9]/g, "");
+      if (!ALLOWED_EXTS.has(ext) || (mimeType && !ALLOWED_MIMES.has(mimeType))) {
+        return NextResponse.json(
+          { error: "Invalid file type. Allowed formats: PDF, DOC, DOCX, PNG, JPG, JPEG, WEBP." },
+          { status: 400 }
+        );
+      }
+
       if (!(await tenantInOrg(tenantId, orgId))) {
         return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
       }
@@ -64,16 +143,13 @@ export async function POST(req: NextRequest) {
       await ensureBucket();
 
       const safeTenantId = tenantId.trim().replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80) || "tenant";
-      const lastDotIndex = filename.lastIndexOf(".");
-      const baseName = lastDotIndex !== -1 ? filename.slice(0, lastDotIndex) : filename;
-      const ext = (lastDotIndex !== -1 ? filename.slice(lastDotIndex + 1).toLowerCase() : "pdf").replace(/[^a-z0-9]/g, "") || "pdf";
       const cleanBaseName = baseName.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 60).toLowerCase() || "document";
       // Always namespace objects under the caller's org
-      const path = `${orgId}/${safeTenantId}/${Date.now()}-${cleanBaseName}.${ext}`;
+      const storagePath = `${orgId}/${safeTenantId}/${Date.now()}-${cleanBaseName}.${ext}`;
 
       const { data, error } = await supabaseAdmin.storage
         .from(BUCKET)
-        .createSignedUploadUrl(path, { upsert: true });
+        .createSignedUploadUrl(storagePath, { upsert: true });
 
       if (error || !data) {
         console.error("[tenant-upload] createSignedUploadUrl error:", error);
@@ -83,14 +159,15 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+      const proxyUrl = `/api/tenant-upload?path=${encodeURIComponent(storagePath)}`;
 
       return NextResponse.json({
         success: true,
-        path,
+        path: storagePath,
         token: data.token,
         signedUrl: data.signedUrl,
-        publicUrl,
+        url: proxyUrl,
+        publicUrl: proxyUrl,
         filename,
       });
     }
@@ -103,28 +180,37 @@ export async function POST(req: NextRequest) {
     if (!file || !tenantId) {
       return NextResponse.json({ error: "File and tenant ID are required." }, { status: 400 });
     }
-    if (!(await tenantInOrg(tenantId, orgId))) {
-      return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json({ error: "File is too large. Maximum size is 10MB." }, { status: 400 });
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      return NextResponse.json({ error: "File is too large. Maximum size is 50MB." }, { status: 400 });
+    const lastDotIndex = file.name.lastIndexOf(".");
+    const baseName = lastDotIndex !== -1 ? file.name.slice(0, lastDotIndex) : file.name;
+    const ext = (lastDotIndex !== -1 ? file.name.slice(lastDotIndex + 1).toLowerCase() : "").replace(/[^a-z0-9]/g, "");
+    const normalizedMime = (file.type || "").toLowerCase();
+
+    if (!ALLOWED_EXTS.has(ext) || (normalizedMime && !ALLOWED_MIMES.has(normalizedMime))) {
+      return NextResponse.json(
+        { error: "Invalid file type. Allowed formats: PDF, DOC, DOCX, PNG, JPG, JPEG, WEBP." },
+        { status: 400 }
+      );
+    }
+
+    if (!(await tenantInOrg(tenantId, orgId))) {
+      return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
     }
 
     await ensureBucket();
 
     const safeTenantId = tenantId.trim().replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80) || "tenant";
-    const lastDotIndex = file.name.lastIndexOf(".");
-    const baseName = lastDotIndex !== -1 ? file.name.slice(0, lastDotIndex) : file.name;
-    const ext = (lastDotIndex !== -1 ? file.name.slice(lastDotIndex + 1).toLowerCase() : "pdf").replace(/[^a-z0-9]/g, "") || "pdf";
     const cleanBaseName = baseName.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 60).toLowerCase() || "document";
-    const filename = `${orgId}/${safeTenantId}/${Date.now()}-${cleanBaseName}.${ext}`;
+    const storagePath = `${orgId}/${safeTenantId}/${Date.now()}-${cleanBaseName}.${ext}`;
 
     const buffer = await file.arrayBuffer();
     const fileContentType = file.type || (ext === "pdf" ? "application/pdf" : "application/octet-stream");
 
     const uploadRes = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${filename}`,
+      `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeStoragePath(storagePath)}`,
       {
         method: "POST",
         headers: {
@@ -143,8 +229,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Upload to storage failed: ${errText}` }, { status: 500 });
     }
 
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${filename}`;
-    return NextResponse.json({ success: true, url: publicUrl, name: file.name });
+    const proxyUrl = `/api/tenant-upload?path=${encodeURIComponent(storagePath)}`;
+    return NextResponse.json({ success: true, url: proxyUrl, name: file.name });
   } catch (err: any) {
     console.error("[tenant-upload] POST error:", err);
     return NextResponse.json({ error: err.message || "Unexpected server error during upload." }, { status: 500 });

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrg, requireOrgAdmin } from "@/lib/server-auth";
+import { PROPERTIES } from "@/lib/data";
+import { getPlan } from "@/lib/plans";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -66,6 +68,68 @@ export async function POST(req: NextRequest) {
   const { orgId } = g.ctx;
 
   const body = await req.json();
+
+  if (body.action === "seed_demo") {
+    const existingRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/properties?select=*&org_id=eq.${orgId}`,
+      { headers: H, cache: "no-store" }
+    );
+    const existingRows = existingRes.ok ? await existingRes.json() : [];
+    if (Array.isArray(existingRows) && existingRows.length > 0) {
+      return NextResponse.json({ success: true, properties: existingRows, seeded: 0 });
+    }
+
+    const demoRows = PROPERTIES.map((p) => ({
+      id: crypto.randomUUID(),
+      org_id: orgId,
+      name: p.name,
+      type: p.type,
+      address: p.address || null,
+      city: p.city,
+      sqft: p.sqft || null,
+      lease_status: "available",
+      badge: p.badge || null,
+      badge_color: p.badgeColor || "#4ADE80",
+      description: p.description || null,
+      features: p.features || [],
+      images: p.images || [p.image],
+      hero_image: p.image || null,
+      in_banner: true,
+      published: true,
+    }));
+
+    const seedRes = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
+      method: "POST",
+      headers: { ...H, Prefer: "return=representation" },
+      body: JSON.stringify(demoRows),
+    });
+    if (!seedRes.ok) {
+      const err = await seedRes.text();
+      return NextResponse.json({ error: err }, { status: 500 });
+    }
+    const created = await seedRes.json();
+    return NextResponse.json({ success: true, properties: created, seeded: Array.isArray(created) ? created.length : 0 });
+  }
+
+  const limit = getPlan(g.ctx.org.tier).limits.properties;
+  if (limit !== null && !g.ctx.isSuperAdmin) {
+    const countRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/properties?select=id&org_id=eq.${orgId}`,
+      { headers: H, cache: "no-store" }
+    );
+    const existing = countRes.ok ? await countRes.json() : [];
+    const count = Array.isArray(existing) ? existing.length : 0;
+    if (count >= limit) {
+      return NextResponse.json(
+        {
+          error: "You have reached the maximum number of properties for your current plan. Upgrade in Settings → Billing.",
+          code: "LIMIT_REACHED",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   const record = {
     name: body.name,
     type: body.type,

@@ -34,24 +34,30 @@ export async function POST(req: NextRequest) {
   const { orgId } = g.ctx;
 
   const body = await req.json();
-  const id = String(body.id || `lot_${Date.now()}`);
-  
+  const suppliedId = body.id ? String(body.id) : null;
+
   const fields = {
-    name: body.name,
-    address: body.address,
-    parent_property_id: body.parent_property_id,
+    name: body.name || "",
+    address: body.address || "",
+    city: body.city ?? "",
+    county: body.county ?? "",
+    parent_property_id: body.parent_property_id ?? body.associated_property_id ?? null,
+    associated_property_id: body.associated_property_id ?? body.parent_property_id ?? null,
     renewal_date: body.renewal_date || null,
-    tax_city_annual: Number(body.tax_city_annual) || 0,
-    tax_county_annual: Number(body.tax_county_annual) || 0,
-    lease_price_paid: Number(body.lease_price_paid) || 0,
-    notes: body.notes,
+    tax_city_annual: Number(body.tax_city_annual ?? body.city_tax ?? 0) || 0,
+    city_tax: Number(body.city_tax ?? body.tax_city_annual ?? 0) || 0,
+    tax_county_annual: Number(body.tax_county_annual ?? body.county_tax ?? 0) || 0,
+    county_tax: Number(body.county_tax ?? body.tax_county_annual ?? 0) || 0,
+    lease_price_paid: Number(body.lease_price_paid ?? body.price_paid ?? 0) || 0,
+    price_paid: Number(body.price_paid ?? body.lease_price_paid ?? 0) || 0,
+    notes: body.notes ?? "",
     updated_at: new Date().toISOString(),
   };
 
   // Update an existing lot only if it belongs to this org …
-  if (body.id) {
+  if (suppliedId) {
     const upd = await fetch(
-      `${SUPABASE_URL}/rest/v1/parking_lots?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`,
+      `${SUPABASE_URL}/rest/v1/parking_lots?id=eq.${encodeURIComponent(suppliedId)}&org_id=eq.${orgId}`,
       { method: "PATCH", headers: { ...HEADERS, Prefer: "return=representation" }, body: JSON.stringify(fields) }
     );
     if (!upd.ok) return NextResponse.json({ error: await upd.text() }, { status: 500 });
@@ -59,11 +65,12 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(rows) && rows.length) return NextResponse.json({ success: true, lot: rows[0] });
   }
 
-  // … otherwise insert a new one (plain insert: never overwrites another org's row).
+  // … otherwise insert a new one with a fresh UUID so a client-supplied id can never collide with another tenant's global PK.
+  const insertId = crypto.randomUUID();
   const res = await fetch(`${SUPABASE_URL}/rest/v1/parking_lots`, {
     method: "POST",
     headers: { ...HEADERS, Prefer: "return=representation" },
-    body: JSON.stringify({ id, ...fields, org_id: orgId }),
+    body: JSON.stringify({ id: insertId, ...fields, org_id: orgId }),
   });
 
   if (!res.ok) {

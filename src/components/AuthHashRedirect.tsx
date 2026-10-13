@@ -15,7 +15,14 @@ export default function AuthHashRedirect() {
     if (typeof window === "undefined") return;
 
     const hash = window.location.hash;
+    const search = window.location.search;
     const pathname = window.location.pathname;
+
+    // Forward PKCE ?code=... if Supabase redirects to root / instead of /auth/callback
+    if (search && pathname === "/" && search.includes("code=")) {
+      router.replace(`/auth/callback${search}`);
+      return;
+    }
 
     // Only forward if there's an OAuth access token or error in the hash and we are not already on /auth/callback
     if (hash && pathname !== "/auth/callback") {

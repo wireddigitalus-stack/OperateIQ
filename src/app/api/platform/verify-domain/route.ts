@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       console.warn(`[verify-domain] DNS lookup error for ${cleanDomain}:`, dnsErr);
     }
 
-    // Update database if orgId is provided
+    // Check domain availability and only persist custom_domain when DNS is verified (isConfigured === true)
     if (orgId && supabaseAdmin) {
       // Prevent claiming a domain already connected to another organization.
       const { data: taken } = await supabaseAdmin
@@ -79,13 +79,15 @@ export async function POST(req: NextRequest) {
       if (taken) {
         return NextResponse.json({ error: "This domain is already connected to another account." }, { status: 409 });
       }
-      await supabaseAdmin
-        .from("organizations")
-        .update({
-          custom_domain: cleanDomain,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", orgId);
+      if (isConfigured) {
+        await supabaseAdmin
+          .from("organizations")
+          .update({
+            custom_domain: cleanDomain,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", orgId);
+      }
     }
 
     return NextResponse.json({
@@ -97,8 +99,8 @@ export async function POST(req: NextRequest) {
       currentRecords: details,
       verified: isConfigured,
       message: isConfigured
-        ? `DNS successfully configured! ${cleanDomain} is ready for traffic.`
-        : `Domain saved to your account but NOT verified yet. Add the DNS record shown below at GoDaddy/IONOS; propagation usually takes 5–30 minutes, then click Verify again.`,
+        ? `DNS successfully configured! ${cleanDomain} is verified and connected to your account.`
+        : `DNS is NOT verified yet. Add the DNS record shown below at GoDaddy/IONOS; propagation usually takes 5–30 minutes, then click Verify again to connect ${cleanDomain}.`,
     });
   } catch (error) {
     console.error("[verify-domain] error:", error);

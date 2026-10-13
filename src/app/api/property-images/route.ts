@@ -37,6 +37,9 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ overrides: Array.isArray(data) ? data : [] });
 }
 
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 /** POST — upload a single image file for a property, append to its gallery */
 export async function POST(req: NextRequest) {
   const g = await requireOrg(req);
@@ -49,6 +52,10 @@ export async function POST(req: NextRequest) {
 
   if (!file || !propertyId)
     return NextResponse.json({ error: "file and propertyId required" }, { status: 400 });
+  if (file.size > MAX_FILE_SIZE)
+    return NextResponse.json({ error: "File exceeds 10MB limit." }, { status: 400 });
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type))
+    return NextResponse.json({ error: "Unsupported file type. Allowed: JPEG, PNG, WEBP, GIF." }, { status: 400 });
 
   await ensureBucket();
 

@@ -19,32 +19,48 @@ interface PropertyImages {
 
 type FieldMeta = { label: string; value: string; type: "text" | "textarea" };
 
-function buildPropertyDefaults(): Record<string, Record<string, FieldMeta>> {
+interface EditableProperty {
+  id: string;
+  name: string;
+  type: string;
+  address?: string;
+  city: string;
+  sqft: string;
+  status: string;
+  badge?: string;
+  description: string;
+  features: string[];
+  image?: string;
+  images?: string[];
+  imageAlt?: string;
+  videoTour?: string;
+}
+
+function buildPropertyDefaults(list: EditableProperty[]): Record<string, Record<string, FieldMeta>> {
   const sections: Record<string, Record<string, FieldMeta>> = {};
-  for (const p of PROPERTIES) {
+  for (const p of list) {
     const key = `property:${p.id}`;
     sections[key] = {
       name:        { label: "Property Name", value: p.name, type: "text" },
       type:        { label: "Property Type", value: p.type, type: "text" },
-      address:     { label: "Address", value: (p as any).address || "", type: "text" },
+      address:     { label: "Address", value: p.address || "", type: "text" },
       city:        { label: "City / Market", value: p.city, type: "text" },
       sqft:        { label: "Square Footage", value: p.sqft, type: "text" },
       status:      { label: "Availability Status", value: p.status, type: "text" },
       badge:       { label: "Badge Text", value: p.badge || "", type: "text" },
       description: { label: "Description", value: p.description, type: "textarea" },
-      features:    { label: "Features (one per line)", value: p.features.join("\n"), type: "textarea" },
-      imageAlt:    { label: "Image Alt Text (SEO)", value: (p as any).imageAlt || p.name, type: "text" },
-      videoTour:   { label: "Video Tour (YouTube URL)", value: (p as any).videoTour || "", type: "text" },
+      features:    { label: "Features (one per line)", value: (p.features || []).join("\n"), type: "textarea" },
+      imageAlt:    { label: "Image Alt Text (SEO)", value: p.imageAlt || p.name, type: "text" },
+      videoTour:   { label: "Video Tour (YouTube URL)", value: p.videoTour || "", type: "text" },
     };
   }
   return sections;
 }
 
-const DEFAULTS = buildPropertyDefaults();
-
 interface ContentItem { section: string; key: string; value: string }
 
 export default function PropertyEditor() {
+  const [propertiesList, setPropertiesList] = useState<EditableProperty[]>([]);
   const [overrides, setOverrides] = useState<ContentItem[]>([]);
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -61,6 +77,8 @@ export default function PropertyEditor() {
   const [propSaved, setPropSaved] = useState<Record<string, boolean>>({});
   const fileRefs = useRef<Record<string, HTMLInputElement>>({});
 
+  const DEFAULTS = React.useMemo(() => buildPropertyDefaults(propertiesList), [propertiesList]);
+
   function flashImgSaved(propId: string) {
     setImgSaved(propId);
     setTimeout(() => setImgSaved(null), 2500);
@@ -68,8 +86,55 @@ export default function PropertyEditor() {
 
   const fetchContent = useCallback(async () => {
     try {
-      const res = await fetch("/api/site-content");
-      const data = await res.json();
+      const [res, dynRes, sessRes] = await Promise.all([
+        fetch("/api/site-content"),
+        fetch("/api/properties-dynamic?admin=1"),
+        fetch("/api/platform/session"),
+      ]);
+      const data = await res.json().catch(() => ({}));
+      const dynData = await dynRes.json().catch(() => ({}));
+      const sessData = await sessRes.json().catch(() => ({}));
+      const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
+
+      const dynProps: EditableProperty[] = (dynData.properties || []).map((dp: any) => ({
+        id: dp.id,
+        name: dp.name,
+        type: dp.type || "Office",
+        address: dp.address || "",
+        city: dp.city || "",
+        sqft: dp.sqft || "N/A",
+        status: dp.lease_status || "Available",
+        badge: dp.badge || "",
+        description: dp.description || "",
+        features: Array.isArray(dp.features) ? dp.features : [],
+        image: dp.hero_image || dp.images?.[0] || "",
+        images: Array.isArray(dp.images) ? dp.images : [],
+        imageAlt: dp.name,
+        videoTour: "",
+      }));
+
+      const dynIds = new Set(dynProps.map(d => d.id));
+      const staticProps: EditableProperty[] = isDemoOrg
+        ? PROPERTIES.filter(p => !dynIds.has(p.id)).map(p => ({
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            address: (p as any).address || "",
+            city: p.city,
+            sqft: p.sqft,
+            status: p.status,
+            badge: p.badge || "",
+            description: p.description,
+            features: p.features || [],
+            image: (p as any).image || "",
+            images: (p as any).images || ((p as any).image ? [(p as any).image] : []),
+            imageAlt: (p as any).imageAlt || p.name,
+            videoTour: (p as any).videoTour || "",
+          }))
+        : [];
+
+      setPropertiesList([...dynProps, ...staticProps]);
+
       const items: ContentItem[] = (data.items || []).filter(
         (i: ContentItem) => i.section.startsWith("property:")
       );
@@ -106,8 +171,8 @@ export default function PropertyEditor() {
   function getImgRecord(propId: string, fallback?: string[]): PropertyImages {
     const ex = propImages[propId];
     if (ex) return ex;
-    const prop = PROPERTIES.find(p => p.id === propId);
-    const imgs: string[] = (prop as any)?.images || ((prop as any)?.image ? [(prop as any).image] : []);
+    const prop = propertiesList.find(p => p.id === propId);
+    const imgs: string[] = prop?.images || (prop?.image ? [prop.image] : []);
     return { property_id: propId, hero_url: fallback?.[0] || imgs[0] || null, all_urls: fallback || imgs, updated_at: "" };
   }
 
@@ -294,7 +359,7 @@ export default function PropertyEditor() {
             Property Editor
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            Edit text <strong className="text-gray-400">&amp;</strong> images for your <strong className="text-gray-300">{PROPERTIES.length} properties</strong>. Each card has its own Save button.
+            Edit text <strong className="text-gray-400">&amp;</strong> images for your <strong className="text-gray-300">{propertiesList.length} properties</strong>. Each card has its own Save button.
           </p>
       </div>
 
@@ -306,8 +371,14 @@ export default function PropertyEditor() {
         </div>
       )}
 
+      {propertiesList.length === 0 && (
+        <div className="p-8 text-center text-gray-500 text-sm">
+          No properties yet. Expand &ldquo;Add New Property&rdquo; above or visit the Properties tab to add your first property.
+        </div>
+      )}
+
       {/* ── Property Sections ── */}
-      {PROPERTIES.map((prop) => {
+      {propertiesList.map((prop) => {
         const sectionKey = `property:${prop.id}`;
         const fields = DEFAULTS[sectionKey];
         if (!fields) return null;

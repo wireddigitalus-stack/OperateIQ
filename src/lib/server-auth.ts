@@ -16,6 +16,7 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, isSuperAdmin } from "@/lib/platform";
 import { readStaffSession, type StaffSession } from "@/lib/staff-session";
+import { hasFeature, isSubscriptionActive, FEATURE_LABELS, type Feature } from "@/lib/plans";
 
 export const ACCESS_TOKEN_COOKIE = "oiq_at";
 
@@ -30,8 +31,15 @@ export interface OrgSummary {
   trial_ends_at: string | null;
   custom_domain: string | null;
   brand_name: string | null;
+  brand_logo_url?: string | null;
+  brand_primary_color?: string | null;
+  brand_accent_color?: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  city?: string | null;
+  state?: string | null;
+  address?: string | null;
+  description?: string | null;
 }
 
 export interface AuthedUser {
@@ -53,7 +61,7 @@ export interface RequestContext {
 }
 
 const ORG_COLUMNS =
-  "id,name,slug,tier,subscription_status,trial_ends_at,custom_domain,brand_name,contact_email,contact_phone";
+  "id,name,slug,tier,subscription_status,trial_ends_at,custom_domain,brand_name,brand_logo_url,brand_primary_color,brand_accent_color,contact_email,contact_phone";
 
 const ADMIN_ROLES: OrgRole[] = ["owner", "admin", "manager"];
 
@@ -100,21 +108,20 @@ export async function getAuthUser(req?: NextRequest): Promise<AuthedUser | null>
  * invited admin gets access on first sign-in.
  */
 async function loadMemberships(user: AuthedUser): Promise<{ org_id: string; role: OrgRole }[]> {
-  const DEMO = "00000000-0000-0000-0000-000000000001";
   const [{ data: existing }, { data: invited }] = await Promise.all([
     supabaseAdmin.from("memberships").select("org_id, role, created_at").eq("user_id", user.id).order("created_at", { ascending: true }),
-    supabaseAdmin.from("allowed_users").select("org_id, role").eq("email", user.email).eq("active", true).in("role", ["admin", "manager"]),
+    supabaseAdmin.from("allowed_users").select("org_id, role").eq("email", user.email).eq("active", true).in("role", ["owner", "admin", "manager"]),
   ]);
 
   const result = ((existing || []) as { org_id: string; role: OrgRole }[]).map((m) => ({ org_id: m.org_id, role: m.role }));
   const have = new Set(result.map((m) => m.org_id));
   const toAdd = ((invited || []) as { org_id: string; role: string }[])
-    .filter((r) => r.org_id && r.org_id !== DEMO && !have.has(r.org_id))
+    .filter((r) => r.org_id && !have.has(r.org_id))
     .map((r) => ({
       org_id: r.org_id,
       user_id: user.id,
       // The first admin of an org with no members yet becomes its owner.
-      role: (r.role === "manager" ? "manager" : "admin") as OrgRole,
+      role: (r.role === "owner" ? "owner" : r.role === "manager" ? "manager" : "admin") as OrgRole,
     }));
 
   if (toAdd.length) {
@@ -129,8 +136,20 @@ async function loadMemberships(user: AuthedUser): Promise<{ org_id: string; role
 }
 
 async function loadOrg(orgId: string): Promise<OrgSummary | null> {
-  const { data } = await supabaseAdmin.from("organizations").select(ORG_COLUMNS).eq("id", orgId).maybeSingle();
-  return (data as OrgSummary) || null;
+  const [{ data }, { data: profileSetting }] = await Promise.all([
+    supabaseAdmin.from("organizations").select(ORG_COLUMNS).eq("id", orgId).maybeSingle(),
+    supabaseAdmin.from("site_settings").select("value").eq("org_id", orgId).eq("key", "org_profile").maybeSingle(),
+  ]);
+  if (!data) return null;
+  const org = data as OrgSummary;
+  const prof = (profileSetting?.value || {}) as Record<string, unknown>;
+  return {
+    ...org,
+    city: typeof prof.city === "string" ? prof.city : null,
+    state: typeof prof.state === "string" ? prof.state : null,
+    address: typeof prof.address === "string" ? prof.address : null,
+    description: typeof prof.description === "string" ? prof.description : null,
+  };
 }
 
 async function readCookie(name: string): Promise<string | null> {
@@ -192,15 +211,22 @@ export async function getRequestContext(
 export type Guarded<T> = { ok: true; ctx: T } | { ok: false; res: NextResponse };
 
 const unauthorized = () => NextResponse.json({ error: "Authentication required." }, { status: 401 });
-const forbidden = (msg = "You do not have access to this resource.") => NextResponse.json({ error: msg }, { status: 403 });
+const forbidden = (msg = "You do not have access to this resource.", extra?: Record<string, unknown>) =>
+  NextResponse.json({ error: msg, ...extra }, { status: 403 });
 
 /**
  * Require a signed-in org member (any role). Pass `allowStaff` for endpoints
- * used by the PIN-based crew portals, and `roles` to restrict further.
+ * used by the PIN-based crew portals, `roles` to restrict further, and
+ * `requireFeature` to enforce subscription tier access.
  */
 export async function requireOrg(
   req: NextRequest,
-  opts: { allowStaff?: boolean; roles?: (OrgRole | "platform")[] } = {}
+  opts: {
+    allowStaff?: boolean;
+    roles?: (OrgRole | "platform")[];
+    requireFeature?: Feature;
+    allowExpired?: boolean;
+  } = {}
 ): Promise<Guarded<RequestContext>> {
   const ctx = await getRequestContext(req, { allowStaff: opts.allowStaff });
   if (!ctx) {
@@ -208,12 +234,44 @@ export async function requireOrg(
     return { ok: false, res: user ? forbidden("No organization is linked to this account.") : unauthorized() };
   }
   if (opts.roles && !opts.roles.includes(ctx.role)) return { ok: false, res: forbidden() };
+
+  // Enforce subscription / trial status on state-changing requests (and AI POSTs)
+  const isWriteOrAction = req.method !== "GET" && req.method !== "HEAD";
+  if (isWriteOrAction && !opts.allowExpired && !ctx.isSuperAdmin && !isSubscriptionActive(ctx.org)) {
+    return {
+      ok: false,
+      res: NextResponse.json(
+        {
+          error: "Your trial or subscription has ended. Please update your plan in Settings → Billing to continue.",
+          code: "SUBSCRIPTION_INACTIVE",
+        },
+        { status: 402 }
+      ),
+    };
+  }
+
+  // Enforce subscription plan feature gating if requested
+  if (opts.requireFeature && !ctx.isSuperAdmin && !hasFeature(ctx.org.tier, opts.requireFeature)) {
+    const label = FEATURE_LABELS[opts.requireFeature] || opts.requireFeature;
+    return {
+      ok: false,
+      res: forbidden(`${label} requires a higher plan tier. Upgrade in Settings → Billing.`, {
+        code: "FEATURE_LOCKED",
+        feature: opts.requireFeature,
+        currentTier: ctx.org.tier,
+      }),
+    };
+  }
+
   return { ok: true, ctx };
 }
 
 /** Require an org owner/admin/manager (or super-admin in support mode). */
-export function requireOrgAdmin(req: NextRequest) {
-  return requireOrg(req, { roles: [...ADMIN_ROLES, "platform"] });
+export function requireOrgAdmin(
+  req: NextRequest,
+  opts: { requireFeature?: Feature; allowExpired?: boolean } = {}
+) {
+  return requireOrg(req, { roles: [...ADMIN_ROLES, "platform"], ...opts });
 }
 
 /** Require a verified OperateIQ platform super-admin. */

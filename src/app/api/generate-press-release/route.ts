@@ -17,7 +17,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   // Auth required: protects LLM spend from anonymous abuse.
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "marketing_studio" });
   if (!g.ok) return g.res;
 
   try {

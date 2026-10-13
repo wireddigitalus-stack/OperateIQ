@@ -4,7 +4,9 @@ import { detectWhale } from "@/lib/whale-detector";
 import { rowToLead } from "@/lib/supabase";
 import { writeActivityLog } from "@/lib/activity-log";
 import { PROPERTIES } from "@/lib/data";
-import { getOrgProfile } from "@/lib/org-profile";
+import { type OrgProfile } from "@/lib/org-profile";
+import { profileForOrg } from "@/lib/org-ai-profile";
+import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform-org";
 import { BRAND } from "@/lib/brand";
 import { requireOrg, requireOrgAdmin } from "@/lib/server-auth";
 
@@ -105,16 +107,27 @@ function buildLeadEmailHtml(lead: Lead): string {
 }
 
 
-const buildPropertiesContext = (orgName: string) => `
+interface PropertyContextItem {
+  id: string;
+  name: string;
+  type: string;
+  sqft: string;
+  city: string;
+}
+
+const buildPropertiesContext = (orgName: string, props: PropertyContextItem[]) => {
+  if (!props.length) {
+    return `\nAvailable ${orgName} Properties: None listed yet (match based on general space type and location).\n`;
+  }
+  return `
 Available ${orgName} Properties (use EXACT id values shown):
-${PROPERTIES.map(
+${props.map(
   (p, i) => `${i + 1}. id="${p.id}" — ${p.name} — ${p.type} — ${p.sqft} sqft — ${p.city}`
 ).join("\n")}
 `;
+};
 
-const SCORING_PROMPT = (lead: Partial<Lead>, orgName?: string) => {
-  const profile = getOrgProfile();
-  const org = { ...profile, name: orgName || profile.name };
+const SCORING_PROMPT = (lead: Partial<Lead>, org: OrgProfile, props: PropertyContextItem[]) => {
   return `
 You are a commercial real estate lead scoring AI for ${org.name} in ${org.location}.
 
@@ -144,7 +157,7 @@ LEAD DATA:
 - Team Size: ${lead.teamSize}
 - Additional Info: ${lead.additionalInfo || "None provided"}
 
-${buildPropertiesContext(org.name)}
+${buildPropertiesContext(org.name, props)}
 
 Respond with ONLY valid JSON in this exact format (no markdown, no explanation):
 {
@@ -196,6 +209,40 @@ export async function POST(req: NextRequest) {
       timeline, teamSize, additionalInfo,
     };
 
+    const orgProfile = profileForOrg(org);
+    let orgProps: PropertyContextItem[] = [];
+    try {
+      const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
+      const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+      const propRes = await fetch(`${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&select=*`, {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+        cache: "no-store",
+      });
+      if (propRes.ok) {
+        const dbRows = await propRes.json();
+        if (Array.isArray(dbRows) && dbRows.length > 0) {
+          orgProps = dbRows.map((p: Record<string, unknown>) => ({
+            id: String(p.id || ""),
+            name: String(p.name || ""),
+            type: String(p.type || ""),
+            sqft: String(p.sqft || ""),
+            city: String(p.city || orgProfile.location),
+          }));
+        }
+      }
+    } catch {
+      /* fallback below */
+    }
+    if (orgProps.length === 0 && orgId === DEFAULT_PLATFORM_ORG_ID) {
+      orgProps = PROPERTIES.map((p) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        sqft: p.sqft,
+        city: p.city,
+      }));
+    }
+
     // v1beta for gemini-2.5-flash — v1 returns 400 for this key on some configurations
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -203,7 +250,7 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: SCORING_PROMPT(leadData, org.brand_name || org.name) }] }],
+          contents: [{ parts: [{ text: SCORING_PROMPT(leadData, orgProfile, orgProps) }] }],
           generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
           // NOTE: no thinkingConfig — not supported by this API key
         }),

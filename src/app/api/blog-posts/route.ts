@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "blog" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "blog" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -102,7 +102,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "blog" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 

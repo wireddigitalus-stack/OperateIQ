@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireOrgAdmin } from "@/lib/server-auth";
+import { getPlan } from "@/lib/plans";
 
 /**
  * POST /api/ensure-staff   (org admins only, scoped to their org)
@@ -32,9 +34,27 @@ export async function POST(req: NextRequest) {
     if (lookupErr) return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
     if (existing && existing.length) return NextResponse.json({ user: existing[0], isNew: false });
 
+    const userLimit = getPlan(g.ctx.org.tier).limits.users;
+    if (userLimit !== null && !g.ctx.isSuperAdmin) {
+      const { count } = await supabaseAdmin
+        .from("allowed_users")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId)
+        .eq("active", true);
+      if ((count ?? 0) >= userLimit) {
+        return NextResponse.json(
+          {
+            error: "You have reached the team member limit for your current plan. Upgrade in Settings → Billing.",
+            code: "LIMIT_REACHED",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     let pin = "";
     for (let i = 0; i < 20; i++) {
-      const candidate = Math.floor(100000 + Math.random() * 900000).toString();
+      const candidate = randomInt(100000, 1000000).toString();
       const { data: clash } = await supabaseAdmin.from("allowed_users").select("id").eq("pin", candidate).eq("active", true).limit(1);
       if (!clash?.length) { pin = candidate; break; }
     }

@@ -1,12 +1,35 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FileText, Printer, Building2, MapPin, Ruler, CheckCircle2, ChevronDown, Sparkles } from "lucide-react";
 import { PROPERTIES, COMPANY } from "@/lib/data";
 import { getOrgProfile } from "@/lib/org-profile";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Property = (typeof PROPERTIES)[number];
+interface OneSheetProperty {
+  id: string;
+  name: string;
+  type: string;
+  city: string;
+  sqft: string;
+  status: string;
+  badge?: string;
+  address?: string;
+  description: string;
+  features: string[];
+  image?: string;
+  imageAlt?: string;
+}
+
+interface OrgMeta {
+  name: string;
+  phone: string;
+  phoneHref: string;
+  email: string;
+  location: string;
+  website: string;
+  fullAddress: string;
+}
 
 // ─── Image → base64 helper ───────────────────────────────────────────────────
 async function toDataUri(url: string): Promise<string> {
@@ -32,12 +55,22 @@ async function toLogoDataUri(baseUrl: string): Promise<string> {
 // ─── One-Sheet HTML Builder ───────────────────────────────────────────────────
 
 function buildOneSheetHTML(
-  property: Property,
+  property: OneSheetProperty,
   baseUrl: string,
   imageDataUri: string = "",
-  logoDataUri: string = ""
+  logoDataUri: string = "",
+  orgMeta?: OrgMeta
 ): string {
-  const org = getOrgProfile();
+  const defaultOrg = getOrgProfile();
+  const org: OrgMeta = orgMeta || {
+    name: defaultOrg.name,
+    phone: defaultOrg.phone || COMPANY.phone,
+    phoneHref: (defaultOrg.phone || COMPANY.phone).replace(/[^0-9+]/g, ""),
+    email: defaultOrg.email || COMPANY.email,
+    location: defaultOrg.location,
+    website: defaultOrg.website,
+    fullAddress: defaultOrg.location || COMPANY.fullAddress,
+  };
   const features = (property.features ?? []);
   const half = Math.ceil(features.length / 2);
   const col1 = features.slice(0, half);
@@ -51,10 +84,11 @@ function buildOneSheetHTML(
        <span style="font-size:9.5pt;color:#e2e8f0;line-height:1.3">${f}</span>
      </div>`;
 
+  const rawImg = property.image;
   const imageUrl =
     imageDataUri ||
-    ((property as Property & { image?: string }).image
-      ? `${baseUrl}${(property as Property & { image?: string }).image}`
+    (rawImg
+      ? (rawImg.startsWith("http") ? rawImg : `${baseUrl}${rawImg}`)
       : null);
 
   const logoSrc = logoDataUri || `${baseUrl}/operateiq-logo.svg`;
@@ -74,8 +108,8 @@ function buildOneSheetHTML(
          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:80px;opacity:.06">🏢</div>
        </div>`;
 
-  const badge = (property as Property & { badge?: string }).badge ?? property.type;
-  const address = (property as Property & { address?: string }).address ?? "";
+  const badge = property.badge ?? property.type;
+  const address = property.address ?? "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -474,10 +508,10 @@ function buildOneSheetHTML(
 
       <!-- Top nav -->
       <div class="top-bar">
-        <img class="logo-img" src="${logoSrc}" alt="OperateIQ" />
+        <img class="logo-img" src="${logoSrc}" alt="${org.name}" />
         <div class="top-bar-contact">
-          <p><a href="tel:${COMPANY.phoneHref}">${COMPANY.phone}</a></p>
-          <p><a href="mailto:${COMPANY.email}">${COMPANY.email}</a></p>
+          <p><a href="tel:${org.phoneHref}">${org.phone}</a></p>
+          <p><a href="mailto:${org.email}">${org.email}</a></p>
         </div>
       </div>
 
@@ -591,7 +625,7 @@ function buildOneSheetHTML(
             <div class="cta-icon-dot">📞</div>
             <div>
               <div class="cta-label">Direct Line</div>
-              <div class="cta-value">${COMPANY.phone}</div>
+              <div class="cta-value">${org.phone}</div>
             </div>
           </div>
 
@@ -599,7 +633,7 @@ function buildOneSheetHTML(
             <div class="cta-icon-dot">✉</div>
             <div>
               <div class="cta-label">Email</div>
-              <div class="cta-value">${COMPANY.email}</div>
+              <div class="cta-value">${org.email}</div>
             </div>
           </div>
 
@@ -623,9 +657,9 @@ function buildOneSheetHTML(
     <!-- Footer -->
     <div class="footer">
       <div class="footer-left">
-        <img class="footer-logo" src="${logoSrc}" alt="OperateIQ" />
+        <img class="footer-logo" src="${logoSrc}" alt="${org.name}" />
         <div class="footer-divider"></div>
-        <span class="footer-meta">${[COMPANY.fullAddress, org.phone].filter(Boolean).join(" · ")}</span>
+        <span class="footer-meta">${[org.fullAddress, org.phone].filter(Boolean).join(" · ")}</span>
       </div>
       <div class="footer-right">
         Information subject to change without notice. All square footages approximate.<br/>
@@ -646,8 +680,76 @@ function buildOneSheetHTML(
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function PropertyOneSheet() {
-  const [selected, setSelected] = useState<Property | null>(null);
+  const [propertiesList, setPropertiesList] = useState<OneSheetProperty[]>([]);
+  const [orgMeta, setOrgMeta] = useState<OrgMeta | undefined>(undefined);
+  const [selected, setSelected] = useState<OneSheetProperty | null>(null);
   const [previewing, setPreviewing] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/properties-dynamic?admin=1").then(r => r.json()).catch(() => ({})),
+      fetch("/api/platform/session").then(r => r.json()).catch(() => ({})),
+    ]).then(async ([dynData, sessData]) => {
+      const activeOrg = sessData?.activeOrg;
+      const isDemoOrg = activeOrg?.id === "00000000-0000-0000-0000-000000000001";
+
+      if (activeOrg?.id) {
+        try {
+          const orgRes = await fetch(`/api/platform/organizations?id=${encodeURIComponent(activeOrg.id)}`);
+          const orgJson = await orgRes.json().catch(() => ({}));
+          const o = orgJson.organization || activeOrg;
+          const defaultProfile = getOrgProfile();
+          const phone = o.contact_phone || defaultProfile.phone || COMPANY.phone;
+          const email = o.contact_email || defaultProfile.email || COMPANY.email;
+          const loc = [o.city, o.state].filter(Boolean).join(", ") || defaultProfile.location || "";
+          setOrgMeta({
+            name: o.brand_name || o.name || defaultProfile.name,
+            phone,
+            phoneHref: phone.replace(/[^0-9+]/g, ""),
+            email,
+            location: loc,
+            website: o.custom_domain ? `https://${o.custom_domain}` : defaultProfile.website,
+            fullAddress: loc,
+          });
+        } catch {
+          // ignore
+        }
+      }
+
+      const dynProps: OneSheetProperty[] = (dynData.properties || []).map((dp: any) => ({
+        id: dp.id,
+        name: dp.name,
+        type: dp.type || "Office",
+        city: dp.city || "",
+        sqft: dp.sqft || "N/A",
+        status: dp.lease_status || "Available",
+        badge: dp.badge || dp.type || "Office",
+        address: dp.address || "",
+        description: dp.description || "",
+        features: Array.isArray(dp.features) ? dp.features : [],
+        image: dp.hero_image || dp.images?.[0] || "",
+        imageAlt: dp.name,
+      }));
+      const dynIds = new Set(dynProps.map(d => d.id));
+      const staticProps: OneSheetProperty[] = isDemoOrg
+        ? PROPERTIES.filter(p => !dynIds.has(p.id)).map(p => ({
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            city: p.city,
+            sqft: p.sqft,
+            status: p.status,
+            badge: p.badge,
+            address: (p as any).address || "",
+            description: p.description,
+            features: p.features || [],
+            image: (p as any).image || "",
+            imageAlt: (p as any).imageAlt || p.name,
+          }))
+        : [];
+      setPropertiesList([...dynProps, ...staticProps]);
+    });
+  }, []);
 
   const handleGenerate = async () => {
     if (!selected) return;
@@ -658,13 +760,16 @@ export default function PropertyOneSheet() {
         ? `${window.location.protocol}//${window.location.host}`
         : "";
 
-    const imgPath = (selected as Property & { image?: string }).image;
+    const imgPath = selected.image;
+    const fullImgUrl = imgPath
+      ? (imgPath.startsWith("http") ? imgPath : `${baseUrl}${imgPath}`)
+      : "";
     const [imageDataUri, logoDataUri] = await Promise.all([
-      imgPath ? toDataUri(`${baseUrl}${imgPath}`) : Promise.resolve(""),
+      fullImgUrl ? toDataUri(fullImgUrl) : Promise.resolve(""),
       toLogoDataUri(baseUrl),
     ]);
 
-    const html = buildOneSheetHTML(selected, baseUrl, imageDataUri, logoDataUri);
+    const html = buildOneSheetHTML(selected, baseUrl, imageDataUri, logoDataUri, orgMeta);
 
     const win = window.open("", "_blank", "width=940,height=800,scrollbars=yes");
     if (!win) {
@@ -709,7 +814,7 @@ export default function PropertyOneSheet() {
                 <Sparkles size={8} /> Premium PDF
               </span>
             </div>
-            <p className="text-xs text-gray-500">Generate a branded, print-ready PDF for any OperateIQ property</p>
+            <p className="text-xs text-gray-500">Generate a branded, print-ready PDF for any property in your portfolio</p>
           </div>
         </div>
         <p className="text-xs text-gray-600 mt-3 leading-relaxed">
@@ -724,8 +829,13 @@ export default function PropertyOneSheet() {
       <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">
         Select a Property
       </p>
+      {propertiesList.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[rgba(255,255,255,0.08)] p-8 text-center text-gray-500 text-xs mb-6">
+          No properties added yet. Add a property in the Properties tab first to generate a One-Sheet PDF.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-        {PROPERTIES.map((p) => {
+        {propertiesList.map((p) => {
           const isSelected = selected?.id === p.id;
           return (
             <button
@@ -739,10 +849,10 @@ export default function PropertyOneSheet() {
             >
               {/* Property image thumbnail */}
               <div className="w-full h-24 rounded-lg overflow-hidden mb-3 bg-[rgba(255,255,255,0.04)] relative">
-                {(p as Property & { image?: string }).image ? (
+                {p.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={(p as Property & { image?: string }).image}
+                    src={p.image}
                     alt={p.imageAlt ?? p.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
@@ -789,6 +899,7 @@ export default function PropertyOneSheet() {
           );
         })}
       </div>
+      )}
 
       {/* Selected property preview + generate button */}
       {selected ? (

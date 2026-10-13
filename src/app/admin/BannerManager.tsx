@@ -6,13 +6,14 @@ import { getOrgProfile } from "@/lib/org-profile";
 
 const MAIN_IDS = ["sample-office","sample-retail"];
 const DEFAULT_LOC = getOrgProfile().location;
-const BANNER_PROPS = PROPERTIES.filter(p => MAIN_IDS.includes(p.id));
 
+interface BannerProp { id: string; name: string; city: string; image: string; }
 interface Slide { type: "property"|"custom"; propertyId?: string; imageUrl?: string; label: string; location: string; enabled: boolean; order: number; }
 interface HeroConfig { slides: Slide[]; videoUrl: string|null; videoEnabled: boolean; }
 interface Override { property_id: string; image_url: string; }
 
 export default function BannerManager() {
+  const [bannerProps, setBannerProps] = useState<BannerProp[]>([]);
   const [config, setConfig] = useState<HeroConfig>({ slides: [], videoUrl: null, videoEnabled: false });
   const [overrides, setOverrides] = useState<Record<string,string>>({});
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,33 @@ export default function BannerManager() {
   async function load() {
     setLoading(true);
     try {
-      const [bRes, iRes] = await Promise.all([fetch("/api/hero-banner"), fetch("/api/property-images")]);
+      const [bRes, iRes, dynRes, sessRes] = await Promise.all([
+        fetch("/api/hero-banner"),
+        fetch("/api/property-images"),
+        fetch("/api/properties-dynamic?admin=1"),
+        fetch("/api/platform/session"),
+      ]);
+      const dynData = await dynRes.json().catch(() => ({}));
+      const sessData = await sessRes.json().catch(() => ({}));
+      const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
+
+      const dynProps: BannerProp[] = (dynData.properties || []).map((dp: any) => ({
+        id: dp.id,
+        name: dp.name,
+        city: dp.city || "",
+        image: dp.hero_image || dp.images?.[0] || "",
+      }));
+      const dynIds = new Set(dynProps.map(d => d.id));
+      const staticProps: BannerProp[] = isDemoOrg
+        ? PROPERTIES.filter(p => MAIN_IDS.includes(p.id) && !dynIds.has(p.id)).map(p => ({
+            id: p.id,
+            name: p.name,
+            city: p.city,
+            image: (p as any).image || "",
+          }))
+        : [];
+      setBannerProps([...dynProps, ...staticProps]);
+
       if (bRes.ok) {
         const d = await bRes.json();
         if (d.raw) { setConfig(d.raw); if (d.raw.videoUrl) setVideoInput(d.raw.videoUrl); }
@@ -50,7 +77,7 @@ export default function BannerManager() {
     finally { setLoading(false); }
   }
 
-  function getPropImg(id: string) { const p = BANNER_PROPS.find(x => x.id === id); return overrides[id] || p?.image || ""; }
+  function getPropImg(id: string) { const p = bannerProps.find(x => x.id === id); return overrides[id] || p?.image || ""; }
   function isOn(id: string) { return config.slides.find(s => s.type==="property" && s.propertyId===id)?.enabled ?? false; }
 
   function toggleProp(id: string) {
@@ -60,7 +87,8 @@ export default function BannerManager() {
         const next = [...prev.slides]; next[idx] = { ...next[idx], enabled: !next[idx].enabled };
         return { ...prev, slides: next };
       }
-      const p = BANNER_PROPS.find(x => x.id === id)!;
+      const p = bannerProps.find(x => x.id === id);
+      if (!p) return prev;
       const maxOrder = Math.max(0, ...prev.slides.map(s => s.order));
       return { ...prev, slides: [...prev.slides, { type:"property", propertyId:id, label:p.name, location:p.city, enabled:true, order:maxOrder+1 }] };
     });
@@ -167,12 +195,17 @@ export default function BannerManager() {
           <ImageIcon size={13} className="text-[#FACC15]"/>
           <p className="text-xs font-black text-white">Property Slides</p>
           <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[rgba(250,204,21,0.1)] text-[#FACC15] border border-[rgba(250,204,21,0.25)]">
-            {BANNER_PROPS.filter(p => isOn(p.id)).length} / {BANNER_PROPS.length} ON
+            {bannerProps.filter(p => isOn(p.id)).length} / {bannerProps.length} ON
           </span>
           <p className="text-[10px] text-gray-600 ml-auto">Tap to toggle in/out of banner</p>
         </div>
+        {bannerProps.length === 0 ? (
+          <div className="p-6 text-center text-gray-600 text-xs">
+            No properties added yet. Add properties first or upload custom banner images below.
+          </div>
+        ) : (
         <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {BANNER_PROPS.map(prop => {
+          {bannerProps.map(prop => {
             const on = isOn(prop.id);
             const img = getPropImg(prop.id);
             return (
@@ -194,6 +227,7 @@ export default function BannerManager() {
             );
           })}
         </div>
+        )}
       </div>
 
       {/* ── Custom Banner Images ── */}

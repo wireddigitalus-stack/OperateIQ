@@ -1,26 +1,10 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Sparkles, Search, RefreshCw, Loader2,
+  Sparkles, Search, RefreshCw, Loader2, Plus,
   Building2, AlertTriangle, FileSpreadsheet,
 } from "lucide-react";
 import PrintButton from "./PrintButton";
-
-const PROPERTIES_LIST = [
-  "Sample Office Building",
-  "Downtown Center",
-  "Mill Building",
-  "Riverside Commons",
-  "250 Commerce Ave",
-  "100 Main St",
-  "215 Highway Dr",
-  "221 Oak St",
-  "142 Main St",
-  "134 Main St",
-  "720 Main St",
-  "209 Park Rd",
-  "Farm"
-];
 
 interface FilterChangeRecord {
   id?: string;
@@ -38,6 +22,8 @@ export default function FilterChangesTab({
   currentUserName?: string;
 }) {
   const [records, setRecords] = useState<FilterChangeRecord[]>([]);
+  const [orgProperties, setOrgProperties] = useState<string[]>([]);
+  const [newPropertyInput, setNewPropertyInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -47,7 +33,16 @@ export default function FilterChangesTab({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/filter-changes");
+      const [res, propRes] = await Promise.all([
+        fetch("/api/filter-changes"),
+        fetch("/api/properties-list").catch(() => null),
+      ]);
+      if (propRes?.ok) {
+        const pList = await propRes.json().catch(() => []);
+        if (Array.isArray(pList)) {
+          setOrgProperties(pList.map((p: { name?: string }) => p.name || "").filter(Boolean));
+        }
+      }
       if (!res.ok) throw new Error("Failed to fetch filter change records");
       const d = await res.json();
       if (Array.isArray(d.records)) {
@@ -136,7 +131,21 @@ export default function FilterChangesTab({
     }
   };
 
-  const displayRows = PROPERTIES_LIST.map(property => {
+  const handleAddPropertyEntry = async () => {
+    const trimmed = newPropertyInput.trim();
+    if (!trimmed) return;
+    setNewPropertyInput("");
+    if (!orgProperties.includes(trimmed)) {
+      setOrgProperties(prev => [...prev, trimmed]);
+    }
+    await updateField(trimmed, "notes", "");
+  };
+
+  const propertiesList = useMemo(() => {
+    return Array.from(new Set([...orgProperties, ...records.map(r => r.property).filter(Boolean)]));
+  }, [orgProperties, records]);
+
+  const displayRows = propertiesList.map(property => {
     const record = records.find(r => r.property === property) || {
       property,
       lastChanged: null,
@@ -185,8 +194,28 @@ export default function FilterChangesTab({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+          {/* Add custom property entry */}
+          <div className="flex items-center gap-1.5">
+            <input
+              type="text"
+              placeholder="Add property filter row…"
+              value={newPropertyInput}
+              onChange={e => setNewPropertyInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleAddPropertyEntry(); }}
+              className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-xl px-3 py-1.5 text-xs text-white focus:border-[rgba(250,204,21,0.4)] outline-none placeholder:text-gray-700 w-44"
+            />
+            <button
+              onClick={handleAddPropertyEntry}
+              disabled={!newPropertyInput.trim()}
+              className="px-2.5 py-1.5 rounded-xl bg-[rgba(250,204,21,0.12)] border border-[rgba(250,204,21,0.3)] text-[#FACC15] text-xs font-bold hover:bg-[rgba(250,204,21,0.2)] disabled:opacity-40 transition-colors flex items-center gap-1"
+              title="Add property filter entry"
+            >
+              <Plus size={12} /> Add
+            </button>
+          </div>
+
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[180px]">
             <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
               type="text"
@@ -242,6 +271,12 @@ export default function FilterChangesTab({
         <div className="flex flex-col items-center justify-center py-12 gap-2">
           <Loader2 className="animate-spin text-[#FACC15]" size={24} />
           <p className="text-xs text-gray-600">Loading ledger rows…</p>
+        </div>
+      ) : propertiesList.length === 0 ? (
+        <div className="text-center py-12">
+          <Building2 className="mx-auto text-gray-600 mb-2" size={28} />
+          <p className="text-sm font-bold text-gray-300">No properties in your portfolio yet</p>
+          <p className="text-xs text-gray-500 mt-1">Add properties in the Property Details tab or use the input above to add a property filter entry.</p>
         </div>
       ) : displayRows.length === 0 ? (
         <div className="text-center py-12">

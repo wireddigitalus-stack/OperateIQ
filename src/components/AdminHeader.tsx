@@ -14,6 +14,14 @@ export default function AdminHeader() {
     tier: string;
     custom_domain?: string | null;
   } | null>(null);
+  const [memberships, setMemberships] = useState<Array<{
+    id: string;
+    name: string;
+    slug: string;
+    tier: string;
+    role: string;
+  }>>([]);
+  const [switchingOrg, setSwitchingOrg] = useState(false);
   const [superAdmin, setSuperAdmin] = useState(false);
 
   useEffect(() => {
@@ -21,17 +29,33 @@ export default function AdminHeader() {
       .then((res) => res.json())
       .then((data) => {
         setSuperAdmin(!!data.isSuperAdmin);
+        if (Array.isArray(data.memberships)) setMemberships(data.memberships);
         if (data.activeOrg) setActiveOrg(data.activeOrg);
         else if (data.impersonatingOrg) setActiveOrg(data.impersonatingOrg);
       })
       .catch(() => {});
   }, []);
 
+  async function handleSwitchOrg(orgId: string) {
+    if (!orgId || orgId === activeOrg?.id) return;
+    setSwitchingOrg(true);
+    try {
+      await fetch("/api/platform/set-active-org", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      });
+      window.location.href = "/admin";
+    } catch {
+      setSwitchingOrg(false);
+    }
+  }
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 sm:px-6
       bg-[rgba(8,12,20,0.92)] backdrop-blur-xl border-b border-[rgba(255,255,255,0.06)]">
 
-      {/* ── Left: Logo + workspace context badge ── */}
+      {/* ── Left: Logo + workspace context badge / switcher ── */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push("/admin?tab=leads")}
@@ -46,18 +70,38 @@ export default function AdminHeader() {
             className="h-7 w-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity"
             priority
           />
-          {activeOrg ? (
+          {activeOrg && memberships.length <= 1 ? (
             <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)]">
               <Building2 size={11} className="text-cyan-400" />
               <span>{activeOrg.name}</span>
             </span>
-          ) : (
+          ) : !activeOrg ? (
             <span className="hidden sm:flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-white/15 bg-white/[0.04] text-[10px] font-black text-sky-400 uppercase tracking-widest shadow-[0_0_12px_rgba(56,189,248,0.2)]">
               <LayoutDashboard size={9} />
               Workspace
             </span>
-          )}
+          ) : null}
         </button>
+
+        {activeOrg && memberships.length > 1 && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)]">
+            <Building2 size={11} className="text-cyan-400 flex-shrink-0" />
+            <select
+              value={activeOrg.id}
+              disabled={switchingOrg}
+              onChange={(e) => handleSwitchOrg(e.target.value)}
+              aria-label="Switch active organization"
+              className="bg-transparent text-sky-200 font-bold text-[11px] outline-none cursor-pointer pr-1"
+              style={{ colorScheme: "dark" }}
+            >
+              {memberships.map((m) => (
+                <option key={m.id} value={m.id} className="bg-[#0A0F1A] text-white">
+                  {m.name} ({m.tier})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* ── Right: View Public Site & Workspace Plan ── */}

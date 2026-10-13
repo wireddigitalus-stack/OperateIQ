@@ -6,25 +6,6 @@ import {
 } from "lucide-react";
 import PrintButton from "./PrintButton";
 
-const PROPERTIES_LIST = [
-  "Sample Office Building",
-  "Downtown Center",
-  "Mill Building",
-  "Riverside Commons",
-  "250 Commerce Ave",
-  "100 Main St",
-  "215 Highway Dr",
-  "221 Oak St",
-  "142 Main St",
-  "134 Main St",
-  "720 Main St",
-  "209 Park Rd",
-  "Farm"
-];
-
-// Target crew members for custom tracking
-const TEAM_MEMBERS = ["Alex", "Jordan", "Taylor", "Morgan"];
-
 interface TeamActivity {
   name: string;
   notesLogged: number;
@@ -41,6 +22,7 @@ interface WeeklyStats {
   directCount: number;
   vacantPropertiesCount: number;
   totalAcquisitionsCount: number;
+  propertiesList: string[];
   propertyInterest: Record<string, { buyers: number; value: number; tenants: string[] }>;
   teamActivities: TeamActivity[];
 }
@@ -54,12 +36,14 @@ export default function WeeklyReportTab() {
     setLoading(true);
     try {
       // 1. Fetch data from endpoints
-      const [leadsRes, tenantsRes, salesRes, activityRes, ticketsRes] = await Promise.all([
+      const [leadsRes, tenantsRes, salesRes, activityRes, ticketsRes, propsRes, usersRes] = await Promise.all([
         fetch("/api/lease-bot"),
         fetch("/api/tenants"),
         fetch("/api/sales-leads"),
         fetch("/api/activity-log?limit=1000"), // fetch large set of logs for analysis
         fetch("/api/maintenance"),
+        fetch("/api/properties-list").catch(() => null),
+        fetch("/api/allowed-users").catch(() => null),
       ]);
 
       const leadsData = await leadsRes.json();
@@ -67,12 +51,28 @@ export default function WeeklyReportTab() {
       const salesData = await salesRes.json();
       const activityData = await activityRes.json();
       const ticketsData = await ticketsRes.json();
+      const propsListRaw = propsRes?.ok ? await propsRes.json().catch(() => []) : [];
+      const usersData = usersRes?.ok ? await usersRes.json().catch(() => ({})) : {};
 
       const rawLeads = Array.isArray(leadsData.leads) ? leadsData.leads : [];
       const rawTenants = Array.isArray(tenantsData.tenants) ? tenantsData.tenants : [];
       const rawSales = Array.isArray(salesData.leads) ? salesData.leads : [];
       const rawLogs = Array.isArray(activityData.logs) ? activityData.logs : [];
       const rawTickets = Array.isArray(ticketsData.tickets) ? ticketsData.tickets : [];
+
+      const orgPropertyNames: string[] = Array.isArray(propsListRaw)
+        ? propsListRaw.map((p: { name?: string }) => p.name || "").filter(Boolean)
+        : [];
+      const propertiesList = Array.from(new Set([
+        ...orgPropertyNames,
+        ...rawTenants.map((t: any) => t.building || "").filter(Boolean),
+        ...rawSales.map((s: any) => s.building_interested || "").filter(Boolean),
+      ]));
+
+      const rawUsers: { name?: string; email?: string }[] = Array.isArray(usersData.users) ? usersData.users : [];
+      const teamMembers = Array.from(new Set(
+        rawUsers.map(u => (u.name || u.email?.split("@")[0] || "").trim()).filter(Boolean)
+      ));
 
       // Calculate time boundary
       const boundaryDate = new Date();
@@ -95,20 +95,20 @@ export default function WeeklyReportTab() {
 
       // Group active tenants by property
       const propertyTenants: Record<string, string[]> = {};
-      PROPERTIES_LIST.forEach(p => {
+      propertiesList.forEach(p => {
         propertyTenants[p] = [];
       });
 
       rawTenants.forEach((t: any) => {
         const prop = t.building;
-        if (PROPERTIES_LIST.includes(prop) && t.status === "active") {
+        if (propertiesList.includes(prop) && t.status === "active") {
           propertyTenants[prop].push(t.name);
         }
       });
 
       // Group sales leads by property
       const propertySales: Record<string, { count: number; value: number }> = {};
-      PROPERTIES_LIST.forEach(p => {
+      propertiesList.forEach(p => {
         propertySales[p] = { count: 0, value: 0 };
       });
 
@@ -116,7 +116,7 @@ export default function WeeklyReportTab() {
 
       activeSales.forEach((s: any) => {
         const prop = s.building_interested;
-        if (PROPERTIES_LIST.includes(prop)) {
+        if (propertiesList.includes(prop)) {
           propertySales[prop].count += 1;
           // Valuation priority: counter offer -> quoted -> listing
           propertySales[prop].value += Number(s.counter_offer || s.quoted_price || s.listing_price || s.offer_price || 0);
@@ -127,7 +127,7 @@ export default function WeeklyReportTab() {
       let vacantCount = 0;
       const interestMap: Record<string, { buyers: number; value: number; tenants: string[] }> = {};
 
-      PROPERTIES_LIST.forEach(p => {
+      propertiesList.forEach(p => {
         const tenants = propertyTenants[p] || [];
         const buyers = propertySales[p]?.count || 0;
         const val = propertySales[p]?.value || 0;
@@ -160,13 +160,13 @@ export default function WeeklyReportTab() {
         return d >= boundaryDate;
       });
 
-      const teamActivities: TeamActivity[] = TEAM_MEMBERS.map(name => {
+      const teamActivities: TeamActivity[] = teamMembers.map(name => {
         const lowerName = name.toLowerCase();
 
         // 1. Logs created by this actor
         const actorLogs = filteredLogs.filter((log: any) => {
           const actor = (log.actor_name || "").toLowerCase();
-          return actor.includes(lowerName) || lowerName.includes(actor);
+          return actor && (actor.includes(lowerName) || lowerName.includes(actor));
         });
 
         // 2. Count specific actions
@@ -194,12 +194,12 @@ export default function WeeklyReportTab() {
         // 3. Maintenance ticket counts
         const ticketsOpened = filteredTickets.filter((t: any) => {
           const reporter = (t.reported_by || "").toLowerCase();
-          return reporter.includes(lowerName) || lowerName.includes(reporter);
+          return reporter && (reporter.includes(lowerName) || lowerName.includes(reporter));
         }).length;
 
         const ticketsCompleted = completedTicketsThisWeek.filter((t: any) => {
           const worker = (t.assigned_to || "").toLowerCase();
-          return worker.includes(lowerName) || lowerName.includes(worker);
+          return worker && (worker.includes(lowerName) || lowerName.includes(worker));
         }).length;
 
         return {
@@ -219,6 +219,7 @@ export default function WeeklyReportTab() {
         directCount,
         vacantPropertiesCount: vacantCount,
         totalAcquisitionsCount: activeSales.length,
+        propertiesList,
         propertyInterest: interestMap,
         teamActivities,
       });
@@ -399,7 +400,7 @@ export default function WeeklyReportTab() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[rgba(255,255,255,0.03)] text-gray-300">
-                  {PROPERTIES_LIST.map(p => {
+                  {stats.propertiesList.map(p => {
                     const info = stats.propertyInterest[p];
                     const isOccupied = info.tenants.length > 0;
                     return (

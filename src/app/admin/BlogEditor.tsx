@@ -1325,6 +1325,7 @@ function PostEditor({ initial, onSave, onCancel }: {
 
 export default function BlogEditor() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [isDemoOrg, setIsDemoOrg] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<BlogPost | null | "new">(null);
   const [filter, setFilter] = useState<"all" | "published" | "draft">("all");
@@ -1334,8 +1335,13 @@ export default function BlogEditor() {
   async function fetchPosts() {
     setLoading(true);
     try {
-      const res = await fetch("/api/blog-posts?all=1");
-      const d = await res.json();
+      const [res, sessRes] = await Promise.all([
+        fetch("/api/blog-posts?all=1"),
+        fetch("/api/platform/session"),
+      ]);
+      const d = await res.json().catch(() => ({}));
+      const sessData = await sessRes.json().catch(() => ({}));
+      setIsDemoOrg(sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001");
       if (Array.isArray(d.posts)) setPosts(d.posts);
     } finally { setLoading(false); }
   }
@@ -1438,8 +1444,10 @@ export default function BlogEditor() {
         </div>
       </div>
 
-      {/* Static posts import banner */}
-      <StaticPostsImportBanner dbSlugs={new Set(posts.map(p => p.slug))} onImported={fetchPosts} />
+      {/* Static posts import banner — only for Demo org */}
+      {isDemoOrg && (
+        <StaticPostsImportBanner dbSlugs={new Set(posts.map(p => p.slug))} onImported={fetchPosts} />
+      )}
 
       {/* Filter + Search */}
       <div className="flex flex-wrap gap-3 items-center">

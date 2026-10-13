@@ -1,9 +1,50 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
 import { BRAND } from "@/lib/brand";
 import { getPublishedPosts } from "@/lib/blog";
+import { resolveOrgIdBySlug } from "@/lib/public-org";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  try {
+    const h = await headers();
+    const customDomain = h.get("x-custom-domain");
+    const tenantSlug = h.get("x-tenant-slug");
+
+    if (customDomain && tenantSlug) {
+      const customBase = `https://${customDomain}`;
+      const orgId = await resolveOrgIdBySlug(tenantSlug);
+      const tenantPosts = orgId ? await getPublishedPosts(orgId) : [];
+
+      return [
+        {
+          url: customBase,
+          lastModified: new Date(),
+          changeFrequency: "weekly" as const,
+          priority: 1,
+        },
+        ...(tenantPosts.length > 0
+          ? [
+              {
+                url: `${customBase}/blog`,
+                lastModified: new Date(),
+                changeFrequency: "weekly" as const,
+                priority: 0.8,
+              },
+              ...tenantPosts.map((p) => ({
+                url: `${customBase}/blog/${p.slug}`,
+                lastModified: new Date(p.updatedAt || p.publishedAt),
+                changeFrequency: "monthly" as const,
+                priority: 0.7,
+              })),
+            ]
+          : []),
+      ];
+    }
+  } catch {
+    // Fallback to platform sitemap if headers() is not available
+  }
+
   const base = BRAND.url.replace(/\/$/, "");
   const pages = ["", "/features", "/pricing", "/blog", "/contact", "/signup", "/privacy", "/terms"].map((p) => ({
     url: `${base}${p}`,

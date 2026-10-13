@@ -22,8 +22,11 @@ function actorOf(ctx: RequestContext) {
 
 // GET — admin Cleaning tab and the PIN-based cleaning crew portal (staff cookie).
 export async function GET(req: NextRequest) {
-  const g = await requireOrg(req, { allowStaff: true });
+  const g = await requireOrg(req, { allowStaff: true, requireFeature: "cleaning" });
   if (!g.ok) return g.res;
+  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "cleaning") {
+    return NextResponse.json({ error: "You do not have access to this resource." }, { status: 403 });
+  }
   const { orgId } = g.ctx;
 
   const from   = req.nextUrl.searchParams.get("from");
@@ -50,7 +53,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "cleaning" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -102,8 +105,11 @@ export async function POST(req: NextRequest) {
 
 // PATCH — admin Cleaning tab and the cleaning crew portal (mark complete).
 export async function PATCH(req: NextRequest) {
-  const g = await requireOrg(req, { allowStaff: true });
+  const g = await requireOrg(req, { allowStaff: true, requireFeature: "cleaning" });
   if (!g.ok) return g.res;
+  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "cleaning") {
+    return NextResponse.json({ error: "You do not have access to this resource." }, { status: 403 });
+  }
   const { orgId } = g.ctx;
 
   const id = req.nextUrl.searchParams.get("id");
@@ -116,8 +122,10 @@ export async function PATCH(req: NextRequest) {
   if (body.notes            !== undefined) patch.notes             = body.notes;
   if (body.photoUrl         !== undefined) patch.photo_url         = body.photoUrl;
   if (body.completionNotes  !== undefined) patch.completion_notes  = body.completionNotes;
-  if (body.estimatedCost    !== undefined) patch.estimated_cost    = Number(body.estimatedCost) || 0;
-  if (body.actualCost       !== undefined) patch.actual_cost       = Number(body.actualCost) || 0;
+  if (g.ctx.kind !== "staff") {
+    if (body.estimatedCost !== undefined) patch.estimated_cost = Number(body.estimatedCost) || 0;
+    if (body.actualCost    !== undefined) patch.actual_cost    = Number(body.actualCost) || 0;
+  }
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
     method: "PATCH",
@@ -149,7 +157,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "cleaning" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 

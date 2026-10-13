@@ -108,9 +108,10 @@ export async function POST(req: NextRequest) {
 
 /**
  * PATCH
- *  • Super-admin: may update tier / subscription_status / custom_domain / brand_name of any org.
- *  • Org owner/admin: may update ONLY their own active org's brand_name, or clear custom_domain.
- *    (Setting a custom domain goes through /api/platform/verify-domain.)
+ *  • Super-admin: may update tier / subscription_status / custom_domain / brand_name / contact / branding / profile of any org.
+ *  • Org owner/admin: may update ONLY their own active org's brand_name, contact_email, contact_phone,
+ *    brand_logo_url, brand_primary_color, brand_accent_color, profile (city, state, address, description),
+ *    or clear custom_domain. (Setting a custom domain goes through /api/platform/verify-domain.)
  */
 export async function PATCH(req: NextRequest) {
   try {
@@ -118,14 +119,27 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Database connection not ready" }, { status: 503 });
     }
     const body = await req.json();
-    const { tier, subscription_status, custom_domain, brand_name } = body;
+    const {
+      tier,
+      subscription_status,
+      custom_domain,
+      brand_name,
+      contact_email,
+      contact_phone,
+      brand_logo_url,
+      brand_primary_color,
+      brand_accent_color,
+      city,
+      state,
+      address,
+      description,
+    } = body;
     const updates: Record<string, unknown> = {};
     let targetId: string;
 
     const sa = await requireSuperAdmin(req);
-    if (sa.ok) {
+    if (sa.ok && body.id) {
       targetId = body.id;
-      if (!targetId) return NextResponse.json({ error: "Organization ID is required" }, { status: 400 });
       if (tier !== undefined) {
         if (!TIERS.includes(tier)) return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
         updates.tier = tier;
@@ -152,18 +166,66 @@ export async function PATCH(req: NextRequest) {
       if (brand_name !== undefined) updates.brand_name = brand_name ? String(brand_name).trim().slice(0, 120) : null;
     }
 
-    if (!Object.keys(updates).length) {
+    if (contact_email !== undefined) updates.contact_email = contact_email ? String(contact_email).trim().slice(0, 200) : null;
+    if (contact_phone !== undefined) updates.contact_phone = contact_phone ? String(contact_phone).trim().slice(0, 60) : null;
+    if (brand_logo_url !== undefined) updates.brand_logo_url = brand_logo_url ? String(brand_logo_url).trim().slice(0, 500) : null;
+    if (brand_primary_color !== undefined) updates.brand_primary_color = brand_primary_color ? String(brand_primary_color).trim().slice(0, 40) : null;
+    if (brand_accent_color !== undefined) updates.brand_accent_color = brand_accent_color ? String(brand_accent_color).trim().slice(0, 40) : null;
+
+    const hasProfileFields =
+      city !== undefined || state !== undefined || address !== undefined || description !== undefined;
+
+    if (!Object.keys(updates).length && !hasProfileFields) {
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
     }
-    updates.updated_at = new Date().toISOString();
 
-    const { data: updatedOrg, error } = await supabaseAdmin
-      .from("organizations")
-      .update(updates)
-      .eq("id", targetId)
-      .select()
-      .single();
-    if (error) throw error;
+    let updatedOrg: Record<string, unknown> | null = null;
+    if (Object.keys(updates).length > 0) {
+      updates.updated_at = new Date().toISOString();
+      const { data, error } = await supabaseAdmin
+        .from("organizations")
+        .update(updates)
+        .eq("id", targetId)
+        .select()
+        .single();
+      if (error) throw error;
+      updatedOrg = data as Record<string, unknown>;
+    } else {
+      const { data } = await supabaseAdmin
+        .from("organizations")
+        .select("*")
+        .eq("id", targetId)
+        .maybeSingle();
+      updatedOrg = (data as Record<string, unknown>) || { id: targetId };
+    }
+
+    if (hasProfileFields) {
+      const { data: existingProfile } = await supabaseAdmin
+        .from("site_settings")
+        .select("value")
+        .eq("org_id", targetId)
+        .eq("key", "org_profile")
+        .maybeSingle();
+      const prev = ((existingProfile?.value || {}) as Record<string, unknown>);
+      const nextProfile = {
+        city: city !== undefined ? (city ? String(city).trim().slice(0, 120) : "") : (typeof prev.city === "string" ? prev.city : ""),
+        state: state !== undefined ? (state ? String(state).trim().slice(0, 60) : "") : (typeof prev.state === "string" ? prev.state : ""),
+        address: address !== undefined ? (address ? String(address).trim().slice(0, 240) : "") : (typeof prev.address === "string" ? prev.address : ""),
+        description: description !== undefined ? (description ? String(description).trim().slice(0, 2000) : "") : (typeof prev.description === "string" ? prev.description : ""),
+      };
+      await supabaseAdmin
+        .from("site_settings")
+        .upsert(
+          {
+            org_id: targetId,
+            key: "org_profile",
+            value: nextProfile,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "org_id,key" }
+        );
+      updatedOrg = { ...updatedOrg, ...nextProfile };
+    }
 
     return NextResponse.json({ success: true, organization: updatedOrg });
   } catch (error) {

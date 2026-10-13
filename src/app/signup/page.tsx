@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { PLANS, TRIAL_DAYS, type Tier } from "@/lib/plans";
+import { supabaseBrowser } from "@/lib/supabase-browser";
 
 function SignupForm() {
   const searchParams = useSearchParams();
@@ -27,6 +28,7 @@ function SignupForm() {
   const [selectedPlan, setSelectedPlan] = useState<Tier>(initialPlan);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [unitCount, setUnitCount] = useState("11 - 50 Units");
   const [portfolioType, setPortfolioType] = useState("Mixed-Use (Commercial & Residential)");
@@ -44,17 +46,23 @@ function SignupForm() {
       setErrorMsg("Please fill in your name, work email, and portfolio company name.");
       return;
     }
+    if (password && password.length < 8) {
+      setErrorMsg("Password must be at least 8 characters.");
+      return;
+    }
 
     setSubmitting(true);
     setErrorMsg("");
 
     try {
+      const cleanEmail = email.trim().toLowerCase();
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: fullName.trim(),
-          email: email.trim(),
+          email: cleanEmail,
+          password,
           company: companyName.trim(),
           phone: phone.trim(),
           plan: activePlan.id,
@@ -66,6 +74,17 @@ function SignupForm() {
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Could not process signup. Please try again.");
+      }
+
+      if (password.length >= 8) {
+        const { data: signInData, error: signInErr } = await supabaseBrowser.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+        if (!signInErr && signInData?.session) {
+          window.location.href = "/admin";
+          return;
+        }
       }
 
       setCreated({ slug: data.slug, signedIn: !!data.signedIn });
@@ -100,7 +119,7 @@ function SignupForm() {
             • Admin credentials registered to <strong>{email}</strong>.
           </p>
           <p>
-            • Sign in with <strong>Google</strong> or a 1-click <strong>Email Magic Link</strong> using <strong>{email}</strong> — that email is your workspace owner login.
+            • Sign in with your <strong>Password</strong>, <strong>Google</strong>, or a 1-click <strong>Email Magic Link</strong> using <strong>{email}</strong> — that email is your workspace owner login.
           </p>
         </div>
 
@@ -139,7 +158,7 @@ function SignupForm() {
             Run your portfolio on autopilot.
           </h1>
           <p className="mt-3 text-sm text-slate-300 leading-relaxed">
-            Zero setup fees. No credit card required. Pre-seeded with realistic regional properties so you can explore immediately.
+            Zero setup fees. No credit card required. Start with a clean workspace — or load sample demo properties in 1 click.
           </p>
         </div>
 
@@ -148,7 +167,7 @@ function SignupForm() {
           {[
             "Full access to rent ledgers, maintenance & crew portals",
             "Autonomous AI operations assistant (OpsIQ) included",
-            "Pre-seeded regional property demo data for testing",
+            "Start with a clean workspace — or load sample demo properties in 1 click",
             "Turnkey public property showcase site on Pro tier",
             "Cancel or upgrade anytime with zero penalties",
           ].map((item) => (
@@ -228,6 +247,25 @@ function SignupForm() {
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                Password (min. 8 characters) *
+              </label>
+              <div className="relative">
+                <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Create a password (at least 8 characters)"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                />
               </div>
             </div>
 

@@ -1381,17 +1381,9 @@ export default function TenantsTab({
   // Unique building names for property filter dropdown
   const propertyNames = Array.from(new Set(tenants.map(t => t.building).filter(Boolean))).sort();
 
-  // Static known properties (matches the list from PropDetailsTab)
-  const STATIC_PROPERTIES = [
-    "Sample Office Building", "Main Street Plaza",
-    "Riverside Commons", "Oak Park Center", "Commercial Warehouse",
-    "Westside Commons", "250 Commerce Ave",
-    "100 Main Street", "Downtown Center",
-  ];
-
-  // Build comprehensive sorted list: static + dynamic DB properties + existing tenant buildings
+  // Build comprehensive sorted list: dynamic DB properties + existing tenant buildings
   const buildingOptions = useMemo(() => {
-    const all = new Set<string>(STATIC_PROPERTIES);
+    const all = new Set<string>();
     dynPropertyNames.forEach(n => all.add(n));
     tenants.forEach(t => { if (t.building) all.add(t.building); });
     return Array.from(all).sort((a, b) => a.localeCompare(b));

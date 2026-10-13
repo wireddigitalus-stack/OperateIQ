@@ -264,7 +264,7 @@ ${items.map((item, i) => `[${i}] "${item.title}" — ${item.snippet.slice(0, 150
 
 // ── GET Handler ───────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "market_intel" });
   if (!g.ok) return g.res;
 
   try {

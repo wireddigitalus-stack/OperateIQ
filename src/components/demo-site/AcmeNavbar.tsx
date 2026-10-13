@@ -12,6 +12,8 @@ interface AcmeNavbarProps {
   customDomain?: string | null;
   tier?: string;
   hasTopBar?: boolean;
+  brandLogoUrl?: string | null;
+  brandPrimaryColor?: string | null;
 }
 
 export default function AcmeNavbar({
@@ -22,9 +24,12 @@ export default function AcmeNavbar({
   customDomain,
   tier,
   hasTopBar,
+  brandLogoUrl,
+  brandPrimaryColor,
 }: AcmeNavbarProps) {
   const homeHref = customDomain ? "/" : orgSlug ? `/site/${orgSlug}` : "/demo-site";
   const isStarter = tier === "starter";
+  const brandName = orgName || "ACME Regional";
 
   return (
     <header className={`fixed ${hasTopBar ? "top-10" : "top-0"} left-0 right-0 z-40 h-20 bg-[#080C14]/90 backdrop-blur-xl border-b border-white/10 transition-all`}>
@@ -33,13 +38,25 @@ export default function AcmeNavbar({
         {/* Brand & Subtitle */}
         <div className="flex items-center gap-3">
           <Link href={homeHref} className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/20 flex items-center justify-center text-white shadow-[0_0_18px_rgba(59,130,246,0.35)] group-hover:scale-105 transition-transform">
-              <Building2 size={20} />
-            </div>
+            {brandLogoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brandLogoUrl}
+                alt={brandName}
+                className="h-9 w-auto rounded-lg object-contain"
+              />
+            ) : (
+              <div
+                className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/20 flex items-center justify-center text-white shadow-[0_0_18px_rgba(59,130,246,0.35)] group-hover:scale-105 transition-transform"
+                style={brandPrimaryColor ? { background: brandPrimaryColor } : undefined}
+              >
+                <Building2 size={20} />
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-base sm:text-lg font-black text-white tracking-tight uppercase group-hover:text-sky-300 transition-colors">
-                  {orgName || "ACME Regional"}
+                  {brandName}
                 </span>
                 <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
@@ -73,6 +90,7 @@ export default function AcmeNavbar({
               else onOpenTourModal();
             }}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white text-xs font-bold shadow-[0_0_18px_rgba(59,130,246,0.35)] transition-all flex items-center gap-2"
+            style={brandPrimaryColor ? { background: brandPrimaryColor } : undefined}
           >
             <Calendar size={14} />
             <span>{isStarter ? "Contact Us" : "Schedule Tour"}</span>

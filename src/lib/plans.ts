@@ -40,17 +40,17 @@ const PRO: Feature[] = [
 
 export const PLANS: Plan[] = [
   {
-    id: "starter", name: "Starter", monthly: 49, annual: 490,
+    id: "starter", name: "Starter", monthly: 99, annual: 990,
     blurb: "For independent owners getting organized.",
     limits: { properties: 5, users: 3 }, features: STARTER,
   },
   {
-    id: "growth", name: "Growth", monthly: 129, annual: 1290,
+    id: "growth", name: "Growth", monthly: 249, annual: 2490,
     blurb: "For growing portfolios with staff and vendors.",
     limits: { properties: 25, users: 10 }, features: GROWTH, highlight: true,
   },
   {
-    id: "pro", name: "Pro", monthly: 299, annual: 2990,
+    id: "pro", name: "Pro", monthly: 499, annual: 4990,
     blurb: "For management companies that want it all — plus a website.",
     limits: { properties: null, users: null }, features: PRO,
   },
@@ -86,6 +86,31 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   custom_domain: "Custom domain",
 };
 
-export function hasFeature(tier: Tier, feature: Feature): boolean {
-  return PLANS.find((p) => p.id === tier)?.features.includes(feature) ?? false;
+export function getPlan(tier: Tier | string | null | undefined): Plan {
+  return PLANS.find((p) => p.id === tier) ?? PLANS[0];
+}
+
+export function hasFeature(tier: Tier | string | null | undefined, feature: Feature): boolean {
+  return getPlan(tier).features.includes(feature);
+}
+
+/**
+ * Returns true if the organization has an active subscription or a valid, non-expired trial.
+ */
+export function isSubscriptionActive(org: {
+  subscription_status?: string | null;
+  trial_ends_at?: string | null;
+} | null | undefined): boolean {
+  if (!org) return false;
+  const status = (org.subscription_status || "trialing").toLowerCase();
+  if (status === "active") return true;
+  if (status === "canceled" || status === "paused") return false;
+  if (status === "trialing" || status === "trial") {
+    if (!org.trial_ends_at) return true;
+    const ends = new Date(org.trial_ends_at).getTime();
+    if (!Number.isNaN(ends) && ends < Date.now()) return false;
+    return true;
+  }
+  // past_due: allow grace access
+  return true;
 }

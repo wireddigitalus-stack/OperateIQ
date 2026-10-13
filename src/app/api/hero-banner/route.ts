@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PROPERTIES } from "@/lib/data";
-import { getOrgProfile } from "@/lib/org-profile";
-import { requireOrg } from "@/lib/server-auth";
+import { profileForOrg } from "@/lib/org-ai-profile";
+import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform-org";
+import { requireOrg, type OrgSummary } from "@/lib/server-auth";
 import { getPublicOrgSlug, resolveOrgIdBySlug } from "@/lib/public-org";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -19,8 +20,14 @@ interface SlideConfig {
 }
 interface HeroConfig { slides: SlideConfig[]; videoUrl: string | null; videoEnabled: boolean; }
 
-// Default hero slides: every property in the catalogue, in catalogue order.
-const MAIN_IDS = PROPERTIES.map(p => p.id);
+interface DbPropertyRow {
+  id: string;
+  name?: string;
+  city?: string;
+  hero_image?: string | null;
+  image?: string | null;
+  images?: string[] | null;
+}
 
 /** Returns { value, tableExists } */
 async function getRaw(orgId: string): Promise<{ value: HeroConfig | null; tableExists: boolean }> {
@@ -44,33 +51,73 @@ async function getOverrides(orgId: string): Promise<Record<string, string>> {
   return map;
 }
 
-function resolve(config: HeroConfig, overrides: Record<string, string>) {
+async function getOrgProperties(orgId: string): Promise<DbPropertyRow[]> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&select=*`, { headers: H, cache: "no-store" });
+    if (!res.ok) return [];
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}
+
+function resolve(
+  config: HeroConfig,
+  overrides: Record<string, string>,
+  orgId: string,
+  dbProps: DbPropertyRow[],
+  defaultLocation: string
+) {
+  const isDemo = orgId === DEFAULT_PLATFORM_ORG_ID;
   return config.slides
     .filter(s => s.enabled)
     .sort((a, b) => a.order - b.order)
     .map(s => {
       if (s.type === "property" && s.propertyId) {
-        const p = PROPERTIES.find(p => p.id === s.propertyId);
+        const dbMatch = dbProps.find(p => String(p.id) === s.propertyId);
+        const staticMatch = isDemo ? PROPERTIES.find(p => p.id === s.propertyId) : undefined;
+        const p = dbMatch || staticMatch;
         if (!p) return null;
         const override = overrides[s.propertyId];
-        const imgSrc = (override && override.trim()) ? override : p.image;
-        return { src: imgSrc, label: s.label || p.name, location: s.location || p.city };
+        const fallbackImg =
+          (dbMatch && (dbMatch.hero_image || dbMatch.image || (Array.isArray(dbMatch.images) && dbMatch.images[0]))) ||
+          (staticMatch && staticMatch.image) ||
+          "";
+        const imgSrc = (override && override.trim()) ? override : fallbackImg;
+        if (!imgSrc) return null;
+        return {
+          src: imgSrc,
+          label: s.label || p.name || "Property",
+          location: s.location || p.city || defaultLocation,
+        };
       }
       if (s.type === "custom" && s.imageUrl) {
-        return { src: s.imageUrl, label: s.label || "Banner", location: s.location || getOrgProfile().location };
+        return { src: s.imageUrl, label: s.label || "Banner", location: s.location || defaultLocation };
       }
       return null;
     })
     .filter(Boolean) as { src: string; label: string; location: string }[];
 }
 
-function defaultConfig(): HeroConfig {
+function defaultConfig(orgId: string, dbProps: DbPropertyRow[], defaultLocation: string): HeroConfig {
+  const isDemo = orgId === DEFAULT_PLATFORM_ORG_ID;
+  const sourceProps = dbProps.length > 0
+    ? dbProps.map(p => ({ id: String(p.id), name: p.name || "Property", city: p.city || defaultLocation }))
+    : isDemo
+      ? PROPERTIES.map(p => ({ id: p.id, name: p.name, city: p.city }))
+      : [];
   return {
-    slides: MAIN_IDS.map((id, i) => {
-      const p = PROPERTIES.find(pr => pr.id === id)!;
-      return { type: "property", propertyId: id, label: p?.name, location: p?.city, enabled: true, order: i };
-    }),
-    videoUrl: null, videoEnabled: false,
+    slides: sourceProps.map((p, i) => ({
+      type: "property",
+      propertyId: p.id,
+      label: p.name,
+      location: p.city || defaultLocation,
+      enabled: true,
+      order: i,
+    })),
+    videoUrl: null,
+    videoEnabled: false,
   };
 }
 
@@ -82,6 +129,7 @@ function defaultConfig(): HeroConfig {
 export async function GET(req: NextRequest) {
   try {
     let orgId: string | null;
+    let callerOrg: OrgSummary | null = null;
     const publicSlug = getPublicOrgSlug(req);
     if (publicSlug) {
       orgId = await resolveOrgIdBySlug(publicSlug);
@@ -90,12 +138,18 @@ export async function GET(req: NextRequest) {
       const g = await requireOrg(req);
       if (!g.ok) return g.res;
       orgId = g.ctx.orgId;
+      callerOrg = g.ctx.org;
     }
-    const [{ value: raw, tableExists }, overrides] = await Promise.all([getRaw(orgId), getOverrides(orgId)]);
-    const cfg = raw || defaultConfig();
+    const defaultLocation = profileForOrg(callerOrg).location;
+    const [{ value: raw, tableExists }, overrides, dbProps] = await Promise.all([
+      getRaw(orgId),
+      getOverrides(orgId),
+      getOrgProperties(orgId),
+    ]);
+    const cfg = raw || defaultConfig(orgId, dbProps, defaultLocation);
     return NextResponse.json({
       raw: cfg,
-      resolved: resolve(cfg, overrides),
+      resolved: resolve(cfg, overrides, orgId, dbProps, defaultLocation),
       isDefault: !raw,
       tableExists,
     });

@@ -20,7 +20,17 @@ interface PropertyImages {
   updated_at: string;
 }
 
+interface GalleryProperty {
+  id: string;
+  name: string;
+  type: string;
+  city: string;
+  image?: string;
+  images?: string[];
+}
+
 export default function PropertyImageManager() {
+  const [propertiesList, setPropertiesList] = useState<GalleryProperty[]>([]);
   const [propImages, setPropImages] = useState<Record<string, PropertyImages>>({});
   const [uploading, setUploading] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -33,8 +43,37 @@ export default function PropertyImageManager() {
   useEffect(() => { fetchAll(); }, []);
 
   async function fetchAll() {
-    const res = await fetch("/api/property-images");
-    const d = await res.json();
+    const [res, dynRes, sessRes] = await Promise.all([
+      fetch("/api/property-images"),
+      fetch("/api/properties-dynamic?admin=1"),
+      fetch("/api/platform/session"),
+    ]);
+    const d = await res.json().catch(() => ({}));
+    const dynData = await dynRes.json().catch(() => ({}));
+    const sessData = await sessRes.json().catch(() => ({}));
+    const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
+
+    const dynProps: GalleryProperty[] = (dynData.properties || []).map((dp: any) => ({
+      id: dp.id,
+      name: dp.name,
+      type: dp.type || "Office",
+      city: dp.city || "",
+      image: dp.hero_image || dp.images?.[0] || "",
+      images: Array.isArray(dp.images) ? dp.images : [],
+    }));
+    const dynIds = new Set(dynProps.map(x => x.id));
+    const staticProps: GalleryProperty[] = isDemoOrg
+      ? PROPERTIES.filter(p => !dynIds.has(p.id)).map(p => ({
+          id: p.id,
+          name: p.name,
+          type: p.type,
+          city: p.city,
+          image: (p as any).image || "",
+          images: (p as any).images || ((p as any).image ? [(p as any).image] : []),
+        }))
+      : [];
+    setPropertiesList([...dynProps, ...staticProps]);
+
     // Build a map: property_id → { hero_url, all_urls }
     const map: Record<string, PropertyImages> = {};
     if (Array.isArray(d.overrides)) {
@@ -104,13 +143,13 @@ export default function PropertyImageManager() {
     setSavedAt(prev => ({ ...prev, [propertyId]: time }));
   }
 
-  /** Ensure a Supabase record exists for this property — seed from static data.ts images if needed */
+  /** Ensure a Supabase record exists for this property — seed from fallback images if needed */
   function ensureRecord(propertyId: string): PropertyImages {
     const existing = propImages[propertyId];
     if (existing) return existing;
-    // Seed from static fallback
-    const prop = PROPERTIES.find(p => p.id === propertyId);
-    const fallbackImages: string[] = (prop as any)?.images || ((prop as any)?.image ? [(prop as any).image] : []);
+    // Seed from fallback
+    const prop = propertiesList.find(p => p.id === propertyId);
+    const fallbackImages: string[] = prop?.images || (prop?.image ? [prop.image] : []);
     const seeded: PropertyImages = {
       property_id: propertyId,
       hero_url: fallbackImages[0] || null,
@@ -188,13 +227,19 @@ export default function PropertyImageManager() {
         </div>
       )}
 
+      {propertiesList.length === 0 && (
+        <div className="p-8 text-center rounded-2xl border border-dashed border-[rgba(255,255,255,0.08)] text-gray-500 text-xs">
+          No properties added yet. Add a property first to manage its photo gallery.
+        </div>
+      )}
+
       <div className="space-y-3">
-        {PROPERTIES.map(prop => {
+        {propertiesList.map(prop => {
           const isUploading = uploading === prop.id;
           const isSuccessCard = success === prop.id;
           const isOpen = expanded === prop.id;
-          const allUrls = getAllUrls(prop.id, (prop as any).images || ((prop as any).image ? [(prop as any).image] : []));
-          const hero = getHero(prop.id, (prop as any).image);
+          const allUrls = getAllUrls(prop.id, prop.images || (prop.image ? [prop.image] : []));
+          const hero = getHero(prop.id, prop.image);
           const hasCustom = Boolean(propImages[prop.id]?.all_urls?.length);
           const imgCount = allUrls.length;
 

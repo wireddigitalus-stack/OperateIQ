@@ -20,8 +20,11 @@ function actorOf(ctx: RequestContext) {
 
 // Used by the admin Maintenance tab AND the PIN-based crew portals (staff cookie).
 export async function GET(req: NextRequest) {
-  const g = await requireOrg(req, { allowStaff: true });
+  const g = await requireOrg(req, { allowStaff: true, requireFeature: "maintenance" });
   if (!g.ok) return g.res;
+  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "maintenance") {
+    return NextResponse.json({ error: "You do not have access to this resource." }, { status: 403 });
+  }
   const { orgId } = g.ctx;
 
   const res = await fetch(
@@ -33,8 +36,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req, { allowStaff: true });
+  const g = await requireOrg(req, { allowStaff: true, requireFeature: "maintenance" });
   if (!g.ok) return g.res;
+  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "maintenance") {
+    return NextResponse.json({ error: "You do not have access to this resource." }, { status: 403 });
+  }
   const { orgId } = g.ctx;
 
   const body = await req.json();
@@ -91,8 +97,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const g = await requireOrg(req, { allowStaff: true });
+  const g = await requireOrg(req, { allowStaff: true, requireFeature: "maintenance" });
   if (!g.ok) return g.res;
+  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "maintenance") {
+    return NextResponse.json({ error: "You do not have access to this resource." }, { status: 403 });
+  }
   const { orgId } = g.ctx;
 
   const id = req.nextUrl.searchParams.get("id");
@@ -129,6 +138,13 @@ export async function PATCH(req: NextRequest) {
   };
   const patch: Record<string, unknown> = {};
   Object.entries(map).forEach(([js, db]) => { if (body[js] !== undefined) patch[db] = body[js]; });
+
+  // Staff sessions must not modify financial/billing fields on tickets
+  if (g.ctx.kind === "staff") {
+    delete patch.estimated_cost;
+    delete patch.actual_cost;
+    delete patch.billable;
+  }
 
   // SLA timing logic:
   // If moving out of 'open' status to 'scheduled' or 'in_progress', record response time (if not already set)
@@ -173,13 +189,12 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const g = await requireOrg(req, { allowStaff: true });
+  const g = await requireOrg(req, { allowStaff: true, requireFeature: "maintenance" });
   if (!g.ok) return g.res;
-  const { orgId } = g.ctx;
-  // Cleaning crew may report tickets but not delete them
-  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "maintenance") {
+  if (g.ctx.kind === "staff") {
     return NextResponse.json({ error: "You do not have access to this resource." }, { status: 403 });
   }
+  const { orgId } = g.ctx;
 
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });

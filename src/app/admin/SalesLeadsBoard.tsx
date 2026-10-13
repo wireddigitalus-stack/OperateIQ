@@ -1,26 +1,10 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   TrendingUp, Search, RefreshCw, Loader2, Plus, Trash2,
   Building2, AlertTriangle, FileSpreadsheet, Sparkles, MessageSquare, ChevronDown, ChevronUp,
 } from "lucide-react";
 import PrintButton from "./PrintButton";
-
-const PROPERTIES_LIST = [
-  "Sample Office Building",
-  "Downtown Center",
-  "Mill Building",
-  "Riverside Commons",
-  "250 Commerce Ave",
-  "100 Main St",
-  "215 Highway Dr",
-  "221 Oak St",
-  "142 Main St",
-  "134 Main St",
-  "720 Main St",
-  "209 Park Rd",
-  "Farm"
-];
 
 const PROGRESS_STAGES = [
   { value: "Inquire", label: "Inquire", color: "#FACC15", bg: "rgba(250,204,21,0.12)" },
@@ -55,6 +39,7 @@ export default function SalesLeadsBoard({
   currentUserName?: string;
 }) {
   const [leads, setLeads] = useState<SalesLead[]>([]);
+  const [orgProperties, setOrgProperties] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -86,7 +71,16 @@ export default function SalesLeadsBoard({
   const fetchLeads = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/sales-leads");
+      const [res, propRes] = await Promise.all([
+        fetch("/api/sales-leads"),
+        fetch("/api/properties-list").catch(() => null),
+      ]);
+      if (propRes?.ok) {
+        const pList = await propRes.json().catch(() => []);
+        if (Array.isArray(pList)) {
+          setOrgProperties(pList.map((p: { name?: string }) => p.name || "").filter(Boolean));
+        }
+      }
       if (!res.ok) throw new Error("Failed to fetch sales leads");
       const d = await res.json();
       if (Array.isArray(d.leads)) {
@@ -117,6 +111,10 @@ export default function SalesLeadsBoard({
   useEffect(() => {
     fetchLeads();
   }, [fetchLeads]);
+
+  const propertiesList = useMemo(() => {
+    return Array.from(new Set([...orgProperties, ...leads.map(l => l.buildingInterested).filter(Boolean)]));
+  }, [orgProperties, leads]);
 
   const handleAddLead = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -406,17 +404,28 @@ export default function SalesLeadsBoard({
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <select
-              value={formBuilding}
-              onChange={e => setFormBuilding(e.target.value)}
-              className="bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-1.5 text-xs text-white outline-none"
-              required
-            >
-              <option value="" className="bg-[#0D1117]">Select building interested...*</option>
-              {PROPERTIES_LIST.map(p => (
-                <option key={p} value={p} className="bg-[#0D1117]">{p}</option>
-              ))}
-            </select>
+            {propertiesList.length > 0 ? (
+              <select
+                value={formBuilding}
+                onChange={e => setFormBuilding(e.target.value)}
+                className="bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-1.5 text-xs text-white outline-none"
+                required
+              >
+                <option value="" className="bg-[#0D1117]">Select building interested...*</option>
+                {propertiesList.map(p => (
+                  <option key={p} value={p} className="bg-[#0D1117]">{p}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                placeholder="Building / Property Interested *"
+                value={formBuilding}
+                onChange={e => setFormBuilding(e.target.value)}
+                className="bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-1.5 text-xs text-white outline-none"
+                required
+              />
+            )}
             <select
               value={formProgress}
               onChange={e => setFormProgress(e.target.value)}
@@ -545,7 +554,7 @@ export default function SalesLeadsBoard({
                         onChange={e => updateField(l.id, "buildingInterested", e.target.value)}
                         className="bg-[rgba(0,0,0,0.15)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-0.5 text-xs text-gray-300 outline-none max-w-[150px]"
                       >
-                        {PROPERTIES_LIST.map(p => (
+                        {propertiesList.map(p => (
                           <option key={p} value={p} className="bg-[#0D1117]">{p}</option>
                         ))}
                       </select>

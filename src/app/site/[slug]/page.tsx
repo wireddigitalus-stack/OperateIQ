@@ -28,7 +28,35 @@ async function getOrgBySlug(slug: string): Promise<OrgData | null> {
       if (error) console.error("[getOrgBySlug] Error fetching org:", error);
       return null;
     }
-    return org as OrgData;
+
+    const enriched: OrgData = { ...(org as OrgData) };
+    try {
+      const { data: profileRow } = await client
+        .from("site_settings")
+        .select("value")
+        .eq("org_id", org.id)
+        .eq("key", "org_profile")
+        .maybeSingle();
+
+      if (profileRow?.value) {
+        const profile =
+          typeof profileRow.value === "string"
+            ? JSON.parse(profileRow.value)
+            : profileRow.value;
+        if (profile && typeof profile === "object") {
+          if (profile.city) enriched.city = profile.city;
+          if (profile.state) enriched.state = profile.state;
+          if (profile.address) enriched.address = profile.address;
+          if (profile.description || profile.tagline || profile.bio) {
+            enriched.description = profile.description || profile.tagline || profile.bio;
+          }
+        }
+      }
+    } catch {
+      // Optional enrichment
+    }
+
+    return enriched;
   } catch (err) {
     console.error("[getOrgBySlug] Unexpected error:", err);
     return null;
@@ -41,13 +69,17 @@ async function getFirstPropertyPhoto(orgId: string): Promise<string | null> {
   try {
     const { data } = await client
       .from("properties")
-      .select("featured_image, image")
+      .select("hero_image, images")
       .eq("org_id", orgId)
       .eq("published", true)
       .limit(1)
       .maybeSingle();
 
-    return data?.featured_image || data?.image || null;
+    const firstFromImages =
+      Array.isArray(data?.images) && typeof data.images[0] === "string"
+        ? data.images[0]
+        : null;
+    return data?.hero_image || firstFromImages || null;
   } catch {
     return null;
   }
@@ -161,9 +193,10 @@ export default async function TenantPublicSitePage({ params }: Props) {
             badge: p.type || "Featured Asset",
             badgeColor: "blue",
             image:
+              p.hero_image ||
+              (Array.isArray(p.images) && typeof p.images[0] === "string" ? p.images[0] : null) ||
               p.featured_image ||
               p.image ||
-              p.hero_image ||
               "/demo-properties/oakridge-professional-plaza.jpg",
             description: p.description || `${p.name} managed by ${org.name}.`,
             highlights: features,

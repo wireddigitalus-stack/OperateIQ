@@ -214,11 +214,12 @@ function SummaryBanner({ assignments, today }: { assignments: Assignment[]; toda
 
 type RecurringType = "none" | "daily" | "weekdays" | "mwf" | "weekly";
 
-function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail }: {
+function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail, properties = [] }: {
   onSave: () => void;
   onCancel: () => void;
   currentUserName?: string;
   currentUserEmail?: string;
+  properties?: string[];
 }) {
   const today = toISO(new Date());
   const [workerName, setWorkerName] = useState("");
@@ -235,6 +236,7 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail }:
   const [actualCost, setActualCost] = useState<number>(0);
   const [newPinInfo, setNewPinInfo] = useState<{ name: string; pin: string } | null>(null);
   const [knownWorkers, setKnownWorkers] = useState<string[]>([]);
+  const propertyOptions = Array.from(new Set([...properties, ...(property ? [property] : [])])).filter(Boolean);
 
   // Load real cleaning staff names for the datalist autocomplete
   useEffect(() => {
@@ -430,12 +432,12 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail }:
               }}
             >
               <option value="" style={{ background: "#0A0F1A" }}>Select property…</option>
-              <option value="Sample Office Building" style={{ background: "#0A0F1A" }}>Sample Office Building</option>
-              <option value="Sample Retail Center" style={{ background: "#0A0F1A" }}>Sample Retail Center</option>
-              <option value="Main Street Plaza" style={{ background: "#0A0F1A" }}>Main Street Plaza</option>
-              <option value="Riverside Commons" style={{ background: "#0A0F1A" }}>Riverside Commons</option>
-              <option value="Oak Park Center" style={{ background: "#0A0F1A" }}>Oak Park Center</option>
-              <option value="Commercial Warehouse" style={{ background: "#0A0F1A" }}>Commercial Warehouse</option>
+              {propertyOptions.map(p => (
+                <option key={p} value={p} style={{ background: "#0A0F1A" }}>{p}</option>
+              ))}
+              {!propertyOptions.includes("General / Unassigned") && (
+                <option value="General / Unassigned" style={{ background: "#0A0F1A" }}>General / Unassigned</option>
+              )}
             </select>
           </div>
           {/* Date */}
@@ -486,12 +488,12 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail }:
           <label className={LABEL}>Property / Building *</label>
           <select value={property} onChange={e => setProperty(e.target.value)} className={FIELD}>
             <option value="" className="bg-[#0A0F1A]">Select property…</option>
-            <option value="Sample Office Building" className="bg-[#0A0F1A]">Sample Office Building</option>
-            <option value="Sample Retail Center" className="bg-[#0A0F1A]">Sample Retail Center</option>
-            <option value="Main Street Plaza" className="bg-[#0A0F1A]">Main Street Plaza</option>
-            <option value="Riverside Commons" className="bg-[#0A0F1A]">Riverside Commons</option>
-            <option value="Oak Park Center" className="bg-[#0A0F1A]">Oak Park Center</option>
-            <option value="Commercial Warehouse" className="bg-[#0A0F1A]">Commercial Warehouse</option>
+            {propertyOptions.map(p => (
+              <option key={p} value={p} className="bg-[#0A0F1A]">{p}</option>
+            ))}
+            {!propertyOptions.includes("General / Unassigned") && (
+              <option value="General / Unassigned" className="bg-[#0A0F1A]">General / Unassigned</option>
+            )}
           </select>
         </div>
       </div>
@@ -828,6 +830,7 @@ ALTER TABLE cleaning_assignments ENABLE ROW LEVEL SECURITY;`;
 
 export default function CleaningTab({ currentUserName, currentUserEmail }: { currentUserName?: string; currentUserEmail?: string }) {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [orgProperties, setOrgProperties] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [setupError, setSetupError] = useState(false);
   const [viewMode, setViewMode] = useState<"today" | "week">("today");
@@ -844,7 +847,16 @@ export default function CleaningTab({ currentUserName, currentUserEmail }: { cur
       // Fetch 6 weeks around current week for smooth navigation
       const from = toISO(addDays(weekStart, -14));
       const to   = toISO(addDays(weekStart, 42));
-      const res = await fetch(`/api/cleaning?from=${from}&to=${to}`);
+      const [res, propRes] = await Promise.all([
+        fetch(`/api/cleaning?from=${from}&to=${to}`),
+        fetch("/api/properties-list").catch(() => null),
+      ]);
+      if (propRes?.ok) {
+        const pList = await propRes.json().catch(() => []);
+        if (Array.isArray(pList)) {
+          setOrgProperties(pList.map((p: { name?: string }) => p.name || "").filter(Boolean));
+        }
+      }
       const data = await res.json();
       if (Array.isArray(data.assignments)) {
         setAssignments(data.assignments.map(rowToAssignment));
@@ -864,6 +876,8 @@ export default function CleaningTab({ currentUserName, currentUserEmail }: { cur
     await fetch(`/api/cleaning?${params.toString()}`, { method: "DELETE" });
     setAssignments(prev => prev.filter(a => a.id !== id));
   };
+
+  const allProperties = Array.from(new Set([...orgProperties, ...assignments.map(a => a.property).filter(Boolean)])).sort();
 
   const weekEnd = addDays(weekStart, 6);
   const weekLabel = `${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
@@ -937,6 +951,7 @@ export default function CleaningTab({ currentUserName, currentUserEmail }: { cur
           onCancel={() => setShowForm(false)}
           currentUserName={currentUserName}
           currentUserEmail={currentUserEmail}
+          properties={allProperties}
         />
       )}
 

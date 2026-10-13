@@ -12,7 +12,6 @@ import HeroBannerManager from "./HeroBannerManager";
 import PropertyEditor from "./PropertyEditor";
 import PropertyCreator from "./PropertyCreator";
 import PropertyImageManager from "./PropertyImageManager";
-import MlsImportMock from "@/components/MlsImportMock";
 import MarketEditor from "./MarketEditor";
 import PageEditor from "./PageEditor";
 import CustomDomainManager from "@/components/admin/CustomDomainManager";
@@ -621,35 +620,7 @@ export default function ContentTab({ onSubViewChange, activeOrg }: ContentTabPro
 
         {expandedSections["addPropertyOpen"] && (
           <div className="border-t border-[rgba(255,255,255,0.05)] p-5 sm:p-6">
-            {/* Mode Toggle: Manual vs MLS */}
-            <div className="flex gap-1 bg-[rgba(255,255,255,0.03)] rounded-xl p-1 mb-6">
-              <button
-                onClick={() => setExpandedSections(prev => ({ ...prev, addMode: false }))}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold transition-all duration-200 ${
-                  !expandedSections["addMode"]
-                    ? "bg-[rgba(255,255,255,0.08)] text-white border border-[rgba(255,255,255,0.1)]"
-                    : "text-gray-600 hover:text-gray-400"
-                }`}
-              >
-                <Pencil size={12} />
-                Manual Entry
-              </button>
-              <button
-                onClick={() => setExpandedSections(prev => ({ ...prev, addMode: true }))}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold transition-all duration-200 ${
-                  expandedSections["addMode"]
-                    ? "bg-[rgba(255,255,255,0.08)] text-white border border-[rgba(255,255,255,0.1)]"
-                    : "text-gray-600 hover:text-gray-400"
-                }`}
-              >
-                <UploadCloud size={12} />
-                MLS Import
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 font-semibold">Beta</span>
-              </button>
-            </div>
-
-            {!expandedSections["addMode"] && <PropertyCreator />}
-            {expandedSections["addMode"] && <MlsImportMock />}
+            <PropertyCreator />
           </div>
         )}
       </div>

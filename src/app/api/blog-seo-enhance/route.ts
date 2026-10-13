@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { orgContactLine } from "@/lib/org-profile";
 import { requireOrg } from "@/lib/server-auth";
 import { profileForOrg } from "@/lib/org-ai-profile";
+import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform-org";
 import { GEO_PAGES, PROPERTIES } from "@/lib/data";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY!;
 const MODEL      = "gemini-2.5-flash";
 const ENDPOINT   = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
+const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
+const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!;
 
 /**
  * POST /api/blog-seo-enhance
@@ -19,8 +22,10 @@ const ENDPOINT   = `https://generativelanguage.googleapis.com/v1beta/models/${MO
  *  - seoNotes         (plain-English explanation of what changed and why)
  */
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "blog" });
   if (!g.ok) return g.res;
+  const { orgId } = g.ctx;
+  const isDemo = orgId === DEFAULT_PLATFORM_ORG_ID;
 
   const { title, content, category, tags, currentMeta, currentExcerpt } = await req.json();
 
@@ -33,18 +38,43 @@ export async function POST(req: NextRequest) {
 
   const org = profileForOrg(g.ctx.org);
   const contact = orgContactLine(org);
+
+  let tenantProps: { name?: string; city?: string }[] = [];
+  if (!isDemo && SUPABASE_URL && SUPABASE_KEY) {
+    try {
+      const pRes = await fetch(`${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&select=name,city`, {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+        cache: "no-store",
+      });
+      if (pRes.ok) {
+        const rows = await pRes.json();
+        if (Array.isArray(rows)) tenantProps = rows;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   const geoTerms = Array.from(new Set([
     org.location,
-    ...GEO_PAGES.flatMap((g) => [
-      `${g.city} ${g.state}`,
-      g.region,
-      g.countyName,
-      g.zipCode ? `zip ${g.zipCode}` : "",
-      ...g.neighborhoods,
-      ...g.nearbyHighways,
-    ]),
+    g.ctx.org.city || "",
+    g.ctx.org.state || "",
+    ...tenantProps.map((p) => p.city || ""),
+    ...(isDemo
+      ? GEO_PAGES.flatMap((gp) => [
+          `${gp.city} ${gp.state}`,
+          gp.region,
+          gp.countyName,
+          gp.zipCode ? `zip ${gp.zipCode}` : "",
+          ...gp.neighborhoods,
+          ...gp.nearbyHighways,
+        ])
+      : []),
   ].filter(Boolean))).join(", ");
-  const brandTerms = [org.name, ...PROPERTIES.map((p) => p.name)].join(", ");
+  const brandTerms = [
+    org.name,
+    ...(isDemo ? PROPERTIES.map((p) => p.name) : tenantProps.map((p) => p.name).filter(Boolean)),
+  ].join(", ");
 
   const prompt = `You are a specialist in LOCAL SEO for commercial real estate in ${org.location}.
 

@@ -9,22 +9,6 @@ import PrintButton from "./PrintButton";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const PROPERTIES_LIST = [
-  "Sample Office Building",
-  "Downtown Center",
-  "Mill Building",
-  "Riverside Commons",
-  "250 Commerce Ave",
-  "100 Main St",
-  "215 Highway Dr",
-  "221 Oak St",
-  "142 Main St",
-  "134 Main St",
-  "720 Main St",
-  "209 Park Rd",
-  "Farm",
-];
-
 const INSPECTION_TYPES = [
   "Fire",
   "HVAC",
@@ -123,6 +107,7 @@ export default function BuildingInspectionsTab({
   const [view, setView] = useState<"entry" | "compliance">("entry");
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [records, setRecords] = useState<InspectionRecord[]>([]);
+  const [orgProperties, setOrgProperties] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -131,7 +116,7 @@ export default function BuildingInspectionsTab({
 
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({
-    property: PROPERTIES_LIST[0],
+    property: "",
     inspectionType: INSPECTION_TYPES[0],
     inspectionDate: new Date().toISOString().split("T")[0],
     crewType: "external" as "internal" | "external",
@@ -147,6 +132,36 @@ export default function BuildingInspectionsTab({
 
   const saveTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
   const savePatches = useRef<Record<string, Record<string, unknown>>>({});
+
+  useEffect(() => {
+    fetch("/api/properties-list")
+      .then(r => r.ok ? r.json() : [])
+      .then(pList => {
+        if (Array.isArray(pList)) {
+          const names = pList.map((p: { name?: string }) => p.name || "").filter(Boolean);
+          setOrgProperties(names);
+          if (names.length > 0) {
+            setAddForm(f => ({ ...f, property: f.property || names[0] }));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const propertiesList = useMemo(() => {
+    return Array.from(new Set([
+      ...orgProperties,
+      ...records.map(r => r.property).filter(Boolean),
+      ...complianceRecords.map(r => r.property).filter(Boolean),
+      ...Object.keys(configMap).filter(Boolean),
+    ]));
+  }, [orgProperties, records, complianceRecords, configMap]);
+
+  useEffect(() => {
+    if (!addForm.property && propertiesList.length > 0) {
+      setAddForm(f => ({ ...f, property: propertiesList[0] }));
+    }
+  }, [propertiesList, addForm.property]);
 
   const fetchRecords = useCallback(async (month: string) => {
     setLoading(true);
@@ -428,7 +443,7 @@ export default function BuildingInspectionsTab({
     let totalPossible = 0;
     let totalDone = 0;
 
-    const tableRows = PROPERTIES_LIST.map((prop, i) => {
+    const tableRows = propertiesList.map((prop, i) => {
       const applicableTypes = INSPECTION_TYPES.filter(t => configMap[prop]?.has(t));
       const completedCount = applicableTypes.filter(t => complianceMatrix[prop]?.[t]?.done).length;
       const totalApplicable = applicableTypes.length;
@@ -498,7 +513,7 @@ export default function BuildingInspectionsTab({
 
   const complianceMatrix = useMemo(() => {
     const matrix: Record<string, Record<string, { done: boolean; date?: string; month?: string }>> = {};
-    for (const prop of PROPERTIES_LIST) {
+    for (const prop of propertiesList) {
       matrix[prop] = {};
       for (const itype of INSPECTION_TYPES) {
         const applicable = configMap[prop]?.has(itype);
@@ -508,7 +523,7 @@ export default function BuildingInspectionsTab({
       }
     }
     return matrix;
-  }, [complianceRecords, configMap]);
+  }, [complianceRecords, configMap, propertiesList]);
 
   return (
     <div className="space-y-5">
@@ -585,9 +600,19 @@ export default function BuildingInspectionsTab({
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 <div>
                   <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Building</label>
-                  <select value={addForm.property} onChange={e => setAddForm(f => ({ ...f, property: e.target.value }))} className={FIELD}>
-                    {PROPERTIES_LIST.map(p => <option key={p} value={p} style={{ background: "#0D1117" }}>{p}</option>)}
-                  </select>
+                  {propertiesList.length > 0 ? (
+                    <select value={addForm.property} onChange={e => setAddForm(f => ({ ...f, property: e.target.value }))} className={FIELD}>
+                      {propertiesList.map(p => <option key={p} value={p} style={{ background: "#0D1117" }}>{p}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={addForm.property}
+                      onChange={e => setAddForm(f => ({ ...f, property: e.target.value }))}
+                      placeholder="Enter building name…"
+                      className={FIELD}
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Inspection Type</label>
@@ -611,7 +636,7 @@ export default function BuildingInspectionsTab({
                   <input type="text" value={addForm.notes} onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional notes…" className={FIELD} />
                 </div>
               </div>
-              <button onClick={addEntry} disabled={adding} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] text-white text-sm font-black hover:opacity-90 transition-opacity disabled:opacity-40">
+              <button onClick={addEntry} disabled={adding || !addForm.property.trim()} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] text-white text-sm font-black hover:opacity-90 transition-opacity disabled:opacity-40">
                 {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                 {adding ? "Adding…" : "Add Entry"}
               </button>
@@ -744,115 +769,125 @@ export default function BuildingInspectionsTab({
             </div>
           </div>
 
-          {showConfig && (
-            <div className="bg-[rgba(96,165,250,0.04)] border border-[rgba(96,165,250,0.15)] rounded-2xl p-5 space-y-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-black text-white flex items-center gap-2"><Settings2 size={14} className="text-[#60A5FA]" /> Applicable Inspection Types Per Building</h3>
-                <p className="text-[10px] text-gray-500">Toggle which inspection types apply to each building</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-[rgba(255,255,255,0.06)]">
-                      <th className="text-left text-[9px] font-black text-gray-500 uppercase tracking-wider pb-2 pr-4 min-w-[130px]">Building</th>
-                      {INSPECTION_TYPES.map(t => <th key={t} className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-wider pb-2 px-1 min-w-[50px]">{t}</th>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PROPERTIES_LIST.map(prop => (
-                      <tr key={prop} className="border-b border-[rgba(255,255,255,0.03)]">
-                        <td className="py-2 pr-4 font-bold text-white text-xs">{prop}</td>
-                        {INSPECTION_TYPES.map(itype => {
-                          const enabled = configMap[prop]?.has(itype) || false;
-                          return (
-                            <td key={itype} className="py-2 text-center">
-                              <button onClick={() => toggleConfig(prop, itype)} className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${enabled ? "bg-[#60A5FA] border-[#60A5FA] text-white" : "border-[rgba(255,255,255,0.12)] text-transparent hover:border-[rgba(255,255,255,0.3)]"}`}>
-                                <CheckCircle2 size={10} />
-                              </button>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {complianceLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 size={20} className="animate-spin text-[#4ADE80]" />
-              <span className="ml-2 text-sm text-gray-500">Loading compliance data…</span>
+          {propertiesList.length === 0 ? (
+            <div className="text-center py-16 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(0,0,0,0.2)]">
+              <Building2 className="mx-auto text-gray-600 mb-2" size={28} />
+              <p className="text-sm font-bold text-gray-300">No properties in your portfolio yet</p>
+              <p className="text-xs text-gray-500 mt-1">Add properties in the Property Details tab or log an inspection entry to populate the compliance matrix.</p>
             </div>
           ) : (
-            <div className="bg-[rgba(0,0,0,0.3)] border border-[rgba(255,255,255,0.06)] rounded-2xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-[rgba(255,255,255,0.06)] bg-[rgba(0,0,0,0.2)]">
-                      <th className="text-left text-[9px] font-black text-gray-500 uppercase tracking-wider py-3 pl-4 min-w-[140px] sticky left-0 z-10 bg-[rgba(10,15,26,0.99)]">Building</th>
-                      {INSPECTION_TYPES.map(t => <th key={t} className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-wider py-3 px-2 min-w-[65px]">{t}</th>)}
-                      <th className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-wider py-3 px-3">Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PROPERTIES_LIST.map((prop, i) => {
-                      const applicableTypes = INSPECTION_TYPES.filter(t => configMap[prop]?.has(t));
-                      const completedCount = applicableTypes.filter(t => complianceMatrix[prop]?.[t]?.done).length;
-                      const totalApplicable = applicableTypes.length;
-                      const score = totalApplicable > 0 ? Math.round((completedCount / totalApplicable) * 100) : 0;
-                      return (
-                        <tr key={prop} className={`border-b border-[rgba(255,255,255,0.04)] ${i % 2 === 1 ? "bg-[rgba(255,255,255,0.01)]" : ""}`}>
-                          <td className="py-3 pl-4 font-bold text-white text-xs sticky left-0 z-10 bg-[rgba(10,15,26,0.99)] border-r border-[rgba(255,255,255,0.06)]">{prop}</td>
-                          {INSPECTION_TYPES.map(itype => {
-                            const applicable = configMap[prop]?.has(itype);
-                            const cell = complianceMatrix[prop]?.[itype];
-                            if (!applicable) return <td key={itype} className="py-3 text-center"><span className="text-gray-700 text-[10px]">—</span></td>;
-                            return (
-                              <td key={itype} className="py-3 text-center">
-                                {cell?.done ? (
-                                  <div className="flex flex-col items-center" title={cell.date ? `Completed ${cell.date}` : "Completed"}>
-                                    <div className="w-5 h-5 rounded-md bg-[rgba(16,185,129,0.2)] border border-[rgba(16,185,129,0.4)] flex items-center justify-center"><CheckCircle2 size={10} className="text-[#10B981]" /></div>
-                                    {cell.date && <span className="text-[8px] text-gray-500 mt-0.5">{new Date(cell.date + "T12:00:00").toLocaleDateString("en-US", { month: "short" })}</span>}
-                                  </div>
-                                ) : (
-                                  <div className="w-5 h-5 rounded-md bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.3)] flex items-center justify-center mx-auto" title="Not completed"><X size={9} className="text-[#EF4444]" /></div>
-                                )}
+            <>
+              {showConfig && (
+                <div className="bg-[rgba(96,165,250,0.04)] border border-[rgba(96,165,250,0.15)] rounded-2xl p-5 space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-black text-white flex items-center gap-2"><Settings2 size={14} className="text-[#60A5FA]" /> Applicable Inspection Types Per Building</h3>
+                    <p className="text-[10px] text-gray-500">Toggle which inspection types apply to each building</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-[rgba(255,255,255,0.06)]">
+                          <th className="text-left text-[9px] font-black text-gray-500 uppercase tracking-wider pb-2 pr-4 min-w-[130px]">Building</th>
+                          {INSPECTION_TYPES.map(t => <th key={t} className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-wider pb-2 px-1 min-w-[50px]">{t}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {propertiesList.map(prop => (
+                          <tr key={prop} className="border-b border-[rgba(255,255,255,0.03)]">
+                            <td className="py-2 pr-4 font-bold text-white text-xs">{prop}</td>
+                            {INSPECTION_TYPES.map(itype => {
+                              const enabled = configMap[prop]?.has(itype) || false;
+                              return (
+                                <td key={itype} className="py-2 text-center">
+                                  <button onClick={() => toggleConfig(prop, itype)} className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${enabled ? "bg-[#60A5FA] border-[#60A5FA] text-white" : "border-[rgba(255,255,255,0.12)] text-transparent hover:border-[rgba(255,255,255,0.3)]"}`}>
+                                    <CheckCircle2 size={10} />
+                                  </button>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {complianceLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 size={20} className="animate-spin text-[#4ADE80]" />
+                  <span className="ml-2 text-sm text-gray-500">Loading compliance data…</span>
+                </div>
+              ) : (
+                <div className="bg-[rgba(0,0,0,0.3)] border border-[rgba(255,255,255,0.06)] rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-[rgba(255,255,255,0.06)] bg-[rgba(0,0,0,0.2)]">
+                          <th className="text-left text-[9px] font-black text-gray-500 uppercase tracking-wider py-3 pl-4 min-w-[140px] sticky left-0 z-10 bg-[rgba(10,15,26,0.99)]">Building</th>
+                          {INSPECTION_TYPES.map(t => <th key={t} className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-wider py-3 px-2 min-w-[65px]">{t}</th>)}
+                          <th className="text-center text-[8px] font-bold text-gray-500 uppercase tracking-wider py-3 px-3">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {propertiesList.map((prop, i) => {
+                          const applicableTypes = INSPECTION_TYPES.filter(t => configMap[prop]?.has(t));
+                          const completedCount = applicableTypes.filter(t => complianceMatrix[prop]?.[t]?.done).length;
+                          const totalApplicable = applicableTypes.length;
+                          const score = totalApplicable > 0 ? Math.round((completedCount / totalApplicable) * 100) : 0;
+                          return (
+                            <tr key={prop} className={`border-b border-[rgba(255,255,255,0.04)] ${i % 2 === 1 ? "bg-[rgba(255,255,255,0.01)]" : ""}`}>
+                              <td className="py-3 pl-4 font-bold text-white text-xs sticky left-0 z-10 bg-[rgba(10,15,26,0.99)] border-r border-[rgba(255,255,255,0.06)]">{prop}</td>
+                              {INSPECTION_TYPES.map(itype => {
+                                const applicable = configMap[prop]?.has(itype);
+                                const cell = complianceMatrix[prop]?.[itype];
+                                if (!applicable) return <td key={itype} className="py-3 text-center"><span className="text-gray-700 text-[10px]">—</span></td>;
+                                return (
+                                  <td key={itype} className="py-3 text-center">
+                                    {cell?.done ? (
+                                      <div className="flex flex-col items-center" title={cell.date ? `Completed ${cell.date}` : "Completed"}>
+                                        <div className="w-5 h-5 rounded-md bg-[rgba(16,185,129,0.2)] border border-[rgba(16,185,129,0.4)] flex items-center justify-center"><CheckCircle2 size={10} className="text-[#10B981]" /></div>
+                                        {cell.date && <span className="text-[8px] text-gray-500 mt-0.5">{new Date(cell.date + "T12:00:00").toLocaleDateString("en-US", { month: "short" })}</span>}
+                                      </div>
+                                    ) : (
+                                      <div className="w-5 h-5 rounded-md bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.3)] flex items-center justify-center mx-auto" title="Not completed"><X size={9} className="text-[#EF4444]" /></div>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                              <td className="py-3 text-center">
+                                {totalApplicable > 0 ? (
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black ${score >= 100 ? "bg-[rgba(16,185,129,0.15)] text-[#10B981]" : score >= 50 ? "bg-[rgba(250,204,21,0.15)] text-[#FACC15]" : "bg-[rgba(239,68,68,0.15)] text-[#EF4444]"}`}>{score}%</span>
+                                ) : <span className="text-gray-700 text-[10px]">—</span>}
                               </td>
-                            );
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
+                          <td className="py-3 pl-4 text-[10px] font-black text-gray-400 uppercase tracking-wider sticky left-0 z-10 bg-[rgba(22,27,34,0.99)] border-r border-[rgba(255,255,255,0.06)]">Totals</td>
+                          {INSPECTION_TYPES.map(itype => {
+                            const applicable = propertiesList.filter(p => configMap[p]?.has(itype));
+                            const completed = applicable.filter(p => complianceMatrix[p]?.[itype]?.done);
+                            if (applicable.length === 0) return <td key={itype} className="py-3 text-center text-[9px] text-gray-700">—</td>;
+                            return <td key={itype} className="py-3 text-center"><span className={`text-[9px] font-bold ${completed.length === applicable.length ? "text-[#10B981]" : "text-gray-500"}`}>{completed.length}/{applicable.length}</span></td>;
                           })}
                           <td className="py-3 text-center">
-                            {totalApplicable > 0 ? (
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black ${score >= 100 ? "bg-[rgba(16,185,129,0.15)] text-[#10B981]" : score >= 50 ? "bg-[rgba(250,204,21,0.15)] text-[#FACC15]" : "bg-[rgba(239,68,68,0.15)] text-[#EF4444]"}`}>{score}%</span>
-                            ) : <span className="text-gray-700 text-[10px]">—</span>}
+                            {(() => {
+                              const tA = propertiesList.reduce((s, p) => s + INSPECTION_TYPES.filter(t => configMap[p]?.has(t)).length, 0);
+                              const tD = propertiesList.reduce((s, p) => s + INSPECTION_TYPES.filter(t => configMap[p]?.has(t) && complianceMatrix[p]?.[t]?.done).length, 0);
+                              const o = tA > 0 ? Math.round((tD / tA) * 100) : 0;
+                              return <span className={`text-[10px] font-black ${o >= 100 ? "text-[#10B981]" : o >= 50 ? "text-[#FACC15]" : "text-[#EF4444]"}`}>{o}%</span>;
+                            })()}
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
-                      <td className="py-3 pl-4 text-[10px] font-black text-gray-400 uppercase tracking-wider sticky left-0 z-10 bg-[rgba(22,27,34,0.99)] border-r border-[rgba(255,255,255,0.06)]">Totals</td>
-                      {INSPECTION_TYPES.map(itype => {
-                        const applicable = PROPERTIES_LIST.filter(p => configMap[p]?.has(itype));
-                        const completed = applicable.filter(p => complianceMatrix[p]?.[itype]?.done);
-                        if (applicable.length === 0) return <td key={itype} className="py-3 text-center text-[9px] text-gray-700">—</td>;
-                        return <td key={itype} className="py-3 text-center"><span className={`text-[9px] font-bold ${completed.length === applicable.length ? "text-[#10B981]" : "text-gray-500"}`}>{completed.length}/{applicable.length}</span></td>;
-                      })}
-                      <td className="py-3 text-center">
-                        {(() => {
-                          const tA = PROPERTIES_LIST.reduce((s, p) => s + INSPECTION_TYPES.filter(t => configMap[p]?.has(t)).length, 0);
-                          const tD = PROPERTIES_LIST.reduce((s, p) => s + INSPECTION_TYPES.filter(t => configMap[p]?.has(t) && complianceMatrix[p]?.[t]?.done).length, 0);
-                          const o = tA > 0 ? Math.round((tD / tA) * 100) : 0;
-                          return <span className={`text-[10px] font-black ${o >= 100 ? "text-[#10B981]" : o >= 50 ? "text-[#FACC15]" : "text-[#EF4444]"}`}>{o}%</span>;
-                        })()}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}

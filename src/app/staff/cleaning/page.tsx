@@ -8,6 +8,7 @@ import CompletionSheet from "@/components/crew/CompletionSheet";
 import SpeechTextarea from "@/components/crew/SpeechTextarea";
 import PhotoCapture from "@/components/crew/PhotoCapture";
 import MicButton from "@/components/MicButton";
+import StaffAskOpsIQ from "../StaffAskOpsIQ";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -336,12 +337,19 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
         body: JSON.stringify({ pin }),
       });
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (res.ok && (data.success || data.authenticated)) {
+        if (data.role && data.role !== "cleaning") {
+          setShake(true);
+          setError("This PIN belongs to the Maintenance portal. Please use /staff/maintenance.");
+          setDigits("");
+          setTimeout(() => setShake(false), 500);
+          return;
+        }
         setWelcome(data.name);
         setTimeout(() => onAuth(data.name), 1200);
       } else {
         setShake(true);
-        setError("Invalid PIN");
+        setError(data.error || "Invalid PIN");
         setDigits("");
         setTimeout(() => setShake(false), 500);
       }
@@ -392,7 +400,7 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
 
       {/* Error */}
       {error && (
-        <p className="text-red-400 text-sm font-bold mb-4 animate-pulse">{error}</p>
+        <p className="text-red-400 text-sm font-bold mb-4 animate-pulse text-center">{error}</p>
       )}
 
       {/* Keypad */}
@@ -468,7 +476,12 @@ export default function CleaningStaffPage() {
     // Crew sessions expire after a shift — if the signed session is gone, return to PIN entry.
     fetch("/api/staff-auth")
       .then(r => r.json())
-      .then(d => { if (!d.authenticated) { localStorage.removeItem("oiq_cleaning_name"); setWorkerName(null); } })
+      .then(d => {
+        if (!d.authenticated || (d.role && d.role !== "cleaning")) {
+          localStorage.removeItem("oiq_cleaning_name");
+          setWorkerName(null);
+        }
+      })
       .catch(() => {});
     setCheckState(loadChecks());
   }, []);
@@ -647,6 +660,8 @@ export default function CleaningStaffPage() {
           <AlertTriangle size={20} /> 🚨 Report Issue
         </button>
       </div>
+
+      <StaffAskOpsIQ role="cleaning" />
 
       {showReport && (
         <ReportIssueModal

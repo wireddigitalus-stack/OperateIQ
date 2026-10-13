@@ -31,7 +31,7 @@ ALTER TABLE portfolio_snapshots ENABLE ROW LEVEL SECURITY;
 
 // GET  /api/portfolio-snapshot?months=6
 export async function GET(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "portfolio_snapshots" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/portfolio-snapshot — write today's snapshot (call from a cron or manually)
 export async function POST(req: NextRequest) {
-  const g = await requireOrgAdmin(req);
+  const g = await requireOrgAdmin(req, { requireFeature: "portfolio_snapshots" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 

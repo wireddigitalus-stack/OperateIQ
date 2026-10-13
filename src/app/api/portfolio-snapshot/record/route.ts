@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrg } from "@/lib/server-auth";
 import { PROPERTIES } from "@/lib/data";
+import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform-org";
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ async function safeFetch<T>(path: string): Promise<T[]> {
 // data and upserts it into the portfolio_snapshots table.
 
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "portfolio_snapshots" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
   const scope = `org_id=eq.${orgId}`;
@@ -66,7 +67,9 @@ export async function POST(req: NextRequest) {
     // Build property list: use database properties if any exist; fall back to static properties only for the demo org
     const allProps = dynProps.length > 0
       ? dynProps.map(p => ({ id: String(p.id), name: String(p.name || "") }))
-      : PROPERTIES.map(p => ({ id: p.id, name: p.name }));
+      : orgId === DEFAULT_PLATFORM_ORG_ID
+        ? PROPERTIES.map(p => ({ id: p.id, name: p.name }))
+        : [];
 
     // Build detail map
     const detailMap: Record<string, Record<string, unknown>> = {};

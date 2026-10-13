@@ -12,7 +12,7 @@ const H = {
 };
 
 export async function GET(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "weekly_report" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
   const scope = `org_id=eq.${orgId}`;

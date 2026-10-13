@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { Clock, BookOpen } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { getPublishedPosts } from "@/lib/blog";
+import { resolveOrgIdBySlug } from "@/lib/public-org";
 
 export const metadata: Metadata = {
   title: `Blog | ${BRAND.name}`,
@@ -12,7 +14,10 @@ export const metadata: Metadata = {
 const fmt = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 export default async function BlogPage() {
-  const posts = await getPublishedPosts();
+  const h = await headers();
+  const tenantSlug = h.get("x-tenant-slug");
+  const orgId = tenantSlug ? await resolveOrgIdBySlug(tenantSlug) : undefined;
+  const posts = await getPublishedPosts(orgId || undefined);
 
   return (
     <div className="oiq-page">

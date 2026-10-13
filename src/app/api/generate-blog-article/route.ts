@@ -4,12 +4,12 @@ import { orgContactLine } from "@/lib/org-profile";
 import { profileForOrg } from "@/lib/org-ai-profile";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY!;
-const MODEL      = "gemini-1.6-flash";
+const MODEL      = "gemini-2.5-flash";
 const ENDPOINT   = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
 
 export async function POST(req: NextRequest) {
   // Auth required: protects LLM spend from anonymous abuse.
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "blog" });
   if (!g.ok) return g.res;
 
   const { topic, keyword, category, property } = await req.json();

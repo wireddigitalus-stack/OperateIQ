@@ -1,14 +1,25 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { ArrowLeft, Clock } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { getPublishedPost } from "@/lib/blog";
+import { resolveOrgIdBySlug } from "@/lib/public-org";
 
 type Props = { params: Promise<{ slug: string }> };
 
+async function getTenantOrgId(): Promise<string | undefined> {
+  const h = await headers();
+  const tenantSlug = h.get("x-tenant-slug");
+  if (!tenantSlug) return undefined;
+  const orgId = await resolveOrgIdBySlug(tenantSlug);
+  return orgId || undefined;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const post = await getPublishedPost((await params).slug);
+  const orgId = await getTenantOrgId();
+  const post = await getPublishedPost((await params).slug, orgId);
   if (!post) return {};
   return {
     title: `${post.metaTitle} | ${BRAND.name}`,
@@ -30,7 +41,8 @@ function renderContent(content: string) {
 }
 
 export default async function BlogPostPage({ params }: Props) {
-  const post = await getPublishedPost((await params).slug);
+  const orgId = await getTenantOrgId();
+  const post = await getPublishedPost((await params).slug, orgId);
   if (!post) notFound();
 
   return (

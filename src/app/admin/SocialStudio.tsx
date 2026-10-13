@@ -115,11 +115,42 @@ const GOALS = [
 
 export default function SocialStudio() {
   // Controls
-  const [propId, setPropId]   = useState(PROPERTIES[0]?.id ?? "");
+  const [propertiesList, setPropertiesList] = useState<typeof PROPERTIES>([]);
+  const [propId, setPropId]   = useState("");
   const [tone, setTone]       = useState<"professional"|"friendly"|"exciting"|"luxury">("professional");
   const [goal, setGoal]       = useState<"awareness"|"leads"|"tour"|"promo">("leads");
   const [hook, setHook]       = useState("");
   const [activeVariant, setActiveVariant] = useState<"main"|"alt">("main");
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/properties-dynamic?admin=1").then(r => r.json()).catch(() => ({})),
+      fetch("/api/platform/session").then(r => r.json()).catch(() => ({})),
+    ]).then(([dynData, sessData]) => {
+      const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
+      const dynProps = (dynData.properties || []).map((dp: any) => ({
+        id: dp.id,
+        name: dp.name,
+        type: dp.type || "Office",
+        address: dp.address || "",
+        city: dp.city || "",
+        sqft: dp.sqft || "N/A",
+        status: dp.lease_status || "Available",
+        badge: dp.badge || dp.type || "Office",
+        badgeColor: dp.badge_color || "green",
+        description: dp.description || "",
+        features: Array.isArray(dp.features) ? dp.features : [],
+        image: dp.hero_image || dp.images?.[0] || "",
+        imageAlt: dp.name,
+      }));
+      const dynIds = new Set(dynProps.map((d: any) => d.id));
+      const combined = isDemoOrg
+        ? [...dynProps, ...PROPERTIES.filter(p => !dynIds.has(p.id))]
+        : dynProps;
+      setPropertiesList(combined);
+      if (combined.length > 0) setPropId(prev => prev || combined[0].id);
+    });
+  }, []);
 
   // Outputs (editable)
   const [post,       setPost]       = useState("");
@@ -153,8 +184,11 @@ export default function SocialStudio() {
   })();
 
   async function generate() {
-    const property = PROPERTIES.find(p => p.id === propId);
-    if (!property) return;
+    const property = propertiesList.find(p => p.id === propId);
+    if (!property) {
+      setError("Please add or select a property first.");
+      return;
+    }
     setLoading(true); setError("");
     setPost(""); setPostAlt(""); setStory(""); setEmailSubj("");
     setGpost(""); setHashAll(""); setHashLoc(""); setHashInd(""); setHashProp(""); setBestTime("");
@@ -199,7 +233,7 @@ export default function SocialStudio() {
   }
 
   function exportPack() {
-    const prop = PROPERTIES.find(p => p.id === propId);
+    const prop = propertiesList.find(p => p.id === propId);
     const txt = [
       "OperateIQ — SOCIAL CONTENT PACK",
       `Property: ${prop?.name}  |  ${new Date().toLocaleString()}`,
@@ -282,7 +316,10 @@ export default function SocialStudio() {
             value={propId} onChange={e => setPropId(e.target.value)}
             className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-3 py-2.5 text-sm text-white focus:border-[rgba(225,48,108,0.5)] outline-none appearance-none"
           >
-            {PROPERTIES.map(p => (
+            {propertiesList.length === 0 && (
+              <option value="" className="bg-[#0a1628]">No properties added yet</option>
+            )}
+            {propertiesList.map(p => (
               <option key={p.id} value={p.id} className="bg-[#0a1628]">{p.name}</option>
             ))}
           </select>

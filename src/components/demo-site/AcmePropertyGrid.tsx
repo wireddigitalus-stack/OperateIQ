@@ -30,8 +30,28 @@ export default function AcmePropertyGrid({
   const [activeTab, setActiveTab] = useState(filterType || "all");
   const propList = properties ?? PROPERTIES; // demo data only when no list is passed (/demo-site)
 
-  const filtered = propList.filter((p) => {
+  React.useEffect(() => {
+    if (filterType) setActiveTab(filterType);
+  }, [filterType]);
+
+  const dynamicCategories = Array.from(
+    new Set(propList.map((p) => p.type).filter(Boolean))
+  ) as string[];
+
+  const categoryTabs = [
+    { id: "all", label: "All Properties" },
+    ...dynamicCategories.map((cat) => ({ id: cat, label: cat })),
+  ];
+
+  const filteredProperties = propList.filter((p) => {
     if (activeTab !== "all" && p.type !== activeTab) return false;
+    if (minSqft > 0) {
+      const nums = String(p.sqft || "")
+        .replace(/,/g, "")
+        .match(/\d+/g);
+      const parsedSqft = nums ? Math.max(...nums.map(Number)) : 0;
+      if (parsedSqft < minSqft) return false;
+    }
     return true;
   });
 
@@ -57,13 +77,7 @@ export default function AcmePropertyGrid({
 
         {/* Category Filter Pills */}
         <div className="flex flex-wrap gap-2">
-          {[
-            { id: "all", label: "All Properties" },
-            { id: "Mixed-Use & Lofts", label: "Mixed-Use & Lofts" },
-            { id: "Medical & Office", label: "Medical & Office" },
-            { id: "Residential Apartments", label: "Residential Apartments" },
-            { id: "Contractor Flex", label: "Contractor Flex" },
-          ].map((tab) => (
+          {categoryTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -81,7 +95,7 @@ export default function AcmePropertyGrid({
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {filtered.map((property) => (
+        {filteredProperties.map((property) => (
           <div
             key={property.id}
             className="group relative rounded-2xl bg-[#090E1A] border border-white/15 overflow-hidden hover:border-sky-400/40 transition-all duration-300 shadow-[0_4px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_0_35px_rgba(56,189,248,0.18)] flex flex-col justify-between"

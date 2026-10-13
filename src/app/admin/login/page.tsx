@@ -18,6 +18,7 @@ function AdminLoginForm() {
   const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [resetLinkSent, setResetLinkSent] = useState(false);
 
   useEffect(() => {
     if (emailParam) {
@@ -78,6 +79,7 @@ function AdminLoginForm() {
     setLoading(true);
     setError("");
     setMagicLinkSent(false);
+    setResetLinkSent(false);
 
     try {
       const redirectBase =
@@ -98,6 +100,35 @@ function AdminLoginForm() {
       }
     } catch {
       setError("Failed to send magic link. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      setError("Please enter your email address above first so we can send your reset / sign-in link.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setResetLinkSent(false);
+    try {
+      const redirectBase =
+        typeof window !== "undefined" && window.location.origin
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_SITE_URL || "");
+      const { error } = await supabaseBrowser.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        { redirectTo: `${redirectBase}/auth/callback?next=/admin` }
+      );
+      if (error) {
+        setError(error.message);
+      } else {
+        setResetLinkSent(true);
+      }
+    } catch {
+      setError("Failed to send reset link. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -210,16 +241,18 @@ function AdminLoginForm() {
           {/* Email Magic Link / Password */}
           {authMode !== "google" && (
             <div className="space-y-3">
-              {magicLinkSent ? (
+              {magicLinkSent || resetLinkSent ? (
                 <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/15 shadow-[0_0_20px_rgba(56,189,248,0.12)] text-center">
                   <CheckCircle2 size={24} className="text-sky-400 mx-auto mb-2" />
-                  <p className="text-xs font-semibold text-white">Magic Link Dispatched!</p>
+                  <p className="text-xs font-semibold text-white">
+                    {resetLinkSent ? "Reset / Sign-In Link Sent!" : "Magic Link Dispatched!"}
+                  </p>
                   <p className="text-[11px] text-gray-300 mt-1">
                     Check your inbox at <strong>{email}</strong> and click the link to sign in.
                   </p>
                   <button
                     type="button"
-                    onClick={() => setMagicLinkSent(false)}
+                    onClick={() => { setMagicLinkSent(false); setResetLinkSent(false); }}
                     className="mt-3 text-[11px] text-gray-400 hover:text-white underline"
                   >
                     Try another address or password
@@ -260,6 +293,16 @@ function AdminLoginForm() {
                           className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] focus:outline-none text-white text-xs placeholder-gray-600"
                         />
                       </div>
+                      <div className="mt-2 text-right">
+                        <button
+                          type="button"
+                          onClick={handleForgotPassword}
+                          disabled={loading}
+                          className="text-[11px] text-sky-400 hover:text-sky-300 underline font-medium"
+                        >
+                          Forgot or haven&apos;t set a password? Send a reset / sign-in link
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -281,7 +324,7 @@ function AdminLoginForm() {
                   <div className="text-center pt-1">
                     <button
                       type="button"
-                      onClick={() => setAuthMode(authMode === "password" ? "email" : "password")}
+                      onClick={() => { setAuthMode(authMode === "password" ? "email" : "password"); setError(""); }}
                       className="text-[11px] text-gray-500 hover:text-gray-300 underline"
                     >
                       {authMode === "password" ? "Switch to Email Magic Link" : "Sign in with password instead"}

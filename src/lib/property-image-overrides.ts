@@ -15,9 +15,9 @@ export interface ImageOverride {
 
 export type OverrideMap = Record<string, ImageOverride>;
 
-export async function fetchImageOverrides(): Promise<OverrideMap> {
+export async function fetchImageOverrides(orgId = "00000000-0000-0000-0000-000000000001"): Promise<OverrideMap> {
   try {
-    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const KEY =
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -25,7 +25,7 @@ export async function fetchImageOverrides(): Promise<OverrideMap> {
     if (!SUPABASE_URL || !KEY) return {};
 
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/property_image_overrides?select=property_id,hero_url,image_url,all_urls`,
+      `${SUPABASE_URL}/rest/v1/property_image_overrides?org_id=eq.${encodeURIComponent(orgId)}&select=property_id,hero_url,image_url,all_urls`,
       {
         headers: {
           apikey: KEY,

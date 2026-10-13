@@ -4,12 +4,15 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as XLSX from "xlsx";
 import {
   RefreshCw, Plus, Trash2, Save, CheckCircle2, Loader2,
-  Mail, Shield, X, Smartphone, Lock, BellRing, Moon,
+  Mail, Shield, X, Smartphone, Lock, BellRing,
   Sparkles, MessageSquare, BarChart3, Wrench,
   FileSpreadsheet, Download, Upload, AlertCircle,
   ChevronRight, Zap, Share2, Clock, Monitor, Globe,
+  Building2, CreditCard, KeyRound, Palette,
 } from "lucide-react";
 import CustomDomainManager from "@/components/admin/CustomDomainManager";
+import { PLANS, getPlan, FEATURE_LABELS } from "@/lib/plans";
+import { supabaseBrowser } from "@/lib/supabase-browser";
 
 // ─── Types (shared with page.tsx) ─────────────────────────────────────────────
 
@@ -39,7 +42,7 @@ interface AllowedUser {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "manager" | "maintenance" | "cleaning";
+  role: "owner" | "admin" | "manager" | "maintenance" | "cleaning";
   active: boolean;
   pin?: string;
   created_at?: string;
@@ -47,10 +50,6 @@ interface AllowedUser {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function nameToSlug(name: string): string {
-  const parts = name.toLowerCase().replace(/[^a-z\s]/g, "").trim().split(/\s+/);
-  return parts.find(p => p.length > 2) ?? parts[0];
-}
 function initials(name: string) {
   return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 }
@@ -416,9 +415,9 @@ const OWNER_EMAILS = new Set([
   "wireddigitalus@gmail.com", // Robert Neilson — developer
 ]);
 
-function UserSection({ title, role, icon, color, users, onRefresh }: {
+function UserSection({ title, role, icon, color, users, onRefresh, ownerEmail }: {
   title: string; role: string; icon: React.ReactNode; color: string;
-  users: AllowedUser[]; onRefresh: () => void;
+  users: AllowedUser[]; onRefresh: () => void; ownerEmail?: string | null;
 }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -435,13 +434,13 @@ function UserSection({ title, role, icon, color, users, onRefresh }: {
 
   const getInviteMessage = (u: AllowedUser) => {
     const domain = typeof window !== "undefined" ? window.location.origin : "";
-    if (u.role === "admin" || u.role === "manager") {
+    if (u.role === "admin" || u.role === "manager" || u.role === "owner") {
       const loginUrl = `${domain}/admin/login?email=${encodeURIComponent(u.email || "")}`;
       return `Hi ${u.name.split(" ")[0] || "there"}, you've been invited to join our team on OperateIQ:
 
 ${loginUrl}
 
-Sign in with your email (${u.email}) using Google or request a 1-click Email Magic Link to access the dashboard.`;
+Sign in with your email (${u.email}) using Magic Link, Password, or Google to access the dashboard.`;
     }
     const portalUrl = `${domain}/staff/${u.role}`;
     return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your OperateIQ ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
@@ -587,8 +586,8 @@ Save a shortcut to your phone's Home Screen:
             </div>
             {!isStaffRole && (
               <div>
-                <label className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Gmail Address *</label>
-                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="mike@gmail.com" type="email" className={FIELD}
+                <label className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Work Email Address *</label>
+                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.com" type="email" className={FIELD}
                   onKeyDown={e => { if (e.key === "Enter") addUser(); }} />
               </div>
             )}
@@ -612,7 +611,7 @@ Save a shortcut to your phone's Home Screen:
           {isStaffRole && (
             <div>
               <label className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Email (optional)</label>
-              <input value={email} onChange={e => setEmail(e.target.value)} placeholder="mike@gmail.com" type="email" className={FIELD} />
+              <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.com" type="email" className={FIELD} />
             </div>
           )}
           {error && <p className="text-xs text-red-400">{error}</p>}
@@ -634,10 +633,11 @@ Save a shortcut to your phone's Home Screen:
       {/* User list */}
       <div className="space-y-2">
       {users.length === 0 && (
-          <p className="text-xs text-gray-600 text-center py-4">{isStaffRole ? "No staff yet — add a name and PIN above." : "No users yet — add a Gmail address above."}</p>
+          <p className="text-xs text-gray-600 text-center py-4">{isStaffRole ? "No staff yet — add a name and PIN above." : "No users yet — add a work email address above."}</p>
         )}
         {users.map(u => {
-            const isOwner = u.email ? OWNER_EMAILS.has(u.email.toLowerCase()) : false;
+            const emailLower = (u.email || "").toLowerCase();
+            const isOwner = u.role === "owner" || (emailLower ? (OWNER_EMAILS.has(emailLower) || (!!ownerEmail && emailLower === ownerEmail.toLowerCase())) : false);
             return (
           <div key={u.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${u.active ? "border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.02)]" : "border-[rgba(255,255,255,0.03)] opacity-40"}`}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
@@ -648,7 +648,7 @@ Save a shortcut to your phone's Home Screen:
               <div className="flex items-center gap-1.5">
                 <p className="text-sm font-bold text-white truncate">{u.name || "(no name)"}</p>
                 {isOwner && (
-                  <Tooltip text="Owner account — protected. Can only be removed via Supabase directly.">
+                  <Tooltip text="Workspace Owner account — protected from deletion.">
                     <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[rgba(250,204,21,0.1)] border border-[rgba(250,204,21,0.25)] text-[#FACC15] font-black cursor-help">🔒 Owner</span>
                   </Tooltip>
                 )}
@@ -1073,93 +1073,447 @@ function NotificationsCard() {
 }
 
 
-// ─── Social Capture Links Card ──────────────────────────────────────────────
+// ─── Subscription & Billing Card (Canonical PLANS) ───────────────────────────
 
-export function SocialLinksCard() {
-  const [expanded, setExpanded] = useState(false);
-  const [copied, setCopied] = useState("");
-  const BASE = typeof window !== "undefined" ? window.location.origin : "";
-
-  const LINKS = [
-    { slug: "", label: "All Properties", emoji: "🏠", desc: "Default — shows all properties equally" },
-    { slug: "admin-login", label: "Admin Portal", emoji: "🔒", desc: "Direct login link for staff & administration", isDirect: true },
-  ];
-
-  function copy(platform: "fb" | "ig" | "link", slug: string, isDirect?: boolean) {
-    const url = isDirect ? `${BASE}/l/admin` : (slug ? `${BASE}/l/${platform}?feature=${slug}` : `${BASE}/l/${platform}`);
-    navigator.clipboard.writeText(url);
-    setCopied(`${platform}-${slug}`);
-    setTimeout(() => setCopied(""), 2000);
-  }
+function SubscriptionAndBillingCard({
+  activeOrg,
+}: {
+  activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null } | null;
+}) {
+  const currentPlan = getPlan(activeOrg?.tier || "starter");
 
   return (
-    <div>
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-2 mb-1 group">
-        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#3B82F6] to-[#EC4899] flex items-center justify-center flex-shrink-0">
-          <Share2 size={13} className="text-white" />
+    <div className="rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-500/[0.05] via-[rgba(255,255,255,0.02)] to-indigo-500/[0.04] p-5 sm:p-6 shadow-[0_0_28px_rgba(56,189,248,0.08)]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center">
+            <CreditCard size={16} className="text-sky-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-black text-white uppercase tracking-widest">Subscription &amp; Billing</h2>
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black uppercase tracking-wider">
+                {currentPlan.name} Plan · ${currentPlan.monthly}/mo
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Compare plans and manage your workspace capacity and feature access.
+            </p>
+          </div>
         </div>
-        <h2 className="text-sm font-black text-white uppercase tracking-widest">Social Capture Links</h2>
-        <div className="ml-auto w-6 h-6 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center">
-          <ChevronRight size={16} className={`text-[#60A5FA] transition-transform duration-300 ${expanded ? "rotate-90" : ""}`} />
-        </div>
-      </button>
-      <p className="text-[13px] text-gray-400 mb-3">
-        Copy ready-to-use links for Facebook & Instagram posts. Feature a specific property to match your social content.
-      </p>
+        <a
+          href="/pricing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-300 text-xs font-black transition-all self-start sm:self-auto"
+        >
+          <Sparkles size={13} /> Compare Full Feature Matrix
+        </a>
+      </div>
 
-      {!expanded ? null : (<>
-        <div className="space-y-2">
-          {LINKS.map(({ slug, label, emoji, desc, isDirect }) => (
-            <div key={slug || "all"} className="flex items-center gap-3 rounded-xl bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] px-3 py-2.5">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">{emoji} {label}</p>
-                <p className="text-xs text-gray-400 truncate">{desc}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {PLANS.map((plan) => {
+          const isCurrent = plan.id === currentPlan.id;
+          const propLimitLabel =
+            plan.limits.properties === null ? "Unlimited properties" : `Up to ${plan.limits.properties} properties`;
+          const userLimitLabel =
+            plan.limits.users === null ? "Unlimited team members" : `Up to ${plan.limits.users} team members`;
+          const displayName = plan.id === "pro" ? "Scale (Pro)" : plan.name;
+
+          return (
+            <div
+              key={plan.id}
+              className={`rounded-2xl border p-4 flex flex-col justify-between transition-all ${
+                isCurrent
+                  ? "border-emerald-400/40 bg-emerald-500/[0.06] shadow-[0_0_24px_rgba(16,185,129,0.12)]"
+                  : plan.highlight
+                  ? "border-sky-400/30 bg-sky-500/[0.04]"
+                  : "border-white/10 bg-white/[0.02]"
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-sm font-black text-white">{displayName}</span>
+                  {isCurrent ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-black uppercase">
+                      Current Plan
+                    </span>
+                  ) : plan.highlight ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 font-black uppercase">
+                      Most Popular
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-2xl font-black text-white">${plan.monthly}</span>
+                  <span className="text-xs text-gray-400">/month</span>
+                </div>
+                <p className="text-[11px] text-gray-500 mb-3">${plan.annual}/yr when billed annually (2 months free)</p>
+                <p className="text-xs text-gray-300 mb-3 leading-relaxed">{plan.blurb}</p>
+
+                <div className="space-y-1.5 pt-2 border-t border-white/10 text-xs text-gray-300 mb-4">
+                  <div className="flex items-center gap-2 font-bold text-white">
+                    <CheckCircle2 size={12} className="text-emerald-400 flex-shrink-0" />
+                    <span>{propLimitLabel}</span>
+                  </div>
+                  <div className="flex items-center gap-2 font-bold text-white">
+                    <CheckCircle2 size={12} className="text-emerald-400 flex-shrink-0" />
+                    <span>{userLimitLabel}</span>
+                  </div>
+                  {plan.features.slice(-3).map((f) => (
+                    <div key={f} className="flex items-center gap-2 text-gray-400">
+                      <CheckCircle2 size={12} className="text-sky-400 flex-shrink-0" />
+                      <span className="truncate">{FEATURE_LABELS[f]}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              {isDirect ? (
-                <button
-                  onClick={() => copy("link", slug, true)}
-                  className={`flex-shrink-0 px-4 py-1.5 rounded-lg text-xs font-black transition-all ${
-                    copied === `link-${slug}`
-                      ? "bg-[#4ADE80] text-black"
-                      : "bg-[rgba(167,139,250,0.12)] border border-[rgba(167,139,250,0.25)] text-[#A78BFA] hover:bg-[rgba(167,139,250,0.2)]"
-                  }`}
-                >
-                  {copied === `link-${slug}` ? "✓ Copied" : "🔗 Copy Link"}
-                </button>
+
+              {isCurrent ? (
+                <div className="w-full py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-black text-center">
+                  ✓ Active Workspace Tier
+                </div>
               ) : (
-                <>
-                  <button
-                    onClick={() => copy("fb", slug)}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                      copied === `fb-${slug}`
-                        ? "bg-[#4ADE80] text-black"
-                        : "bg-[rgba(59,130,246,0.12)] border border-[rgba(59,130,246,0.25)] text-[#60A5FA] hover:bg-[rgba(59,130,246,0.2)]"
-                    }`}
-                  >
-                    {copied === `fb-${slug}` ? "✓ Copied" : "📘 FB"}
-                  </button>
-                  <button
-                    onClick={() => copy("ig", slug)}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                      copied === `ig-${slug}`
-                        ? "bg-[#4ADE80] text-black"
-                        : "bg-[rgba(236,72,153,0.12)] border border-[rgba(236,72,153,0.25)] text-[#F472B6] hover:bg-[rgba(236,72,153,0.2)]"
-                    }`}
-                  >
-                    {copied === `ig-${slug}` ? "✓ Copied" : "📷 IG"}
-                  </button>
-                </>
+                <a
+                  href={`mailto:support@operateiq.com?subject=${encodeURIComponent(
+                    `Upgrade ${activeOrg?.name || "Workspace"} to ${displayName} ($${plan.monthly}/mo)`
+                  )}`}
+                  className="w-full py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-black text-center transition-all shadow-md"
+                >
+                  Switch to {displayName}
+                </a>
               )}
             </div>
-          ))}
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Organization Profile & Branding Card ─────────────────────────────────────
+
+function OrganizationProfileCard({
+  activeOrg,
+  onOwnerEmailLoaded,
+}: {
+  activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null } | null;
+  onOwnerEmailLoaded?: (email: string | null) => void;
+}) {
+  const [brandName, setBrandName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [stateCode, setStateCode] = useState("");
+  const [description, setDescription] = useState("");
+  const [primaryColor, setPrimaryColor] = useState("#38BDF8");
+  const [accentColor, setAccentColor] = useState("#4ADE80");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/platform/organizations?id=${encodeURIComponent(activeOrg.id)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled || !d?.organization) return;
+        const org = d.organization;
+        setBrandName(org.brand_name || org.name || "");
+        setContactEmail(org.contact_email || "");
+        setContactPhone(org.contact_phone || "");
+        setCity(org.city || "");
+        setStateCode(org.state || "");
+        setDescription(org.description || "");
+        setPrimaryColor(org.brand_primary_color || "#38BDF8");
+        setAccentColor(org.brand_accent_color || "#4ADE80");
+        onOwnerEmailLoaded?.(org.contact_email || null);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrg?.id, onOwnerEmailLoaded]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/platform/organizations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand_name: brandName.trim(),
+          contact_email: contactEmail.trim(),
+          contact_phone: contactPhone.trim(),
+          city: city.trim(),
+          state: stateCode.trim(),
+          description: description.trim(),
+          brand_primary_color: primaryColor.trim(),
+          brand_accent_color: accentColor.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatus({ ok: true, msg: "Organization profile & branding saved!" });
+        onOwnerEmailLoaded?.(contactEmail.trim() || null);
+      } else {
+        setStatus({ ok: false, msg: data.error || "Failed to save organization profile." });
+      }
+    } catch {
+      setStatus({ ok: false, msg: "Network error saving organization profile." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const INPUT =
+    "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-sky-400/60 outline-none placeholder:text-gray-600";
+
+  return (
+    <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-5 sm:p-6 shadow-[0_0_24px_rgba(56,189,248,0.05)]">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center">
+            <Building2 size={16} className="text-indigo-400" />
+          </div>
+          <div>
+            <h2 className="text-sm font-black text-white uppercase tracking-widest">
+              Organization Profile &amp; Branding
+            </h2>
+            <p className="text-xs text-gray-500">
+              Used across your public showcase website, One-Sheet PDFs, and tenant communications.
+            </p>
+          </div>
+        </div>
+        {loading && <Loader2 size={15} className="animate-spin text-sky-400" />}
+      </div>
+
+      <form onSubmit={handleSave} className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+              Display / Brand Name
+            </label>
+            <input
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              placeholder="Acme Property Group"
+              className={INPUT}
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+              Public Contact Email
+            </label>
+            <input
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="leasing@company.com"
+              className={INPUT}
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+              Public Contact Phone
+            </label>
+            <input
+              value={contactPhone}
+              onChange={(e) => setContactPhone(e.target.value)}
+              placeholder="(555) 234-5678"
+              className={INPUT}
+            />
+          </div>
         </div>
 
-        <div className="mt-3 rounded-xl bg-[rgba(74,222,128,0.04)] border border-[rgba(74,222,128,0.12)] px-3 py-2.5">
-          <p className="text-[13px] text-gray-400 leading-relaxed">
-            <span className="text-[#4ADE80] font-bold">How it works:</span> Paste the link into your Facebook/Instagram post. When someone clicks, they land on a branded page that highlights the featured property with a hero card, photo, and CTA — the rest of your properties show below.
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">City</label>
+            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Austin" className={INPUT} />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">State</label>
+            <input
+              value={stateCode}
+              onChange={(e) => setStateCode(e.target.value)}
+              placeholder="TX"
+              maxLength={24}
+              className={INPUT}
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-1">
+              <Palette size={11} className="text-sky-400" /> Primary Brand Color
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                className="w-10 h-10 rounded-lg bg-transparent border border-white/15 cursor-pointer"
+              />
+              <input
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                placeholder="#38BDF8"
+                className={INPUT + " font-mono"}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 mb-1">
+              <Palette size={11} className="text-emerald-400" /> Accent Color
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="w-10 h-10 rounded-lg bg-transparent border border-white/15 cursor-pointer"
+              />
+              <input
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                placeholder="#4ADE80"
+                className={INPUT + " font-mono"}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+            Company Tagline / Description
+          </label>
+          <textarea
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Modern commercial & residential property management."
+            className={INPUT + " resize-none"}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 pt-1">
+          {status ? (
+            <p className={`text-xs font-bold ${status.ok ? "text-emerald-400" : "text-red-400"}`}>{status.msg}</p>
+          ) : (
+            <span />
+          )}
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-xs font-black transition-all disabled:opacity-50 shadow-md"
+          >
+            {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+            {saving ? "Saving…" : "Save Branding & Profile"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ─── Password & Security Card ─────────────────────────────────────────────────
+
+function PasswordSecurityCard() {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus(null);
+    if (password.length < 8) {
+      setStatus({ ok: false, msg: "Password must be at least 8 characters long." });
+      return;
+    }
+    if (password !== confirmPassword) {
+      setStatus({ ok: false, msg: "Passwords do not match." });
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabaseBrowser.auth.updateUser({ password });
+      if (error) {
+        setStatus({ ok: false, msg: error.message || "Could not update password." });
+      } else {
+        setStatus({ ok: true, msg: "Password updated! You can now sign in with your email and password." });
+        setPassword("");
+        setConfirmPassword("");
+      }
+    } catch {
+      setStatus({ ok: false, msg: "Unexpected error updating password." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-5 sm:p-6">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center">
+          <KeyRound size={16} className="text-emerald-400" />
+        </div>
+        <div>
+          <h2 className="text-sm font-black text-white uppercase tracking-widest">Password &amp; Security</h2>
+          <p className="text-xs text-gray-500">
+            Set or change your account password so you can sign in directly without waiting for an email magic link.
           </p>
         </div>
-      </>)}
+      </div>
+
+      <form onSubmit={handleUpdatePassword} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+        <div>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+            New Password
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Minimum 8 characters"
+            autoComplete="new-password"
+            className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-emerald-400/60 outline-none placeholder:text-gray-600"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+            Confirm New Password
+          </label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Re-enter password"
+            autoComplete="new-password"
+            className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-emerald-400/60 outline-none placeholder:text-gray-600"
+          />
+        </div>
+        <div>
+          <button
+            type="submit"
+            disabled={saving || !password}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all disabled:opacity-40"
+          >
+            {saving ? <Loader2 size={13} className="animate-spin" /> : <Lock size={13} />}
+            {saving ? "Updating…" : "Update Password"}
+          </button>
+        </div>
+      </form>
+
+      {status && (
+        <p className={`text-xs font-bold mt-3 ${status.ok ? "text-emerald-400" : "text-red-400"}`}>{status.msg}</p>
+      )}
     </div>
   );
 }
@@ -1721,30 +2075,7 @@ function SettingsPanel({
   const [cleanUsers,  setCleanUsers]  = useState<AllowedUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [setupSQL, setSetupSQL] = useState(false);
-  const [editingQR, setEditingQR] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [deletingQR, setDeletingQR] = useState<string | null>(null);
-  const [savingQR, setSavingQR] = useState(false);
-  const [hiddenQR, setHiddenQR] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try { return new Set(JSON.parse(localStorage.getItem("oiq_hidden_qr") || "[]") as string[]); }
-    catch { return new Set(); }
-  });
-  const [showHidden, setShowHidden] = useState(false);
-
-  function hideCard(id: string) {
-    const next = new Set(hiddenQR).add(id);
-    setHiddenQR(next);
-    localStorage.setItem("oiq_hidden_qr", JSON.stringify([...next]));
-    setDeletingQR(null);
-  }
-
-  function unhideCard(id: string) {
-    const next = new Set(hiddenQR);
-    next.delete(id);
-    setHiddenQR(next);
-    localStorage.setItem("oiq_hidden_qr", JSON.stringify([...next]));
-  }
+  const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
@@ -1766,6 +2097,12 @@ function SettingsPanel({
 
   return (
     <div className="space-y-8">
+      {/* ── Subscription & Billing (Canonical PLANS) ── */}
+      <SubscriptionAndBillingCard activeOrg={activeOrg} />
+
+      {/* ── Organization Profile & Branding ── */}
+      <OrganizationProfileCard activeOrg={activeOrg} onOwnerEmailLoaded={setOwnerEmail} />
+
       {/* ── Public Website Custom Domain Manager (GoDaddy & IONOS) ── */}
       <CustomDomainManager
         orgId={activeOrg?.id}
@@ -1781,7 +2118,7 @@ function SettingsPanel({
           <h2 className="text-sm font-black text-white uppercase tracking-widest">Portal Access</h2>
         </div>
         <p className="text-xs text-gray-500 mb-5">
-          Admin access uses Gmail sign-in. Staff portals (Maintenance & Cleaning) use a 6-digit PIN — no Gmail required. Changes take effect immediately.
+          Admins can sign in with Magic Link, Password, or Google. Staff portals (Maintenance &amp; Cleaning) use a 6-digit PIN — no email required. Changes take effect immediately.
         </p>
 
         {/* Setup SQL banner */}
@@ -1802,10 +2139,6 @@ ALTER TABLE allowed_users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "allow_select_allowed_users" ON allowed_users
   FOR SELECT TO anon, authenticated USING (true);
 REVOKE SELECT (pin) ON TABLE allowed_users FROM anon, authenticated;
-
--- If upgrading from an older schema, add the pin column:
--- ALTER TABLE allowed_users ADD COLUMN IF NOT EXISTS pin TEXT DEFAULT NULL;
--- ALTER TABLE allowed_users ALTER COLUMN email DROP NOT NULL;
 
 -- Seed your own email as first admin:
 INSERT INTO allowed_users (id, email, name, role, active)
@@ -1831,6 +2164,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
               color="#4ADE80"
               users={adminUsers}
               onRefresh={loadUsers}
+              ownerEmail={ownerEmail}
             />
             <UserSection
               title="Maintenance Staff"
@@ -1839,6 +2173,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
               color="#FACC15"
               users={maintUsers}
               onRefresh={loadUsers}
+              ownerEmail={ownerEmail}
             />
             <UserSection
               title="Cleaning Staff"
@@ -1847,10 +2182,17 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
               color="#34D399"
               users={cleanUsers}
               onRefresh={loadUsers}
+              ownerEmail={ownerEmail}
             />
           </div>
         )}
       </div>
+
+      {/* ─ Divider */}
+      <div className="border-t border-[rgba(255,255,255,0.05)]" />
+
+      {/* ── Password & Security ── */}
+      <PasswordSecurityCard />
 
       {/* ─ Divider */}
       <div className="border-t border-[rgba(255,255,255,0.05)]" />
@@ -1869,170 +2211,6 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
 
       {/* ── Data Import / Export ── */}
       <DataExportSection leads={leads} />
-
-      {/* ─ QR Capture Hub ───────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_12px_rgba(59,130,246,0.35)]">
-            <span className="text-white text-xs font-black">QR</span>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-sm font-black text-white uppercase tracking-widest">QR Capture Cards</h2>
-            <p className="text-xs text-gray-500">Each admin user gets a unique link — scan to capture leads in-person</p>
-          </div>
-          {hiddenQR.size > 0 && (
-            <button
-              onClick={() => setShowHidden(h => !h)}
-              className="text-xs font-bold text-gray-500 hover:text-gray-300 border border-[rgba(255,255,255,0.08)] rounded-lg px-2.5 py-1 transition-colors"
-            >
-              {showHidden ? "Hide hidden" : `Show ${hiddenQR.size} hidden`}
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {adminUsers.map(admin => {
-            const isHidden = hiddenQR.has(admin.id);
-            if (isHidden && !showHidden) return null;
-
-            const slug = nameToSlug(admin.name || admin.email);
-            const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-            const captureUrl = `${baseUrl}/meet/${slug}`;
-            const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=080C14&color=4ADE80&margin=10&data=${encodeURIComponent(captureUrl)}`;
-            const qrLeadCount = leads.filter(l => l.source === "qr" && l.campaign === slug).length;
-            const isEditing = editingQR === admin.id;
-            const isDeleting = deletingQR === admin.id;
-
-            async function saveEdit() {
-              if (!editName.trim()) return;
-              setSavingQR(true);
-              await fetch(`/api/allowed-users?id=${admin.id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: editName.trim() }),
-              });
-              setSavingQR(false);
-              setEditingQR(null);
-              loadUsers();
-            }
-
-            return (
-              <div key={admin.id} className={`rounded-2xl border border-white/12 bg-white/[0.02] p-4 shadow-[0_0_20px_rgba(56,189,248,0.06)] ${isHidden ? "opacity-40" : ""}`}>
-                {isHidden && (
-                  <div className="flex items-center justify-between mb-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] px-3 py-2">
-                    <span className="text-xs text-gray-500">Card hidden — login access unchanged</span>
-                    <button onClick={() => unhideCard(admin.id)} className="text-xs font-bold text-[#4ADE80] hover:underline">Restore</button>
-                  </div>
-                )}
-                {/* Header row */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-600/10 border border-blue-500/25 flex items-center justify-center text-xs font-black text-sky-400">
-                    {initials(admin.name || admin.email)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {isEditing ? (
-                      <input
-                        autoFocus
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingQR(null); }}
-                        className="w-full bg-[rgba(255,255,255,0.06)] border border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] rounded-lg px-2 py-1 text-sm text-white outline-none"
-                      />
-                    ) : (
-                      <p className="text-sm font-bold text-white truncate">{admin.name || admin.email}</p>
-                    )}
-                    <p className="text-xs text-[#4ADE80] font-bold">{qrLeadCount} QR lead{qrLeadCount !== 1 ? "s" : ""}</p>
-                  </div>
-                  {/* Edit / Delete controls */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {isEditing ? (
-                      <>
-                        <button
-                          onClick={saveEdit}
-                          disabled={savingQR}
-                          className="px-2 py-1 rounded-lg text-xs font-black bg-blue-500/15 border border-blue-500/30 text-sky-400 hover:bg-blue-500/25 disabled:opacity-50 transition-colors"
-                        >
-                          {savingQR ? <Loader2 size={10} className="animate-spin" /> : "Save"}
-                        </button>
-                        <button
-                          onClick={() => setEditingQR(null)}
-                          className="px-2 py-1 rounded-lg text-xs font-bold border border-[rgba(255,255,255,0.08)] text-gray-500 hover:text-gray-300 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : isDeleting ? (
-                      <>
-                        <button
-                          onClick={() => hideCard(admin.id)}
-                          className="px-2 py-1 rounded-lg text-xs font-black bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.4)] text-red-400 hover:bg-[rgba(239,68,68,0.25)] transition-colors"
-                        >
-                          Hide Card
-                        </button>
-                        <button
-                          onClick={() => setDeletingQR(null)}
-                          className="px-2 py-1 rounded-lg text-xs font-bold border border-[rgba(255,255,255,0.08)] text-gray-500 hover:text-gray-300 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Tooltip text="Edit display name">
-                          <button
-                            onClick={() => { setEditingQR(admin.id); setEditName(admin.name || ""); setDeletingQR(null); }}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center border border-[rgba(255,255,255,0.08)] text-gray-500 hover:text-white hover:border-[rgba(74,222,128,0.3)] transition-colors"
-                          >
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          </button>
-                        </Tooltip>
-                        <Tooltip text="Hide this card (login stays active)">
-                          <button
-                            onClick={() => { setDeletingQR(admin.id); setEditingQR(null); }}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center border border-[rgba(255,255,255,0.08)] text-gray-500 hover:text-red-400 hover:border-[rgba(239,68,68,0.3)] transition-colors"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        </Tooltip>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {isDeleting && (
-                  <p className="text-xs text-amber-400 bg-[rgba(251,191,36,0.06)] border border-[rgba(251,191,36,0.2)] rounded-xl px-3 py-2 mb-3">
-                    This hides <strong>{admin.name || admin.email}&apos;s</strong> QR card from this view only. Their login access is <strong>not</strong> affected.
-                  </p>
-                )}
-
-                <div className="flex justify-center my-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qrSrc} alt={`QR for ${admin.name}`} width={120} height={120} className="rounded-xl" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-xs text-gray-500 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] rounded-lg px-2 py-1.5 truncate">
-                    /meet/{slug}
-                  </code>
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(captureUrl).catch(() => {}); }}
-                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-white/12 text-sky-400 hover:border-white/25 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] bg-white/[0.02] transition-colors"
-                  >
-                    Copy
-                  </button>
-                  <a href={captureUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-[rgba(255,255,255,0.08)] text-gray-400 hover:text-white transition-colors"
-                  >
-                    Preview
-                  </a>
-                </div>
-              </div>
-            );
-          })}
-          {adminUsers.length === 0 && (
-            <p className="text-xs text-gray-600 col-span-2 text-center py-6">Add admin users above to generate QR capture cards.</p>
-          )}
-        </div>
-      </div>
 
       {/* ─ Divider */}
       <div className="border-t border-[rgba(255,255,255,0.05)]" />

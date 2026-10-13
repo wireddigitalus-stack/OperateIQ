@@ -10,6 +10,7 @@ import CompletionSheet from "@/components/crew/CompletionSheet";
 import MicButton from "@/components/MicButton";
 import FilterChangesTab from "@/app/admin/FilterChangesTab";
 import BuildingInspectionsTab from "@/app/admin/BuildingInspectionsTab";
+import StaffAskOpsIQ from "../StaffAskOpsIQ";
 
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
@@ -54,27 +55,6 @@ const STATUS_CONFIG: Record<Ticket["status"], { label: string; color: string; bg
   complete:    { label: "Complete",    color: "#4ADE80", bg: "rgba(74,222,128,0.12)" },
   cancelled:   { label: "Cancelled",   color: "#6B7280", bg: "rgba(107,114,128,0.12)" },
 };
-
-const PROPERTIES = [
-  "City Centre",
-  "City Central",
-  "The Executive",
-  "Coke Building",
-  "Centerpoint",
-  "250 Commonwealth",
-  "628 State St",
-  "215 Gate City Hwy",
-  "221 Moore ST",
-  "642 State St",
-  "634 State St",
-  "720 State St",
-  "209 Blackley Rd",
-  "1825 Vol Pky",
-  "West State Commons",
-  "Foundation Event Facility",
-  "Commercial Warehouse",
-  "Farm",
-];
 
 const CATEGORIES = ["HVAC", "Plumbing", "Water", "Sprinkler", "Electrical", "Elevator", "Door/Lock", "Security/Fire", "Appliance", "Structural", "Cleaning", "Pest", "Landscaping", "Damage", "Other"];
 
@@ -206,7 +186,7 @@ function NotesLogModal({
               <button
                 onClick={() => setEditRawMode(!editRawMode)}
                 className="text-[11px] text-amber-400 hover:text-amber-300 font-bold px-2.5 py-1.5 rounded-xl bg-[rgba(250,204,21,0.08)] border border-[rgba(250,204,21,0.2)] transition-all"
-                title="Fred / Admin: Edit or clean up notes history"
+                title="Lead / Admin: Edit or clean up notes history"
               >
                 {editRawMode ? "View Formatted" : "✏️ Edit Full Log"}
               </button>
@@ -260,19 +240,16 @@ function NotesLogModal({
               if (match) {
                 const [, date, author, text] = match;
                 const isAuthorMe = author.toLowerCase().includes(workerName.toLowerCase());
-                const isFred = author.toLowerCase().includes("fred");
                 return (
                   <div key={idx} className={`border rounded-2xl p-3.5 text-xs transition-all ${
-                    isFred
-                      ? "bg-[rgba(250,204,21,0.06)] border-[rgba(250,204,21,0.2)]"
-                      : isAuthorMe
+                    isAuthorMe
                       ? "bg-[rgba(96,165,250,0.06)] border-[rgba(96,165,250,0.2)]"
                       : "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.05)]"
                   }`}>
                     <div className="flex justify-between items-center mb-1.5 text-gray-400 font-bold text-[10px] uppercase tracking-wider">
                       <span className="flex items-center gap-1">
-                        {isFred ? "👑" : "👤"}
-                        <span className={isFred ? "text-amber-400" : isAuthorMe ? "text-blue-400" : "text-gray-300"}>
+                        👤
+                        <span className={isAuthorMe ? "text-blue-400" : "text-gray-300"}>
                           {author}
                         </span>
                       </span>
@@ -321,12 +298,13 @@ function NotesLogModal({
   );
 }
 
-// ─── Edit Work Order Modal (Admin / Fred) ───────────────────────────────────
+// ─── Edit Work Order Modal (Lead / Admin) ───────────────────────────────────
 
 function EditTicketModal({
   ticket,
   workerName,
   knownStaff,
+  propertyNames,
   isOpen,
   onClose,
   onSave,
@@ -335,6 +313,7 @@ function EditTicketModal({
   ticket: Ticket;
   workerName: string;
   knownStaff: string[];
+  propertyNames: string[];
   isOpen: boolean;
   onClose: () => void;
   onSave: (id: string, updates: Partial<Ticket>) => Promise<void>;
@@ -519,18 +498,30 @@ function EditTicketModal({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Building / Property</label>
-              <select
-                value={form.building || ""}
-                onChange={(e) => set("building", e.target.value)}
-                className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-[#FACC15]"
-              >
-                <option value="" className="bg-[#0A0F1A]">Select building...</option>
-                {PROPERTIES.map((p) => (
-                  <option key={p} value={p} className="bg-[#0A0F1A]">
-                    {p}
-                  </option>
-                ))}
-              </select>
+              {propertyNames.length > 0 ? (
+                <select
+                  value={form.building || ""}
+                  onChange={(e) => set("building", e.target.value)}
+                  className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-[#FACC15]"
+                >
+                  <option value="" className="bg-[#0A0F1A]">Select building...</option>
+                  {propertyNames.map((p) => (
+                    <option key={p} value={p} className="bg-[#0A0F1A]">
+                      {p}
+                    </option>
+                  ))}
+                  {!propertyNames.includes("General") && (
+                    <option value="General" className="bg-[#0A0F1A]">General</option>
+                  )}
+                </select>
+              ) : (
+                <input
+                  value={form.building || ""}
+                  onChange={(e) => set("building", e.target.value)}
+                  placeholder="Building name or General"
+                  className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-[#FACC15]"
+                />
+              )}
             </div>
             <div>
               <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Unit / Suite</label>
@@ -693,12 +684,14 @@ function EditTicketModal({
 function ReportModal({
   workerName,
   knownStaff,
+  propertyNames,
   isMaintenanceAdmin,
   onClose,
   onSubmit,
 }: {
   workerName: string;
   knownStaff: string[];
+  propertyNames: string[];
   isMaintenanceAdmin: boolean;
   onClose: () => void;
   onSubmit: () => void;
@@ -741,7 +734,7 @@ function ReportModal({
         title,
         category,
         priority,
-        building,
+        building: building || "General",
         unit,
         tenant,
         description: desc,
@@ -764,7 +757,7 @@ function ReportModal({
           <div>
             <h2 className="text-lg font-black text-white">Report New Issue</h2>
             {isMaintenanceAdmin && (
-              <p className="text-xs text-amber-400 font-semibold mt-0.5">👑 Maintenance Admin Mode</p>
+              <p className="text-xs text-amber-400 font-semibold mt-0.5">👑 Maintenance Lead Mode</p>
             )}
           </div>
           <button onClick={onClose} className="w-10 h-10 rounded-xl bg-[rgba(255,255,255,0.06)] flex items-center justify-center">
@@ -815,13 +808,25 @@ function ReportModal({
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Building</p>
-            <select value={building} onChange={e => setBuilding(e.target.value)}
-              className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-[rgba(250,204,21,0.4)]">
-              <option value="" style={{ background: "#0A0F1A" }}>Select property…</option>
-              {PROPERTIES.map(p => (
-                <option key={p} value={p} style={{ background: "#0A0F1A" }}>{p}</option>
-              ))}
-            </select>
+            {propertyNames.length > 0 ? (
+              <select value={building} onChange={e => setBuilding(e.target.value)}
+                className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-[rgba(250,204,21,0.4)]">
+                <option value="" style={{ background: "#0A0F1A" }}>Select property…</option>
+                {propertyNames.map(p => (
+                  <option key={p} value={p} style={{ background: "#0A0F1A" }}>{p}</option>
+                ))}
+                {!propertyNames.includes("General") && (
+                  <option value="General" style={{ background: "#0A0F1A" }}>General</option>
+                )}
+              </select>
+            ) : (
+              <input
+                value={building}
+                onChange={e => setBuilding(e.target.value)}
+                placeholder="Building name or General"
+                className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-[rgba(250,204,21,0.4)] placeholder:text-gray-600"
+              />
+            )}
           </div>
           <div>
             <div className="grid grid-cols-2 gap-2">
@@ -933,6 +938,7 @@ function FieldTicketCard({
   workerName,
   isMaintenanceAdmin,
   knownStaff,
+  propertyNames,
   onUpdate,
   onFullUpdate,
   onDeleteTicket,
@@ -941,6 +947,7 @@ function FieldTicketCard({
   workerName: string;
   isMaintenanceAdmin: boolean;
   knownStaff: string[];
+  propertyNames: string[];
   onUpdate: (id: string, status: Ticket["status"], meta?: { notes?: string; minutes?: number; partsNeeded?: boolean; assignedTo?: string; billable?: boolean; materialAmount?: number }) => Promise<void>;
   onFullUpdate: (id: string, updates: Partial<Ticket>) => Promise<void>;
   onDeleteTicket?: (id: string, title: string) => Promise<void>;
@@ -1158,7 +1165,7 @@ function FieldTicketCard({
             <span>Notes{notesCount > 0 ? ` (${notesCount})` : ""}</span>
           </button>
 
-          {/* Admin Edit button — Fred / Maintenance Admin */}
+          {/* Admin Edit button — Lead / Maintenance Admin */}
           {isMaintenanceAdmin && (
             <button
               onClick={() => setShowEditModal(true)}
@@ -1201,6 +1208,7 @@ function FieldTicketCard({
           ticket={ticket}
           workerName={workerName}
           knownStaff={knownStaff}
+          propertyNames={propertyNames}
           onSave={async (id, updates) => {
             await onFullUpdate(id, updates);
           }}
@@ -1242,12 +1250,19 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
         body: JSON.stringify({ pin }),
       });
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (res.ok && (data.success || data.authenticated)) {
+        if (data.role && data.role !== "maintenance") {
+          setShake(true);
+          setError("This PIN belongs to the Cleaning portal. Please use /staff/cleaning.");
+          setDigits("");
+          setTimeout(() => setShake(false), 500);
+          return;
+        }
         setWelcome(data.name);
         setTimeout(() => onAuth(data.name), 1200);
       } else {
         setShake(true);
-        setError("Invalid PIN");
+        setError(data.error || "Invalid PIN");
         setDigits("");
         setTimeout(() => setShake(false), 500);
       }
@@ -1298,7 +1313,7 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
 
       {/* Error */}
       {error && (
-        <p className="text-red-400 text-sm font-bold mb-4 animate-pulse">{error}</p>
+        <p className="text-red-400 text-sm font-bold mb-4 animate-pulse text-center">{error}</p>
       )}
 
       {/* Keypad */}
@@ -1356,7 +1371,8 @@ export default function MaintenanceStaffPage() {
   const [showReport, setShowReport] = useState(false);
   const [ticketView, setTicketView] = useState<"mine" | "all" | "completed">("all");
   const [staffFilter, setStaffFilter] = useState<string>("all");
-  const [knownStaff, setKnownStaff] = useState<string[]>(["Fred", "Mike D.", "Carlos M.", "James R."]);
+  const [knownStaff, setKnownStaff] = useState<string[]>([]);
+  const [propertyNames, setPropertyNames] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [completionToast, setCompletionToast] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<"tickets" | "filters" | "inspections">("tickets");
@@ -1364,9 +1380,11 @@ export default function MaintenanceStaffPage() {
 
   const isMaintenanceAdmin = Boolean(
     workerName && (
-      workerName.toLowerCase().includes("fred") ||
-      workerName.toLowerCase().includes("admin") ||
-      workerName.toLowerCase().includes("allen")
+      workerName.toLowerCase().includes("lead") ||
+      workerName.toLowerCase().includes("manager") ||
+      workerName.toLowerCase().includes("supervisor") ||
+      workerName.toLowerCase().includes("director") ||
+      workerName.toLowerCase().includes("admin")
     )
   );
 
@@ -1376,22 +1394,44 @@ export default function MaintenanceStaffPage() {
     // Crew sessions expire after a shift — if the signed session is gone, return to PIN entry.
     fetch("/api/staff-auth")
       .then(r => r.json())
-      .then(d => { if (!d.authenticated) { localStorage.removeItem("oiq_staff_name"); setWorkerName(null); } })
+      .then(d => {
+        if (!d.authenticated || (d.role && d.role !== "maintenance")) {
+          localStorage.removeItem("oiq_staff_name");
+          setWorkerName(null);
+        }
+      })
       .catch(() => {});
   }, []);
 
+  // Fetch org properties for building selectors on login
+  useEffect(() => {
+    if (!workerName) return;
+    fetch("/api/properties-list")
+      .then(r => (r.ok ? r.json() : []))
+      .then(list => {
+        if (Array.isArray(list)) {
+          const names = list.map((p: { name?: string }) => p.name?.trim()).filter((n): n is string => Boolean(n));
+          if (names.length > 0) {
+            setPropertyNames(prev => Array.from(new Set([...prev, ...names])));
+          }
+        }
+      })
+      .catch(() => {});
+  }, [workerName]);
+
   // Fetch known maintenance staff for assignments and filters
   useEffect(() => {
+    if (!workerName) return;
     fetch("/api/allowed-users?role=maintenance")
       .then(r => r.json())
       .then(d => {
         if (Array.isArray(d.users)) {
           const names = d.users.map((u: { name: string }) => u.name).filter(Boolean);
-          setKnownStaff(prev => Array.from(new Set([...prev, ...names, "Fred"])));
+          setKnownStaff(prev => Array.from(new Set([...prev, ...names])));
         }
       })
       .catch(() => {});
-  }, []);
+  }, [workerName]);
 
   const handleSelectName = (name: string) => {
     localStorage.setItem("oiq_staff_name", name);
@@ -1411,7 +1451,13 @@ export default function MaintenanceStaffPage() {
         // Merge any technician names found in tickets into knownStaff
         const ticketStaff = nonCancelled.map(t => t.assignedTo).filter(Boolean);
         if (ticketStaff.length > 0) {
-          setKnownStaff(prev => Array.from(new Set([...prev, ...ticketStaff, "Fred"])));
+          setKnownStaff(prev => Array.from(new Set([...prev, ...ticketStaff])));
+        }
+
+        // Merge any distinct building names found on tickets into propertyNames
+        const ticketBuildings = nonCancelled.map(t => t.building?.trim()).filter((b): b is string => Boolean(b));
+        if (ticketBuildings.length > 0) {
+          setPropertyNames(prev => Array.from(new Set([...prev, ...ticketBuildings])));
         }
 
         if (ticketView === "completed") {
@@ -1561,7 +1607,7 @@ export default function MaintenanceStaffPage() {
               <p className="text-xs text-gray-400 font-semibold">Maintenance</p>
               {isMaintenanceAdmin && (
                 <span className="px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center gap-1">
-                  👑 Admin
+                  👑 Lead
                 </span>
               )}
             </div>
@@ -1637,7 +1683,7 @@ export default function MaintenanceStaffPage() {
             </button>
           </div>
 
-          {/* Admin Crew Filter Pills (Fred / Maintenance Admin) */}
+          {/* Admin Crew Filter Pills */}
           {isMaintenanceAdmin && ticketView !== "mine" && (
             <div className="px-4 mt-3 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap flex items-center gap-1 mr-1">
@@ -1705,6 +1751,7 @@ export default function MaintenanceStaffPage() {
                       workerName={workerName}
                       isMaintenanceAdmin={isMaintenanceAdmin}
                       knownStaff={knownStaff}
+                      propertyNames={propertyNames}
                       onUpdate={handleUpdate}
                       onFullUpdate={handleFullUpdate}
                       onDeleteTicket={handleDeleteTicket}
@@ -1730,6 +1777,7 @@ export default function MaintenanceStaffPage() {
                     workerName={workerName}
                     isMaintenanceAdmin={isMaintenanceAdmin}
                     knownStaff={knownStaff}
+                    propertyNames={propertyNames}
                     onUpdate={handleUpdate}
                     onFullUpdate={handleFullUpdate}
                     onDeleteTicket={handleDeleteTicket}
@@ -1746,6 +1794,7 @@ export default function MaintenanceStaffPage() {
                         workerName={workerName}
                         isMaintenanceAdmin={isMaintenanceAdmin}
                         knownStaff={knownStaff}
+                        propertyNames={propertyNames}
                         onUpdate={handleUpdate}
                         onFullUpdate={handleFullUpdate}
                         onDeleteTicket={handleDeleteTicket}
@@ -1797,10 +1846,13 @@ export default function MaintenanceStaffPage() {
         </div>
       )}
 
+      <StaffAskOpsIQ role="maintenance" />
+
       {showReport && (
         <ReportModal
           workerName={workerName}
           knownStaff={knownStaff}
+          propertyNames={propertyNames}
           isMaintenanceAdmin={isMaintenanceAdmin}
           onClose={() => setShowReport(false)}
           onSubmit={() => {

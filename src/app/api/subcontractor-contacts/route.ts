@@ -12,7 +12,7 @@ const H = {
 
 // ─── GET — list all contacts ────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "subcontractors" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
 // ─── POST — create new contact ──────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "subcontractors" });
   if (!g.ok) return g.res;
   const { orgId, user } = g.ctx;
 
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
 // ─── PATCH — update contact ─────────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "subcontractors" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -116,7 +116,7 @@ export async function PATCH(req: NextRequest) {
 
 // ─── DELETE — remove contact ────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "subcontractors" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 

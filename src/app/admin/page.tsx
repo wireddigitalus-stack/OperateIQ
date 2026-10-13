@@ -18,11 +18,12 @@ import ProTips from "./ProTips";
 import CallLogModal, { type CallLog, outcomeColor, outcomeLabel } from "./CallLogModal";
 import PrintButton from "./PrintButton";
 import ActivityFeedPanel from "./ActivityFeedPanel";
-import SettingsTab, { SocialLinksCard } from "./SettingsTab";
+import SettingsTab from "./SettingsTab";
 import IntakeStagingModal from "./IntakeStagingModal";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { signOutEverywhere } from "@/lib/sign-out";
+import { hasFeature, FEATURE_LABELS, type Feature } from "@/lib/plans";
 import * as XLSX from "xlsx";
 import {
   Zap, RefreshCw, Phone, Clock, Building2, TrendingUp,
@@ -1233,13 +1234,21 @@ export default function AdminPage() {
   const [briefKey, setBriefKey] = useState(0);
   const searchParams = useSearchParams();
   const VALID_TABS = ["leads", "tenants", "propdetails", "analytics", "maintenance", "cleaning", "archived", "marketing", "content", "settings", "teamboard"] as const;
-  const [rentLedgerOpen, setRentLedgerOpen] = useState(false);
-  const [secDepLedgerOpen, setSecDepLedgerOpen] = useState(false);
   type TabKey = typeof VALID_TABS[number];
   const rawTabParam = searchParams.get("tab");
-  const parsedTab = (rawTabParam === "conversations" || rawTabParam === "tasks") ? "teamboard" : rawTabParam;
-  const initialTab = (VALID_TABS.includes(parsedTab as any) ? parsedTab : "leads") as TabKey;
-  const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
+  const resolveTabParam = (raw: string | null): TabKey => {
+    if (!raw) return "leads";
+    const norm = raw.toLowerCase().trim();
+    if (norm === "properties" || norm === "propdetails") return "propdetails";
+    if (norm === "rentledger" || norm === "tenants") return "tenants";
+    if (norm === "conversations" || norm === "tasks" || norm === "teamboard") return "teamboard";
+    if (norm === "reports" || norm === "analytics") return "analytics";
+    if (VALID_TABS.includes(norm as TabKey)) return norm as TabKey;
+    return "leads";
+  };
+  const [rentLedgerOpen, setRentLedgerOpen] = useState(rawTabParam?.toLowerCase() === "rentledger");
+  const [secDepLedgerOpen, setSecDepLedgerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>(() => resolveTabParam(rawTabParam));
   const [previousTab, setPreviousTab] = useState<TabKey>("leads");
 
   // Keep URL in sync when tab changes — use replace so the back button isn't polluted
@@ -1257,9 +1266,21 @@ export default function AdminPage() {
   };
   const [marketingSubTab, setMarketingSubTab] = useState("blog");
   const [contentSubView, setContentSubView] = useState("content-properties");
-  const [teamBoardSubTab, setTeamBoardSubTab] = useState<"chat" | "tasks">("chat");
+  const [teamBoardSubTab, setTeamBoardSubTab] = useState<"chat" | "tasks">(
+    rawTabParam?.toLowerCase() === "tasks" ? "tasks" : "chat"
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [showIntakeModal, setShowIntakeModal] = useState(false);
+
+  // Sync URL ?tab= changes (e.g. when navigating via AdminHeader or deep link)
+  useEffect(() => {
+    if (!rawTabParam) return;
+    const resolved = resolveTabParam(rawTabParam);
+    setActiveTab(resolved);
+    if (rawTabParam.toLowerCase() === "rentledger") setRentLedgerOpen(true);
+    if (rawTabParam.toLowerCase() === "tasks") setTeamBoardSubTab("tasks");
+    if (rawTabParam.toLowerCase() === "conversations") setTeamBoardSubTab("chat");
+  }, [rawTabParam]);
 
   // Always start at the very top — prevents browser scroll-restoration from
   // loading the dashboard mid-page and hiding the tab nav under the site nav
@@ -1303,7 +1324,16 @@ export default function AdminPage() {
   const [deleteAllConfirm, setDeleteAllConfirm] = useState("");
   const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(null);
   const [prepopulatedTenant, setPrepopulatedTenant] = useState<Partial<Tenant> | null>(null);
-  const [activeOrg, setActiveOrg] = useState<{ id: string; name: string; slug: string; tier: string } | null>(null);
+  const [activeOrg, setActiveOrg] = useState<{
+    id: string;
+    name: string;
+    slug: string;
+    tier: string;
+    subscription_status?: string;
+    trial_ends_at?: string | null;
+    custom_domain?: string | null;
+  } | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1532,6 +1562,7 @@ export default function AdminPage() {
         return;
       }
 
+      setIsSuperAdmin(!!session.isSuperAdmin);
       const org = session.impersonatingOrg || session.activeOrg || null;
       if (!org) {
         // Signed in, but not a member of any organization.
@@ -2221,130 +2252,154 @@ export default function AdminPage() {
         )}
 
         {/* ═══ Premium Dashboard Navigation ═══════════════════════════════════ */}
-
-        {/* Mobile/Tablet: Horizontal compact pill nav */}
-        <div className="sm:hidden bg-[#080C14] -mx-4 px-4 mb-6">
-          <div className="scrollbar-none flex items-center gap-1 overflow-x-auto py-2 pr-6" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
-            <style>{`.scrollbar-none::-webkit-scrollbar { display: none; }`}</style>
-            {([
-              { key: "leads",       label: `Leads (${activeLeads.length})`, icon: TrendingUp, color: "#38BDF8" },
-              { key: "tenants",     label: "Tenants",     icon: Building2, color: "#60A5FA" },
-              { key: "propdetails", label: "Prop Details", icon: BarChart3, color: "#A78BFA" },
-              { key: "maintenance", label: "Maint.",       icon: Wrench, color: "#F97316" },
-              { key: "cleaning",    label: "Cleaning",    icon: Sparkles, color: "#A78BFA" },
-              { key: "analytics",   label: "Analytics",   icon: BarChart3, color: "#22D3EE" },
-              { key: "marketing",   label: "Marketing",   icon: FileText, color: "#E1306C" },
-              { key: "content",     label: "Content",     icon: Pencil, color: "#FACC15" },
-              { key: "teamboard",   label: "Team Board",  icon: Users, color: "#60A5FA" },
-              { key: "archived",    label: `Archive (${archivedLeads.length})`, icon: Archive, color: "#9CA3AF" },
-            ] as const).map(({ key, label, icon: Icon, color }) => (
-              <button
-                key={key}
-                onClick={() => switchTab(key)}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex-shrink-0 transition-all duration-200 ${
-                  activeTab === key
-                    ? "text-white shadow-lg"
-                    : "text-gray-500 hover:text-gray-300 bg-transparent hover:bg-[rgba(255,255,255,0.04)]"
-                }`}
-                style={activeTab === key ? {
-                  background: `linear-gradient(135deg, ${color}22, ${color}11)`,
-                  border: `1px solid ${color}44`,
-                  boxShadow: `0 0 20px ${color}15`,
-                  color,
-                } : { border: "1px solid transparent" }}
-              >
-                <Icon size={12} />
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Desktop/Tablet: Premium two-row grid nav */}
-        <div className="hidden sm:block bg-[#080C14] -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-5 mb-6">
-          <div className="grid grid-cols-5 gap-2">
-            {([
-              { key: "leads",       label: "Leads",       count: activeLeads.length, icon: TrendingUp, color: "#38BDF8",  desc: "Inquiries" },
-              { key: "tenants",     label: "Tenants",     icon: Building2, color: "#60A5FA", desc: "Active leases" },
-              { key: "propdetails", label: "Prop Details", icon: BarChart3, color: "#A78BFA", desc: "Occupancy & stats" },
-              { key: "maintenance", label: "Maintenance", icon: Wrench,    color: "#F97316", desc: "Work orders" },
-              { key: "cleaning",    label: "Cleaning",    icon: Sparkles,  color: "#A78BFA", desc: "Schedules" },
-              { key: "analytics",   label: "Analytics",   icon: BarChart3, color: "#22D3EE", desc: "Traffic & KPIs" },
-              { key: "marketing",   label: "Marketing",   icon: FileText,  color: "#E1306C", desc: "Promo tools" },
-              { key: "content",     label: "Content",     icon: Pencil,    color: "#FACC15", desc: "Site editor" },
-              { key: "teamboard",   label: "Team Board",  icon: Users,      color: "#60A5FA", desc: "Comm & Tasks" },
-              { key: "archived",    label: "Archived",    count: archivedLeads.length, icon: Archive,   color: "#9CA3AF", desc: "Closed leads" },
-            ] as const).map(({ key, label, icon: Icon, color, desc, ...rest }) => {
-              const isActive = activeTab === key;
-              const count = (rest as Record<string, unknown>).count as number | undefined;
-              return (
-                <button
-                  key={key}
-                  onClick={() => switchTab(key)}
-                  className={`group relative flex items-center gap-2.5 px-3 py-3 rounded-xl text-left transition-all duration-200 border ${
-                    isActive
-                      ? "bg-[rgba(255,255,255,0.07)]"
-                      : "bg-[rgba(255,255,255,0.02)] hover:bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.18)]"
-                  }`}
-                  style={isActive ? {
-                    borderColor: `${color}55`,
-                    boxShadow: `0 0 24px ${color}15, inset 0 0 0 0.5px ${color}20`,
-                  } : {}}
-                >
-                  {/* Bottom active bar */}
-                  {isActive && (
-                    <div
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-[2px] rounded-full"
-                      style={{ background: color, boxShadow: `0 0 10px ${color}90` }}
-                    />
-                  )}
-                  {/* Icon badge */}
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                      isActive ? "shadow-lg" : "opacity-60 group-hover:opacity-90"
-                    }`}
-                    style={isActive ? {
-                      background: `linear-gradient(135deg, ${color}30, ${color}12)`,
-                      border: `1px solid ${color}50`,
-                    } : {
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.10)",
-                    }}
-                  >
-                    <Icon size={14} style={isActive ? { color } : { color: "#9CA3AF" }} />
-                  </div>
-                  {/* Label + desc */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className={`text-xs font-bold truncate transition-colors ${isActive ? "text-white" : "text-gray-400 group-hover:text-gray-200"}`}>
+        {(() => {
+          const TAB_FEATURE_MAP: Partial<Record<TabKey, Feature>> = {
+            cleaning: "cleaning",
+            teamboard: "tasks",
+            analytics: "reports",
+            marketing: "marketing_studio",
+            content: "site_builder",
+          };
+          const isTabLocked = (key: TabKey): boolean => {
+            if (isSuperAdmin || !activeOrg) return false;
+            const req = TAB_FEATURE_MAP[key];
+            if (!req) return false;
+            return !hasFeature(activeOrg.tier, req);
+          };
+          return (
+            <>
+              {/* Mobile/Tablet: Horizontal compact pill nav */}
+              <div className="sm:hidden bg-[#080C14] -mx-4 px-4 mb-6">
+                <div className="scrollbar-none flex items-center gap-1 overflow-x-auto py-2 pr-6" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
+                  <style>{`.scrollbar-none::-webkit-scrollbar { display: none; }`}</style>
+                  {([
+                    { key: "leads",       label: `Leads (${activeLeads.length})`, icon: TrendingUp, color: "#38BDF8" },
+                    { key: "tenants",     label: "Tenants",     icon: Building2, color: "#60A5FA" },
+                    { key: "propdetails", label: "Prop Details", icon: BarChart3, color: "#A78BFA" },
+                    { key: "maintenance", label: "Maint.",       icon: Wrench, color: "#F97316" },
+                    { key: "cleaning",    label: "Cleaning",    icon: Sparkles, color: "#A78BFA" },
+                    { key: "analytics",   label: "Analytics",   icon: BarChart3, color: "#22D3EE" },
+                    { key: "marketing",   label: "Marketing",   icon: FileText, color: "#E1306C" },
+                    { key: "content",     label: "Content",     icon: Pencil, color: "#FACC15" },
+                    { key: "teamboard",   label: "Team Board",  icon: Users, color: "#60A5FA" },
+                    { key: "archived",    label: `Archive (${archivedLeads.length})`, icon: Archive, color: "#9CA3AF" },
+                  ] as const).map(({ key, label, icon: Icon, color }) => {
+                    const locked = isTabLocked(key);
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => switchTab(key)}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex-shrink-0 transition-all duration-200 ${
+                          activeTab === key
+                            ? "text-white shadow-lg"
+                            : "text-gray-500 hover:text-gray-300 bg-transparent hover:bg-[rgba(255,255,255,0.04)]"
+                        }`}
+                        style={activeTab === key ? {
+                          background: `linear-gradient(135deg, ${color}22, ${color}11)`,
+                          border: `1px solid ${color}44`,
+                          boxShadow: `0 0 20px ${color}15`,
+                          color,
+                        } : { border: "1px solid transparent" }}
+                      >
+                        <Icon size={12} />
                         {label}
-                      </span>
-                      {count !== undefined && count > 0 && (
-                        <span
-                          className="text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none flex-shrink-0"
+                        {locked && <Lock size={10} className="text-amber-400/80 ml-0.5 flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Desktop/Tablet: Premium two-row grid nav */}
+              <div className="hidden sm:block bg-[#080C14] -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-5 mb-6">
+                <div className="grid grid-cols-5 gap-2">
+                  {([
+                    { key: "leads",       label: "Leads",       count: activeLeads.length, icon: TrendingUp, color: "#38BDF8",  desc: "Inquiries" },
+                    { key: "tenants",     label: "Tenants",     icon: Building2, color: "#60A5FA", desc: "Active leases" },
+                    { key: "propdetails", label: "Prop Details", icon: BarChart3, color: "#A78BFA", desc: "Occupancy & stats" },
+                    { key: "maintenance", label: "Maintenance", icon: Wrench,    color: "#F97316", desc: "Work orders" },
+                    { key: "cleaning",    label: "Cleaning",    icon: Sparkles,  color: "#A78BFA", desc: "Schedules" },
+                    { key: "analytics",   label: "Analytics",   icon: BarChart3, color: "#22D3EE", desc: "Traffic & KPIs" },
+                    { key: "marketing",   label: "Marketing",   icon: FileText,  color: "#E1306C", desc: "Promo tools" },
+                    { key: "content",     label: "Content",     icon: Pencil,    color: "#FACC15", desc: "Site editor" },
+                    { key: "teamboard",   label: "Team Board",  icon: Users,      color: "#60A5FA", desc: "Comm & Tasks" },
+                    { key: "archived",    label: "Archived",    count: archivedLeads.length, icon: Archive,   color: "#9CA3AF", desc: "Closed leads" },
+                  ] as const).map(({ key, label, icon: Icon, color, desc, ...rest }) => {
+                    const isActive = activeTab === key;
+                    const count = (rest as Record<string, unknown>).count as number | undefined;
+                    const locked = isTabLocked(key);
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => switchTab(key)}
+                        className={`group relative flex items-center gap-2.5 px-3 py-3 rounded-xl text-left transition-all duration-200 border ${
+                          isActive
+                            ? "bg-[rgba(255,255,255,0.07)]"
+                            : "bg-[rgba(255,255,255,0.02)] hover:bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.10)] hover:border-[rgba(255,255,255,0.18)]"
+                        }`}
+                        style={isActive ? {
+                          borderColor: `${color}55`,
+                          boxShadow: `0 0 24px ${color}15, inset 0 0 0 0.5px ${color}20`,
+                        } : {}}
+                      >
+                        {/* Bottom active bar */}
+                        {isActive && (
+                          <div
+                            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-[2px] rounded-full"
+                            style={{ background: color, boxShadow: `0 0 10px ${color}90` }}
+                          />
+                        )}
+                        {/* Icon badge */}
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                            isActive ? "shadow-lg" : "opacity-60 group-hover:opacity-90"
+                          }`}
                           style={isActive ? {
-                            background: `${color}20`,
-                            color,
-                            border: `1px solid ${color}40`,
+                            background: `linear-gradient(135deg, ${color}30, ${color}12)`,
+                            border: `1px solid ${color}50`,
                           } : {
-                            background: "rgba(255,255,255,0.06)",
-                            color: "#9CA3AF",
-                            border: "1px solid rgba(255,255,255,0.08)",
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(255,255,255,0.10)",
                           }}
                         >
-                          {count}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`text-[10px] leading-tight truncate block transition-colors ${isActive ? "text-gray-400" : "text-gray-600 group-hover:text-gray-500"}`}>
-                      {desc}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                          <Icon size={14} style={isActive ? { color } : { color: "#9CA3AF" }} />
+                        </div>
+                        {/* Label + desc */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className={`text-xs font-bold truncate transition-colors ${isActive ? "text-white" : "text-gray-400 group-hover:text-gray-200"}`}>
+                              {label}
+                            </span>
+                            {locked && <Lock size={11} className="text-amber-400/80 ml-0.5 flex-shrink-0" />}
+                            {count !== undefined && count > 0 && (
+                              <span
+                                className="text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none flex-shrink-0"
+                                style={isActive ? {
+                                  background: `${color}20`,
+                                  color,
+                                  border: `1px solid ${color}40`,
+                                } : {
+                                  background: "rgba(255,255,255,0.06)",
+                                  color: "#9CA3AF",
+                                  border: "1px solid rgba(255,255,255,0.08)",
+                                }}
+                              >
+                                {count}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-[10px] leading-tight truncate block transition-colors ${isActive ? "text-gray-400" : "text-gray-600 group-hover:text-gray-500"}`}>
+                            {desc}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          );
+        })()}
 
         {/* Personalized greeting — global */}
         {currentUser && (() => {
@@ -3325,270 +3380,349 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* ─ ARCHIVED TAB ─────────────────────────────────────── */}
-        {/* ─ ANALYTICS TAB ──────────────────────────────────────────────── */}
-        {activeTab === "analytics" && (
-          <AnalyticsTab leads={activeLeads as unknown as AnalyticsLead[]} />
-        )}
+        {/* ─ FEATURE GATE HELPER ──────────────────────────────────────── */}
+        {(() => {
+          const isLocked = (feature: Feature) =>
+            !isSuperAdmin && !!activeOrg && !hasFeature(activeOrg.tier, feature);
 
-        {/* ─ MAINTENANCE TAB ─────────────────────────────────────────── */}
-        {activeTab === "maintenance" && (
-          <MaintenanceTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
-        )}
-
-        {/* ─ CLEANING TAB ──────────────────────────────────────────── */}
-        {activeTab === "cleaning" && <CleaningTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />}
-
-        {/* ─ TENANTS TAB ──────────────────────────────────────────────── */}
-        {activeTab === "tenants" && (
-          <>
-            {renderLeaseAlerts()}
-
-            {/* ═══ Rent Ledger — collapsible panel ═══ */}
-            <div className="mb-6">
+          const renderUpgradeGate = (
+            feature: Feature,
+            title: string,
+            description: string,
+            requiredTierLabel: "Growth" | "Scale"
+          ) => (
+            <div className="glass rounded-3xl border border-amber-500/25 bg-gradient-to-br from-amber-500/[0.06] via-[#0B1120] to-sky-500/[0.04] p-8 sm:p-12 text-center max-w-2xl mx-auto my-8 shadow-[0_0_40px_rgba(245,158,11,0.1)]">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center mx-auto mb-5 shadow-[0_0_24px_rgba(245,158,11,0.2)]">
+                <Lock size={24} className="text-amber-400" />
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[11px] font-black uppercase tracking-widest mb-3">
+                <Sparkles size={12} /> Unlocked on {requiredTierLabel} Plan
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-2">
+                {title}
+              </h3>
+              <p className="text-sm sm:text-base text-slate-300 max-w-lg mx-auto leading-relaxed mb-6">
+                {description} Your workspace is currently on the{" "}
+                <span className="font-bold text-white capitalize">{activeOrg?.tier || "Starter"}</span> tier.
+                Upgrade to <span className="font-bold text-amber-300">{requiredTierLabel}</span> to unlock{" "}
+                <span className="text-white font-semibold">{FEATURE_LABELS[feature]}</span>.
+              </p>
               <button
-                onClick={() => setRentLedgerOpen(prev => !prev)}
-                className={`w-full group flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 ${
-                  rentLedgerOpen
-                    ? "bg-[rgba(16,185,129,0.06)] border-[rgba(16,185,129,0.25)]"
-                    : "bg-[rgba(16,185,129,0.03)] border-[rgba(16,185,129,0.12)] hover:border-[rgba(16,185,129,0.3)] hover:bg-[rgba(16,185,129,0.06)]"
-                }`}
+                onClick={() => switchTab("settings")}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-sm shadow-[0_0_24px_rgba(245,158,11,0.35)] transition-all cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                      rentLedgerOpen ? "shadow-lg" : "group-hover:shadow-md"
-                    }`}
-                    style={{
-                      background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.15))",
-                      border: "1px solid rgba(16,185,129,0.35)",
-                      boxShadow: rentLedgerOpen ? "0 0 20px rgba(16,185,129,0.2)" : undefined,
-                    }}
-                  >
-                    <DollarSign size={18} className="text-[#10B981]" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-black text-white">Rent Ledger</p>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest">Monthly Payment Tracking</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline text-[10px] font-bold text-[#10B981]/60 uppercase tracking-widest">
-                    {rentLedgerOpen ? "Collapse" : "Open"}
-                  </span>
-                  <ChevronDown
-                    size={16}
-                    className={`text-[#10B981] transition-transform duration-300 ${
-                      rentLedgerOpen ? "rotate-180" : "group-hover:translate-y-0.5"
-                    }`}
-                  />
-                </div>
+                <Sparkles size={16} />
+                View Subscription &amp; Upgrade in Settings
               </button>
-
-              {/* Expanded content */}
-              {rentLedgerOpen && (
-                <div
-                  className="mt-2 rounded-2xl border border-[rgba(16,185,129,0.15)] bg-[rgba(0,0,0,0.2)] p-4 sm:p-6"
-                  style={{ animation: "fadeSlideIn 0.3s ease-out" }}
-                >
-                  <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-                  <RentLedgerTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
-                </div>
-              )}
             </div>
+          );
 
-            {/* ═══ Security Deposit Ledger — collapsible panel ═══ */}
-            <div className="mb-6">
-              <button
-                onClick={() => setSecDepLedgerOpen(prev => !prev)}
-                className={`w-full group flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 ${
-                  secDepLedgerOpen
-                    ? "bg-[rgba(96,165,250,0.06)] border-[rgba(96,165,250,0.25)]"
-                    : "bg-[rgba(96,165,250,0.03)] border-[rgba(96,165,250,0.12)] hover:border-[rgba(96,165,250,0.3)] hover:bg-[rgba(96,165,250,0.06)]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                      secDepLedgerOpen ? "shadow-lg" : "group-hover:shadow-md"
-                    }`}
-                    style={{
-                      background: "linear-gradient(135deg, rgba(96,165,250,0.2), rgba(37,99,235,0.15))",
-                      border: "1px solid rgba(96,165,250,0.35)",
-                      boxShadow: secDepLedgerOpen ? "0 0 20px rgba(96,165,250,0.2)" : undefined,
-                    }}
-                  >
-                    <Landmark size={18} className="text-[#60A5FA]" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-black text-white">Security Deposit Ledger</p>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest">Deposit Tracking & Management</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline text-[10px] font-bold text-[#60A5FA]/60 uppercase tracking-widest">
-                    {secDepLedgerOpen ? "Collapse" : "Open"}
-                  </span>
-                  <ChevronDown
-                    size={16}
-                    className={`text-[#60A5FA] transition-transform duration-300 ${
-                      secDepLedgerOpen ? "rotate-180" : "group-hover:translate-y-0.5"
-                    }`}
-                  />
-                </div>
-              </button>
+          return (
+            <>
+              {/* ─ ANALYTICS TAB ──────────────────────────────────────────────── */}
+              {activeTab === "analytics" && (
+                isLocked("reports")
+                  ? renderUpgradeGate(
+                      "reports",
+                      "Financial & Operations Analytics",
+                      "Track lead conversion funnels, revenue KPIs, occupancy trends, and weekly executive AI reports across your portfolio.",
+                      "Growth"
+                    )
+                  : <AnalyticsTab leads={activeLeads as unknown as AnalyticsLead[]} />
+              )}
 
-              {secDepLedgerOpen && (
-                <div
-                  className="mt-2 rounded-2xl border border-[rgba(96,165,250,0.15)] bg-[rgba(0,0,0,0.2)] p-4 sm:p-6"
-                  style={{ animation: "fadeSlideIn 0.3s ease-out" }}
-                >
-                  <SecurityDepositLedgerTab
+              {/* ─ MAINTENANCE TAB ─────────────────────────────────────────── */}
+              {activeTab === "maintenance" && (
+                <MaintenanceTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
+              )}
+
+              {/* ─ CLEANING TAB ──────────────────────────────────────────── */}
+              {activeTab === "cleaning" && (
+                isLocked("cleaning")
+                  ? renderUpgradeGate(
+                      "cleaning",
+                      "Cleaning Schedules & Crew Dispatch",
+                      "Coordinate recurring building cleaning schedules, unit turnovers, and mobile crew checklists.",
+                      "Growth"
+                    )
+                  : <CleaningTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
+              )}
+
+              {/* ─ TENANTS TAB ──────────────────────────────────────────────── */}
+              {activeTab === "tenants" && (
+                <>
+                  {renderLeaseAlerts()}
+
+                  {/* ═══ Rent Ledger — collapsible panel ═══ */}
+                  <div className="mb-6">
+                    <button
+                      onClick={() => setRentLedgerOpen(prev => !prev)}
+                      className={`w-full group flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 ${
+                        rentLedgerOpen
+                          ? "bg-[rgba(16,185,129,0.06)] border-[rgba(16,185,129,0.25)]"
+                          : "bg-[rgba(16,185,129,0.03)] border-[rgba(16,185,129,0.12)] hover:border-[rgba(16,185,129,0.3)] hover:bg-[rgba(16,185,129,0.06)]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                            rentLedgerOpen ? "shadow-lg" : "group-hover:shadow-md"
+                          }`}
+                          style={{
+                            background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.15))",
+                            border: "1px solid rgba(16,185,129,0.35)",
+                            boxShadow: rentLedgerOpen ? "0 0 20px rgba(16,185,129,0.2)" : undefined,
+                          }}
+                        >
+                          <DollarSign size={18} className="text-[#10B981]" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-black text-white">Rent Ledger</p>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-widest">Monthly Payment Tracking</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="hidden sm:inline text-[10px] font-bold text-[#10B981]/60 uppercase tracking-widest">
+                          {rentLedgerOpen ? "Collapse" : "Open"}
+                        </span>
+                        <ChevronDown
+                          size={16}
+                          className={`text-[#10B981] transition-transform duration-300 ${
+                            rentLedgerOpen ? "rotate-180" : "group-hover:translate-y-0.5"
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {/* Expanded content */}
+                    {rentLedgerOpen && (
+                      <div
+                        className="mt-2 rounded-2xl border border-[rgba(16,185,129,0.15)] bg-[rgba(0,0,0,0.2)] p-4 sm:p-6"
+                        style={{ animation: "fadeSlideIn 0.3s ease-out" }}
+                      >
+                        <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                        <RentLedgerTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ═══ Security Deposit Ledger — collapsible panel ═══ */}
+                  <div className="mb-6">
+                    <button
+                      onClick={() => setSecDepLedgerOpen(prev => !prev)}
+                      className={`w-full group flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 ${
+                        secDepLedgerOpen
+                          ? "bg-[rgba(96,165,250,0.06)] border-[rgba(96,165,250,0.25)]"
+                          : "bg-[rgba(96,165,250,0.03)] border-[rgba(96,165,250,0.12)] hover:border-[rgba(96,165,250,0.3)] hover:bg-[rgba(96,165,250,0.06)]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                            secDepLedgerOpen ? "shadow-lg" : "group-hover:shadow-md"
+                          }`}
+                          style={{
+                            background: "linear-gradient(135deg, rgba(96,165,250,0.2), rgba(37,99,235,0.15))",
+                            border: "1px solid rgba(96,165,250,0.35)",
+                            boxShadow: secDepLedgerOpen ? "0 0 20px rgba(96,165,250,0.2)" : undefined,
+                          }}
+                        >
+                          <Landmark size={18} className="text-[#60A5FA]" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-black text-white">Security Deposit Ledger</p>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-widest">Deposit Tracking & Management</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="hidden sm:inline text-[10px] font-bold text-[#60A5FA]/60 uppercase tracking-widest">
+                          {secDepLedgerOpen ? "Collapse" : "Open"}
+                        </span>
+                        <ChevronDown
+                          size={16}
+                          className={`text-[#60A5FA] transition-transform duration-300 ${
+                            secDepLedgerOpen ? "rotate-180" : "group-hover:translate-y-0.5"
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {secDepLedgerOpen && (
+                      <div
+                        className="mt-2 rounded-2xl border border-[rgba(96,165,250,0.15)] bg-[rgba(0,0,0,0.2)] p-4 sm:p-6"
+                        style={{ animation: "fadeSlideIn 0.3s ease-out" }}
+                      >
+                        <SecurityDepositLedgerTab
+                          currentUserName={currentUser?.name}
+                          currentUserEmail={currentUser?.email}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <TenantsTab
                     currentUserName={currentUser?.name}
                     currentUserEmail={currentUser?.email}
+                    leads={leads}
+                    prepopulatedTenant={prepopulatedTenant}
+                    onClearPrepopulated={() => setPrepopulatedTenant(null)}
+                    onLeadConverted={(leadId) => {
+                      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, archivedAt: new Date().toISOString() } : l));
+                      fetchLeads();
+                    }}
                   />
-                </div>
+                </>
               )}
-            </div>
 
-            <TenantsTab
-              currentUserName={currentUser?.name}
-              currentUserEmail={currentUser?.email}
-              leads={leads}
-              prepopulatedTenant={prepopulatedTenant}
-              onClearPrepopulated={() => setPrepopulatedTenant(null)}
-              onLeadConverted={(leadId) => {
-                setLeads(prev => prev.map(l => l.id === leadId ? { ...l, archivedAt: new Date().toISOString() } : l));
-                fetchLeads();
-              }}
-            />
-          </>
-        )}
+              {/* ─ PROP DETAILS TAB ─────────────────────────────────────────────── */}
+              {activeTab === "propdetails" && (
+                <>
+                  {renderLeaseAlerts()}
+                  <PropDetailsTab />
+                </>
+              )}
 
-        {/* ─ PROP DETAILS TAB ─────────────────────────────────────────────── */}
-        {activeTab === "propdetails" && (
-          <>
-            {renderLeaseAlerts()}
-            <PropDetailsTab />
-          </>
-        )}
-
-        {activeTab === "archived" && (
-          <>
-            <div className="rounded-2xl border border-[rgba(148,163,184,0.15)] bg-[rgba(148,163,184,0.03)] p-5 mb-6">
-              <div className="flex items-center gap-2 mb-1">
-                <Archive size={14} className="text-gray-500" />
-                <p className="text-sm font-bold text-gray-400">Archived Leads</p>
-              </div>
-              <p className="text-xs text-gray-600">Leads archived manually or after passing the 180-day window. They are retained for reference.</p>
-            </div>
-
-            {archivedLeads.length === 0 ? (
-              <div className="text-center py-20 text-gray-700">
-                <Archive size={32} className="mx-auto mb-3 opacity-30" />
-                <p>No archived leads yet.</p>
-                <p className="text-sm mt-1 text-gray-600">Leads automatically move here after 180 days, or you can archive them manually.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {archivedLeads.map(lead => (
-                  <div key={lead.id} className="glass rounded-2xl border border-[rgba(255,255,255,0.04)] p-4 opacity-70 hover:opacity-90 transition-opacity">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center border border-[rgba(148,163,184,0.2)] bg-[rgba(148,163,184,0.05)] flex-shrink-0">
-                        <span className="text-lg font-black tabular-nums text-gray-500">{lead.score}</span>
-                        <span className="text-[8px] text-gray-700">/ 100</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-bold text-gray-400">{lead.name}</p>
-                          <span className="text-xs px-2 py-0.5 rounded-lg border border-[rgba(148,163,184,0.2)] text-gray-600 font-bold">{lead.scoreLabel}</span>
-                          <span className="text-xs text-gray-700 flex items-center gap-1">
-                            <Archive size={9} />
-                            {lead.archivedAt
-                              ? `Archived ${Math.floor((Date.now() - new Date(lead.archivedAt).getTime()) / 864e5)}d ago`
-                              : `Archived ${daysOld(lead.timestamp) - MAX_AGE_DAYS}d ago`}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-600">
-                          <span>{lead.spaceType}</span>
-                          <span>${lead.budget.toLocaleString()}/mo</span>
-                          {lead.phone && <span>{lead.phone}</span>}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          // Reset timestamp to now to reactivate
-                          setLeads(prev => prev.map(l =>
-                            l.id === lead.id ? { ...l, timestamp: new Date().toISOString() } : l
-                          ));
-                        }}
-                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 text-sky-400 text-xs font-bold hover:border-white/20 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] bg-white/[0.03] transition-colors"
-                      >
-                        <RefreshCw size={11} /> Reactivate
-                      </button>
+              {activeTab === "archived" && (
+                <>
+                  <div className="rounded-2xl border border-[rgba(148,163,184,0.15)] bg-[rgba(148,163,184,0.03)] p-5 mb-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Archive size={14} className="text-gray-500" />
+                      <p className="text-sm font-bold text-gray-400">Archived Leads</p>
                     </div>
+                    <p className="text-xs text-gray-600">Leads archived manually or after passing the 180-day window. They are retained for reference.</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
 
-        {/* ─ SETTINGS TAB ───────────────────────────────────────────────────── */}
-        {activeTab === "marketing" && (<>
-          <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] p-6 sm:p-8">
-            <MarketingTab onSubTabChange={setMarketingSubTab} />
-          </div>
-          {marketingSubTab === "social" && (
-            <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] p-6 sm:p-8 mt-6">
-              <SocialLinksCard />
-            </div>
-          )}
-        </>)}
+                  {archivedLeads.length === 0 ? (
+                    <div className="text-center py-20 text-gray-700">
+                      <Archive size={32} className="mx-auto mb-3 opacity-30" />
+                      <p>No archived leads yet.</p>
+                      <p className="text-sm mt-1 text-gray-600">Leads automatically move here after 180 days, or you can archive them manually.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {archivedLeads.map(lead => (
+                        <div key={lead.id} className="glass rounded-2xl border border-[rgba(255,255,255,0.04)] p-4 opacity-70 hover:opacity-90 transition-opacity">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center border border-[rgba(148,163,184,0.2)] bg-[rgba(148,163,184,0.05)] flex-shrink-0">
+                              <span className="text-lg font-black tabular-nums text-gray-500">{lead.score}</span>
+                              <span className="text-[8px] text-gray-700">/ 100</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-bold text-gray-400">{lead.name}</p>
+                                <span className="text-xs px-2 py-0.5 rounded-lg border border-[rgba(148,163,184,0.2)] text-gray-600 font-bold">{lead.scoreLabel}</span>
+                                <span className="text-xs text-gray-700 flex items-center gap-1">
+                                  <Archive size={9} />
+                                  {lead.archivedAt
+                                    ? `Archived ${Math.floor((Date.now() - new Date(lead.archivedAt).getTime()) / 864e5)}d ago`
+                                    : `Archived ${daysOld(lead.timestamp) - MAX_AGE_DAYS}d ago`}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-600">
+                                <span>{lead.spaceType}</span>
+                                <span>${lead.budget.toLocaleString()}/mo</span>
+                                {lead.phone && <span>{lead.phone}</span>}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setLeads(prev => prev.map(l =>
+                                  l.id === lead.id ? { ...l, timestamp: new Date().toISOString() } : l
+                                ));
+                              }}
+                              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 text-sky-400 text-xs font-bold hover:border-white/20 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] bg-white/[0.03] transition-colors"
+                            >
+                              <RefreshCw size={11} /> Reactivate
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
 
+              {/* ─ MARKETING TAB ───────────────────────────────────────────────────── */}
+              {activeTab === "marketing" && (
+                isLocked("marketing_studio")
+                  ? renderUpgradeGate(
+                      "marketing_studio",
+                      "AI Marketing & Social Studio",
+                      "Generate property one-sheet PDFs, social media graphics, AI blog articles, and market intelligence reports.",
+                      "Scale"
+                    )
+                  : (
+                    <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] p-6 sm:p-8">
+                      <MarketingTab onSubTabChange={setMarketingSubTab} />
+                    </div>
+                  )
+              )}
 
-        {activeTab === "content" && (
-          <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] p-6 sm:p-8">
-            <ContentTab onSubViewChange={setContentSubView} activeOrg={activeOrg} />
-          </div>
-        )}
+              {/* ─ CONTENT / SITE BUILDER TAB ──────────────────────────────────────── */}
+              {activeTab === "content" && (
+                isLocked("site_builder")
+                  ? renderUpgradeGate(
+                      "site_builder",
+                      "Public Website & Content Builder",
+                      "Customize your public property showcase website, hero banners, property photos, and SEO blog content.",
+                      "Scale"
+                    )
+                  : (
+                    <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] p-6 sm:p-8">
+                      <ContentTab onSubViewChange={setContentSubView} activeOrg={activeOrg} />
+                    </div>
+                  )
+              )}
 
-        {activeTab === "teamboard" && (
-          <div className="space-y-6">
-            <div className="flex gap-2 p-1 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-xl w-fit">
-              <button
-                onClick={() => setTeamBoardSubTab("chat")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                  teamBoardSubTab === "chat"
-                    ? "bg-[#4ADE80] text-black shadow-lg"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Comm Board
-              </button>
-              <button
-                onClick={() => setTeamBoardSubTab("tasks")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                  teamBoardSubTab === "tasks"
-                    ? "bg-[#4ADE80] text-black shadow-lg"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Task List
-              </button>
-            </div>
+              {/* ─ TEAM BOARD TAB ─────────────────────────────────────────────────── */}
+              {activeTab === "teamboard" && (
+                isLocked("tasks")
+                  ? renderUpgradeGate(
+                      "tasks",
+                      "Team Comm Board & Task Management",
+                      "Collaborate with your property managers, maintenance technicians, and leasing agents in real time.",
+                      "Growth"
+                    )
+                  : (
+                    <div className="space-y-6">
+                      <div className="flex gap-2 p-1 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-xl w-fit">
+                        <button
+                          onClick={() => setTeamBoardSubTab("chat")}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                            teamBoardSubTab === "chat"
+                              ? "bg-[#4ADE80] text-black shadow-lg"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          Comm Board
+                        </button>
+                        <button
+                          onClick={() => setTeamBoardSubTab("tasks")}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                            teamBoardSubTab === "tasks"
+                              ? "bg-[#4ADE80] text-black shadow-lg"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          Task List
+                        </button>
+                      </div>
 
-            {teamBoardSubTab === "chat" ? (
-              <ConversationTab
-                currentUserName={currentUser?.name}
-                currentUserEmail={currentUser?.email}
-                onMention={handleNewMention}
-              />
-            ) : (
-              <TasksTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
-            )}
-          </div>
-        )}
+                      {teamBoardSubTab === "chat" ? (
+                        <ConversationTab
+                          currentUserName={currentUser?.name}
+                          currentUserEmail={currentUser?.email}
+                          onMention={handleNewMention}
+                        />
+                      ) : (
+                        <TasksTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
+                      )}
+                    </div>
+                  )
+              )}
+            </>
+          );
+        })()}
 
 
 

@@ -31,8 +31,8 @@ const nextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           // Referrer info: send origin on same-site, only origin on cross-site HTTPS
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          // Disable browser features we don't need
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // Allow camera and microphone for same-origin (crew photo capture & voice-to-text)
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
           // Enable browser XSS protection (legacy browsers)
           { key: "X-XSS-Protection", value: "1; mode=block" },
           // DNS prefetch for performance without leaking

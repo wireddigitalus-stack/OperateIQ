@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireOrg, requireOrgAdmin } from "@/lib/server-auth";
+import { getPlan } from "@/lib/plans";
 
 /**
  * Team & crew management — always scoped to the caller's organization.
@@ -51,6 +52,29 @@ export async function GET(req: NextRequest) {
   if (!g.ok) return g.res;
   const { orgId, kind, role: callerRole } = g.ctx;
 
+  if (kind === "staff") {
+    const roleFilter = req.nextUrl.searchParams.get("role");
+    let sq = supabaseAdmin
+      .from("allowed_users")
+      .select("id,name,role,active")
+      .eq("org_id", orgId)
+      .in("role", STAFF_ROLES)
+      .order("created_at", { ascending: true });
+    if (roleFilter && STAFF_ROLES.includes(roleFilter)) {
+      sq = sq.eq("role", roleFilter);
+    }
+    const { data, error } = await sq;
+    if (error) return NextResponse.json({ users: [], allowed: false });
+    return NextResponse.json({
+      users: (data || []).map((u: { id: string; name: string; role: string; active: boolean }) => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        active: u.active,
+      })),
+    });
+  }
+
   const role = req.nextUrl.searchParams.get("role");
   const email = req.nextUrl.searchParams.get("email");
   const wantPins = req.nextUrl.searchParams.get("include_pins") === "true";
@@ -80,6 +104,24 @@ export async function POST(req: NextRequest) {
   const { email, name, role, pin } = await req.json();
   if (!role || !ALLOWED_ROLES.includes(role)) return NextResponse.json({ error: "valid role is required" }, { status: 400 });
   if ((role === "admin" || role === "manager") && !email) return NextResponse.json({ error: "email required for admin" }, { status: 400 });
+
+  const userLimit = getPlan(g.ctx.org.tier).limits.users;
+  if (userLimit !== null && !g.ctx.isSuperAdmin) {
+    const { count } = await supabaseAdmin
+      .from("allowed_users")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("active", true);
+    if ((count ?? 0) >= userLimit) {
+      return NextResponse.json(
+        {
+          error: "You have reached the team member limit for your current plan. Upgrade in Settings → Billing.",
+          code: "LIMIT_REACHED",
+        },
+        { status: 403 }
+      );
+    }
+  }
 
   const payload: Record<string, unknown> = {
     id: `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -130,8 +172,34 @@ export async function PATCH(req: NextRequest) {
     if (await pinTaken(String(updates.pin), id)) return NextResponse.json({ error: "That PIN is already in use. Choose another." }, { status: 409 });
   }
 
-  const { data: before } = await supabaseAdmin.from("allowed_users").select("email,role").eq("id", id).eq("org_id", orgId).maybeSingle();
+  const { data: before } = await supabaseAdmin.from("allowed_users").select("email,role,pin,active").eq("id", id).eq("org_id", orgId).maybeSingle();
   if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (updates.active === true) {
+    const effectivePin = updates.pin !== undefined ? String(updates.pin) : before.pin ? String(before.pin) : null;
+    if (effectivePin && (await pinTaken(effectivePin, id))) {
+      return NextResponse.json({ error: "That PIN is already in use by another active staff member. Choose another PIN first." }, { status: 409 });
+    }
+    if (before.active === false) {
+      const userLimit = getPlan(g.ctx.org.tier).limits.users;
+      if (userLimit !== null && !g.ctx.isSuperAdmin) {
+        const { count } = await supabaseAdmin
+          .from("allowed_users")
+          .select("id", { count: "exact", head: true })
+          .eq("org_id", orgId)
+          .eq("active", true);
+        if ((count ?? 0) >= userLimit) {
+          return NextResponse.json(
+            {
+              error: "You have reached the team member limit for your current plan. Upgrade in Settings → Billing.",
+              code: "LIMIT_REACHED",
+            },
+            { status: 403 }
+          );
+        }
+      }
+    }
+  }
 
   const { error } = await supabaseAdmin.from("allowed_users").update(updates).eq("id", id).eq("org_id", orgId);
   if (error) return NextResponse.json({ error: "update failed" }, { status: 500 });

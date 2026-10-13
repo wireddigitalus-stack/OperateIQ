@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     const cleanEmail = sanitize(body.email).toLowerCase();
     const cleanCompany = sanitize(body.company);
     const cleanPhone = sanitize(body.phone);
+    const password = typeof body.password === "string" ? body.password.trim() : "";
     const cleanPlan = (["starter", "growth", "pro"].includes(body.plan) ? body.plan : "starter") as "starter" | "growth" | "pro";
     const cleanUnitCount = sanitize(body.unitCount) || "11 - 50 Units";
     const cleanPortfolioType = sanitize(body.portfolioType) || "Commercial & Residential";
@@ -61,6 +62,44 @@ export async function POST(req: NextRequest) {
     // If the visitor is already signed in, the new workspace belongs to THAT verified account.
     const authedUser = await getAuthUser(req);
     const ownerEmail = authedUser?.email || cleanEmail;
+
+    if (!authedUser) {
+      const { data: existingAllowed } = await supabaseAdmin
+        .from("allowed_users")
+        .select("id")
+        .eq("email", cleanEmail)
+        .eq("active", true)
+        .in("role", ["owner", "admin", "manager"])
+        .limit(1);
+      if (existingAllowed && existingAllowed.length > 0) {
+        return NextResponse.json(
+          { error: "An account with this email already exists. Please sign in to create a new workspace." },
+          { status: 409 }
+        );
+      }
+    }
+
+    let createdAuthUserId: string | null = null;
+    if (!authedUser && password.length >= 8) {
+      const { data: createdUser, error: createUserErr } = await supabaseAdmin.auth.admin.createUser({
+        email: ownerEmail,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: cleanName },
+      });
+      if (createUserErr) {
+        const msg = (createUserErr.message || "").toLowerCase();
+        if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+          return NextResponse.json(
+            { error: "An account with this email already exists. Please sign in." },
+            { status: 409 }
+          );
+        }
+        console.error("[signup] auth.admin.createUser error:", createUserErr.message);
+        return NextResponse.json({ error: "Could not create account. Please try again." }, { status: 500 });
+      }
+      createdAuthUserId = createdUser?.user?.id || null;
+    }
 
     let orgId: string = crypto.randomUUID();
     let orgSlug: string = generateSlug(cleanCompany);
@@ -104,11 +143,11 @@ export async function POST(req: NextRequest) {
     orgSlug = createdOrg.slug;
 
     // 2. Owner access. allowed_users drives the dashboard team list; memberships drives
-    //    authorization (it is created now if signed in, otherwise on first login).
+    //    authorization (it is created now if signed in or created with password, otherwise on first login).
     const { error: accessErr } = await supabaseAdmin.from("allowed_users").insert({
       email: ownerEmail,
       name: cleanName,
-      role: "admin",
+      role: "owner",
       active: true,
       org_id: orgId,
     });
@@ -117,8 +156,9 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from("organizations").delete().eq("id", orgId);
       return NextResponse.json({ error: "Could not create workspace. Please try again." }, { status: 500 });
     }
-    if (authedUser) {
-      await supabaseAdmin.from("memberships").insert({ org_id: orgId, user_id: authedUser.id, role: "owner" });
+    const targetUserId = authedUser?.id || createdAuthUserId;
+    if (targetUserId) {
+      await supabaseAdmin.from("memberships").insert({ org_id: orgId, user_id: targetUserId, role: "owner" });
     }
 
     // 3. Record the signup for the platform console (platform org-agnostic log)
@@ -146,6 +186,7 @@ export async function POST(req: NextRequest) {
       plan: cleanPlan,
       trialDays: 14,
       signedIn: !!authedUser,
+      accountCreated: !!createdAuthUserId,
       email: ownerEmail,
     });
 

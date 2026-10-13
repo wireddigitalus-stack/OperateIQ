@@ -24,6 +24,7 @@ const FIELD  = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,2
 const LABEL  = "text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5";
 
 export default function BlogGenerator() {
+  const [propertyNames, setPropertyNames] = useState<string[]>([]);
   const [topic,    setTopic]    = useState("");
   const [keyword,  setKeyword]  = useState("");
   const [category, setCategory] = useState("Market Insights");
@@ -36,7 +37,20 @@ export default function BlogGenerator() {
   const [preview, setPreview]   = useState<string | null>(null);
   const [loadingQueue, setLoadingQueue] = useState(false);
 
-  useEffect(() => { fetchQueue(); }, []);
+  useEffect(() => {
+    fetchQueue();
+    Promise.all([
+      fetch("/api/properties-list").then(r => r.json()).catch(() => ({})),
+      fetch("/api/platform/session").then(r => r.json()).catch(() => ({})),
+    ]).then(([propData, sessData]) => {
+      const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
+      const dynNames: string[] = Array.isArray(propData.properties)
+        ? propData.properties.map((p: any) => p.name).filter(Boolean)
+        : [];
+      const staticNames = isDemoOrg ? PROPERTIES.map(p => p.name) : [];
+      setPropertyNames(Array.from(new Set([...dynNames, ...staticNames])));
+    });
+  }, []);
 
   async function fetchQueue() {
     setLoadingQueue(true);
@@ -149,7 +163,7 @@ export default function BlogGenerator() {
             <label className={LABEL}>Feature a Property <span className="text-gray-700 font-normal normal-case">(optional)</span></label>
             <select value={property} onChange={e => setProperty(e.target.value)} className={FIELD} style={{ colorScheme: "dark" }}>
               <option value="" className="bg-[#080C14]">None — general article</option>
-              {PROPERTIES.map(p => <option key={p.id} value={p.name} className="bg-[#080C14]">{p.name}</option>)}
+              {propertyNames.map(name => <option key={name} value={name} className="bg-[#080C14]">{name}</option>)}
             </select>
           </div>
         </div>

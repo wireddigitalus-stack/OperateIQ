@@ -6,7 +6,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 export async function POST(req: NextRequest) {
   // Auth required: protects LLM spend from anonymous abuse.
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "reports" });
   if (!g.ok) return g.res;
 
   try {

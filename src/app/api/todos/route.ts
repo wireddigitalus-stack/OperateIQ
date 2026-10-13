@@ -19,21 +19,30 @@ function pickTodo(body: Record<string, unknown>): Record<string, unknown> {
 }
 
 export async function GET(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "tasks" });
   if (!g.ok) return g.res;
-  const { orgId } = g.ctx;
+  const { orgId, user } = g.ctx;
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?org_id=eq.${orgId}&order=created_at.desc`, {
     headers: HEADERS,
     cache: "no-store",
   });
   if (!res.ok) return NextResponse.json({ todos: [] });
-  const todos = await res.json();
+  const raw = await res.json();
+  const rows = Array.isArray(raw) ? raw : [];
+  const callerEmail = user?.email?.toLowerCase();
+  const callerName = user?.name?.toLowerCase();
+  const todos = rows.filter(
+    (row: { is_private?: boolean; created_by?: string }) =>
+      !row.is_private ||
+      (callerEmail && row.created_by?.toLowerCase() === callerEmail) ||
+      (callerName && row.created_by?.toLowerCase() === callerName)
+  );
   return NextResponse.json({ todos });
 }
 
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "tasks" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -50,7 +59,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "tasks" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -68,7 +77,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "tasks" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
