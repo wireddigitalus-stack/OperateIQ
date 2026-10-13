@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
           tier: org.tier,
           subscription_status: org.subscription_status,
           trial_ends_at: org.trial_ends_at,
+          created_at: org.created_at,
           custom_domain: org.custom_domain,
         }
       : null;

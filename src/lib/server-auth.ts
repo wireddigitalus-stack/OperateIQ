@@ -36,6 +36,7 @@ export interface OrgSummary {
   brand_accent_color?: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  created_at?: string | null;
   city?: string | null;
   state?: string | null;
   address?: string | null;
@@ -61,7 +62,7 @@ export interface RequestContext {
 }
 
 const ORG_COLUMNS =
-  "id,name,slug,tier,subscription_status,trial_ends_at,custom_domain,brand_name,brand_logo_url,brand_primary_color,brand_accent_color,contact_email,contact_phone";
+  "id,name,slug,tier,subscription_status,trial_ends_at,custom_domain,brand_name,brand_logo_url,brand_primary_color,brand_accent_color,contact_email,contact_phone,created_at";
 
 const ADMIN_ROLES: OrgRole[] = ["owner", "admin", "manager"];
 
