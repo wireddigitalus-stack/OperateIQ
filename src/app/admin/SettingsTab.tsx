@@ -1078,38 +1078,187 @@ function NotificationsCard() {
 function SubscriptionAndBillingCard({
   activeOrg,
 }: {
-  activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null } | null;
+  activeOrg?: {
+    id: string;
+    name: string;
+    slug: string;
+    tier: string;
+    subscription_status?: string;
+    custom_domain?: string | null;
+  } | null;
 }) {
-  const currentPlan = getPlan(activeOrg?.tier || "starter");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [banner, setBanner] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [overrideTier, setOverrideTier] = useState<string | null>(null);
+
+  const currentPlan = getPlan(overrideTier || activeOrg?.tier || "starter");
+  const isPaidActive = activeOrg?.subscription_status === "active" || Boolean(overrideTier);
+
+  // Verify Stripe Checkout redirect (?checkout=success&session_id=cs_...)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get("checkout");
+    const sessionId = params.get("session_id");
+
+    if (checkout === "success" && sessionId) {
+      setBanner({ ok: true, msg: "Verifying your Stripe subscription…" });
+      fetch("/api/stripe/verify-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      })
+        .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+        .then(({ ok, d }) => {
+          if (ok && d.ok) {
+            setOverrideTier(d.tier);
+            setBanner({
+              ok: true,
+              msg: `Subscription active! Your workspace is now on the ${String(d.tier).toUpperCase()} plan.`,
+            });
+            // Clean URL query params
+            const cleanUrl = `${window.location.pathname}?tab=settings`;
+            window.history.replaceState({}, "", cleanUrl);
+          } else {
+            setBanner({ ok: false, msg: d.error || "Could not verify checkout session." });
+          }
+        })
+        .catch(() => setBanner({ ok: false, msg: "Network error verifying checkout session." }));
+    } else if (checkout === "canceled") {
+      setBanner({ ok: false, msg: "Stripe checkout was canceled. No charges were made." });
+      const cleanUrl = `${window.location.pathname}?tab=settings`;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }, []);
+
+  async function startCheckout(tier: string) {
+    setLoadingTier(tier);
+    setBanner(null);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier, billingCycle }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        setBanner({ ok: false, msg: data?.error || "Could not start Stripe Checkout." });
+        setLoadingTier(null);
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setBanner({ ok: false, msg: "Network error starting Stripe Checkout." });
+      setLoadingTier(null);
+    }
+  }
+
+  async function openBillingPortal() {
+    setPortalLoading(true);
+    setBanner(null);
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        setBanner({ ok: false, msg: data?.error || "Could not open Stripe Billing Portal." });
+        setPortalLoading(false);
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setBanner({ ok: false, msg: "Network error opening Stripe Billing Portal." });
+      setPortalLoading(false);
+    }
+  }
 
   return (
     <div className="rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-500/[0.05] via-[rgba(255,255,255,0.02)] to-indigo-500/[0.04] p-5 sm:p-6 shadow-[0_0_28px_rgba(56,189,248,0.08)]">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center">
             <CreditCard size={16} className="text-sky-400" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-sm font-black text-white uppercase tracking-widest">Subscription &amp; Billing</h2>
               <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black uppercase tracking-wider">
                 {currentPlan.name} Plan · ${currentPlan.monthly}/mo
               </span>
+              {!isPaidActive && (
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black uppercase tracking-wider">
+                  14-Day Trial
+                </span>
+              )}
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              Compare plans and manage your workspace capacity and feature access.
+              Upgrade or switch plans anytime via secure Stripe Checkout, or manage invoices and payment methods.
             </p>
           </div>
         </div>
-        <a
-          href="/pricing"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-300 text-xs font-black transition-all self-start sm:self-auto"
-        >
-          <Sparkles size={13} /> Compare Full Feature Matrix
-        </a>
+
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Monthly / Annual Toggle */}
+          <div className="inline-flex items-center rounded-xl bg-white/[0.04] border border-white/10 p-1 text-xs">
+            <button
+              type="button"
+              onClick={() => setBillingCycle("monthly")}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                billingCycle === "monthly" ? "bg-sky-500 text-white shadow" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle("annual")}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                billingCycle === "annual" ? "bg-sky-500 text-white shadow" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <span>Annual</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-black">
+                2 Mo Free
+              </span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={openBillingPortal}
+            disabled={portalLoading}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+          >
+            {portalLoading ? <Loader2 size={13} className="animate-spin" /> : <CreditCard size={13} className="text-sky-400" />}
+            <span>Billing Portal</span>
+          </button>
+
+          <a
+            href="/pricing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-300 text-xs font-black transition-all"
+          >
+            <Sparkles size={13} /> Feature Matrix
+          </a>
+        </div>
       </div>
+
+      {banner && (
+        <div
+          className={`mb-4 rounded-xl px-4 py-3 border text-xs font-bold flex items-center justify-between gap-3 ${
+            banner.ok
+              ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-200"
+              : "bg-rose-500/15 border-rose-500/30 text-rose-200"
+          }`}
+        >
+          <span>{banner.msg}</span>
+          <button type="button" onClick={() => setBanner(null)} className="text-white/60 hover:text-white">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {PLANS.map((plan) => {
@@ -1119,6 +1268,7 @@ function SubscriptionAndBillingCard({
           const userLimitLabel =
             plan.limits.users === null ? "Unlimited team members" : `Up to ${plan.limits.users} team members`;
           const displayName = plan.id === "pro" ? "Scale (Pro)" : plan.name;
+          const isBusy = loadingTier === plan.id;
 
           return (
             <div
@@ -1136,7 +1286,7 @@ function SubscriptionAndBillingCard({
                   <span className="text-sm font-black text-white">{displayName}</span>
                   {isCurrent ? (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-black uppercase">
-                      Current Plan
+                      {isPaidActive ? "Active Plan" : "Current Trial Tier"}
                     </span>
                   ) : plan.highlight ? (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 font-black uppercase">
@@ -1146,10 +1296,16 @@ function SubscriptionAndBillingCard({
                 </div>
 
                 <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-2xl font-black text-white">${plan.monthly}</span>
+                  <span className="text-2xl font-black text-white">
+                    ${billingCycle === "annual" ? Math.round(plan.annual / 12) : plan.monthly}
+                  </span>
                   <span className="text-xs text-gray-400">/month</span>
                 </div>
-                <p className="text-[11px] text-gray-500 mb-3">${plan.annual}/yr when billed annually (2 months free)</p>
+                <p className="text-[11px] text-gray-500 mb-3">
+                  {billingCycle === "annual"
+                    ? `Billed $${plan.annual}/yr (2 months free)`
+                    : `$${plan.annual}/yr when billed annually (2 months free)`}
+                </p>
                 <p className="text-xs text-gray-300 mb-3 leading-relaxed">{plan.blurb}</p>
 
                 <div className="space-y-1.5 pt-2 border-t border-white/10 text-xs text-gray-300 mb-4">
@@ -1170,19 +1326,31 @@ function SubscriptionAndBillingCard({
                 </div>
               </div>
 
-              {isCurrent ? (
-                <div className="w-full py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-black text-center">
-                  ✓ Active Workspace Tier
+              {isCurrent && isPaidActive ? (
+                <div className="w-full py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-black text-center">
+                  ✓ Active Paid Subscription
                 </div>
               ) : (
-                <a
-                  href={`mailto:support@operateiq.com?subject=${encodeURIComponent(
-                    `Upgrade ${activeOrg?.name || "Workspace"} to ${displayName} ($${plan.monthly}/mo)`
-                  )}`}
-                  className="w-full py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-black text-center transition-all shadow-md"
+                <button
+                  type="button"
+                  onClick={() => startCheckout(plan.id)}
+                  disabled={Boolean(loadingTier)}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-black text-center transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  Switch to {displayName}
-                </a>
+                  {isBusy ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Opening Stripe…</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={14} />
+                      <span>
+                        {isCurrent ? `Activate ${displayName}` : `Subscribe to ${displayName}`}
+                      </span>
+                    </>
+                  )}
+                </button>
               )}
             </div>
           );
@@ -2067,7 +2235,14 @@ function SettingsPanel({
   deleteAllConfirm: string;
   setDeleteAllConfirm: (v: string) => void;
   deleteAllLeads: () => void;
-  activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null } | null;
+  activeOrg?: {
+    id: string;
+    name: string;
+    slug: string;
+    tier: string;
+    subscription_status?: string;
+    custom_domain?: string | null;
+  } | null;
   onDomainUpdated?: (domain: string | null) => void;
 }) {
   const [adminUsers,  setAdminUsers]  = useState<AllowedUser[]>([]);
