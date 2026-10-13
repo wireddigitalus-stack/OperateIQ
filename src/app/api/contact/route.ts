@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { platformOrgId } from "@/lib/platform-org";
 import { supabaseAdmin } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { BRAND } from "@/lib/brand";
@@ -281,8 +282,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 5a. Contact audit row (best effort). Only send org_id when known so the
-    // platform's own form keeps using the DB default until 002 is applied.
+    // ── 5a. Contact audit row (best effort). Tenant forms → that tenant;
+    // the platform's own contact form → the platform org.
     const auditRow: Record<string, unknown> = {
       id: `contact_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       submitted_at: new Date().toISOString(),
@@ -296,8 +297,7 @@ export async function POST(req: NextRequest) {
       ip_hash: ip.split(".").slice(0, 3).join(".") + ".x",
       session_id: sessionId || null,
     };
-    const auditOrgId = targetOrg?.id || process.env.PLATFORM_ORG_ID;
-    if (auditOrgId) auditRow.org_id = auditOrgId;
+    auditRow.org_id = targetOrg?.id || platformOrgId();
     const { error: auditErr } = await supabaseAdmin.from("contact_submissions").insert(auditRow);
     if (auditErr) console.warn("[contact] Audit insert skipped:", auditErr.message);
 

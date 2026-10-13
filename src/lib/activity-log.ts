@@ -15,7 +15,7 @@ export interface ActivityPayload {
   resource_name: string;   // human label  e.g. "Tin Roof Kitchen"
   resource_id:   string;   // record id
   metadata?:     Record<string, unknown>; // optional extra context
-  org_id?:       string;   // trusted tenant id (from requireOrg) — omit only for legacy callers
+  org_id:        string;   // trusted tenant id (from requireOrg) — required since 002 dropped the DB default
 }
 
 export async function writeActivityLog(payload: ActivityPayload): Promise<void> {
@@ -33,7 +33,7 @@ export async function writeActivityLog(payload: ActivityPayload): Promise<void> 
         "Prefer":        "return=minimal",
       },
       body: JSON.stringify({
-        ...(payload.org_id ? { org_id: payload.org_id } : {}),
+        org_id:        payload.org_id,
         actor_email:   payload.actor_email   || "unknown",
         actor_name:    payload.actor_name    || "Staff",
         action:        payload.action,

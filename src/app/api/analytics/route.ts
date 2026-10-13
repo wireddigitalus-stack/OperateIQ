@@ -5,6 +5,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
+import { platformOrgId } from "@/lib/platform-org";
 import { resolveOrgIdBySlug } from "@/lib/public-org";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -58,7 +59,7 @@ function sanitize(val: unknown, maxLen = 500): string {
 // ── Tenant attribution ──────────────────────────────────────────────────────
 // Public tracking stays unauthenticated. If the tracked page lives under a
 // tenant microsite (/site/<slug>/...) we attribute the event to that org;
-// otherwise the DB default (platform/demo org) applies. org_id is never taken
+// otherwise it belongs to the platform org (platformOrgId). org_id is never taken
 // directly from the payload.
 const slugCache = new Map<string, { orgId: string | null; expires: number }>();
 
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
 
     // Build the row
     const row = {
-      ...(orgId ? { org_id: orgId } : {}),
+      org_id: orgId || platformOrgId(),
       session_id: sessionId,
       event_type: eventType,
       page_path: pagePath,
