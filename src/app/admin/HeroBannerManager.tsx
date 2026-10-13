@@ -40,7 +40,11 @@ interface PropertyOption {
 
 /* ── Component ─────────────────────────────────────────────────────────────── */
 
-export default function HeroBannerManager() {
+export default function HeroBannerManager({
+  defaultExpanded = true,
+}: {
+  defaultExpanded?: boolean;
+} = {}) {
   const [config, setConfig] = useState<HeroConfig | null>(null);
   const [resolved, setResolved] = useState<ResolvedSlide[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
@@ -53,7 +57,7 @@ export default function HeroBannerManager() {
   const [showAddPicker, setShowAddPicker] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceTargetRef = useRef<number | null>(null);

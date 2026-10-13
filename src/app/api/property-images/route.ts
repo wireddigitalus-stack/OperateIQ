@@ -113,6 +113,20 @@ export async function POST(req: NextRequest) {
     }),
   });
 
+  // Also sync directly to public.properties row if it exists in this org
+  await fetch(
+    `${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&id=eq.${encodeURIComponent(propertyId)}`,
+    {
+      method: "PATCH",
+      headers: H,
+      body: JSON.stringify({
+        hero_image: heroUrl,
+        images: newAllUrls,
+        updated_at: new Date().toISOString(),
+      }),
+    }
+  ).catch(() => {});
+
   return NextResponse.json({ success: true, url: publicUrl });
 }
 
@@ -151,6 +165,19 @@ export async function PATCH(req: NextRequest) {
       body: JSON.stringify({ ...body, property_id: propertyId, org_id: orgId }),
     });
   }
+
+  // Also sync directly to public.properties row
+  const propPatch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (heroUrl !== undefined) propPatch.hero_image = heroUrl;
+  if (allUrls !== undefined) propPatch.images = allUrls;
+  await fetch(
+    `${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&id=eq.${encodeURIComponent(propertyId)}`,
+    {
+      method: "PATCH",
+      headers: H,
+      body: JSON.stringify(propPatch),
+    }
+  ).catch(() => {});
 
   return NextResponse.json({ success: true });
 }
@@ -221,6 +248,20 @@ export async function DELETE(req: NextRequest) {
       updated_at:  new Date().toISOString(),
     }),
   });
+
+  // Also sync directly to public.properties row
+  await fetch(
+    `${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&id=eq.${encodeURIComponent(propertyId)}`,
+    {
+      method: "PATCH",
+      headers: H,
+      body: JSON.stringify({
+        hero_image: newHero,
+        images: newAll,
+        updated_at: new Date().toISOString(),
+      }),
+    }
+  ).catch(() => {});
 
   return NextResponse.json({ success: true, remaining: newAll.length });
 }

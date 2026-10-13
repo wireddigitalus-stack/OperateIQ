@@ -8,6 +8,8 @@ import TenantSiteClient, {
 } from "./TenantSiteClient";
 import { HeroSlideItem } from "@/components/demo-site/AcmeHeroBanner";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: Promise<{ slug: string }>;
 }
@@ -163,54 +165,186 @@ export default async function TenantPublicSitePage({ params }: Props) {
   }
 
   let formattedProperties: FormattedProperty[] = [];
+  const siteContent: Record<string, Record<string, string>> = {};
+  let heroSlides: HeroSlideItem[] = [];
+
   const client = supabaseAdmin || supabaseAnon;
   if (client) {
     try {
-      const { data: rawProps } = await client
-        .from("properties")
-        .select("*")
-        .eq("org_id", org.id)
-        .eq("published", true)
-        .order("created_at", { ascending: false });
+      const [propsRes, contentRes, imgOverridesRes, heroSettingRes] = await Promise.all([
+        client
+          .from("properties")
+          .select("*")
+          .eq("org_id", org.id)
+          .eq("published", true)
+          .order("created_at", { ascending: false }),
+        client
+          .from("site_content")
+          .select("section, key, value")
+          .eq("org_id", org.id),
+        client
+          .from("property_image_overrides")
+          .select("property_id, hero_url, all_urls")
+          .eq("org_id", org.id),
+        client
+          .from("site_settings")
+          .select("value")
+          .eq("org_id", org.id)
+          .eq("key", "hero_config")
+          .maybeSingle(),
+      ]);
 
+      if (Array.isArray(contentRes.data)) {
+        for (const row of contentRes.data as { section: string; key: string; value: string }[]) {
+          if (!siteContent[row.section]) siteContent[row.section] = {};
+          siteContent[row.section][row.key] = row.value;
+        }
+      }
+
+      const imgMap = new Map<string, { hero_url?: string; all_urls?: string[] }>();
+      if (Array.isArray(imgOverridesRes.data)) {
+        for (const row of imgOverridesRes.data as { property_id: string; hero_url?: string; all_urls?: string[] }[]) {
+          imgMap.set(row.property_id, row);
+        }
+      }
+
+      const rawProps = propsRes.data;
       if (Array.isArray(rawProps) && rawProps.length > 0) {
         formattedProperties = rawProps.map((p: any) => {
-          const sqftNum = Number(p.total_sqft || p.sqft || 0);
-          const features = Array.isArray(p.features)
-            ? p.features
-            : Array.isArray(p.highlights)
+          const propId = String(p.id || p.slug);
+          const propOverrides = siteContent[`property:${propId}`] || {};
+          const imgOverride = imgMap.get(propId);
+
+          const rawSqft = propOverrides.sqft || p.sqft || p.total_sqft;
+          const formattedSqft =
+            typeof rawSqft === "number" && rawSqft > 0
+              ? rawSqft.toLocaleString()
+              : typeof rawSqft === "string" && rawSqft.trim()
+              ? rawSqft.trim()
+              : "—";
+
+          const overrideFeatures = propOverrides.features
+            ? propOverrides.features
+                .split("\n")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : null;
+
+          const features =
+            overrideFeatures ||
+            (Array.isArray(p.features)
+              ? p.features
+              : Array.isArray(p.highlights)
               ? p.highlights
+              : []);
+
+          const overrideImages =
+            Array.isArray(imgOverride?.all_urls) && imgOverride!.all_urls.length > 0
+              ? imgOverride!.all_urls
+              : Array.isArray(p.images)
+              ? p.images.filter((u: unknown) => typeof u === "string")
               : [];
 
+          const primaryImage =
+            imgOverride?.hero_url ||
+            overrideImages[0] ||
+            p.hero_image ||
+            p.featured_image ||
+            p.image ||
+            "/demo-properties/oakridge-professional-plaza.jpg";
+
+          const resolvedName = propOverrides.name || p.name || "Commercial Asset";
+          const resolvedCity = propOverrides.city || p.city || org.city || "";
+          const resolvedAddress =
+            propOverrides.address ||
+            [p.address, resolvedCity, p.state].filter(Boolean).join(", ");
+          const resolvedType = propOverrides.type || p.type || "Commercial Office";
+          const resolvedStatus = propOverrides.status || p.lease_status || p.status || "Available";
+          const resolvedBadge = propOverrides.badge || p.badge || resolvedType || "Featured Asset";
+
           return {
-            id: p.id || p.slug,
-            name: p.name || "Commercial Asset",
-            type: p.type || "Commercial Office",
-            city: p.city || org.city || "",
-            address: [p.address, p.city, p.state].filter(Boolean).join(", "),
-            sqft: sqftNum > 0 ? sqftNum.toLocaleString() : "—",
-            status: p.status || "Available",
-            badge: p.type || "Featured Asset",
-            badgeColor: "blue",
-            image:
-              p.hero_image ||
-              (Array.isArray(p.images) && typeof p.images[0] === "string" ? p.images[0] : null) ||
-              p.featured_image ||
-              p.image ||
-              "/demo-properties/oakridge-professional-plaza.jpg",
-            description: p.description || `${p.name} managed by ${org.name}.`,
+            id: propId,
+            name: resolvedName,
+            type: resolvedType,
+            city: resolvedCity,
+            address: resolvedAddress,
+            sqft: formattedSqft,
+            status: resolvedStatus,
+            badge: resolvedBadge,
+            badgeColor: p.badge_color || "blue",
+            image: primaryImage,
+            images: overrideImages.length > 0 ? overrideImages : [primaryImage],
+            description:
+              propOverrides.description ||
+              p.description ||
+              `${resolvedName} managed by ${org.name}.`,
             highlights: features,
           };
         });
       }
+
+      // Resolve custom Hero Banner slides if configured in Site Builder
+      const rawHeroVal = heroSettingRes.data?.value;
+      const heroCfg =
+        typeof rawHeroVal === "string"
+          ? (() => {
+              try {
+                return JSON.parse(rawHeroVal);
+              } catch {
+                return null;
+              }
+            })()
+          : rawHeroVal;
+
+      if (heroCfg && Array.isArray(heroCfg.slides) && heroCfg.slides.length > 0) {
+        const enabledSlides = [...heroCfg.slides]
+          .filter((s: any) => s && s.enabled !== false)
+          .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+
+        heroSlides = enabledSlides
+          .map((s: any, idx: number): HeroSlideItem | null => {
+            if (s.type === "property" && s.propertyId) {
+              const match = formattedProperties.find((fp) => fp.id === s.propertyId);
+              if (match) {
+                return {
+                  propertyId: match.id,
+                  name: s.label || match.name,
+                  tagline: match.description?.slice(0, 80) || match.type,
+                  submarket: s.location || match.city || match.type,
+                  image: s.imageUrl || match.image,
+                  type: match.type,
+                  featuredSuite: match.status,
+                  suiteSpecs: match.sqft !== "—" ? `${match.sqft} RSF` : "",
+                  rate: "Contact for pricing",
+                  badge: match.badge,
+                };
+              }
+            }
+            if (s.imageUrl) {
+              return {
+                propertyId: s.propertyId || `slide-${idx}`,
+                name: s.label || org.brand_name || org.name,
+                tagline: org.description?.slice(0, 80) || "Featured Property",
+                submarket: s.location || org.city || "Featured",
+                image: s.imageUrl,
+                type: "Featured",
+                featuredSuite: "Available",
+                suiteSpecs: "",
+                rate: "Contact for pricing",
+                badge: "Featured",
+              };
+            }
+            return null;
+          })
+          .filter((item): item is HeroSlideItem => item !== null);
+      }
     } catch (err) {
-      console.warn("[TenantPublicSite] Error querying properties:", err);
+      console.warn("[TenantPublicSite] Error querying properties/content:", err);
     }
   }
 
-  const heroSlides: HeroSlideItem[] = formattedProperties
-    .slice(0, 4)
-    .map((p) => ({
+  if (heroSlides.length === 0) {
+    heroSlides = formattedProperties.slice(0, 4).map((p) => ({
       propertyId: p.id,
       name: p.name,
       tagline: p.description?.slice(0, 80) || p.type,
@@ -222,6 +356,7 @@ export default async function TenantPublicSitePage({ params }: Props) {
       rate: "Contact for pricing",
       badge: p.badge,
     }));
+  }
 
   const siteBase =
     process.env.NEXT_PUBLIC_SITE_URL || BRAND.url.replace(/\/$/, "");
@@ -229,7 +364,6 @@ export default async function TenantPublicSitePage({ params }: Props) {
     ? `https://${org.custom_domain}`
     : `${siteBase}/site/${org.slug}`;
 
-  // Structured Schema.org JSON-LD for Generative Engine Optimization (GEO) & Googlebot
   const jsonLdData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -274,7 +408,6 @@ export default async function TenantPublicSitePage({ params }: Props) {
 
   return (
     <>
-      {/* ── Ultra SEO & Generative Engine Optimization (GEO) Structured Data ── */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdData) }}
@@ -283,6 +416,7 @@ export default async function TenantPublicSitePage({ params }: Props) {
         initialOrg={org}
         initialProperties={formattedProperties}
         initialHeroSlides={heroSlides}
+        initialSiteContent={siteContent}
       />
     </>
   );

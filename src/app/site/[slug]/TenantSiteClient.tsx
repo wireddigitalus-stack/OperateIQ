@@ -14,6 +14,11 @@ import {
   Calendar,
   Send,
   Loader2,
+  Briefcase,
+  Sparkles,
+  Star,
+  ChevronDown,
+  Quote,
 } from "lucide-react";
 import AcmeNavbar from "@/components/demo-site/AcmeNavbar";
 import AcmeHeroBanner, { HeroSlideItem } from "@/components/demo-site/AcmeHeroBanner";
@@ -51,6 +56,7 @@ export interface FormattedProperty {
   badge: string;
   badgeColor: string;
   image: string;
+  images?: string[];
   description: string;
   highlights: string[];
 }
@@ -59,18 +65,28 @@ interface TenantSiteClientProps {
   initialOrg: OrgData;
   initialProperties: FormattedProperty[];
   initialHeroSlides: HeroSlideItem[];
+  initialSiteContent?: Record<string, Record<string, string>>;
 }
 
 export default function TenantSiteClient({
   initialOrg,
   initialProperties,
   initialHeroSlides,
+  initialSiteContent = {},
 }: TenantSiteClientProps) {
   const [org] = useState<OrgData>(initialOrg);
   const [properties] = useState<FormattedProperty[]>(initialProperties);
   const [heroSlides] = useState<HeroSlideItem[]>(initialHeroSlides);
+  const [siteContent] = useState<Record<string, Record<string, string>>>(initialSiteContent);
   const [isMember, setIsMember] = useState(false);
+  const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(0);
   const brandName = org.brand_name || org.name;
+
+  // Helper to resolve customized Site Builder copy or fallback
+  const c = (section: string, key: string, fallback: string): string => {
+    const val = siteContent[section]?.[key];
+    return typeof val === "string" && val.trim().length > 0 ? val : fallback;
+  };
 
   // Modals & interaction state
   const [isTourModalOpen, setIsTourModalOpen] = useState(false);
@@ -187,6 +203,120 @@ export default function TenantSiteClient({
     new Set(properties.map((p) => p.city).filter(Boolean))
   ) as string[];
 
+  const statsItems = [
+    {
+      value: c("stats", "stat_1_value", "20+"),
+      label: c("stats", "stat_1_label", "Years in Business"),
+    },
+    {
+      value: c("stats", "stat_2_value", "#1"),
+      label: c("stats", "stat_2_label", "Locally Owned & Operated"),
+    },
+    {
+      value: c("stats", "stat_3_value", properties.length > 0 ? `${properties.length}+` : "100%"),
+      label: c("stats", "stat_3_label", "Hands-On Management"),
+    },
+    {
+      value: c("stats", "stat_4_value", "24/7"),
+      label: c("stats", "stat_4_label", "Tenant Support"),
+    },
+  ];
+
+  const servicesCards = [
+    {
+      title: c("services", "card_1_title", "Commercial & Suite Leasing"),
+      short: c("services", "card_1_short", "Office, retail, warehouse & flex space"),
+      desc: c(
+        "services",
+        "card_1_desc",
+        `From private executive suites and storefronts to large-format commercial space tailored to your operations.`
+      ),
+    },
+    {
+      title: c("services", "card_2_title", "Custom Build-Outs & Renovations"),
+      short: c("services", "card_2_short", "Spaces configured around your workflow"),
+      desc: c(
+        "services",
+        "card_2_desc",
+        `We partner with tenants to customize layouts, finishes, and infrastructure so your space is move-in ready.`
+      ),
+    },
+    {
+      title: c("services", "card_3_title", "Dedicated Property Management"),
+      short: c("services", "card_3_short", "Direct, local maintenance & tenant care"),
+      desc: c(
+        "services",
+        "card_3_desc",
+        `Our in-house maintenance and operations team responds fast, keeping your building clean, secure, and running smoothly.`
+      ),
+    },
+  ];
+
+  const testimonialsList = [
+    {
+      quote: c(
+        "testimonials",
+        "quote_1",
+        "The team didn't just find us a space — they positioned us for long-term success. Responsive, professional, and easy to work with."
+      ),
+      author: c("testimonials", "author_1", "Local Business Owner"),
+      location: c("testimonials", "location_1", org.city || "Commercial Tenant"),
+    },
+    {
+      quote: c(
+        "testimonials",
+        "quote_2",
+        "Flexible terms gave our company the professional environment we needed without unnecessary overhead. Genuinely invested in our success."
+      ),
+      author: c("testimonials", "author_2", "Managing Partner"),
+      location: c("testimonials", "location_2", org.city || "Office Suite Tenant"),
+    },
+    {
+      quote: c(
+        "testimonials",
+        "quote_3",
+        "Maintenance requests get handled fast and communication is always clear. It's the best landlord experience we've had."
+      ),
+      author: c("testimonials", "author_3", "Operations Director"),
+      location: c("testimonials", "location_3", org.city || "Long-Term Tenant"),
+    },
+  ];
+
+  const faqItems = [
+    {
+      q: c("faq", "q_1", "How do I schedule a tour or get pricing?"),
+      a: c(
+        "faq",
+        "a_1",
+        "Rates vary by property, square footage, and finish level. Click 'Schedule a Tour' or contact us directly for current availability and pricing."
+      ),
+    },
+    {
+      q: c("faq", "q_2", "Do you offer flexible or multi-year lease terms?"),
+      a: c(
+        "faq",
+        "a_2",
+        "Yes — we work with tenants on lease structures that fit their business stage, from flexible terms to multi-year commercial leases."
+      ),
+    },
+    {
+      q: c("faq", "q_3", "What types of properties do you offer?"),
+      a: c(
+        "faq",
+        "a_3",
+        "Browse our live property portfolio above to filter by space type, square footage, and immediate availability."
+      ),
+    },
+    {
+      q: c("faq", "q_4", "How are maintenance requests handled?"),
+      a: c(
+        "faq",
+        "a_4",
+        "Our dedicated in-house maintenance crew handles service requests promptly so you can stay focused on your business."
+      ),
+    },
+  ];
+
   return (
     <div
       className={`min-h-screen bg-[#060911] text-white selection:bg-sky-500 selection:text-white ${
@@ -255,13 +385,14 @@ export default function TenantSiteClient({
               <div className="space-y-4 max-w-2xl">
                 <div className="inline-flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-widest px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/20">
                   <Building2 size={13} />
-                  <span>Commercial & Residential Management</span>
+                  <span>{c("hero", "trust_badge", "Commercial & Residential Management")}</span>
                 </div>
                 <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
                   {brandName}
                 </h1>
                 <p className="text-base text-gray-300 leading-relaxed">
-                  {org.description ||
+                  {siteContent.hero?.subtext ||
+                    org.description ||
                     `${brandName} provides premier property management, commercial leasing, and residential holdings with personalized service and tenant support.`}
                 </p>
 
@@ -475,14 +606,17 @@ export default function TenantSiteClient({
             <div className="max-w-4xl mx-auto space-y-4">
               <div className="inline-flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-widest px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/20">
                 <Building2 size={13} />
-                <span>{org.name} Portfolio</span>
+                <span>{c("hero", "trust_badge", `${brandName} Portfolio`)}</span>
               </div>
               <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-                Available Spaces & Holdings
+                {siteContent.hero?.headline_before || siteContent.hero?.headline_highlight
+                  ? `${siteContent.hero?.headline_before || ""} ${siteContent.hero?.headline_highlight || ""} ${siteContent.hero?.headline_after || ""}`.trim()
+                  : "Available Spaces & Holdings"}
               </h1>
               <p className="text-sm sm:text-base text-gray-300 max-w-2xl mx-auto">
-                {org.description ||
-                  `Explore our current portfolio of quality commercial, retail, and residential spaces managed by ${org.name}.`}
+                {siteContent.hero?.subtext ||
+                  org.description ||
+                  `Explore our current portfolio of quality commercial, retail, and residential spaces managed by ${brandName}.`}
               </p>
             </div>
           </div>
@@ -500,10 +634,10 @@ export default function TenantSiteClient({
                 </p>
                 {isMember && (
                   <Link
-                    href="/admin?tab=properties"
+                    href="/admin?tab=content"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs"
                   >
-                    Add Properties in Dashboard
+                    Add Properties in Site Builder
                   </Link>
                 )}
               </div>
@@ -515,6 +649,7 @@ export default function TenantSiteClient({
                     className="group rounded-2xl bg-[#090E1A] border border-white/10 overflow-hidden hover:border-sky-400/40 transition-all flex flex-col"
                   >
                     <div className="relative h-52 w-full overflow-hidden bg-black/40">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={p.image}
                         alt={p.name}
@@ -561,27 +696,27 @@ export default function TenantSiteClient({
       )}
 
       {/* ── TIER 3: PRO TIER (Full Interactive Commercial Showcase & Spec Hub) ── */}
-      {isProTier && properties.length === 0 && (
+      {isProTier && properties.length === 0 && heroSlides.length === 0 && (
         <main id="portfolio" className="max-w-3xl mx-auto px-4 sm:px-6 py-24 text-center space-y-4">
           <Building2 size={40} className="mx-auto text-gray-500" />
-          <h1 className="text-3xl font-black text-white">{org.name}</h1>
+          <h1 className="text-3xl font-black text-white">{brandName}</h1>
           <p className="text-sm text-gray-400">
             {isMember
-              ? "No published properties yet. Add and publish properties in your Dashboard and they will appear here automatically."
-              : `New listings from ${org.name} are coming soon. Use the contact details below to get in touch.`}
+              ? "No published properties yet. Add and publish properties in your Site Builder and they will appear here automatically."
+              : `New listings from ${brandName} are coming soon. Use the contact details below to get in touch.`}
           </p>
           {isMember && (
             <Link
-              href="/admin?tab=properties"
+              href="/admin?tab=content"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs"
             >
-              Add Properties in Dashboard
+              Add Properties in Site Builder
             </Link>
           )}
         </main>
       )}
 
-      {isProTier && properties.length > 0 && (
+      {isProTier && (properties.length > 0 || heroSlides.length > 0) && (
         <main>
           {/* Animated Image Hero Banner */}
           <AcmeHeroBanner
@@ -613,6 +748,264 @@ export default function TenantSiteClient({
         </main>
       )}
 
+      {/* ── CUSTOMIZABLE SITE BUILDER SECTIONS (Growth & Pro Tiers) ── */}
+      {(isGrowthTier || isProTier) && (
+        <div className="space-y-24 pb-20">
+          {/* 1. Portfolio Stats Bar */}
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#0A1224] via-[#0D172E] to-[#0A1224] border border-white/10 shadow-xl">
+              {statsItems.map((st, idx) => (
+                <div key={idx} className="text-center space-y-1 p-2">
+                  <div className="text-2xl sm:text-4xl font-black text-sky-400 tracking-tight">
+                    {st.value}
+                  </div>
+                  <div className="text-xs sm:text-sm font-semibold text-slate-300">
+                    {st.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 2. Services & Divisions Section */}
+          <section id="services" className="scroll-mt-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-10">
+            <div className="text-center max-w-3xl mx-auto space-y-3">
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-widest px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/20">
+                <Briefcase size={13} />
+                <span>Capabilities &amp; Services</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+                {c("services", "section_heading_1", "Everything You Need.")}{" "}
+                <span className="text-sky-400">
+                  {c("services", "section_heading_2", "One Hands-On Partner.")}
+                </span>
+              </h2>
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+                {c(
+                  "services",
+                  "section_subtext",
+                  `From initial tour and space planning through build-out and responsive day-to-day property management — ${brandName} delivers results.`
+                )}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {servicesCards.map((card, i) => (
+                <div
+                  key={i}
+                  className="p-6 sm:p-7 rounded-2xl bg-[#090F1E] border border-white/10 hover:border-sky-400/40 transition-all space-y-3 flex flex-col justify-between"
+                >
+                  <div className="space-y-2.5">
+                    <div className="w-11 h-11 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400 font-black text-sm">
+                      0{i + 1}
+                    </div>
+                    <h3 className="text-lg font-bold text-white">{card.title}</h3>
+                    <p className="text-xs font-semibold text-sky-300">{card.short}</p>
+                    <p className="text-sm text-slate-300 leading-relaxed pt-1">{card.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 3. About & Company Story Section */}
+          <section id="about" className="scroll-mt-24 max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="rounded-3xl bg-gradient-to-br from-[#0B1325] to-[#070B14] border border-white/10 p-8 sm:p-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-7 space-y-4">
+                <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/20">
+                  <Sparkles size={13} />
+                  <span>About {brandName}</span>
+                </div>
+                <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+                  {c("about", "hero_heading_1", "Committed to Our")}{" "}
+                  <span className="text-sky-400">
+                    {c("about", "hero_heading_2", "Community & Tenants")}
+                  </span>
+                </h2>
+                <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+                  {c(
+                    "about",
+                    "hero_subtext",
+                    org.description ||
+                      `${brandName} is a locally owned and operated property company focused on long-term relationships, well-maintained buildings, and flexible leasing.`
+                  )}
+                </p>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  {c(
+                    "about",
+                    "leader_bio_1",
+                    "We believe great commercial real estate starts with responsive local ownership and pride of maintenance."
+                  )}
+                </p>
+                {siteContent.about?.leader_bio_2 && (
+                  <p className="text-sm text-slate-400 leading-relaxed">
+                    {siteContent.about.leader_bio_2}
+                  </p>
+                )}
+              </div>
+
+              <div className="lg:col-span-5">
+                <div className="p-6 sm:p-8 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
+                  <Quote size={28} className="text-sky-400 opacity-80" />
+                  <p className="text-base sm:text-lg font-medium text-white italic leading-relaxed">
+                    &ldquo;
+                    {c(
+                      "about",
+                      "leader_quote",
+                      "We don't just lease buildings — we invest in the long-term success of every business in our portfolio."
+                    )}
+                    &rdquo;
+                  </p>
+                  <div className="pt-2 border-t border-white/10">
+                    <p className="text-sm font-bold text-sky-300">
+                      {c("about", "leader_heading", brandName)}
+                    </p>
+                    {org.city && <p className="text-xs text-slate-400">{org.city}</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 4. Client Testimonials Section */}
+          <section id="testimonials" className="scroll-mt-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-10">
+            <div className="text-center max-w-3xl mx-auto space-y-3">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-widest px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/20">
+                <Star size={12} fill="currentColor" />
+                <span>
+                  {c("testimonials", "review_score", "5.0 Stars")} ·{" "}
+                  {c("testimonials", "review_tagline", "Trusted by local businesses")}
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+                {c("testimonials", "section_heading_1", "What Our ")}{" "}
+                <span className="text-sky-400">
+                  {c("testimonials", "section_heading_2", "Tenants Say")}
+                </span>
+              </h2>
+              <p className="text-sm sm:text-base text-slate-300">
+                {c(
+                  "testimonials",
+                  "section_subtext",
+                  `Businesses across our community trust ${brandName} to put them in the right space and support their growth.`
+                )}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {testimonialsList.map((t, i) => (
+                <div
+                  key={i}
+                  className="p-6 rounded-2xl bg-[#090F1E] border border-white/10 flex flex-col justify-between space-y-4"
+                >
+                  <p className="text-sm text-slate-200 leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
+                  <div className="pt-3 border-t border-white/10">
+                    <p className="text-sm font-bold text-white">{t.author}</p>
+                    <p className="text-xs text-slate-400">{t.location}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 5. Leasing FAQ Section */}
+          <section id="faq" className="scroll-mt-24 max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
+            <div className="text-center space-y-2">
+              <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">
+                {c("faq", "section_badge", "Common Questions")}
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+                {c("faq", "section_heading_1", "Leasing With Us ")}{" "}
+                <span className="text-sky-400">
+                  {c("faq", "section_heading_2", "— FAQ")}
+                </span>
+              </h2>
+              <p className="text-sm text-slate-300">
+                {c(
+                  "faq",
+                  "section_subtext",
+                  `Everything you need to know about touring and leasing space with ${brandName}.`
+                )}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {faqItems.map((item, idx) => {
+                const isOpen = openFaqIdx === idx;
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-2xl bg-[#090F1E] border border-white/10 overflow-hidden"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenFaqIdx(isOpen ? null : idx)}
+                      className="w-full flex items-center justify-between p-5 text-left hover:bg-white/[0.02] transition-colors"
+                    >
+                      <span className="text-sm sm:text-base font-bold text-white pr-4">
+                        {item.q}
+                      </span>
+                      <ChevronDown
+                        size={18}
+                        className={`text-sky-400 flex-shrink-0 transition-transform ${
+                          isOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                    {isOpen && (
+                      <div className="px-5 pb-5 text-sm text-slate-300 leading-relaxed border-t border-white/[0.06] pt-3">
+                        {item.a}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 6. Bottom Call-to-Action Banner */}
+          <section className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="rounded-3xl bg-gradient-to-r from-sky-950/80 via-[#0B1528] to-indigo-950/80 border border-sky-400/30 p-8 sm:p-12 text-center space-y-5 shadow-2xl">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-300 uppercase tracking-widest px-3 py-1 rounded-full bg-sky-500/15 border border-sky-400/30">
+                {c("cta", "badge_text", org.city ? `Serving ${org.city}` : "Now Leasing")}
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+                {c("cta", "heading_1", "Ready to Tour Your Next Space?")}{" "}
+                <span className="text-sky-400">
+                  {c("cta", "heading_2", "Let's Talk.")}
+                </span>
+              </h2>
+              <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto">
+                {c(
+                  "cta",
+                  "subtext",
+                  "Whether you're looking for an office suite, retail storefront, or warehouse space — our team is ready to help."
+                )}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenTour()}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-300 hover:to-blue-400 text-slate-950 font-black text-sm shadow-[0_0_24px_rgba(56,189,248,0.35)] transition-all flex items-center gap-2"
+                >
+                  <Calendar size={16} />
+                  <span>{c("cta", "cta_button", "Schedule a Tour")}</span>
+                </button>
+                {org.contact_phone && (
+                  <a
+                    href={`tel:${org.contact_phone.replace(/[^0-9]/g, "")}`}
+                    className="px-6 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-white font-bold text-sm transition-all flex items-center gap-2"
+                  >
+                    <Phone size={15} className="text-sky-400" />
+                    <span>{org.contact_phone}</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
       {/* Schedule Private Tour Modal (for Growth & Pro tiers) */}
       <AcmeTourModal
         isOpen={isTourModalOpen}
@@ -630,7 +1023,7 @@ export default function TenantSiteClient({
         orgName={brandName}
         phone={org.contact_phone}
         email={org.contact_email}
-        description={org.description}
+        description={c("footer", "tagline", org.description || "")}
         isMember={isMember}
         assetClasses={assetClasses}
         markets={markets}

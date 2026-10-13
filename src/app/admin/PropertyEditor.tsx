@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Save, CheckCircle2, Loader2, RotateCcw, AlertCircle,
   Type, ChevronDown, ChevronRight, Building2, MapPin,
-  Star, Trash2, Upload, ImageIcon, Plus,
+  Star, Trash2, Upload, ImageIcon, Plus, Eye, EyeOff,
 } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
 
@@ -15,7 +15,7 @@ interface PropertyImages {
   updated_at: string;
 }
 
-// ── Build defaults from the hardcoded PROPERTIES array ───────────────────────
+// ── Build defaults from the properties array ───────────────────────
 
 type FieldMeta = { label: string; value: string; type: "text" | "textarea" };
 
@@ -34,6 +34,7 @@ interface EditableProperty {
   images?: string[];
   imageAlt?: string;
   videoTour?: string;
+  published?: boolean;
 }
 
 function buildPropertyDefaults(list: EditableProperty[]): Record<string, Record<string, FieldMeta>> {
@@ -59,7 +60,7 @@ function buildPropertyDefaults(list: EditableProperty[]): Record<string, Record<
 
 interface ContentItem { section: string; key: string; value: string }
 
-export default function PropertyEditor() {
+export default function PropertyEditor({ refreshKey = 0 }: { refreshKey?: number }) {
   const [propertiesList, setPropertiesList] = useState<EditableProperty[]>([]);
   const [overrides, setOverrides] = useState<ContentItem[]>([]);
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
@@ -111,6 +112,7 @@ export default function PropertyEditor() {
         images: Array.isArray(dp.images) ? dp.images : [],
         imageAlt: dp.name,
         videoTour: "",
+        published: dp.published !== false,
       }));
 
       const dynIds = new Set(dynProps.map(d => d.id));
@@ -130,6 +132,7 @@ export default function PropertyEditor() {
             images: (p as any).images || ((p as any).image ? [(p as any).image] : []),
             imageAlt: (p as any).imageAlt || p.name,
             videoTour: (p as any).videoTour || "",
+            published: true,
           }))
         : [];
 
@@ -165,7 +168,7 @@ export default function PropertyEditor() {
     } catch { console.warn("Failed to fetch images"); }
   }, []);
 
-  useEffect(() => { fetchContent(); fetchImages(); }, [fetchContent, fetchImages]);
+  useEffect(() => { fetchContent(); fetchImages(); }, [fetchContent, fetchImages, refreshKey]);
 
   // ── Image helpers ──
   function getImgRecord(propId: string, fallback?: string[]): PropertyImages {
@@ -305,6 +308,7 @@ export default function PropertyEditor() {
     if (dirty.length === 0) return;
     setPropSaving(p => ({ ...p, [sectionKey]: true }));
     setError(null);
+    const propId = sectionKey.replace(/^property:/, "");
     try {
       for (const key of dirty) {
         const value = editedValues[`${sectionKey}:${key}`] ?? getValue(sectionKey, key);
@@ -319,6 +323,57 @@ export default function PropertyEditor() {
           return [...filtered, { section: sectionKey, key, value }];
         });
       }
+
+      // Also sync core property fields directly to public.properties so the live tenant website & database stay in sync
+      const resolveField = (k: string) => editedValues[`${sectionKey}:${k}`] ?? getValue(sectionKey, k);
+      const nextName = resolveField("name");
+      const nextType = resolveField("type");
+      const nextAddress = resolveField("address");
+      const nextCity = resolveField("city");
+      const nextSqft = resolveField("sqft");
+      const nextStatus = resolveField("status");
+      const nextBadge = resolveField("badge");
+      const nextDescription = resolveField("description");
+      const nextFeaturesRaw = resolveField("features");
+      const nextFeatures = nextFeaturesRaw
+        ? nextFeaturesRaw.split("\n").map(s => s.trim()).filter(Boolean)
+        : [];
+
+      await fetch(`/api/properties-dynamic/${encodeURIComponent(propId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: nextName,
+          type: nextType,
+          address: nextAddress,
+          city: nextCity,
+          sqft: nextSqft,
+          lease_status: nextStatus,
+          badge: nextBadge || null,
+          description: nextDescription,
+          features: nextFeatures,
+        }),
+      }).catch(() => {});
+
+      setPropertiesList(prev =>
+        prev.map(p =>
+          p.id === propId
+            ? {
+                ...p,
+                name: nextName || p.name,
+                type: nextType || p.type,
+                address: nextAddress || p.address,
+                city: nextCity || p.city,
+                sqft: nextSqft || p.sqft,
+                status: nextStatus || p.status,
+                badge: nextBadge,
+                description: nextDescription,
+                features: nextFeatures,
+              }
+            : p
+        )
+      );
+
       setEditedValues(prev => {
         const next = { ...prev };
         for (const key of dirty) delete next[`${sectionKey}:${key}`];
@@ -330,6 +385,38 @@ export default function PropertyEditor() {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setPropSaving(p => ({ ...p, [sectionKey]: false }));
+    }
+  };
+
+  const togglePublished = async (prop: EditableProperty, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextPub = !(prop.published !== false);
+    try {
+      const res = await fetch(`/api/properties-dynamic/${encodeURIComponent(prop.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ published: nextPub }),
+      });
+      if (res.ok) {
+        setPropertiesList(prev => prev.map(p => (p.id === prop.id ? { ...p, published: nextPub } : p)));
+      }
+    } catch {
+      setError("Failed to update visibility");
+    }
+  };
+
+  const deleteProperty = async (prop: EditableProperty, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${prop.name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/properties-dynamic/${encodeURIComponent(prop.id)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setPropertiesList(prev => prev.filter(p => p.id !== prop.id));
+      }
+    } catch {
+      setError("Failed to delete property");
     }
   };
 
@@ -353,14 +440,16 @@ export default function PropertyEditor() {
   return (
     <div className="space-y-5">
 
-      <div className="p-5 sm:p-6 glass rounded-2xl border border-[rgba(255,255,255,0.06)]">
+      <div className="p-5 sm:p-6 glass rounded-2xl border border-[rgba(255,255,255,0.06)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
           <h2 className="text-lg font-black text-white flex items-center gap-2">
-            <Building2 size={20} className="text-[#F97316]" />
-            Property Editor
+            <Building2 size={20} className="text-[#38BDF8]" />
+            Property Portfolio &amp; Listing Editor
           </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Edit text <strong className="text-gray-400">&amp;</strong> images for your <strong className="text-gray-300">{propertiesList.length} properties</strong>. Each card has its own Save button.
+          <p className="text-sm text-slate-400 mt-1">
+            Edit photos, descriptions, availability, and features for your <strong className="text-white">{propertiesList.length} properties</strong>. Changes publish directly to your live website.
           </p>
+        </div>
       </div>
 
 
@@ -372,8 +461,12 @@ export default function PropertyEditor() {
       )}
 
       {propertiesList.length === 0 && (
-        <div className="p-8 text-center text-gray-500 text-sm">
-          No properties yet. Expand &ldquo;Add New Property&rdquo; above or visit the Properties tab to add your first property.
+        <div className="p-10 text-center rounded-2xl border border-dashed border-white/10 bg-white/[0.01]">
+          <Building2 size={32} className="text-slate-600 mx-auto mb-2.5" />
+          <p className="text-base font-bold text-slate-300">No properties in your website portfolio yet</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Click <strong className="text-slate-300">&ldquo;Add New Property&rdquo;</strong> above to create a listing and upload photos.
+          </p>
         </div>
       )}
 
@@ -385,48 +478,74 @@ export default function PropertyEditor() {
         const isExpanded = expandedSections[sectionKey];
         const dirtyCount = sectionDirtyCount(sectionKey);
         const customized = Object.keys(fields).filter(k => isOverridden(sectionKey, k)).length;
+        const recPreview = getImgRecord(prop.id, prop.images || (prop.image ? [prop.image] : []));
+        const thumbUrl = recPreview.hero_url || prop.image;
+        const isPub = prop.published !== false;
 
         return (
           <div key={sectionKey} className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] overflow-hidden">
-            <button
+            <div
               onClick={() => toggleSection(sectionKey)}
-              className="w-full flex items-center justify-between p-5 hover:bg-[rgba(255,255,255,0.02)] transition-colors text-left"
+              className="w-full flex items-center justify-between p-5 hover:bg-[rgba(255,255,255,0.02)] transition-colors text-left cursor-pointer"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3.5 min-w-0">
                 {/* Property thumbnail */}
-                <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-[rgba(255,255,255,0.08)]">
-                  {(prop as any).image ? (
+                <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border border-[rgba(255,255,255,0.08)]">
+                  {thumbUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={(prop as any).image} alt={prop.name} className="w-full h-full object-cover" />
+                    <img src={thumbUrl} alt={prop.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-[rgba(255,255,255,0.04)] flex items-center justify-center">
                       <Building2 size={18} className="text-gray-700" />
                     </div>
                   )}
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    {prop.name}
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-white flex flex-wrap items-center gap-2">
+                    <span className="truncate">{getValue(sectionKey, "name") || prop.name}</span>
                     {customized > 0 && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] font-semibold">
-                        {customized} edited
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] font-semibold">
+                        {customized} customized
                       </span>
                     )}
                     {dirtyCount > 0 && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(250,204,21,0.1)] border border-[rgba(250,204,21,0.25)] text-[#FACC15] font-semibold">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-[rgba(250,204,21,0.1)] border border-[rgba(250,204,21,0.25)] text-[#FACC15] font-semibold">
                         {dirtyCount} unsaved
                       </span>
                     )}
                   </h3>
-                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                    <MapPin size={10} /> {prop.city} · {prop.type} · {prop.sqft} sqft
+                  <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                    <MapPin size={11} className="text-slate-500" /> {getValue(sectionKey, "city") || prop.city} · {getValue(sectionKey, "type") || prop.type} · {getValue(sectionKey, "sqft") || prop.sqft} sqft
                   </p>
                 </div>
               </div>
-              <div className="text-gray-600">
-                {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => togglePublished(prop, e)}
+                  title={isPub ? "Published on live website (click to set Draft)" : "Hidden Draft (click to Publish)"}
+                  className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
+                    isPub
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20"
+                      : "bg-slate-800/80 border-white/10 text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {isPub ? <Eye size={13} /> : <EyeOff size={13} />}
+                  <span className="hidden sm:inline">{isPub ? "Live" : "Draft"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => deleteProperty(prop, e)}
+                  title="Delete property"
+                  className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+                <div className="text-slate-500 pl-1">
+                  {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                </div>
               </div>
-            </button>
+            </div>
 
             {isExpanded && (
               <div className="border-t border-[rgba(255,255,255,0.05)] p-5 space-y-5">
@@ -438,39 +557,39 @@ export default function PropertyEditor() {
                   const isUp = imgUploading === prop.id;
                   return (
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">📷 Gallery</p>
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Property Photo Gallery</p>
                         {imgSaved === prop.id && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-[#4ADE80] animate-pulse">
-                            <CheckCircle2 size={11} /> Saved
+                          <span className="flex items-center gap-1 text-xs font-bold text-[#4ADE80] animate-pulse">
+                            <CheckCircle2 size={12} /> Saved
                           </span>
                         )}
                       </div>
-                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
                         {urls.map((url, i) => {
                           const isHero = url === hero;
                           const isDel = imgDeleting === url;
                           return (
                             <div key={url + i} className={`relative rounded-xl overflow-hidden border-2 ${isHero ? "border-[#FACC15]" : "border-[rgba(255,255,255,0.08)]"}` }>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={url} alt={`${prop.name} ${i}`} className={`w-full h-16 object-cover ${isDel ? "opacity-30" : ""}`} />
+                              <img src={url} alt={`${prop.name} ${i}`} className={`w-full h-20 object-cover ${isDel ? "opacity-30" : ""}`} />
                               {isHero && (
-                                <div className="absolute top-1 left-1 flex items-center gap-0.5 bg-[#FACC15] text-black text-[7px] font-black px-1.5 py-0.5 rounded-full leading-none shadow-md">
-                                  <Star size={6} fill="currentColor" /> HERO
+                                <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-[#FACC15] text-black text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none shadow-md">
+                                  <Star size={8} fill="currentColor" /> HERO
                                 </div>
                               )}
-                              <div className="flex items-center justify-between px-1.5 py-1 bg-[rgba(0,0,0,0.55)]">
+                              <div className="flex items-center justify-between px-2 py-1 bg-[rgba(0,0,0,0.65)]">
                                 {isHero ? (
-                                  <span className="text-[8px] font-black text-[#FACC15] flex items-center gap-0.5"><Star size={7} fill="currentColor" /> HERO</span>
+                                  <span className="text-[10px] font-black text-[#FACC15] flex items-center gap-1"><Star size={9} fill="currentColor" /> Cover</span>
                                 ) : (
-                                  <button onClick={() => handleSetHero(prop.id, url)} className="text-[#FACC15] p-0.5" title="Set hero"><Star size={11} /></button>
+                                  <button onClick={() => handleSetHero(prop.id, url)} className="text-xs text-[#FACC15] hover:underline flex items-center gap-1 p-0.5" title="Set as cover photo"><Star size={12} /> Set Cover</button>
                                 )}
                                 <button
                                   onClick={() => { if (window.confirm("Remove this image?")) handleRemoveImg(prop.id, url); }}
                                   disabled={isDel}
                                   className="text-red-400 hover:text-red-300 p-0.5 disabled:opacity-40"
                                 >
-                                  {isDel ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={11} />}
+                                  {isDel ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={12} />}
                                 </button>
                               </div>
                             </div>
@@ -479,9 +598,9 @@ export default function PropertyEditor() {
                         <button
                           onClick={() => fileRefs.current[prop.id]?.click()}
                           disabled={isUp}
-                          className="h-[88px] rounded-xl border-2 border-dashed border-[rgba(96,165,250,0.3)] text-[#60A5FA] hover:border-[rgba(96,165,250,0.5)] hover:bg-[rgba(96,165,250,0.05)] transition-all flex flex-col items-center justify-center gap-1 text-[10px]"
+                          className="h-[104px] rounded-xl border-2 border-dashed border-[rgba(96,165,250,0.3)] text-[#60A5FA] hover:border-[rgba(96,165,250,0.5)] hover:bg-[rgba(96,165,250,0.05)] transition-all flex flex-col items-center justify-center gap-1.5 text-xs font-semibold"
                         >
-                          {isUp ? <Loader2 size={14} className="animate-spin" /> : <><Upload size={14} /><span>Add</span></>}
+                          {isUp ? <Loader2 size={16} className="animate-spin" /> : <><Upload size={16} /><span>Upload Photos</span></>}
                         </button>
                       </div>
                       <input
@@ -502,18 +621,18 @@ export default function PropertyEditor() {
                   return (
                     <div key={fieldKey}>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
-                          <Type size={11} className="text-gray-600" />
+                        <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                          <Type size={12} className="text-slate-500" />
                           {fieldMeta.label}
                           {dirty && <span className="w-1.5 h-1.5 rounded-full bg-[#FACC15] inline-block" />}
                         </label>
                         {(custom || dirty) && (
                           <button
                             onClick={() => revertField(sectionKey, fieldKey)}
-                            className="text-[10px] text-gray-600 hover:text-gray-300 flex items-center gap-1 transition-colors"
+                            className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors"
                             title="Reset to default"
                           >
-                            <RotateCcw size={10} /> Reset
+                            <RotateCcw size={11} /> Reset
                           </button>
                         )}
                       </div>
@@ -533,10 +652,10 @@ export default function PropertyEditor() {
                         />
                       )}
                       {fieldKey === "features" && (
-                        <p className="text-[10px] text-gray-600 mt-1">Enter one feature per line. These appear as bullet points on the property page.</p>
+                        <p className="text-xs text-slate-500 mt-1">Enter one feature per line. These appear as feature badges on your website.</p>
                       )}
                       {fieldKey === "videoTour" && (
-                        <p className="text-[10px] text-gray-600 mt-1">Paste a YouTube link (e.g. https://www.youtube.com/watch?v=...) to add a video tour to the property page.</p>
+                        <p className="text-xs text-slate-500 mt-1">Paste a YouTube link (e.g. https://www.youtube.com/watch?v=...) to attach a video tour.</p>
                       )}
                     </div>
                   );
@@ -564,7 +683,7 @@ export default function PropertyEditor() {
                       >
                         {isSaving ? <><Loader2 size={14} className="animate-spin" /> Saving…</> :
                          isSaved  ? <><CheckCircle2 size={14} /> Saved!</> :
-                                    <><Save size={14} /> Save{dc > 0 ? ` (${dc})` : ""}</>}
+                                    <><Save size={14} /> Save Changes{dc > 0 ? ` (${dc})` : ""}</>}
                       </button>
                     </div>
                   );
@@ -574,12 +693,6 @@ export default function PropertyEditor() {
           </div>
         );
       })}
-
-      <div className="text-center pt-2 pb-4">
-        <p className="text-xs text-gray-600">
-          {overrides.length} property field{overrides.length !== 1 ? "s" : ""} customized · To add a <em>new</em> property, use the &quot;Add Property&quot; tab
-        </p>
-      </div>
     </div>
   );
 }

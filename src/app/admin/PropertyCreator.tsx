@@ -19,7 +19,13 @@ const EMPTY = (): Omit<DynProperty,"id"|"created_at"> => ({
   in_banner:false, published:false,
 });
 
-export default function PropertyCreator() {
+export default function PropertyCreator({
+  onCreated,
+  hideList = false,
+}: {
+  onCreated?: () => void;
+  hideList?: boolean;
+} = {}) {
   const [form, setForm] = useState(EMPTY());
   const [properties, setProperties] = useState<DynProperty[]>([]);
   const [editId, setEditId] = useState<string|null>(null);
@@ -89,10 +95,11 @@ export default function PropertyCreator() {
     finally { setEnhancing(false); }
   }
 
-  async function save() {
+  async function save(publishOverride?: boolean) {
     if (!form.name || !form.city) { setMsg({ type:"err", text:"Name and City are required." }); return; }
     setSaving(true); setMsg(null);
-    const payload = { ...form, features: form.features.filter(Boolean) };
+    const shouldPublish = publishOverride !== undefined ? publishOverride : form.published;
+    const payload = { ...form, published: shouldPublish, features: form.features.filter(Boolean) };
     const method = editId ? "PATCH" : "POST";
     const url = editId ? `/api/properties-dynamic/${editId}` : "/api/properties-dynamic";
     const res = await fetch(url, { method, headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
@@ -103,9 +110,10 @@ export default function PropertyCreator() {
       setMsg({ type:"err", text: d.error === "TABLE_MISSING" ? "Run the setup SQL in Supabase first." : (d.error || "Save failed") });
       return;
     }
-    setMsg({ type:"ok", text: editId ? "Property updated!" : "Property saved as draft!" });
+    setMsg({ type:"ok", text: editId ? "Property updated!" : shouldPublish ? "Property published to your live website!" : "Property saved as draft!" });
     setForm(EMPTY()); setEditId(null); setKeywords("");
     load();
+    onCreated?.();
   }
 
   function startEdit(p: DynProperty) {
@@ -328,12 +336,12 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
 
         {/* Actions */}
         <div className="flex gap-3">
-          <button onClick={() => { set("published", false); save(); }} disabled={saving}
+          <button onClick={() => { set("published", false); save(false); }} disabled={saving}
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[rgba(255,255,255,0.1)] text-white text-sm font-black hover:bg-[rgba(255,255,255,0.04)] disabled:opacity-50 transition-all">
             {saving ? <Loader2 size={13} className="animate-spin" /> : null}
             Save as Draft
           </button>
-          <button onClick={() => { set("published", true); save(); }} disabled={saving}
+          <button onClick={() => { set("published", true); save(true); }} disabled={saving}
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)] text-sm font-black hover:opacity-90 disabled:opacity-50 transition-all">
             {saving ? <Loader2 size={13} className="animate-spin" /> : null}
             Save & Publish
@@ -342,7 +350,7 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
       </div>
 
       {/* Property List */}
-      {properties.length > 0 && (
+      {!hideList && properties.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-black text-white uppercase tracking-widest">Dynamic Properties ({properties.length})</h3>
           {properties.map(p => (
