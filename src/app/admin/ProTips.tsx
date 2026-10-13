@@ -650,6 +650,7 @@ const SECTION_CATEGORIES: { key: TabKey; label: string; icon: LucideIcon }[] = [
   { key: "marketing-blog", label: "Marketing & AI", icon: Sparkles },
   { key: "content-properties", label: "Website Builder", icon: Globe },
   { key: "settings", label: "Settings & Billing", icon: Settings },
+  { key: "archived", label: "Archived Leads", icon: Archive },
   { key: "global", label: "Platform AI Tools", icon: Brain },
 ];
 
@@ -690,11 +691,6 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
   const [pulse, setPulse] = useState(false);
   const prevTab = useRef<TabKey>(activeTab);
   const modalRef = useRef<HTMLDivElement>(null);
-
-  // Scroll refs & state for modern scroll UI graphics
-  const categoryBarRef = useRef<HTMLDivElement>(null);
-  const [canScrollCatLeft, setCanScrollCatLeft] = useState(false);
-  const [canScrollCatRight, setCanScrollCatRight] = useState(true);
 
   const sidebarListRef = useRef<HTMLDivElement>(null);
   const [sidebarScrollState, setSidebarScrollState] = useState<{
@@ -833,14 +829,6 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
   const safeIdx = Math.min(selectedIdx, Math.max(0, displayedTips.length - 1));
   const current = displayedTips[safeIdx] ?? null;
 
-  // Update horizontal category bar scroll indicators
-  const updateCategoryScrollState = () => {
-    const el = categoryBarRef.current;
-    if (!el) return;
-    setCanScrollCatLeft(el.scrollLeft > 8);
-    setCanScrollCatRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
-  };
-
   // Update vertical sidebar scroll state & progress
   const updateSidebarScrollState = () => {
     const el = sidebarListRef.current;
@@ -861,7 +849,6 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
   useEffect(() => {
     if (!open) return;
     const t = setTimeout(() => {
-      updateCategoryScrollState();
       updateSidebarScrollState();
     }, 60);
     return () => clearTimeout(t);
@@ -877,12 +864,6 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
       activeBtn.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   }, [safeIdx, open]);
-
-  const scrollCategoryBar = (dir: "left" | "right") => {
-    const el = categoryBarRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir === "left" ? -260 : 260, behavior: "smooth" });
-  };
 
   const scrollSidebarStep = () => {
     const el = sidebarListRef.current;
@@ -928,7 +909,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
             role="dialog"
             aria-modal="true"
             aria-label="OperateIQ Help and Guide Center"
-            className="relative w-full max-w-5xl max-h-[88vh] flex flex-col bg-[#0B1120] border border-white/15 rounded-3xl
+            className="relative w-full max-w-5xl max-h-[90vh] flex flex-col bg-[#0B1120] border border-white/15 rounded-3xl
               shadow-[0_25px_90px_rgba(0,0,0,0.85),0_0_60px_rgba(56,189,248,0.16)] overflow-hidden
               animate-in zoom-in-95 fade-in duration-200"
           >
@@ -994,27 +975,10 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
               </div>
             </div>
 
-            {/* ── Category Switcher Carousel Bar (Modern Scroll UI with Fade Masks & Glide Arrows) ── */}
+            {/* ── Stacked Category Navigation Grid (All Categories Visible at Once, Zero Side-Scrolling) ── */}
             {!searchQuery && (
-              <div className="relative border-b border-white/10 bg-[#080D1A] flex items-center flex-shrink-0">
-                {/* Left fade + glide button */}
-                {canScrollCatLeft && (
-                  <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-2 pr-6 bg-gradient-to-r from-[#080D1A] via-[#080D1A]/95 to-transparent pointer-events-none">
-                    <button
-                      onClick={() => scrollCategoryBar("left")}
-                      aria-label="Scroll categories left"
-                      className="pointer-events-auto w-8 h-8 rounded-full bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/40 text-sky-200 hover:text-white flex items-center justify-center shadow-[0_0_16px_rgba(56,189,248,0.35)] transition-all cursor-pointer"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                  </div>
-                )}
-
-                <div
-                  ref={categoryBarRef}
-                  onScroll={updateCategoryScrollState}
-                  className="px-6 sm:px-8 py-3 flex items-center gap-2 overflow-x-auto scrollbar-none scroll-smooth w-full"
-                >
+              <div className="px-6 sm:px-8 py-3.5 border-b border-white/10 bg-[#080D1A] flex-shrink-0">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                   {SECTION_CATEGORIES.map((cat) => {
                     const Icon = cat.icon;
                     const isActive =
@@ -1024,40 +988,25 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                     return (
                       <button
                         key={cat.key}
-                        onClick={(e) => {
+                        onClick={() => {
                           setSelectedCategory(cat.key);
                           setSelectedIdx(0);
-                          e.currentTarget.scrollIntoView({
-                            behavior: "smooth",
-                            inline: "center",
-                            block: "nearest",
-                          });
                         }}
-                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
+                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-left ${
                           isActive
-                            ? "bg-sky-500/20 border border-sky-400/50 text-white shadow-[0_0_15px_rgba(56,189,248,0.2)]"
-                            : "bg-white/[0.03] border border-white/[0.07] text-slate-300 hover:text-white hover:bg-white/[0.07]"
+                            ? "bg-gradient-to-r from-sky-500/25 to-indigo-500/20 border border-sky-400/60 text-white shadow-[0_0_16px_rgba(56,189,248,0.22)]"
+                            : "bg-white/[0.03] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.07] hover:border-white/20"
                         }`}
                       >
-                        <Icon size={15} className={isActive ? "text-sky-400" : "text-slate-400"} />
-                        <span>{cat.label}</span>
+                        <Icon
+                          size={16}
+                          className={`flex-shrink-0 ${isActive ? "text-sky-400" : "text-slate-400"}`}
+                        />
+                        <span className="truncate">{cat.label}</span>
                       </button>
                     );
                   })}
                 </div>
-
-                {/* Right fade + glide button */}
-                {canScrollCatRight && (
-                  <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-2 pl-6 bg-gradient-to-l from-[#080D1A] via-[#080D1A]/95 to-transparent pointer-events-none">
-                    <button
-                      onClick={() => scrollCategoryBar("right")}
-                      aria-label="Scroll categories right"
-                      className="pointer-events-auto w-8 h-8 rounded-full bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/40 text-sky-200 hover:text-white flex items-center justify-center shadow-[0_0_16px_rgba(56,189,248,0.35)] transition-all cursor-pointer"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 
