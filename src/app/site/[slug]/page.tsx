@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin, supabaseAnon } from "@/lib/supabase";
 import { BRAND } from "@/lib/brand";
 import TenantSiteClient, {
   OrgData,
@@ -13,28 +13,33 @@ interface Props {
 }
 
 async function getOrgBySlug(slug: string): Promise<OrgData | null> {
-  if (!supabaseAdmin) return null;
+  const client = supabaseAdmin || supabaseAnon;
+  if (!client) return null;
   try {
-    const { data: org, error } = await supabaseAdmin
+    const { data: org, error } = await client
       .from("organizations")
       .select(
-        "id, name, slug, tier, custom_domain, contact_email, contact_phone, description, city, address"
+        "id, name, slug, tier, custom_domain, contact_email, contact_phone, brand_name, brand_logo_url, brand_primary_color, brand_accent_color"
       )
       .eq("slug", slug.toLowerCase().trim())
       .maybeSingle();
 
-    if (error || !org) return null;
+    if (error || !org) {
+      if (error) console.error("[getOrgBySlug] Error fetching org:", error);
+      return null;
+    }
     return org as OrgData;
   } catch (err) {
-    console.warn("[getOrgBySlug] Error fetching org:", err);
+    console.error("[getOrgBySlug] Unexpected error:", err);
     return null;
   }
 }
 
 async function getFirstPropertyPhoto(orgId: string): Promise<string | null> {
-  if (!supabaseAdmin) return null;
+  const client = supabaseAdmin || supabaseAnon;
+  if (!client) return null;
   try {
-    const { data } = await supabaseAdmin
+    const { data } = await client
       .from("properties")
       .select("featured_image, image")
       .eq("org_id", orgId)
@@ -126,9 +131,10 @@ export default async function TenantPublicSitePage({ params }: Props) {
   }
 
   let formattedProperties: FormattedProperty[] = [];
-  if (supabaseAdmin) {
+  const client = supabaseAdmin || supabaseAnon;
+  if (client) {
     try {
-      const { data: rawProps } = await supabaseAdmin
+      const { data: rawProps } = await client
         .from("properties")
         .select("*")
         .eq("org_id", org.id)
@@ -204,10 +210,10 @@ export default async function TenantPublicSitePage({ params }: Props) {
           `Premier commercial and residential properties managed by ${org.name}.`,
         telephone: org.contact_phone || undefined,
         email: org.contact_email || undefined,
-        address: org.city
+        address: (org.city || formattedProperties[0]?.city)
           ? {
               "@type": "PostalAddress",
-              addressLocality: org.city,
+              addressLocality: org.city || formattedProperties[0]?.city,
               addressCountry: "US",
             }
           : undefined,
