@@ -169,7 +169,8 @@ export async function POST(req: NextRequest) {
     // The org is looked up server-side; an unknown id/slug resolves to null.
     let targetOrg: { id: string; name: string; contact_email: string | null } | null = null;
     const requestedOrgId = typeof body.org_id === "string" ? body.org_id : null;
-    const requestedOrgSlug = typeof body.org_slug === "string" ? body.org_slug : null;
+    const headerSlug = req.headers.get("x-tenant-slug");
+    const requestedOrgSlug = typeof body.org_slug === "string" ? body.org_slug : (headerSlug || null);
 
     if (supabaseAdmin && (requestedOrgId || requestedOrgSlug)) {
       let q = supabaseAdmin.from("organizations").select("id, name, contact_email");

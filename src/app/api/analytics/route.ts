@@ -115,7 +115,8 @@ export async function POST(req: NextRequest) {
     }
 
     const pagePath = sanitize(body.page_path || "/", 300);
-    const orgId = await orgIdForPath(pagePath);
+    const tenantSlugHeader = req.headers.get("x-tenant-slug");
+    const orgId = (await orgIdForPath(pagePath)) || (tenantSlugHeader ? await resolveOrgIdBySlug(tenantSlugHeader) : null);
 
     // Build the row
     const row = {
