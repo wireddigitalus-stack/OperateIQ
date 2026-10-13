@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Building2, LayoutDashboard, Globe, ExternalLink } from "lucide-react";
+import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle } from "lucide-react";
 
 export default function AdminHeader() {
   const router = useRouter();
@@ -104,7 +104,7 @@ export default function AdminHeader() {
         )}
       </div>
 
-      {/* ── Right: View Public Site & Workspace Plan ── */}
+      {/* ── Right: View Public Site, Help & Workspace Plan ── */}
       <div className="flex items-center gap-2.5">
         {superAdmin && (
           <a
@@ -139,6 +139,15 @@ export default function AdminHeader() {
             </a>
           );
         })()}
+
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("open-help-center"))}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white/[0.05] border border-white/15 text-slate-200 hover:bg-sky-500/15 hover:border-sky-400/40 hover:text-white transition-all cursor-pointer"
+          title="Open Help & Guide Center"
+        >
+          <HelpCircle size={14} className="text-sky-400" />
+          <span>Help</span>
+        </button>
 
         {activeOrg && (
           <span className="hidden md:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/[0.04] border border-white/10 text-gray-400">
