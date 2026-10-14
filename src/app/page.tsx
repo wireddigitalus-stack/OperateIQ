@@ -41,7 +41,7 @@ export default function HomePage() {
         {/* Hero Copy & CTA Floating Above Background */}
         <div className="relative z-10 mx-auto max-w-5xl text-center">
           <span className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full border border-[var(--oiq-border)] text-slate-300 bg-black/40 backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--oiq-cyan)] animate-pulse" /> Meet {BRAND.assistant}, your AI operations assistant
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--oiq-cyan)]" /> Meet {BRAND.assistant}, your AI operations assistant
           </span>
           <h1 className="mt-6 text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.05] drop-shadow-md">
             Property operations,<br /><span className="oiq-grad-text">intelligence Platform.</span>
