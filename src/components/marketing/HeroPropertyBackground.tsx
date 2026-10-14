@@ -33,15 +33,15 @@ export default function HeroPropertyBackground() {
   }, []);
 
   return (
-    <div className="absolute inset-x-0 top-0 h-[580px] sm:h-[650px] lg:h-[720px] overflow-hidden pointer-events-none z-0">
-      {/* 1. Multi-Layer Cross-Dissolving Panoramic Images — Positioned High in the Hero */}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      {/* 1. Multi-Layer Cross-Dissolving Panoramic Images */}
       {BACKGROUND_PROPERTIES.map((prop, idx) => {
         const isActive = idx === currentIdx;
         return (
           <div
             key={prop.src}
             className={`absolute inset-0 transition-opacity duration-[2500ms] ease-in-out ${
-              isActive ? "opacity-45 sm:opacity-50 z-10" : "opacity-0 z-0"
+              isActive ? "opacity-35 sm:opacity-40 z-10" : "opacity-0 z-0"
             }`}
           >
             <Image
@@ -50,7 +50,7 @@ export default function HeroPropertyBackground() {
               fill
               priority
               sizes="100vw"
-              className={`object-cover object-[center_22%] filter saturate-120 contrast-110 transition-transform duration-[8000ms] ease-out ${
+              className={`object-cover object-center filter saturate-120 contrast-110 transition-transform duration-[8000ms] ease-out ${
                 isActive ? "scale-105" : "scale-100"
               }`}
             />
@@ -58,10 +58,10 @@ export default function HeroPropertyBackground() {
         );
       })}
 
-      {/* Contrast Vignettes & Gradient Scrims (Ensures 100% Text Readability) */}
-      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#060911]/80 via-[#060911]/30 to-transparent z-30" />
-      <div className="absolute inset-0 bg-radial from-[#060911]/30 via-[#060911]/70 to-[#060911] z-30" />
-      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#060911] via-[#060911]/85 to-transparent z-30" />
+      {/* Deep Contrast Vignettes & Gradient Scrims (Ensures 100% Text Readability) */}
+      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#060911] via-[#060911]/85 to-transparent z-30" />
+      <div className="absolute inset-0 bg-radial from-[#060911]/40 via-[#060911]/80 to-[#060911] z-30" />
+      <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#060911] via-[#060911]/90 to-transparent z-30" />
     </div>
   );
 }
