@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   const g = await requireOrgAdmin(req, { allowExpired: true });
   if (!g.ok) return g.res;
 
-  const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+  const rawKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+  const secretKey = rawKey.replace(/^['"]+|['"]+$/g, "").replace(/^Bearer\s+/i, "").trim();
   if (!secretKey) {
     return NextResponse.json(
       { error: "Stripe is not configured on the server (missing STRIPE_SECRET_KEY in Vercel Environment Variables)." },
@@ -28,6 +29,15 @@ export async function POST(req: NextRequest) {
       {
         error:
           "STRIPE_SECRET_KEY is set to a Stripe Key ID ('mk_...'). Please replace it with the actual Secret Key token starting with 'sk_test_...' or 'sk_live_...'.",
+      },
+      { status: 503 }
+    );
+  }
+  if (secretKey.includes("...") || secretKey.includes("*") || secretKey.length < 30) {
+    return NextResponse.json(
+      {
+        error:
+          "STRIPE_SECRET_KEY in Vercel is set to a masked/truncated preview (e.g. 'sk_live_...'). In your Stripe Dashboard → Developers → API keys, click 'Reveal live key' (or create a new Secret Key) and paste the full ~107-character key (with no quotes or '...').",
       },
       { status: 503 }
     );

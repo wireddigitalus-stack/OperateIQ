@@ -7,7 +7,8 @@ export async function POST(req: NextRequest) {
   const g = await requireOrgAdmin(req, { allowExpired: true });
   if (!g.ok) return g.res;
 
-  const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+  const rawKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+  const secretKey = rawKey.replace(/^['"]+|['"]+$/g, "").replace(/^Bearer\s+/i, "").trim();
   if (!secretKey) {
     return NextResponse.json({ error: "Stripe is not configured." }, { status: 503 });
   }
