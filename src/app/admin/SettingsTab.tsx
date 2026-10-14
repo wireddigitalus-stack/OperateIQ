@@ -1176,9 +1176,21 @@ export function SubscriptionAndBillingCard({
 
   return (
     <div
-      className={`rounded-3xl border border-sky-400/30 bg-gradient-to-br from-[#0B1426] via-[#091020] to-[#0D162C] p-6 sm:p-7 shadow-[0_24px_60px_rgba(0,0,0,0.65),0_0_32px_rgba(56,189,248,0.14)]`}
+      className="relative rounded-3xl border border-sky-400/30 bg-gradient-to-br from-[#0B1426] via-[#091020] to-[#0D162C] p-6 sm:p-7 shadow-[0_24px_60px_rgba(0,0,0,0.65),0_0_32px_rgba(56,189,248,0.14)]"
     >
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close Plan & Billing modal"
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.08] hover:bg-rose-500/20 border border-white/15 hover:border-rose-400/40 text-slate-200 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+        >
+          <span>Close</span>
+          <X size={15} />
+        </button>
+      )}
+
+      <div className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 ${onClose ? "pr-24" : ""}`}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-sky-500/15 border border-sky-400/35 flex items-center justify-center shadow-[0_0_16px_rgba(56,189,248,0.25)]">
             <CreditCard size={18} className="text-sky-400" />
@@ -1247,17 +1259,6 @@ export function SubscriptionAndBillingCard({
           >
             <Sparkles size={13} /> Feature Matrix
           </a>
-
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close Plan & Billing modal"
-              className="p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.14] border border-white/15 text-slate-300 hover:text-white transition-all cursor-pointer"
-            >
-              <X size={16} />
-            </button>
-          )}
         </div>
       </div>
 
