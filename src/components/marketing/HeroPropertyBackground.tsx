@@ -33,15 +33,15 @@ export default function HeroPropertyBackground() {
   }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      {/* 1. Multi-Layer Cross-Dissolving Panoramic Images */}
+    <div className="absolute inset-x-0 top-0 h-[580px] sm:h-[650px] lg:h-[720px] overflow-hidden pointer-events-none z-0">
+      {/* 1. Multi-Layer Cross-Dissolving Panoramic Images — Positioned High in the Hero */}
       {BACKGROUND_PROPERTIES.map((prop, idx) => {
         const isActive = idx === currentIdx;
         return (
           <div
             key={prop.src}
             className={`absolute inset-0 transition-opacity duration-[2500ms] ease-in-out ${
-              isActive ? "opacity-35 sm:opacity-40 z-10" : "opacity-0 z-0"
+              isActive ? "opacity-45 sm:opacity-50 z-10" : "opacity-0 z-0"
             }`}
           >
             <Image
@@ -50,7 +50,7 @@ export default function HeroPropertyBackground() {
               fill
               priority
               sizes="100vw"
-              className={`object-cover object-center filter saturate-120 contrast-110 transition-transform duration-[8000ms] ease-out ${
+              className={`object-cover object-[center_22%] filter saturate-120 contrast-110 transition-transform duration-[8000ms] ease-out ${
                 isActive ? "scale-105" : "scale-100"
               }`}
             />
@@ -67,8 +67,8 @@ export default function HeroPropertyBackground() {
             linear-gradient(to bottom, rgba(56, 189, 248, 0.12) 1px, transparent 1px)
           `,
           backgroundSize: "48px 48px",
-          maskImage: "radial-gradient(ellipse 70% 60% at 50% 35%, black 40%, transparent 80%)",
-          WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 35%, black 40%, transparent 80%)",
+          maskImage: "radial-gradient(ellipse 75% 65% at 50% 30%, black 40%, transparent 80%)",
+          WebkitMaskImage: "radial-gradient(ellipse 75% 65% at 50% 30%, black 40%, transparent 80%)",
         }}
       />
 
@@ -96,14 +96,14 @@ export default function HeroPropertyBackground() {
 
         {/* Ambient Flow Beams */}
         <path
-          d="M 100 240 C 450 180, 850 280, 1340 220"
+          d="M 100 190 C 450 130, 850 230, 1340 170"
           stroke="url(#heroStream1)"
           strokeWidth="2"
           strokeDasharray="12 16"
           className="animate-conduit-stream"
         />
         <path
-          d="M 50 360 C 500 420, 950 310, 1400 370"
+          d="M 50 310 C 500 370, 950 260, 1400 320"
           stroke="url(#heroStream2)"
           strokeWidth="1.5"
           strokeDasharray="8 12"
@@ -111,15 +111,15 @@ export default function HeroPropertyBackground() {
         />
 
         {/* Subtle Glowing Telemetry Rings */}
-        <circle cx="360" cy="225" r="4" fill="#22D3EE" className="animate-pulse shadow-[0_0_12px_#22D3EE]" />
-        <circle cx="720" cy="265" r="3" fill="#818CF8" className="animate-pulse shadow-[0_0_10px_#818CF8]" />
-        <circle cx="1080" cy="335" r="4" fill="#34D399" className="animate-pulse shadow-[0_0_12px_#34D399]" />
+        <circle cx="360" cy="175" r="4" fill="#22D3EE" className="animate-pulse shadow-[0_0_12px_#22D3EE]" />
+        <circle cx="720" cy="215" r="3" fill="#818CF8" className="animate-pulse shadow-[0_0_10px_#818CF8]" />
+        <circle cx="1080" cy="285" r="4" fill="#34D399" className="animate-pulse shadow-[0_0_12px_#34D399]" />
       </svg>
 
       {/* 4. Deep Contrast Vignettes & Gradient Scrims (Ensures 100% Text Readability) */}
-      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#060911] via-[#060911]/85 to-transparent z-30" />
-      <div className="absolute inset-0 bg-radial from-[#060911]/40 via-[#060911]/80 to-[#060911] z-30" />
-      <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#060911] via-[#060911]/90 to-transparent z-30" />
+      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#060911]/80 via-[#060911]/30 to-transparent z-30" />
+      <div className="absolute inset-0 bg-radial from-[#060911]/30 via-[#060911]/70 to-[#060911] z-30" />
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#060911] via-[#060911]/85 to-transparent z-30" />
     </div>
   );
 }
