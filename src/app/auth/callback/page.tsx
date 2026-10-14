@@ -11,10 +11,23 @@ export default function AuthCallbackPage() {
   const redirected = useRef(false);
 
   useEffect(() => {
+    function getNextPath(): string {
+      if (typeof window === "undefined") return "/admin";
+      const sp = new URLSearchParams(window.location.search);
+      const fromQuery = sp.get("next");
+      const fromStorage = sessionStorage.getItem("oiq_auth_next");
+      sessionStorage.removeItem("oiq_auth_next");
+      const candidate = fromQuery || fromStorage || "/admin";
+      if (candidate.startsWith("/") && !candidate.startsWith("//")) {
+        return candidate;
+      }
+      return "/admin";
+    }
+
     function goToAdmin() {
       if (redirected.current) return;
       redirected.current = true;
-      router.replace("/admin");
+      router.replace(getNextPath());
     }
 
     // Check for PKCE ?code= query parameter
@@ -22,9 +35,10 @@ export default function AuthCallbackPage() {
       const searchParams = new URLSearchParams(window.location.search);
       const code = searchParams.get("code");
       const errorDesc = searchParams.get("error_description");
+      const fallbackLogin = searchParams.get("next") === "/platform" ? "/platform" : "/admin/login";
       if (errorDesc) {
         setStatus(`Sign-in error: ${decodeURIComponent(errorDesc)}`);
-        setTimeout(() => router.replace("/admin/login"), 2500);
+        setTimeout(() => router.replace(fallbackLogin), 2500);
         return;
       }
       if (code) {
@@ -51,7 +65,7 @@ export default function AuthCallbackPage() {
 
       if (errorDesc) {
         setStatus(`Sign-in error: ${decodeURIComponent(errorDesc)}`);
-        setTimeout(() => router.replace("/admin/login"), 2500);
+        setTimeout(() => router.replace(getNextPath() === "/platform" ? "/platform" : "/admin/login"), 2500);
         return;
       }
 
@@ -91,7 +105,7 @@ export default function AuthCallbackPage() {
       } else if (attempts >= 16) {
         clearInterval(interval);
         setStatus("Sign-in timed out — redirecting…");
-        setTimeout(() => router.replace("/admin/login"), 1000);
+        setTimeout(() => router.replace(getNextPath() === "/platform" ? "/platform" : "/admin/login"), 1000);
       }
     }, 500);
 

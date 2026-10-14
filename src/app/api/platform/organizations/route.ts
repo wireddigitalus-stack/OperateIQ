@@ -36,12 +36,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ organization: org || null });
     }
 
-    // Lookup by id: org admins of that org or super-admins.
+    // Lookup by id: platform super-admins or org admins of that org.
     if (id) {
-      const g = await requireOrgAdmin(req);
-      if (!g.ok) return g.res;
-      if (!g.ctx.isSuperAdmin && g.ctx.orgId !== id) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      const sa = await requireSuperAdmin(req);
+      if (!sa.ok) {
+        const g = await requireOrgAdmin(req);
+        if (!g.ok) return g.res;
+        if (g.ctx.orgId !== id) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
       }
       const [{ data: org }, { data: profileSetting }] = await Promise.all([
         supabaseAdmin.from("organizations").select("*").eq("id", id).maybeSingle(),

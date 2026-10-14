@@ -193,7 +193,7 @@ export async function getRequestContext(
     const chosen = memberships.find((m) => m.org_id === preferred) || memberships[0];
     const org = await loadOrg(chosen.org_id);
     if (!org) return null;
-    return { kind: "user", user, staff: null, orgId: org.id, org, role: chosen.role, isSuperAdmin: superAdmin, impersonating: false, memberships };
+    return { kind: "user", user, staff: null, orgId: org.id, org, role: chosen.role, isSuperAdmin: false, impersonating: false, memberships };
   }
 
   if (opts.allowStaff) {

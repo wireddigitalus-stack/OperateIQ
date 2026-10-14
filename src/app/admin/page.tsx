@@ -1589,14 +1589,9 @@ export default function AdminPage() {
         return;
       }
 
-      setIsSuperAdmin(!!session.isSuperAdmin);
+      setIsSuperAdmin(!!session.impersonatingOrg);
       const org = session.impersonatingOrg || session.activeOrg || null;
       if (!org) {
-        // Signed in, but not a member of any organization.
-        if (session.isSuperAdmin) {
-          router.replace("/platform");
-          return;
-        }
         setAccessDenied(true);
         setAuthChecking(false);
         return;

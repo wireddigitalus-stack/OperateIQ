@@ -22,14 +22,12 @@ export default function AdminHeader() {
     role: string;
   }>>([]);
   const [switchingOrg, setSwitchingOrg] = useState(false);
-  const [superAdmin, setSuperAdmin] = useState(false);
 
   useEffect(() => {
     const loadSession = () => {
       fetch("/api/platform/session", { cache: "no-store" })
         .then((res) => res.json())
         .then((data) => {
-          setSuperAdmin(!!data.isSuperAdmin);
           if (Array.isArray(data.memberships)) setMemberships(data.memberships);
           if (data.activeOrg) setActiveOrg(data.activeOrg);
           else if (data.impersonatingOrg) setActiveOrg(data.impersonatingOrg);
@@ -124,16 +122,6 @@ export default function AdminHeader() {
 
       {/* ── Right: View Public Site, Help & Workspace Plan ── */}
       <div className="flex items-center gap-2.5">
-        {superAdmin && (
-          <a
-            href="/platform"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-500/10 border border-indigo-400/30 text-indigo-300 hover:bg-indigo-500/20 hover:text-white transition-all"
-            title="OperateIQ platform console (super-admin only)"
-          >
-            <LayoutDashboard size={13} />
-            <span>Platform</span>
-          </a>
-        )}
         {(() => {
           const siteUrl = activeOrg?.custom_domain
             ? `https://${activeOrg.custom_domain}`

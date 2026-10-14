@@ -31,7 +31,7 @@ export default function AuthHashRedirect() {
         hash.includes("error_description=") ||
         hash.includes("error=")
       ) {
-        router.replace(`/auth/callback${hash}`);
+        router.replace(`/auth/callback${search}${hash}`);
       }
     }
   }, [router]);
