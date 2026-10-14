@@ -232,135 +232,251 @@ const DEMO_LEADS: Lead[] = [
 // ─── Ask OpsIQ Modal ──────────────────────────────────────────────────────────
 
 const QUICK_QUERIES = [
-  "Who should I call first today?",
-  "Summarise the verified leads",
-  "What's the total pipeline value?",
-  "Which leads need follow-up this week?",
-  "Compare our MQLs by budget",
+  "Give me my 60-second CEO morning briefing",
+  "Summarize my portfolio occupancy & monthly rent roll",
+  "Which tenants have unpaid rent or expiring leases?",
+  "What urgent maintenance tickets are open right now?",
+  "Who are my top hot leasing leads to call today?",
 ];
 
-function AskOpsIQModal({ leads, onClose }: { leads: Lead[]; onClose: () => void }) {
+function AskOpsIQModal({
+  leads,
+  orgName,
+  onClose,
+}: {
+  leads: Lead[];
+  orgName?: string;
+  onClose: () => void;
+}) {
   const [query, setQuery] = useState("");
-  const [response, setResponse] = useState("");
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [asked, setAsked] = useState(false);
+  const [resolvedOrgName, setResolvedOrgName] = useState<string>(orgName || "Your Workspace");
+  const [portfolioStats, setPortfolioStats] = useState<{
+    propertiesCount: number;
+    tenantsCount: number;
+    openTicketsCount: number;
+    activeLeadsCount: number;
+  } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (orgName) setResolvedOrgName(orgName);
+  }, [orgName]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   const ask = async (q?: string) => {
-    const question = q || query.trim();
-    if (!question) return;
-    setQuery(question);
+    const question = (q || query).trim();
+    if (!question || loading) return;
+    const nextMessages: { role: "user" | "assistant"; content: string }[] = [
+      ...messages,
+      { role: "user", content: question },
+    ];
+    setMessages(nextMessages);
+    setQuery("");
     setLoading(true);
-    setAsked(true);
-    setResponse("");
     try {
-      // Strip heavy fields before sending — keep payload lean
-      const leanLeads = leads.map(l => ({
-        name: l.name, spaceType: l.spaceType, budget: l.budget,
-        score: l.score, scoreLabel: l.scoreLabel, timeline: l.timeline,
-        teamSize: l.teamSize, timestamp: l.timestamp, phone: l.phone,
-        isWhale: l.isWhale, whaleKeywords: l.whaleKeywords,
+      const leanLeads = leads.map((l) => ({
+        name: l.name,
+        spaceType: l.spaceType,
+        budget: l.budget,
+        score: l.score,
+        scoreLabel: l.scoreLabel,
+        timeline: l.timeline,
+        teamSize: l.teamSize,
+        timestamp: l.timestamp,
+        phone: l.phone,
+        isWhale: l.isWhale,
+        whaleKeywords: l.whaleKeywords,
       }));
       const res = await fetch("/api/ask-opsiq", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, leads: leanLeads }),
+        body: JSON.stringify({
+          question,
+          messages: nextMessages,
+          leads: leanLeads,
+        }),
       });
       const data = await res.json();
-      setResponse(data.response || data.error || "No response received.");
+      if (data.orgName) setResolvedOrgName(data.orgName);
+      if (data.stats) setPortfolioStats(data.stats);
+      setMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: data.response || data.error || "No response received.",
+        },
+      ]);
     } catch (err) {
-      setResponse(`Connection error — ${err instanceof Error ? err.message : "please try again"}.`);
+      setMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: `Connection error — ${err instanceof Error ? err.message : "please try again"}.`,
+        },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 pt-16 sm:pt-4 overflow-y-auto">
-      <div className="bg-[#0A0F1A] border border-white/15 rounded-2xl w-full max-w-xl shadow-[0_24px_80px_rgba(0,0,0,0.8),0_0_35px_rgba(56,189,248,0.12)] overflow-hidden max-h-[calc(100dvh-5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 pt-16 sm:pt-4 overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-[#0A0F1A] border border-sky-400/25 rounded-3xl w-full max-w-2xl shadow-[0_24px_80px_rgba(0,0,0,0.85),0_0_35px_rgba(56,189,248,0.14)] overflow-hidden max-h-[calc(100dvh-5rem)] sm:max-h-[calc(100dvh-3rem)] flex flex-col"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-gradient-to-r from-blue-500/[0.08] via-indigo-500/[0.04] to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_18px_rgba(59,130,246,0.35)] text-white">
-              <Brain size={16} className="text-white" />
-            </div>
-            <div>
-              <p className="text-white font-black text-sm">Ask OpsIQ</p>
-              <p className="text-xs text-[#4ADE80]">Lead Intelligence · {leads.length} leads in context</p>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-gradient-to-r from-blue-500/[0.1] via-indigo-500/[0.06] to-transparent">
+          <div className="flex items-center gap-3 min-w-0">
+            <img
+              src="/operateiq_google_ICON_logo_1791954043128.png"
+              alt="OpsIQ"
+              className="w-10 h-10 rounded-xl object-contain flex-shrink-0 shadow-[0_0_18px_rgba(56,189,248,0.3)]"
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-white font-black text-sm sm:text-base">Ask OpsIQ</p>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-black text-emerald-300 uppercase tracking-wider">
+                  <Lock size={10} /> Isolated to {resolvedOrgName}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 truncate mt-0.5">
+                {portfolioStats
+                  ? `${portfolioStats.propertiesCount} properties · ${portfolioStats.tenantsCount} tenants · ${portfolioStats.openTicketsCount} open tickets · ${portfolioStats.activeLeadsCount} leads`
+                  : `Live AI Portfolio Advisor · Properties, Tenants, Rent Roll, Maintenance & Leads`}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/8 transition-colors">
-            <X size={16} />
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-rose-500/20 border border-white/10 hover:border-rose-400/30 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex-shrink-0"
+          >
+            <span>Close</span>
+            <X size={15} />
           </button>
         </div>
 
         {/* Body */}
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {/* Quick queries */}
-          {!asked && (
+          {messages.length === 0 && (
             <div>
-              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Quick questions</p>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2.5">
+                Ask across your entire portfolio
+              </p>
               <div className="flex flex-wrap gap-2">
-                {QUICK_QUERIES.map(q => (
+                {QUICK_QUERIES.map((q) => (
                   <button
                     key={q}
                     onClick={() => ask(q)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-gray-300 hover:text-white hover:border-white/25 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)] transition-all"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-slate-200 hover:text-white hover:border-sky-400/40 hover:bg-sky-500/10 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)] transition-all cursor-pointer text-left"
                   >
-                    {q} <ChevronRight size={10} className="text-gray-600" />
+                    <span>{q}</span>
+                    <ChevronRight size={12} className="text-sky-400 flex-shrink-0" />
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Response area */}
-          {asked && (
-            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 min-h-[80px] shadow-[0_0_15px_rgba(56,189,248,0.06)]">
-              <p className="text-xs text-[#4ADE80] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Sparkles size={10} /> Ask OpsIQ Analysis
-              </p>
-              {loading ? (
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <Loader2 size={14} className="animate-spin text-[#4ADE80]" />
-                  Analysing {leads.length} leads…
+          {/* Conversation history */}
+          {messages.length > 0 && (
+            <div className="space-y-3">
+              {messages.map((m, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  {m.role === "user" ? (
+                    <div className="max-w-[85%] rounded-2xl px-4 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-xs sm:text-sm font-semibold shadow-md">
+                      {m.content}
+                    </div>
+                  ) : (
+                    <div className="w-full rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_0_15px_rgba(56,189,248,0.06)]">
+                      <p className="text-[11px] text-[#4ADE80] font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <Sparkles size={11} /> OpsIQ Executive Brief · {resolvedOrgName}
+                      </p>
+                      <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">
+                        {m.content}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-200 leading-relaxed">{response}</p>
+              ))}
+              {loading && (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex items-center gap-2.5 text-sm text-slate-300">
+                  <Loader2 size={15} className="animate-spin text-[#4ADE80]" />
+                  <span>Analyzing {resolvedOrgName}&apos;s live properties, tenants, rent roll &amp; tickets…</span>
+                </div>
               )}
+              <div ref={endRef} />
             </div>
           )}
 
           {/* Input */}
-          <div className="flex items-end gap-2">
-            <div className="flex-1 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2.5 focus-within:border-blue-400/60 focus-within:shadow-[0_0_12px_rgba(56,189,248,0.2)] transition-all">
+          <div className="flex items-end gap-2 pt-1">
+            <div className="flex-1 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-3.5 py-2.5 focus-within:border-sky-400/60 focus-within:shadow-[0_0_12px_rgba(56,189,248,0.2)] transition-all">
               <textarea
                 ref={inputRef}
                 value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } }}
-                placeholder="Ask anything about your leads…"
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    ask();
+                  }
+                }}
+                placeholder={`Ask anything about ${resolvedOrgName}'s properties, tenants, rent roll, maintenance, or leads…`}
                 rows={2}
-                className="w-full bg-transparent text-sm text-white placeholder-gray-600 outline-none resize-none"
+                className="w-full bg-transparent text-sm text-white placeholder-gray-500 outline-none resize-none"
               />
             </div>
             <button
               onClick={() => ask()}
               disabled={!query.trim() || loading}
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_16px_rgba(59,130,246,0.35)] hover:opacity-90 disabled:opacity-40 transition-all flex-shrink-0"
+              className="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_16px_rgba(59,130,246,0.35)] hover:opacity-90 disabled:opacity-40 transition-all flex-shrink-0 cursor-pointer"
             >
-              <Send size={14} />
+              <Send size={15} />
             </button>
           </div>
-          {asked && (
-            <button
-              onClick={() => { setAsked(false); setQuery(""); setResponse(""); }}
-              className="w-full text-xs text-gray-600 hover:text-gray-400 transition-colors text-center"
-            >
-              ← Ask another question
-            </button>
+
+          {messages.length > 0 && (
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex flex-wrap gap-1.5">
+                {QUICK_QUERIES.slice(0, 3).map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => ask(q)}
+                    disabled={loading}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/10 text-slate-400 hover:text-white hover:border-sky-400/30 transition-all cursor-pointer disabled:opacity-40"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  setMessages([]);
+                  setQuery("");
+                }}
+                className="text-xs text-slate-500 hover:text-slate-300 transition-colors cursor-pointer flex-shrink-0 ml-2"
+              >
+                Reset chat
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -2232,7 +2348,11 @@ export default function AdminPage() {
 
         {/* Ask OpsIQ Modal */}
         {showAskOpsIQ && (
-          <AskOpsIQModal leads={leads} onClose={() => setShowAskOpsIQ(false)} />
+          <AskOpsIQModal
+            leads={leads}
+            orgName={activeOrg?.name}
+            onClose={() => setShowAskOpsIQ(false)}
+          />
         )}
 
         {/* AI Multi-Tenant & Building Intake Modal */}
