@@ -79,13 +79,16 @@ export default function AdminHeader() {
           aria-label="Go to dashboard home"
         >
           <Image
-            src="/operateiq-logo.svg"
+            src="/operateiq_google_ICON_logo_1791954043128.png"
             alt="OperateIQ"
-            width={88}
-            height={28}
-            className="h-7 w-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity"
+            width={32}
+            height={32}
+            className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-[0_0_12px_rgba(34,211,238,0.3)] group-hover:scale-105 transition-transform"
             priority
           />
+          <span className="text-white font-extrabold tracking-tight text-lg">
+            Operate<span className="oiq-grad-text">IQ</span>
+          </span>
           {activeOrg && memberships.length <= 1 ? (
             <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)]">
               <Building2 size={11} className="text-cyan-400" />

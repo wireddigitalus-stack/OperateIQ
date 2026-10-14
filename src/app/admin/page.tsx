@@ -2121,7 +2121,7 @@ export default function AdminPage() {
         {/* Page Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/operateiq-icon.svg" alt="OperateIQ" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.25)] object-cover" />
+            <img src="/operateiq_google_ICON_logo_1791954043128.png" alt="OperateIQ" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.25)] object-contain" />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-white font-black text-xl tracking-tight truncate">

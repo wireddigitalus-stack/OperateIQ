@@ -339,8 +339,18 @@ export default function PlatformDashboardPage() {
       {/* ── Top Bar ── */}
       <header className="h-16 border-b border-white/[0.08] bg-[#0A1020]/80 backdrop-blur-xl px-6 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/operateiq-logo.svg" alt="OperateIQ" width={110} height={32} className="h-7 w-auto" />
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <Image
+              src="/operateiq_google_ICON_logo_1791954043128.png"
+              alt="OperateIQ"
+              width={32}
+              height={32}
+              className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-[0_0_12px_rgba(34,211,238,0.3)] group-hover:scale-105 transition-transform"
+              priority
+            />
+            <span className="text-white font-extrabold tracking-tight text-lg">
+              Operate<span className="oiq-grad-text">IQ</span>
+            </span>
           </Link>
           <span className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">

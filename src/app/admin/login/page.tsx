@@ -166,15 +166,18 @@ function AdminLoginForm() {
 
       <div className="w-full max-w-sm relative">
         {/* Logo */}
-        <div className="flex justify-center mb-8">
+        <div className="flex items-center justify-center gap-3 mb-8">
           <Image
-            src="/operateiq-logo.svg"
+            src="/operateiq_google_ICON_logo_1791954043128.png"
             alt="OperateIQ"
-            width={150}
-            height={54}
-            className="h-12 w-auto"
+            width={44}
+            height={44}
+            className="w-11 h-11 object-contain drop-shadow-[0_0_16px_rgba(34,211,238,0.4)]"
             priority
           />
+          <span className="text-white font-extrabold tracking-tight text-2xl">
+            Operate<span className="oiq-grad-text">IQ</span>
+          </span>
         </div>
 
         {/* Card */}
