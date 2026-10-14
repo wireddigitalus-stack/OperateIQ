@@ -18,7 +18,7 @@ import ProTips from "./ProTips";
 import CallLogModal, { type CallLog, outcomeColor, outcomeLabel } from "./CallLogModal";
 import PrintButton from "./PrintButton";
 import ActivityFeedPanel from "./ActivityFeedPanel";
-import SettingsTab from "./SettingsTab";
+import SettingsTab, { PlanAndBillingModal } from "./SettingsTab";
 import IntakeStagingModal from "./IntakeStagingModal";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
@@ -1271,16 +1271,21 @@ export default function AdminPage() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [showIntakeModal, setShowIntakeModal] = useState(false);
+  const [showBillingModal, setShowBillingModal] = useState(false);
 
   // Sync URL ?tab= changes (e.g. when navigating via AdminHeader or deep link)
   useEffect(() => {
+    const checkoutParam = searchParams.get("checkout");
+    if (checkoutParam === "success" || checkoutParam === "canceled") {
+      setShowBillingModal(true);
+    }
     if (!rawTabParam) return;
     const resolved = resolveTabParam(rawTabParam);
     setActiveTab(resolved);
     if (rawTabParam.toLowerCase() === "rentledger") setRentLedgerOpen(true);
     if (rawTabParam.toLowerCase() === "tasks") setTeamBoardSubTab("tasks");
     if (rawTabParam.toLowerCase() === "conversations") setTeamBoardSubTab("chat");
-  }, [rawTabParam]);
+  }, [rawTabParam, searchParams]);
 
   // Always start at the very top — prevents browser scroll-restoration from
   // loading the dashboard mid-page and hiding the tab nav under the site nav
@@ -2620,7 +2625,7 @@ export default function AdminPage() {
                   </div>
 
                   <button
-                    onClick={() => switchTab("settings")}
+                    onClick={() => setShowBillingModal(true)}
                     className="w-full py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs sm:text-sm font-bold text-white flex items-center justify-between transition-all cursor-pointer"
                   >
                     <span>Manage Plan &amp; Billing</span>
@@ -3525,11 +3530,11 @@ export default function AdminPage() {
                 <span className="text-white font-semibold">{FEATURE_LABELS[feature]}</span>.
               </p>
               <button
-                onClick={() => switchTab("settings")}
+                onClick={() => setShowBillingModal(true)}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-sm shadow-[0_0_24px_rgba(245,158,11,0.35)] transition-all cursor-pointer"
               >
                 <Sparkles size={16} />
-                View Subscription &amp; Upgrade in Settings
+                Manage Plan &amp; Billing
               </button>
             </div>
           );
@@ -3869,6 +3874,13 @@ export default function AdminPage() {
       {showActivityFeed && (
         <ActivityFeedPanel onClose={() => setShowActivityFeed(false)} />
       )}
+
+      {/* Centered Plan & Billing Modal */}
+      <PlanAndBillingModal
+        open={showBillingModal}
+        onClose={() => setShowBillingModal(false)}
+        activeOrg={activeOrg}
+      />
 
     </div>
   );

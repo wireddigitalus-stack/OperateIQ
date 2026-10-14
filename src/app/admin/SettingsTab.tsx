@@ -1075,8 +1075,9 @@ function NotificationsCard() {
 
 // ─── Subscription & Billing Card (Canonical PLANS) ───────────────────────────
 
-function SubscriptionAndBillingCard({
+export function SubscriptionAndBillingCard({
   activeOrg,
+  onClose,
 }: {
   activeOrg?: {
     id: string;
@@ -1086,6 +1087,7 @@ function SubscriptionAndBillingCard({
     subscription_status?: string;
     custom_domain?: string | null;
   } | null;
+  onClose?: () => void;
 }) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
@@ -1118,7 +1120,6 @@ function SubscriptionAndBillingCard({
               ok: true,
               msg: `Subscription active! Your workspace is now on the ${String(d.tier).toUpperCase()} plan.`,
             });
-            // Clean URL query params
             const cleanUrl = `${window.location.pathname}?tab=settings`;
             window.history.replaceState({}, "", cleanUrl);
           } else {
@@ -1174,25 +1175,29 @@ function SubscriptionAndBillingCard({
   }
 
   return (
-    <div className="rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-500/[0.05] via-[rgba(255,255,255,0.02)] to-indigo-500/[0.04] p-5 sm:p-6 shadow-[0_0_28px_rgba(56,189,248,0.08)]">
+    <div
+      className={`rounded-3xl border border-sky-400/30 bg-gradient-to-br from-[#0B1426] via-[#091020] to-[#0D162C] p-6 sm:p-7 shadow-[0_24px_60px_rgba(0,0,0,0.65),0_0_32px_rgba(56,189,248,0.14)]`}
+    >
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center">
-            <CreditCard size={16} className="text-sky-400" />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-sky-500/15 border border-sky-400/35 flex items-center justify-center shadow-[0_0_16px_rgba(56,189,248,0.25)]">
+            <CreditCard size={18} className="text-sky-400" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm font-black text-white uppercase tracking-widest">Subscription &amp; Billing</h2>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black uppercase tracking-wider">
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                Manage Plan &amp; Billing
+              </h2>
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black uppercase tracking-wider">
                 {currentPlan.name} Plan · ${currentPlan.monthly}/mo
               </span>
               {!isPaidActive && (
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black uppercase tracking-wider">
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black uppercase tracking-wider">
                   14-Day Trial
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
               Upgrade or switch plans anytime via secure Stripe Checkout, or manage invoices and payment methods.
             </p>
           </div>
@@ -1242,12 +1247,23 @@ function SubscriptionAndBillingCard({
           >
             <Sparkles size={13} /> Feature Matrix
           </a>
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close Plan & Billing modal"
+              className="p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.14] border border-white/15 text-slate-300 hover:text-white transition-all cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
       </div>
 
       {banner && (
         <div
-          className={`mb-4 rounded-xl px-4 py-3 border text-xs font-bold flex items-center justify-between gap-3 ${
+          className={`mb-4 rounded-xl px-4 py-3 border text-xs sm:text-sm font-bold flex items-center justify-between gap-3 ${
             banner.ok
               ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-200"
               : "bg-rose-500/15 border-rose-500/30 text-rose-200"
@@ -1273,17 +1289,17 @@ function SubscriptionAndBillingCard({
           return (
             <div
               key={plan.id}
-              className={`rounded-2xl border p-4 flex flex-col justify-between transition-all ${
+              className={`rounded-2xl border p-5 flex flex-col justify-between transition-all ${
                 isCurrent
-                  ? "border-emerald-400/40 bg-emerald-500/[0.06] shadow-[0_0_24px_rgba(16,185,129,0.12)]"
+                  ? "border-emerald-400/45 bg-emerald-500/[0.07] shadow-[0_0_24px_rgba(16,185,129,0.14)]"
                   : plan.highlight
-                  ? "border-sky-400/30 bg-sky-500/[0.04]"
+                  ? "border-sky-400/35 bg-sky-500/[0.05]"
                   : "border-white/10 bg-white/[0.02]"
               }`}
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-sm font-black text-white">{displayName}</span>
+                  <span className="text-base font-black text-white">{displayName}</span>
                   {isCurrent ? (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-black uppercase">
                       {isPaidActive ? "Active Plan" : "Current Trial Tier"}
@@ -1296,30 +1312,30 @@ function SubscriptionAndBillingCard({
                 </div>
 
                 <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-2xl font-black text-white">
+                  <span className="text-3xl font-black text-white">
                     ${billingCycle === "annual" ? Math.round(plan.annual / 12) : plan.monthly}
                   </span>
-                  <span className="text-xs text-gray-400">/month</span>
+                  <span className="text-xs text-slate-400">/month</span>
                 </div>
-                <p className="text-[11px] text-gray-500 mb-3">
+                <p className="text-xs text-slate-400 mb-3">
                   {billingCycle === "annual"
                     ? `Billed $${plan.annual}/yr (2 months free)`
                     : `$${plan.annual}/yr when billed annually (2 months free)`}
                 </p>
-                <p className="text-xs text-gray-300 mb-3 leading-relaxed">{plan.blurb}</p>
+                <p className="text-xs sm:text-sm text-slate-300 mb-3 leading-relaxed">{plan.blurb}</p>
 
-                <div className="space-y-1.5 pt-2 border-t border-white/10 text-xs text-gray-300 mb-4">
+                <div className="space-y-2 pt-3 border-t border-white/10 text-xs sm:text-sm text-slate-300 mb-5">
                   <div className="flex items-center gap-2 font-bold text-white">
-                    <CheckCircle2 size={12} className="text-emerald-400 flex-shrink-0" />
+                    <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />
                     <span>{propLimitLabel}</span>
                   </div>
                   <div className="flex items-center gap-2 font-bold text-white">
-                    <CheckCircle2 size={12} className="text-emerald-400 flex-shrink-0" />
+                    <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />
                     <span>{userLimitLabel}</span>
                   </div>
                   {plan.features.slice(-3).map((f) => (
-                    <div key={f} className="flex items-center gap-2 text-gray-400">
-                      <CheckCircle2 size={12} className="text-sky-400 flex-shrink-0" />
+                    <div key={f} className="flex items-center gap-2 text-slate-300">
+                      <CheckCircle2 size={13} className="text-sky-400 flex-shrink-0" />
                       <span className="truncate">{FEATURE_LABELS[f]}</span>
                     </div>
                   ))}
@@ -1327,7 +1343,7 @@ function SubscriptionAndBillingCard({
               </div>
 
               {isCurrent && isPaidActive ? (
-                <div className="w-full py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-black text-center">
+                <div className="w-full py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs sm:text-sm font-black text-center">
                   ✓ Active Paid Subscription
                 </div>
               ) : (
@@ -1335,7 +1351,7 @@ function SubscriptionAndBillingCard({
                   type="button"
                   onClick={() => startCheckout(plan.id)}
                   disabled={Boolean(loadingTier)}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-black text-center transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs sm:text-sm font-black text-center transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isBusy ? (
                     <>
@@ -1355,6 +1371,48 @@ function SubscriptionAndBillingCard({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+export function PlanAndBillingModal({
+  open,
+  onClose,
+  activeOrg,
+}: {
+  open: boolean;
+  onClose: () => void;
+  activeOrg?: {
+    id: string;
+    name: string;
+    slug: string;
+    tier: string;
+    subscription_status?: string;
+    custom_domain?: string | null;
+  } | null;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-5xl max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200"
+      >
+        <SubscriptionAndBillingCard activeOrg={activeOrg} onClose={onClose} />
       </div>
     </div>
   );
