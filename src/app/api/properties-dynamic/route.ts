@@ -79,7 +79,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, properties: existingRows, seeded: 0 });
     }
 
-    const demoRows = PROPERTIES.map((p) => ({
+    const limit = getPlan(g.ctx.org.tier).limits.properties;
+    const seedCap = limit ? Math.min(limit, 4) : 4;
+    const demoRows = PROPERTIES.slice(0, seedCap).map((p) => ({
       id: crypto.randomUUID(),
       org_id: orgId,
       name: p.name,

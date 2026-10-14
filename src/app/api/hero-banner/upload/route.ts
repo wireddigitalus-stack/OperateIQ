@@ -6,7 +6,9 @@ const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUP
 const BUCKET = "property-images";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
 async function ensureBucket() {
   await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
@@ -25,20 +27,36 @@ export async function POST(req: NextRequest) {
   const form = await req.formData();
   const file = form.get("file") as File | null;
   const rawType = (form.get("type") as string) || "image";
-  const type = rawType === "video" ? "video" : "image";
 
   if (!file) return NextResponse.json({ error: "file required" }, { status: 400 });
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: "File exceeds 10MB limit." }, { status: 400 });
+
+  const isVideo = rawType === "video" || file.type.startsWith("video/");
+  const type = isVideo ? "video" : "image";
+  const maxFileSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+  const allowedTypes = isVideo ? ALLOWED_VIDEO_TYPES : ALLOWED_IMAGE_TYPES;
+
+  if (file.size > maxFileSize) {
+    return NextResponse.json(
+      { error: `File exceeds ${isVideo ? "50MB" : "10MB"} limit.` },
+      { status: 400 }
+    );
   }
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    return NextResponse.json({ error: "Unsupported file type. Allowed: JPEG, PNG, WEBP, GIF." }, { status: 400 });
+  if (!allowedTypes.includes(file.type)) {
+    return NextResponse.json(
+      {
+        error: isVideo
+          ? "Unsupported file type. Allowed: MP4, WEBM, MOV."
+          : "Unsupported file type. Allowed: JPEG, PNG, WEBP, GIF.",
+      },
+      { status: 400 }
+    );
   }
 
   await ensureBucket();
 
-  const rawExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : "jpg";
+  const defaultExt = isVideo ? "mp4" : "jpg";
+  const rawExt = file.name.split(".").pop()?.toLowerCase() || defaultExt;
+  const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : defaultExt;
   // Objects are namespaced per tenant: <orgId>/hero-....
   const filename = `${orgId}/hero-${type}-${Date.now()}.${ext}`;
   const buffer = await file.arrayBuffer();

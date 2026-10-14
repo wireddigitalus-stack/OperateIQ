@@ -25,16 +25,34 @@ export default function AdminHeader() {
   const [superAdmin, setSuperAdmin] = useState(false);
 
   useEffect(() => {
-    fetch("/api/platform/session")
-      .then((res) => res.json())
-      .then((data) => {
-        setSuperAdmin(!!data.isSuperAdmin);
-        if (Array.isArray(data.memberships)) setMemberships(data.memberships);
-        if (data.activeOrg) setActiveOrg(data.activeOrg);
-        else if (data.impersonatingOrg) setActiveOrg(data.impersonatingOrg);
-      })
-      .catch(() => {});
-  }, []);
+    const loadSession = () => {
+      fetch("/api/platform/session", { cache: "no-store" })
+        .then((res) => res.json())
+        .then((data) => {
+          setSuperAdmin(!!data.isSuperAdmin);
+          if (Array.isArray(data.memberships)) setMemberships(data.memberships);
+          if (data.activeOrg) setActiveOrg(data.activeOrg);
+          else if (data.impersonatingOrg) setActiveOrg(data.impersonatingOrg);
+        })
+        .catch(() => {});
+    };
+
+    loadSession();
+
+    const handleOrgUpdated = (e: Event) => {
+      const detail = (e as CustomEvent<{ tier?: string; subscription_status?: string }>).detail;
+      if (detail?.tier) {
+        setActiveOrg((prev) => (prev ? { ...prev, tier: detail.tier! } : prev));
+        setMemberships((prev) =>
+          prev.map((m) => (activeOrg && m.id === activeOrg.id ? { ...m, tier: detail.tier! } : m))
+        );
+      }
+      loadSession();
+    };
+
+    window.addEventListener("oiq-org-updated", handleOrgUpdated);
+    return () => window.removeEventListener("oiq-org-updated", handleOrgUpdated);
+  }, [activeOrg?.id]);
 
   async function handleSwitchOrg(orgId: string) {
     if (!orgId || orgId === activeOrg?.id) return;

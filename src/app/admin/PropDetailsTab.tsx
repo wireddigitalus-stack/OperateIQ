@@ -196,11 +196,15 @@ const PROPERTY_DROPDOWN_NAMES: Record<string, string[]> = {
   "sample-retail": ["Sample Retail Center"],
 };
 
-function exactBuildingMatch(tenantBuilding: string, propertyId: string, displayName: string): boolean {
+function exactBuildingMatch(tenantBuilding: string, propertyId: string, displayName: string, originalName?: string): boolean {
   if (!tenantBuilding) return false;
   const b = tenantBuilding.trim().toLowerCase();
   // Match against display name (custom rename)
   if (displayName && b === displayName.trim().toLowerCase()) return true;
+  // Match against original property name (before custom display_name rename)
+  if (originalName && b === originalName.trim().toLowerCase()) return true;
+  // Match against property ID
+  if (propertyId && b === propertyId.trim().toLowerCase()) return true;
   // Match against known dropdown values for this property
   const names = PROPERTY_DROPDOWN_NAMES[propertyId];
   if (names && names.some(n => b === n.toLowerCase())) return true;
@@ -445,7 +449,7 @@ function PropertyCard({ property, tenants, detail, onSave, onDelete }: {
   const TrendIcon = trendItem.icon;
   const displayName = detail?.display_name || property.name;
   const propTenants = tenants.filter(t => {
-    return exactBuildingMatch(t.building || "", property.id, displayName);
+    return exactBuildingMatch(t.building || "", property.id, displayName, property.name);
   });
 
   const [collapsed, setCollapsed] = useState(true);
@@ -1059,7 +1063,7 @@ export default function PropDetailsTab() {
     property: p,
     tenants: tenants.filter(t => {
       const displayName = detailMap[p.id]?.display_name || p.name;
-      return exactBuildingMatch(t.building || "", p.id, displayName);
+      return exactBuildingMatch(t.building || "", p.id, displayName, p.name);
     }),
     detail: detailMap[p.id],
   })), [allProperties, tenants, detailMap]);
@@ -1305,7 +1309,7 @@ export default function PropDetailsTab() {
         const assignedIds = new Set(
           allProperties.flatMap(p => {
             const dn = detailMap[p.id]?.display_name || p.name;
-            return tenants.filter(t => exactBuildingMatch(t.building || "", p.id, dn)).map(t => t.id);
+            return tenants.filter(t => exactBuildingMatch(t.building || "", p.id, dn, p.name)).map(t => t.id);
           })
         );
         const unassigned = tenants.filter(t => !assignedIds.has(t.id));
@@ -1407,7 +1411,7 @@ export default function PropDetailsTab() {
               {allProperties.map(p => {
                 const isSelected = selectedPropertyId === p.id;
                 const displayName = detailMap[p.id]?.display_name || p.name;
-                const propTenants = tenants.filter(t => exactBuildingMatch(t.building || "", p.id, displayName));
+                const propTenants = tenants.filter(t => exactBuildingMatch(t.building || "", p.id, displayName, p.name));
                 const activeCount = propTenants.filter(t => t.status === "active").length;
                 const units = Number(detailMap[p.id]?.total_units) || 0;
                 const occ = units > 0 ? Math.round((activeCount / units) * 100) : null;

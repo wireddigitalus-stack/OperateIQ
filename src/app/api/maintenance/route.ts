@@ -38,7 +38,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const g = await requireOrg(req, { allowStaff: true, requireFeature: "maintenance" });
   if (!g.ok) return g.res;
-  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "maintenance") {
+  if (
+    g.ctx.kind === "staff" &&
+    g.ctx.staff?.role !== "maintenance" &&
+    g.ctx.staff?.role !== "cleaning"
+  ) {
     return NextResponse.json({ error: "You do not have access to this resource." }, { status: 403 });
   }
   const { orgId } = g.ctx;

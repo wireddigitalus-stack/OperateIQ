@@ -13,8 +13,11 @@ const TO_EMAILS = (process.env.CONTACT_NOTIFY_TO || "")
   .split(",")
   .map((e) => e.trim())
   .filter(Boolean);
-// Must match a verified domain in Resend — set RESEND_FROM env var
-const FROM_EMAIL = process.env.RESEND_FROM || "OperateIQ <noreply@example.com>";
+// Must match a verified domain in Resend — set RESEND_FROM_EMAIL or RESEND_FROM env var
+const FROM_EMAIL =
+  process.env.RESEND_FROM_EMAIL ||
+  process.env.RESEND_FROM ||
+  "OperateIQ <notifications@getoperateiq.com>";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
         const leadUrl = `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(tenants[0].source_lead_id)}&org_id=eq.${orgId}`;
         await fetch(leadUrl, {
           method: "PATCH",
-          headers: { ...HEADERS, "Prefer": "return-minimal" },
+          headers: { ...HEADERS, "Prefer": "return=minimal" },
           body: JSON.stringify({
             archived_at: new Date().toISOString(),
           }),

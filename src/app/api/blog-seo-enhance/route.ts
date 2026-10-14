@@ -146,7 +146,11 @@ Return ONLY valid JSON, no markdown wrapper:
 
     const data   = await res.json();
     const parts  = data.candidates?.[0]?.content?.parts ?? [];
-    const raw    = parts.map((p: { text?: string }) => p.text ?? "").join("").trim();
+    const raw    = parts
+      ?.filter((p: { thought?: boolean }) => !p.thought)
+      .map((p: { text?: string }) => p.text ?? "")
+      .join("")
+      .trim();
     const json   = raw.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
     const parsed = JSON.parse(json);
 

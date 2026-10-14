@@ -12,7 +12,6 @@ import { requireOrg, requireOrgAdmin } from "@/lib/server-auth";
 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY environment variable is not set");
 
 // ── Email notification config ─────────────────────────────────────────────────
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -20,7 +19,31 @@ const LEAD_NOTIFY_TO = (process.env.LEAD_NOTIFY_TO || "")
   .split(",")
   .map((e) => e.trim())
   .filter(Boolean);
-const FROM_EMAIL = process.env.RESEND_FROM || "OperateIQ <noreply@example.com>";
+const FROM_EMAIL =
+  process.env.RESEND_FROM_EMAIL ||
+  process.env.RESEND_FROM ||
+  "OperateIQ <notifications@getoperateiq.com>";
+
+function parseBudgetNum(raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw)) return Math.round(raw);
+  const str = String(raw ?? "").replace(/[$,\s]/g, "").replace(/\/mo(nth)?/gi, "");
+  const rangeMatch = str.match(/^(\d+(?:\.\d+)?)\s*[-–—to]+\s*(\d+(?:\.\d+)?)$/i);
+  if (rangeMatch) {
+    const low = parseFloat(rangeMatch[1]);
+    const high = parseFloat(rangeMatch[2]);
+    if (Number.isFinite(low) && Number.isFinite(high)) return Math.round((low + high) / 2);
+  }
+  const matches = str.match(/\d+(?:\.\d+)?/g);
+  if (matches && matches.length >= 2 && /[-–—]/.test(str)) {
+    const nums = matches.slice(0, 2).map(Number).filter(Number.isFinite);
+    if (nums.length === 2) return Math.round((nums[0] + nums[1]) / 2);
+  }
+  if (matches && matches.length > 0) {
+    const first = parseFloat(matches[0]);
+    if (Number.isFinite(first)) return Math.round(first);
+  }
+  return 0;
+}
 
 function buildLeadEmailHtml(lead: Lead): string {
   const scoreColor = lead.score >= 70 ? "#16A34A" : lead.score >= 40 ? "#D97706" : "#4B5563";
@@ -191,6 +214,10 @@ export async function POST(req: NextRequest) {
   if (!g.ok) return g.res;
   const { orgId, org, user } = g.ctx;
 
+  if (!GEMINI_API_KEY) {
+    return NextResponse.json({ error: "GEMINI_API_KEY environment variable is not set" }, { status: 500 });
+  }
+
   try {
     const body = await req.json();
     const { name, email, phone, spaceType, budget, timeline, teamSize, additionalInfo,
@@ -201,7 +228,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const budgetNum = Number(budget);
+    const budgetNum = parseBudgetNum(budget);
 
     const leadData: Partial<Lead> = {
       name, email, phone,

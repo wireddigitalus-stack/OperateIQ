@@ -18,6 +18,7 @@ export interface Plan {
   monthly: number;
   annual: number; // per year (2 months free)
   blurb: string;
+  tagline?: string;
   limits: { properties: number | null; users: number | null };
   highlight?: boolean;
   features: Feature[];
@@ -42,16 +43,19 @@ export const PLANS: Plan[] = [
   {
     id: "starter", name: "Starter", monthly: 99, annual: 990,
     blurb: "For independent owners getting organized.",
+    tagline: "For independent owners getting organized.",
     limits: { properties: 5, users: 3 }, features: STARTER,
   },
   {
     id: "growth", name: "Growth", monthly: 249, annual: 2490,
     blurb: "For growing portfolios with staff and vendors.",
+    tagline: "For growing portfolios with staff and vendors.",
     limits: { properties: 25, users: 10 }, features: GROWTH, highlight: true,
   },
   {
     id: "pro", name: "Pro", monthly: 499, annual: 4990,
     blurb: "For management companies that want it all — plus a website.",
+    tagline: "For management companies that want it all — plus a website.",
     limits: { properties: null, users: null }, features: PRO,
   },
 ];

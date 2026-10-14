@@ -52,7 +52,11 @@ Return ONLY valid JSON with this exact structure (no markdown, no code fences):
     });
 
     const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const parts: { text?: string; thought?: boolean }[] = data?.candidates?.[0]?.content?.parts || [];
+    const text = parts
+      ?.filter((p: { thought?: boolean }) => !p.thought)
+      .map((p: { text?: string }) => p.text || "")
+      .join("");
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned);
 

@@ -5,6 +5,15 @@ import { BRAND } from "@/lib/brand";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || "OperateIQ <notifications@getoperateiq.com>";
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const g = await requireOrgAdmin(req);
@@ -23,6 +32,24 @@ export async function POST(req: NextRequest) {
     const cleanEmail = String(email).trim().toLowerCase();
     const cleanName = String(name || "").trim() || cleanEmail.split("@")[0];
     const orgName = org?.name || "OperateIQ Workspace";
+    const rawRole = String(role || "member").trim().toLowerCase();
+    const roleDescription =
+      rawRole === "owner"
+        ? "an owner"
+        : rawRole === "admin"
+        ? "an administrator"
+        : rawRole === "manager"
+        ? "a manager"
+        : rawRole === "maintenance"
+        ? "a maintenance crew member"
+        : rawRole === "cleaning"
+        ? "a cleaning crew member"
+        : "a team member";
+
+    const safeName = escapeHtml(cleanName);
+    const safeOrgName = escapeHtml(orgName);
+    const safeRole = escapeHtml(String(role || "team member").trim());
+    const safeEmail = escapeHtml(cleanEmail);
 
     const origin =
       req.headers.get("origin") ||
@@ -60,7 +87,7 @@ export async function POST(req: NextRequest) {
     </div>
     <h2 style="font-size: 22px; font-weight: 800; color: #FFFFFF; margin: 0 0 12px 0;">Team Workspace Invitation</h2>
     <p style="font-size: 14px; color: #94A3B8; line-height: 1.6; margin: 0 0 20px 0;">
-      Hi ${cleanName}, you have been invited to join the <strong>${orgName}</strong> team on ${BRAND.name} as an administrator (${role || "team member"}).
+      Hi ${safeName}, you have been invited to join the <strong>${safeOrgName}</strong> team on ${BRAND.name} as ${roleDescription} (${safeRole}).
     </p>
     <div style="text-align: center; margin: 28px 0;">
       <a href="${loginUrl}" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #0284C7, #4F46E5); color: #FFFFFF; text-decoration: none; font-size: 14px; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 14px rgba(2,132,199,0.35);">
@@ -68,7 +95,7 @@ export async function POST(req: NextRequest) {
       </a>
     </div>
     <p style="font-size: 12px; color: #64748B; line-height: 1.5; margin: 0;">
-      Sign in using Google or request a 1-click Email Magic Link using <strong>${cleanEmail}</strong> to access the dashboard.
+      Sign in using Google or request a 1-click Email Magic Link using <strong>${safeEmail}</strong> to access the dashboard.
     </p>
   </div>
 </body>

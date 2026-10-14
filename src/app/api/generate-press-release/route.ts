@@ -59,8 +59,9 @@ About ${org.name}: ${org.name} is a commercial real estate firm specializing in 
 
 Write it now, no preamble:`;
 
+    const MODEL = "gemini-2.5-flash";
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,9 +80,13 @@ Write it now, no preamble:`;
 
     const geminiData = await geminiRes.json();
 
-    // Collect ALL parts in case the model splits the response
+    // Collect ALL non-thought parts in case the model splits the response
     const parts = geminiData.candidates?.[0]?.content?.parts || [];
-    const text = parts.map((p: { text?: string }) => p.text || "").join("").trim();
+    const text = parts
+      ?.filter((p: { thought?: boolean }) => !p.thought)
+      .map((p: { text?: string }) => p.text || "")
+      .join("")
+      .trim();
 
     if (!text) {
       return NextResponse.json({ error: "No content generated. Please try again." }, { status: 500 });

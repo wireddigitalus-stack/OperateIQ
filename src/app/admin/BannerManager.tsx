@@ -2,10 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Loader2, CheckCircle2, X, Upload, Video, ImageIcon, Trash2, Save, RefreshCw, AlertTriangle, Monitor } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
-import { getOrgProfile } from "@/lib/org-profile";
 
 const MAIN_IDS = ["sample-office","sample-retail"];
-const DEFAULT_LOC = getOrgProfile().location;
 
 interface BannerProp { id: string; name: string; city: string; image: string; }
 interface Slide { type: "property"|"custom"; propertyId?: string; imageUrl?: string; label: string; location: string; enabled: boolean; order: number; }
@@ -23,8 +21,9 @@ export default function BannerManager() {
   const [setupNeeded, setSetupNeeded] = useState(false);
   const [uploadingCustom, setUploadingCustom] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [defaultLoc, setDefaultLoc] = useState("");
   const [customLabel, setCustomLabel] = useState("");
-  const [customLoc, setCustomLoc] = useState(DEFAULT_LOC);
+  const [customLoc, setCustomLoc] = useState("");
   const [videoInput, setVideoInput] = useState("");
   const customFileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
@@ -34,15 +33,27 @@ export default function BannerManager() {
   async function load() {
     setLoading(true);
     try {
-      const [bRes, iRes, dynRes, sessRes] = await Promise.all([
+      const [bRes, iRes, dynRes, sessRes, profRes] = await Promise.all([
         fetch("/api/hero-banner"),
         fetch("/api/property-images"),
         fetch("/api/properties-dynamic?admin=1"),
         fetch("/api/platform/session"),
+        fetch("/api/org-profile").catch(() => null),
       ]);
       const dynData = await dynRes.json().catch(() => ({}));
       const sessData = await sessRes.json().catch(() => ({}));
       const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
+
+      if (profRes?.ok) {
+        const profData = await profRes.json().catch(() => ({}));
+        const prof = profData?.profile || profData;
+        const loc =
+          prof?.location && prof.location !== "Anytown, ST"
+            ? prof.location
+            : [prof?.city, prof?.state].filter(Boolean).join(", ") || "";
+        setDefaultLoc(loc);
+        setCustomLoc(prev => prev || loc);
+      }
 
       const dynProps: BannerProp[] = (dynData.properties || []).map((dp: any) => ({
         id: dp.id,
@@ -101,8 +112,8 @@ export default function BannerManager() {
       const res = await fetch("/api/hero-banner/upload", { method:"POST", body:fd });
       const d = await res.json(); if (!res.ok) throw new Error(d.error);
       const maxOrder = Math.max(0, ...config.slides.map(s => s.order));
-      setConfig(prev => ({ ...prev, slides: [...prev.slides, { type:"custom", imageUrl:d.url, label:customLabel||"Custom Banner", location:customLoc||DEFAULT_LOC, enabled:true, order:maxOrder+1 }] }));
-      setCustomLabel(""); setCustomLoc(DEFAULT_LOC);
+      setConfig(prev => ({ ...prev, slides: [...prev.slides, { type:"custom", imageUrl:d.url, label:customLabel||"Custom Banner", location:customLoc||defaultLoc, enabled:true, order:maxOrder+1 }] }));
+      setCustomLabel(""); setCustomLoc(defaultLoc);
     } catch(e: unknown) { setError(e instanceof Error ? e.message : "Upload failed"); }
     finally { setUploadingCustom(false); }
   }
@@ -166,7 +177,7 @@ export default function BannerManager() {
         <div className="rounded-2xl border border-[rgba(250,204,21,0.3)] bg-[rgba(250,204,21,0.04)] p-4 space-y-2">
           <div className="flex items-center gap-2 text-[#FACC15] text-xs font-black"><AlertTriangle size={13}/> One-Time Database Setup</div>
           <p className="text-[11px] text-gray-400">Run this in your <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-[#FACC15] underline">Supabase SQL Editor</a>, then configure and Save:</p>
-          <pre className="text-[10px] text-[#4ADE80] bg-black/40 rounded-xl p-3 overflow-x-auto font-mono whitespace-pre">{`CREATE TABLE IF NOT EXISTS site_settings (\n  key TEXT PRIMARY KEY,\n  value JSONB NOT NULL,\n  updated_at TIMESTAMPTZ DEFAULT NOW()\n);`}</pre>
+          <pre className="text-[10px] text-[#4ADE80] bg-black/40 rounded-xl p-3 overflow-x-auto font-mono whitespace-pre">{`CREATE TABLE IF NOT EXISTS site_settings (\n  org_id UUID NOT NULL,\n  key TEXT NOT NULL,\n  value JSONB NOT NULL,\n  updated_at TIMESTAMPTZ DEFAULT NOW(),\n  PRIMARY KEY (org_id, key)\n);`}</pre>
         </div>
       )}
 

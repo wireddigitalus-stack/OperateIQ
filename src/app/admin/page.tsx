@@ -23,7 +23,7 @@ import IntakeStagingModal from "./IntakeStagingModal";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { signOutEverywhere } from "@/lib/sign-out";
-import { hasFeature, FEATURE_LABELS, type Feature } from "@/lib/plans";
+import { hasFeature, FEATURE_LABELS, getPlan, type Feature, type Tier } from "@/lib/plans";
 import * as XLSX from "xlsx";
 import {
   Zap, RefreshCw, Phone, Clock, Building2, TrendingUp,
@@ -1287,6 +1287,27 @@ export default function AdminPage() {
     if (rawTabParam.toLowerCase() === "conversations") setTeamBoardSubTab("chat");
   }, [rawTabParam, searchParams]);
 
+  // Listen for org subscription updates dispatched by SettingsTab / PlanAndBillingModal
+  useEffect(() => {
+    const handleOrgUpdated = (e: Event) => {
+      const detail = (e as CustomEvent<{ tier?: string; subscription_status?: string }>).detail;
+      if (detail?.tier) {
+        setActiveOrg((prev) =>
+          prev
+            ? {
+                ...prev,
+                tier: detail.tier as Tier,
+                subscription_status: detail.subscription_status || "active",
+                trial_ends_at: null,
+              }
+            : prev
+        );
+      }
+    };
+    window.addEventListener("oiq-org-updated", handleOrgUpdated);
+    return () => window.removeEventListener("oiq-org-updated", handleOrgUpdated);
+  }, []);
+
   // Always start at the very top — prevents browser scroll-restoration from
   // loading the dashboard mid-page and hiding the tab nav under the site nav
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
@@ -2448,6 +2469,8 @@ export default function AdminPage() {
 
         {/* Active Customer Workspace Welcome & Onboarding Banner */}
         {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001" && (() => {
+          const isPaidActive = activeOrg.subscription_status === "active";
+          const planDef = getPlan(activeOrg.tier);
           const totalTrialDays = 14;
           const fallbackEndMs = activeOrg.created_at
             ? new Date(activeOrg.created_at).getTime() + totalTrialDays * 86_400_000
@@ -2475,9 +2498,15 @@ export default function AdminPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
-                        {activeOrg.tier} Tier Active
+                        {isPaidActive ? `${planDef.name} Plan Active` : `${activeOrg.tier} Tier Active`}
                       </span>
-                      <span className="text-xs text-slate-400 font-medium">14-Day Free Evaluation Period</span>
+                      {isPaidActive ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 flex items-center gap-1">
+                          <CheckCircle2 size={12} /> Active Subscription
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium">14-Day Free Evaluation Period</span>
+                      )}
                     </div>
                     <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
                       Welcome to {activeOrg.name}
@@ -2541,97 +2570,130 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Right Column: 14-Day Countdown Card */}
-                <div
-                  className={`xl:w-80 shrink-0 rounded-2xl p-5 border backdrop-blur-md flex flex-col justify-between gap-4 ${
-                    isUrgent
-                      ? "bg-rose-950/40 border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)]"
-                      : isWarning
-                      ? "bg-amber-950/35 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.15)]"
-                      : "bg-slate-900/75 border-cyan-400/35 shadow-[0_0_25px_rgba(34,211,238,0.15)]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Clock
-                        size={16}
-                        className={
-                          isUrgent ? "text-rose-400 animate-pulse" : isWarning ? "text-amber-400" : "text-cyan-400"
-                        }
-                      />
-                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-200">
-                        14-Day Trial Countdown
+                {/* Right Column: Active Plan Card or 14-Day Countdown Card */}
+                {isPaidActive ? (
+                  <div className="xl:w-80 shrink-0 rounded-2xl p-5 border backdrop-blur-md flex flex-col justify-between gap-4 bg-emerald-950/30 border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.15)]">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-emerald-400" />
+                        <span className="text-[11px] font-black uppercase tracking-widest text-slate-200">
+                          Subscription Status
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold border bg-emerald-500/20 text-emerald-300 border-emerald-500/40">
+                        Active
                       </span>
                     </div>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
-                        isUrgent
-                          ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
-                          : isWarning
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                          : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                      }`}
-                    >
-                      Day {currentDay} of {totalTrialDays}
-                    </span>
-                  </div>
 
-                  {/* Big Day / Hour Counter */}
-                  <div className="flex items-baseline gap-3">
-                    <div className="flex items-baseline gap-1.5">
+                    <div className="space-y-1">
+                      <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                        {planDef.name} Plan
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        {planDef.tagline} — all {planDef.name} features and capacities are unlocked for your workspace.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setShowBillingModal(true)}
+                      className="w-full py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs sm:text-sm font-bold text-white flex items-center justify-between transition-all cursor-pointer"
+                    >
+                      <span>Manage Plan &amp; Billing</span>
+                      <ArrowRight size={15} className="text-emerald-300" />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className={`xl:w-80 shrink-0 rounded-2xl p-5 border backdrop-blur-md flex flex-col justify-between gap-4 ${
+                      isUrgent
+                        ? "bg-rose-950/40 border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)]"
+                        : isWarning
+                        ? "bg-amber-950/35 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.15)]"
+                        : "bg-slate-900/75 border-cyan-400/35 shadow-[0_0_25px_rgba(34,211,238,0.15)]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Clock
+                          size={16}
+                          className={
+                            isUrgent ? "text-rose-400 animate-pulse" : isWarning ? "text-amber-400" : "text-cyan-400"
+                          }
+                        />
+                        <span className="text-[11px] font-black uppercase tracking-widest text-slate-200">
+                          14-Day Trial Countdown
+                        </span>
+                      </div>
                       <span
-                        className={`text-4xl sm:text-5xl font-black tabular-nums tracking-tight ${
-                          isUrgent ? "text-rose-300" : isWarning ? "text-amber-300" : "text-white"
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                          isUrgent
+                            ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                            : isWarning
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                            : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                         }`}
                       >
-                        {daysLeft}
-                      </span>
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                        {daysLeft === 1 ? "Day" : "Days"}
+                        Day {currentDay} of {totalTrialDays}
                       </span>
                     </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black tabular-nums text-cyan-300">{hoursLeft}</span>
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Hrs Left</span>
-                    </div>
-                  </div>
 
-                  {/* 14-Segment Visual Runway */}
-                  <div className="space-y-1.5">
-                    <div className="grid grid-cols-14 gap-1" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}>
-                      {Array.from({ length: totalTrialDays }).map((_, idx) => {
-                        const isRemainingSegment = idx < daysLeft;
-                        return (
-                          <div
-                            key={idx}
-                            className={`h-2 rounded-sm transition-all ${
-                              isRemainingSegment
-                                ? isUrgent
-                                  ? "bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.6)]"
+                    {/* Big Day / Hour Counter */}
+                    <div className="flex items-baseline gap-3">
+                      <div className="flex items-baseline gap-1.5">
+                        <span
+                          className={`text-4xl sm:text-5xl font-black tabular-nums tracking-tight ${
+                            isUrgent ? "text-rose-300" : isWarning ? "text-amber-300" : "text-white"
+                          }`}
+                        >
+                          {daysLeft}
+                        </span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                          {daysLeft === 1 ? "Day" : "Days"}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black tabular-nums text-cyan-300">{hoursLeft}</span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Hrs Left</span>
+                      </div>
+                    </div>
+
+                    {/* 14-Segment Visual Runway */}
+                    <div className="space-y-1.5">
+                      <div className="grid grid-cols-14 gap-1" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}>
+                        {Array.from({ length: totalTrialDays }).map((_, idx) => {
+                          const isRemainingSegment = idx < daysLeft;
+                          return (
+                            <div
+                              key={idx}
+                              className={`h-2 rounded-sm transition-all ${
+                                isRemainingSegment
+                                  ? isUrgent
+                                    ? "bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.6)]"
                                   : isWarning
-                                  ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.5)]"
-                                  : "bg-gradient-to-t from-cyan-500 to-emerald-400 shadow-[0_0_6px_rgba(34,211,238,0.45)]"
-                                : "bg-white/10"
-                            }`}
-                            title={`Day ${idx + 1} of 14`}
-                          />
-                        );
-                      })}
+                                    ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.5)]"
+                                    : "bg-gradient-to-t from-cyan-500 to-emerald-400 shadow-[0_0_6px_rgba(34,211,238,0.45)]"
+                                  : "bg-white/10"
+                              }`}
+                              title={`Day ${idx + 1} of 14`}
+                            />
+                          );
+                        })}
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-slate-300">
+                        <span>{daysLeft > 0 ? `${daysLeft} days remaining` : "Evaluation ended"}</span>
+                        <span className="text-slate-400">Ends {trialEndDateLabel}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-300">
-                      <span>{daysLeft > 0 ? `${daysLeft} days remaining` : "Evaluation ended"}</span>
-                      <span className="text-slate-400">Ends {trialEndDateLabel}</span>
-                    </div>
-                  </div>
 
-                  <button
-                    onClick={() => setShowBillingModal(true)}
-                    className="w-full py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs sm:text-sm font-bold text-white flex items-center justify-between transition-all cursor-pointer"
-                  >
-                    <span>Manage Plan &amp; Billing</span>
-                    <ArrowRight size={15} className="text-cyan-300" />
-                  </button>
-                </div>
+                    <button
+                      onClick={() => setShowBillingModal(true)}
+                      className="w-full py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs sm:text-sm font-bold text-white flex items-center justify-between transition-all cursor-pointer"
+                    >
+                      <span>Manage Plan &amp; Billing</span>
+                      <ArrowRight size={15} className="text-cyan-300" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -3858,6 +3920,11 @@ export default function AdminPage() {
             deleteAllLeads={deleteAllLeads}
             activeOrg={activeOrg}
             onDomainUpdated={(domain) => setActiveOrg(prev => prev ? { ...prev, custom_domain: domain } : null)}
+            onSubscriptionUpdated={(newTier, newStatus) =>
+              setActiveOrg((prev) =>
+                prev ? { ...prev, tier: newTier as Tier, subscription_status: newStatus, trial_ends_at: null } : prev
+              )
+            }
           />
         )}
 
@@ -3880,6 +3947,11 @@ export default function AdminPage() {
         open={showBillingModal}
         onClose={() => setShowBillingModal(false)}
         activeOrg={activeOrg}
+        onSubscriptionUpdated={(newTier, newStatus) =>
+          setActiveOrg((prev) =>
+            prev ? { ...prev, tier: newTier as Tier, subscription_status: newStatus, trial_ends_at: null } : prev
+          )
+        }
       />
 
     </div>

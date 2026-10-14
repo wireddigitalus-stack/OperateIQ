@@ -77,7 +77,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               operatingSystem: "Web",
               description: BRAND.description,
               url: BRAND.url,
-              offers: { "@type": "AggregateOffer", priceCurrency: "USD", lowPrice: "49", highPrice: "299" },
+              offers: { "@type": "AggregateOffer", priceCurrency: "USD", lowPrice: "99", highPrice: "499" },
             }),
           }}
         />

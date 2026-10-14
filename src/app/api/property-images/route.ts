@@ -95,9 +95,37 @@ export async function POST(req: NextRequest) {
   const existing = await existingRes.json();
   const existingRow = Array.isArray(existing) ? existing[0] : null;
 
-  const existingAllUrls: string[] = existingRow?.all_urls || (existingRow?.image_url ? [existingRow.image_url] : []);
-  const newAllUrls = [...existingAllUrls, publicUrl];
-  const heroUrl = existingRow?.hero_url || existingRow?.image_url || publicUrl;
+  let existingAllUrls: string[] =
+    Array.isArray(existingRow?.all_urls) && existingRow.all_urls.length > 0
+      ? existingRow.all_urls
+      : existingRow?.image_url
+      ? [existingRow.image_url]
+      : [];
+  let initialHero: string | null = existingRow?.hero_url || existingRow?.image_url || null;
+
+  if (existingAllUrls.length === 0) {
+    const propRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/properties?id=eq.${encodeURIComponent(propertyId)}&org_id=eq.${orgId}&select=images,hero_image`,
+      { headers: H, cache: "no-store" }
+    );
+    if (propRes.ok) {
+      const propRows = await propRes.json();
+      const propRow = Array.isArray(propRows) ? propRows[0] : null;
+      if (propRow) {
+        if (Array.isArray(propRow.images) && propRow.images.length > 0) {
+          existingAllUrls = propRow.images.filter((u: unknown) => typeof u === "string" && u.trim()) as string[];
+        } else if (typeof propRow.hero_image === "string" && propRow.hero_image.trim()) {
+          existingAllUrls = [propRow.hero_image];
+        }
+        if (!initialHero && typeof propRow.hero_image === "string" && propRow.hero_image.trim()) {
+          initialHero = propRow.hero_image;
+        }
+      }
+    }
+  }
+
+  const newAllUrls = existingAllUrls.includes(publicUrl) ? existingAllUrls : [...existingAllUrls, publicUrl];
+  const heroUrl = initialHero || existingAllUrls[0] || publicUrl;
 
   // Upsert with merged all_urls + preserve/set hero_url
   await fetch(UPSERT_URL, {
@@ -220,21 +248,50 @@ export async function DELETE(req: NextRequest) {
     }
   }
 
-  // ── 2. Fetch the current DB record ──────────────────────────────────────
+  // ── 2. Fetch the current DB record (seed from public.properties if empty) ──
   const existingRes = await fetch(
     `${SUPABASE_URL}/rest/v1/property_image_overrides?org_id=eq.${orgId}&property_id=eq.${encodeURIComponent(propertyId)}`,
     { headers: H, cache: "no-store" }
   );
   const existing = await existingRes.json();
-  const row = Array.isArray(existing) ? existing[0] : null;
+  const existingRow = Array.isArray(existing) ? existing[0] : null;
 
-  if (!row) return NextResponse.json({ success: true }); // nothing to update
+  let prevAll: string[] =
+    Array.isArray(existingRow?.all_urls) && existingRow.all_urls.length > 0
+      ? existingRow.all_urls
+      : existingRow?.image_url
+      ? [existingRow.image_url]
+      : [];
+  let currentHero: string | null = existingRow?.hero_url || existingRow?.image_url || null;
+
+  if (prevAll.length === 0) {
+    const propRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/properties?id=eq.${encodeURIComponent(propertyId)}&org_id=eq.${orgId}&select=images,hero_image`,
+      { headers: H, cache: "no-store" }
+    );
+    if (propRes.ok) {
+      const propRows = await propRes.json();
+      const propRow = Array.isArray(propRows) ? propRows[0] : null;
+      if (propRow) {
+        if (Array.isArray(propRow.images) && propRow.images.length > 0) {
+          prevAll = propRow.images.filter((u: unknown) => typeof u === "string" && u.trim()) as string[];
+        } else if (typeof propRow.hero_image === "string" && propRow.hero_image.trim()) {
+          prevAll = [propRow.hero_image];
+        }
+        if (!currentHero && typeof propRow.hero_image === "string" && propRow.hero_image.trim()) {
+          currentHero = propRow.hero_image;
+        }
+      }
+    }
+  }
+
+  if (!existingRow && prevAll.length === 0) {
+    return NextResponse.json({ success: true }); // nothing to update
+  }
 
   // ── 3. Remove the URL from all_urls, promote a new hero if needed ───────
-  const prevAll: string[] = Array.isArray(row.all_urls) ? row.all_urls : [];
-  const newAll = prevAll.filter((u: string) => u !== url);
-  const currentHero: string | null = row.hero_url || row.image_url || null;
-  const newHero = currentHero === url ? (newAll[0] ?? null) : currentHero;
+  const updatedUrls = prevAll.filter((u: string) => u !== url);
+  const newPrimary = currentHero === url ? (updatedUrls[0] ?? null) : (currentHero ?? updatedUrls[0] ?? null);
 
   await fetch(UPSERT_URL, {
     method: "POST",
@@ -242,26 +299,26 @@ export async function DELETE(req: NextRequest) {
     body: JSON.stringify({
       org_id:      orgId,
       property_id: propertyId,
-      hero_url:    newHero,
-      image_url:   newHero, // legacy compat
-      all_urls:    newAll,
+      hero_url:    newPrimary,
+      image_url:   newPrimary, // legacy compat
+      all_urls:    updatedUrls,
       updated_at:  new Date().toISOString(),
     }),
   });
 
   // Also sync directly to public.properties row
   await fetch(
-    `${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&id=eq.${encodeURIComponent(propertyId)}`,
+    `${SUPABASE_URL}/rest/v1/properties?id=eq.${encodeURIComponent(propertyId)}&org_id=eq.${orgId}`,
     {
       method: "PATCH",
       headers: H,
       body: JSON.stringify({
-        hero_image: newHero,
-        images: newAll,
+        hero_image: newPrimary,
+        images: updatedUrls,
         updated_at: new Date().toISOString(),
       }),
     }
   ).catch(() => {});
 
-  return NextResponse.json({ success: true, remaining: newAll.length });
+  return NextResponse.json({ success: true, remaining: updatedUrls.length });
 }

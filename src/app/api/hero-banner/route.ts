@@ -134,13 +134,33 @@ export async function GET(req: NextRequest) {
     if (publicSlug) {
       orgId = await resolveOrgIdBySlug(publicSlug);
       if (!orgId) return NextResponse.json({ error: "Unknown organization" }, { status: 404 });
+      try {
+        const [orgRes, profRes] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/organizations?id=eq.${orgId}&select=id,name,brand_name`, { headers: H, cache: "no-store" }),
+          fetch(`${SUPABASE_URL}/rest/v1/site_settings?org_id=eq.${orgId}&key=eq.org_profile&select=value`, { headers: H, cache: "no-store" }),
+        ]);
+        const orgRows = orgRes.ok ? await orgRes.json() : [];
+        const profRows = profRes.ok ? await profRes.json() : [];
+        const orgRow = Array.isArray(orgRows) ? orgRows[0] : null;
+        const profVal = (Array.isArray(profRows) && profRows[0]?.value ? profRows[0].value : {}) as Record<string, unknown>;
+        if (orgRow) {
+          callerOrg = {
+            ...orgRow,
+            city: typeof profVal.city === "string" ? profVal.city : null,
+            state: typeof profVal.state === "string" ? profVal.state : null,
+          } as OrgSummary;
+        }
+      } catch {
+        /* ignore */
+      }
     } else {
       const g = await requireOrg(req);
       if (!g.ok) return g.res;
       orgId = g.ctx.orgId;
       callerOrg = g.ctx.org;
     }
-    const defaultLocation = profileForOrg(callerOrg).location;
+    const customCity = [callerOrg?.city, callerOrg?.state].filter(Boolean).join(", ").trim();
+    const defaultLocation = customCity || (orgId === DEFAULT_PLATFORM_ORG_ID ? profileForOrg(callerOrg).location : "");
     const [{ value: raw, tableExists }, overrides, dbProps] = await Promise.all([
       getRaw(orgId),
       getOverrides(orgId),

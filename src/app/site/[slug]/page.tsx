@@ -245,13 +245,16 @@ export default async function TenantPublicSitePage({ params }: Props) {
               ? p.images.filter((u: unknown) => typeof u === "string")
               : [];
 
+          const isDemoOrg = org.id === "00000000-0000-0000-0000-000000000001";
           const primaryImage =
             imgOverride?.hero_url ||
             overrideImages[0] ||
             p.hero_image ||
             p.featured_image ||
             p.image ||
-            "/demo-properties/oakridge-professional-plaza.jpg";
+            (isDemoOrg
+              ? "/demo-properties/oakridge-professional-plaza.jpg"
+              : "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80");
 
           const resolvedName = propOverrides.name || p.name || "Commercial Asset";
           const resolvedCity = propOverrides.city || p.city || org.city || "";

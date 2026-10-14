@@ -45,11 +45,15 @@ const PROPERTY_DROPDOWN_NAMES: Record<string, string[]> = {
   "sample-retail": ["Sample Retail Center"],
 };
 
-function exactBuildingMatch(tenantBuilding: string, propertyId: string, displayName: string): boolean {
+function exactBuildingMatch(tenantBuilding: string, propertyId: string, displayName: string, originalName?: string): boolean {
   if (!tenantBuilding) return false;
   const b = tenantBuilding.trim().toLowerCase();
   // Match against display name (custom rename)
   if (displayName && b === displayName.trim().toLowerCase()) return true;
+  // Match against original property name (before custom display_name rename)
+  if (originalName && b === originalName.trim().toLowerCase()) return true;
+  // Match against property ID
+  if (propertyId && b === propertyId.trim().toLowerCase()) return true;
   // Match against known dropdown values for this property
   const names = PROPERTY_DROPDOWN_NAMES[propertyId];
   if (names && names.some(n => b === n.toLowerCase())) return true;
@@ -236,7 +240,7 @@ export default function PortfolioOverviewCard({ properties: propProperties, tena
   const propData = useMemo(() => properties.map(p => {
     const d = detailMap[p.id];
     const displayName = d?.display_name || p.name;
-    const pts = tenants.filter(t => exactBuildingMatch(t.building || "", p.id, displayName));
+    const pts = tenants.filter(t => exactBuildingMatch(t.building || "", p.id, displayName, p.name));
     const activePts = pts.filter(t => t.status === "active");
     const revenue = activePts.reduce((s, t) =>
       s + (t.monthlyRent || 0) + (t.nnnFee || 0) + (t.nnFee || 0) + (t.camFee || 0) + (t.utilitiesFee || 0) + (t.cleaningFee || 0), 0);

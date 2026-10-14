@@ -37,7 +37,7 @@ export default function ProWebsiteShowcaseCard() {
             {/* Tier Pill */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-sky-500/15 to-purple-500/15 border border-sky-400/30 text-sky-300 text-xs font-bold shadow-[0_0_15px_rgba(56,189,248,0.2)]">
               <Sparkles size={13} className="text-sky-400 animate-pulse" />
-              <span>INCLUDED WITH PRO TIER ($299/mo)</span>
+              <span>INCLUDED WITH PRO TIER ($499/mo)</span>
             </div>
 
             {/* Headline */}

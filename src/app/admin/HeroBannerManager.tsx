@@ -58,6 +58,7 @@ export default function HeroBannerManager({
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [orgLocation, setOrgLocation] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceTargetRef = useRef<number | null>(null);
@@ -74,10 +75,22 @@ export default function HeroBannerManager({
       setResolved(data.resolved || []);
 
       // Build property list from slides + add all known properties
-      const propRes = await fetch("/api/properties-list").catch(() => null);
+      const [propRes, profRes] = await Promise.all([
+        fetch("/api/properties-list").catch(() => null),
+        fetch("/api/org-profile").catch(() => null),
+      ]);
       if (propRes?.ok) {
         const props = await propRes.json();
-        setProperties(props);
+        setProperties(Array.isArray(props) ? props : Array.isArray(props?.properties) ? props.properties : []);
+      }
+      if (profRes?.ok) {
+        const profData = await profRes.json().catch(() => ({}));
+        const prof = profData?.profile || profData;
+        const loc =
+          prof?.location && prof.location !== "Anytown, ST"
+            ? prof.location
+            : [prof?.city, prof?.state].filter(Boolean).join(", ") || "";
+        setOrgLocation(loc);
       }
     } catch {
       setError("Failed to load hero config");
@@ -207,12 +220,12 @@ export default function HeroBannerManager({
       type: "custom",
       imageUrl: "",
       label: "New Slide",
-      location: "Anytown, ST",
+      location: orgLocation,
       enabled: true,
       order: slides.length,
     };
     updateSlides([...slides, newSlide]);
-    setResolved(prev => [...prev, { src: "", label: "New Slide", location: "Anytown, ST" }]);
+    setResolved(prev => [...prev, { src: "", label: "New Slide", location: orgLocation }]);
     setShowAddPicker(false);
 
     // Open file picker for the new slide

@@ -25,6 +25,7 @@ export default function AcmeBuildingSpecsModal({
 
   const propList = properties ?? PROPERTIES; // demo data only when no list is passed (/demo-site)
   const property = propList.find((p) => p.id === propertyId) || propList[0];
+  if (!property) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">

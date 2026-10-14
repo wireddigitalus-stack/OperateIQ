@@ -4,7 +4,7 @@ import { profileForOrg } from "@/lib/org-ai-profile";
 import { BRAND } from "@/lib/brand";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY environment variable is not set");
+const MODEL = "gemini-2.5-flash";
 
 // Lean lead type — only the fields needed for analysis
 type LeanLead = {
@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
 
+  if (!GEMINI_API_KEY) {
+    return NextResponse.json({ error: "GEMINI_API_KEY environment variable is not set" }, { status: 500 });
+  }
+
   try {
     const body = await req.json();
     const { question, leads } = body;
@@ -71,9 +75,9 @@ CEO QUESTION: "${question}"
 
 Instructions: Be direct and actionable. Name specific people. Reference budgets and scores. Max 80 words. No filler. No preamble. Complete every sentence.`;
 
-    // Use gemini-2.5-flash
+    // Use gemini-2.5-flash on v1beta
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,7 +100,13 @@ Instructions: Be direct and actionable. Name specific people. Reference budgets 
     }
 
     const geminiData = await geminiRes.json();
-    const response = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "No response generated.";
+    const parts: { text?: string; thought?: boolean }[] = geminiData.candidates?.[0]?.content?.parts || [];
+    const response =
+      parts
+        ?.filter((p: { thought?: boolean }) => !p.thought)
+        .map((p: { text?: string }) => p.text || "")
+        .join("")
+        .trim() || "No response generated.";
     return NextResponse.json({ response });
 
   } catch (error: unknown) {

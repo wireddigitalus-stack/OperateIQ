@@ -86,8 +86,9 @@ Exactly 8 hashtags specific to this property type, features, and local market. A
 BEST_TIME:
 One sentence: best day + time to post for CRE content in the local time zone for ${org.location}, with brief reason. Apply to all platforms.`;
 
+    const MODEL = "gemini-2.5-flash";
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,7 +107,11 @@ One sentence: best day + time to post for CRE content in the local time zone for
 
     const geminiData = await geminiRes.json();
     const parts = geminiData.candidates?.[0]?.content?.parts || [];
-    const text = parts.map((p: { text?: string }) => p.text || "").join("").trim();
+    const text = parts
+      ?.filter((p: { thought?: boolean }) => !p.thought)
+      .map((p: { text?: string }) => p.text || "")
+      .join("")
+      .trim();
 
     if (!text) {
       return NextResponse.json({ error: "No content generated. Please try again." }, { status: 500 });

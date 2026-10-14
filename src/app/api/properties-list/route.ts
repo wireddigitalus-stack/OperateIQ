@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(list);
   }
 
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { allowStaff: true });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 

@@ -32,6 +32,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid domain format" }, { status: 400 });
     }
 
+    if (
+      cleanDomain === "getoperateiq.com" ||
+      cleanDomain === "www.getoperateiq.com" ||
+      cleanDomain === "operateiq.com" ||
+      cleanDomain === "www.operateiq.com" ||
+      cleanDomain.endsWith(".getoperateiq.com") ||
+      cleanDomain.endsWith(".operateiq.com") ||
+      cleanDomain.endsWith(".vercel.app")
+    ) {
+      return NextResponse.json(
+        { error: "Cannot claim an OperateIQ platform domain as a custom domain." },
+        { status: 400 }
+      );
+    }
+
     const isSubdomain = cleanDomain.split(".").length > 2 && !cleanDomain.startsWith("www.");
     let isConfigured = false;
     let details: string[] = [];

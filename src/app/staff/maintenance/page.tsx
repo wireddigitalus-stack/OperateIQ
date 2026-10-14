@@ -948,7 +948,7 @@ function FieldTicketCard({
   isMaintenanceAdmin: boolean;
   knownStaff: string[];
   propertyNames: string[];
-  onUpdate: (id: string, status: Ticket["status"], meta?: { notes?: string; minutes?: number; partsNeeded?: boolean; assignedTo?: string; billable?: boolean; materialAmount?: number }) => Promise<void>;
+  onUpdate: (id: string, status: Ticket["status"], meta?: { notes?: string; minutes?: number; partsNeeded?: boolean; assignedTo?: string; billable?: boolean; materialAmount?: number; photoUrl?: string }) => Promise<void>;
   onFullUpdate: (id: string, updates: Partial<Ticket>) => Promise<void>;
   onDeleteTicket?: (id: string, title: string) => Promise<void>;
 }) {
@@ -1478,10 +1478,11 @@ export default function MaintenanceStaffPage() {
 
   useEffect(() => { fetchTickets(); }, [fetchTickets]);
 
-  const handleUpdate = async (id: string, status: Ticket["status"], meta?: { notes?: string; minutes?: number; partsNeeded?: boolean; assignedTo?: string; billable?: boolean; materialAmount?: number }) => {
+  const handleUpdate = async (id: string, status: Ticket["status"], meta?: { notes?: string; minutes?: number; partsNeeded?: boolean; assignedTo?: string; billable?: boolean; materialAmount?: number; photoUrl?: string }) => {
     const patch: Record<string, unknown> = { status, actorName: workerName };
     if (status === "complete") { patch.completedDate = new Date().toISOString().split("T")[0]; patch.partsNeeded = false; }
-    if (meta?.notes !== undefined) patch.notes = meta.notes;
+    if (meta?.notes && meta.notes.trim()) patch.notes = meta.notes;
+    if (meta?.photoUrl) patch.photo_url = meta.photoUrl;
     if (meta?.minutes) patch.actualMinutes = meta.minutes;
     if (meta?.partsNeeded !== undefined) patch.partsNeeded = meta.partsNeeded;
     if (meta?.assignedTo !== undefined) patch.assignedTo = meta.assignedTo;
@@ -1495,7 +1496,8 @@ export default function MaintenanceStaffPage() {
     setTickets(prev => prev.map(t => t.id === id ? {
       ...t,
       status,
-      notes: meta?.notes ?? t.notes,
+      notes: (meta?.notes && meta.notes.trim()) ? meta.notes : t.notes,
+      photoUrl: meta?.photoUrl || t.photoUrl,
       partsNeeded: meta?.partsNeeded ?? (status === "complete" ? false : t.partsNeeded),
       assignedTo: meta?.assignedTo !== undefined ? meta.assignedTo : t.assignedTo,
       billable: meta?.billable !== undefined ? meta.billable : t.billable,
@@ -1846,7 +1848,15 @@ export default function MaintenanceStaffPage() {
         </div>
       )}
 
-      <StaffAskOpsIQ role="maintenance" />
+      <StaffAskOpsIQ
+        role="maintenance"
+        context={
+          open
+            .slice(0, 10)
+            .map((t) => `[P${t.priority}] ${t.title} (${t.building}${t.unit ? ` #${t.unit}` : ""}) - ${t.status}`)
+            .join("; ") || "No active maintenance tickets."
+        }
+      />
 
       {showReport && (
         <ReportModal

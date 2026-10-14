@@ -47,7 +47,7 @@ export default function PricingTable() {
                 {p.limits.properties ? `Up to ${p.limits.properties} properties` : "Unlimited properties"} ·{" "}
                 {p.limits.users ? `${p.limits.users} users` : "unlimited users"}
               </p>
-              <Link href={`/signup?plan=${p.id}`} className={`mt-6 ${p.highlight ? "oiq-btn" : "oiq-btn-ghost"}`}>
+              <Link href={`/signup?plan=${p.id}${annual ? "&billing=annual" : ""}`} className={`mt-6 ${p.highlight ? "oiq-btn" : "oiq-btn-ghost"}`}>
                 Start {TRIAL_DAYS}-day free trial
               </Link>
               <ul className="mt-8 space-y-3 text-sm">

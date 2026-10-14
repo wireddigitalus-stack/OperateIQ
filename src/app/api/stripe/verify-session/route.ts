@@ -38,14 +38,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Checkout session does not belong to this organization." }, { status: 403 });
     }
 
-    if (session.status !== "complete") {
+    const isComplete =
+      session.payment_status === "paid" ||
+      session.payment_status === "no_payment_required" ||
+      session.status === "complete";
+    if (!isComplete) {
       return NextResponse.json({ error: "Checkout session is not yet complete." }, { status: 400 });
     }
 
     const rawTier = String(session.metadata?.tier || "").toLowerCase();
     const tier: Tier = (["starter", "growth", "pro"].includes(rawTier) ? rawTier : g.ctx.org.tier) as Tier;
-    const customerId = typeof session.customer === "string" ? session.customer : null;
-    const subscriptionId = typeof session.subscription === "string" ? session.subscription : null;
+    const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id || null;
+    const subscriptionId =
+      typeof session.subscription === "string" ? session.subscription : session.subscription?.id || null;
 
     const updates: Record<string, unknown> = {
       tier,

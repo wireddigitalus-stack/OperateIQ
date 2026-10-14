@@ -1075,9 +1075,12 @@ function NotificationsCard() {
 
 // ─── Subscription & Billing Card (Canonical PLANS) ───────────────────────────
 
+const verifiedSessions = new Set<string>();
+
 export function SubscriptionAndBillingCard({
   activeOrg,
   onClose,
+  onSubscriptionUpdated,
 }: {
   activeOrg?: {
     id: string;
@@ -1088,6 +1091,7 @@ export function SubscriptionAndBillingCard({
     custom_domain?: string | null;
   } | null;
   onClose?: () => void;
+  onSubscriptionUpdated?: (tier: string, status: string) => void;
 }) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
@@ -1098,6 +1102,23 @@ export function SubscriptionAndBillingCard({
   const currentPlan = getPlan(overrideTier || activeOrg?.tier || "starter");
   const isPaidActive = activeOrg?.subscription_status === "active" || Boolean(overrideTier);
 
+  // Sync across multiple mounted instances when oiq-org-updated fires
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleOrgUpdated = (e: Event) => {
+      const detail = (e as CustomEvent<{ tier?: string; subscription_status?: string }>).detail;
+      if (detail?.tier) {
+        setOverrideTier(detail.tier);
+        setBanner({
+          ok: true,
+          msg: `Subscription active! Your workspace is now on the ${String(detail.tier).toUpperCase()} plan.`,
+        });
+      }
+    };
+    window.addEventListener("oiq-org-updated", handleOrgUpdated);
+    return () => window.removeEventListener("oiq-org-updated", handleOrgUpdated);
+  }, []);
+
   // Verify Stripe Checkout redirect (?checkout=success&session_id=cs_...)
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1106,6 +1127,8 @@ export function SubscriptionAndBillingCard({
     const sessionId = params.get("session_id");
 
     if (checkout === "success" && sessionId) {
+      if (verifiedSessions.has(sessionId)) return;
+      verifiedSessions.add(sessionId);
       setBanner({ ok: true, msg: "Verifying your Stripe subscription…" });
       fetch("/api/stripe/verify-session", {
         method: "POST",
@@ -1115,24 +1138,35 @@ export function SubscriptionAndBillingCard({
         .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
         .then(({ ok, d }) => {
           if (ok && d.ok) {
+            const nextStatus = d.subscription_status || "active";
             setOverrideTier(d.tier);
             setBanner({
               ok: true,
               msg: `Subscription active! Your workspace is now on the ${String(d.tier).toUpperCase()} plan.`,
             });
+            onSubscriptionUpdated?.(d.tier, nextStatus);
+            window.dispatchEvent(
+              new CustomEvent("oiq-org-updated", {
+                detail: { tier: d.tier, subscription_status: "active" },
+              })
+            );
             const cleanUrl = `${window.location.pathname}?tab=settings`;
             window.history.replaceState({}, "", cleanUrl);
           } else {
+            verifiedSessions.delete(sessionId);
             setBanner({ ok: false, msg: d.error || "Could not verify checkout session." });
           }
         })
-        .catch(() => setBanner({ ok: false, msg: "Network error verifying checkout session." }));
+        .catch(() => {
+          verifiedSessions.delete(sessionId);
+          setBanner({ ok: false, msg: "Network error verifying checkout session." });
+        });
     } else if (checkout === "canceled") {
       setBanner({ ok: false, msg: "Stripe checkout was canceled. No charges were made." });
       const cleanUrl = `${window.location.pathname}?tab=settings`;
       window.history.replaceState({}, "", cleanUrl);
     }
-  }, []);
+  }, [onSubscriptionUpdated]);
 
   async function startCheckout(tier: string) {
     setLoadingTier(tier);
@@ -1381,6 +1415,7 @@ export function PlanAndBillingModal({
   open,
   onClose,
   activeOrg,
+  onSubscriptionUpdated,
 }: {
   open: boolean;
   onClose: () => void;
@@ -1392,6 +1427,7 @@ export function PlanAndBillingModal({
     subscription_status?: string;
     custom_domain?: string | null;
   } | null;
+  onSubscriptionUpdated?: (tier: string, status: string) => void;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -1413,7 +1449,11 @@ export function PlanAndBillingModal({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-5xl max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200"
       >
-        <SubscriptionAndBillingCard activeOrg={activeOrg} onClose={onClose} />
+        <SubscriptionAndBillingCard
+          activeOrg={activeOrg}
+          onClose={onClose}
+          onSubscriptionUpdated={onSubscriptionUpdated}
+        />
       </div>
     </div>
   );
@@ -2288,6 +2328,7 @@ function SettingsPanel({
   deleteAllLeads,
   activeOrg,
   onDomainUpdated,
+  onSubscriptionUpdated,
 }: {
   leads: Lead[];
   deletingAll: boolean;
@@ -2303,6 +2344,7 @@ function SettingsPanel({
     custom_domain?: string | null;
   } | null;
   onDomainUpdated?: (domain: string | null) => void;
+  onSubscriptionUpdated?: (tier: string, status: string) => void;
 }) {
   const [adminUsers,  setAdminUsers]  = useState<AllowedUser[]>([]);
   const [maintUsers,  setMaintUsers]  = useState<AllowedUser[]>([]);
@@ -2332,7 +2374,7 @@ function SettingsPanel({
   return (
     <div className="space-y-8">
       {/* ── Subscription & Billing (Canonical PLANS) ── */}
-      <SubscriptionAndBillingCard activeOrg={activeOrg} />
+      <SubscriptionAndBillingCard activeOrg={activeOrg} onSubscriptionUpdated={onSubscriptionUpdated} />
 
       {/* ── Organization Profile & Branding ── */}
       <OrganizationProfileCard activeOrg={activeOrg} onOwnerEmailLoaded={setOwnerEmail} />

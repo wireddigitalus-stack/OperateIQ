@@ -86,22 +86,35 @@ function ReportIssueModal({ workerName, onClose, onSubmit }: {
   const [desc, setDesc] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const submit = async () => {
     if (!location.trim()) return;
     setSaving(true);
-    await fetch("/api/maintenance", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: `${type} — ${location}`, category: type, priority: 2,
-        building: location, description: desc, reportedBy: workerName,
-        status: "open", source: "cleaning",
-        photoUrl: photoUrl || undefined,
-      }),
-    });
-    setSaving(false);
-    onSubmit();
-    onClose();
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/maintenance", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `${type} — ${location}`, category: type, priority: 2,
+          building: location, description: desc, reportedBy: workerName,
+          status: "open", source: "cleaning",
+          photoUrl: photoUrl || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setErrorMsg(d.error || "Failed to report issue. Please try again.");
+        setSaving(false);
+        return;
+      }
+      setSaving(false);
+      onSubmit();
+      onClose();
+    } catch {
+      setErrorMsg("Network error — could not send issue. Please try again.");
+      setSaving(false);
+    }
   };
 
   return (
@@ -164,6 +177,12 @@ function ReportIssueModal({ workerName, onClose, onSubmit }: {
           <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3">📸 Photo (optional)</p>
           <PhotoCapture label="📷 Take a Photo" onPhoto={url => setPhotoUrl(url)} onClear={() => setPhotoUrl(undefined)} />
         </div>
+
+        {errorMsg && (
+          <div className="mb-4 p-3 rounded-2xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-semibold text-center">
+            {errorMsg}
+          </div>
+        )}
 
         <button onClick={submit} disabled={saving || !location.trim()}
           className="w-full py-5 rounded-3xl text-lg font-black flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
@@ -661,7 +680,13 @@ export default function CleaningStaffPage() {
         </button>
       </div>
 
-      <StaffAskOpsIQ role="cleaning" />
+      <StaffAskOpsIQ
+        role="cleaning"
+        context={
+          assignments.map((a) => `${a.property} — ${a.area} (${a.status})`).join("; ") ||
+          "No cleaning assignments scheduled for today."
+        }
+      />
 
       {showReport && (
         <ReportIssueModal

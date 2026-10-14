@@ -221,10 +221,30 @@ export default function PropertyEditor({ refreshKey = 0 }: { refreshKey?: number
     const ex = getImgRecord(propId);
     const next = ex.all_urls.filter(u => u !== url);
     const newHero = ex.hero_url === url ? (next[0] || null) : ex.hero_url;
-    setPropImages(prev => ({ ...prev, [propId]: { ...ex, all_urls: next, hero_url: newHero } }));
-    await fetch("/api/property-images", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ propertyId: propId, url }) });
-    setImgDeleting(null);
-    flashImgSaved(propId);
+    try {
+      const res = await fetch("/api/property-images", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyId: propId, url }),
+      });
+      if (res.ok) {
+        setPropImages(prev => ({ ...prev, [propId]: { ...ex, all_urls: next, hero_url: newHero } }));
+        setPropertiesList(prev =>
+          prev.map(p =>
+            p.id === propId
+              ? {
+                  ...p,
+                  images: (p.images || []).filter(u => u !== url),
+                  image: p.image === url ? (next[0] || "") : p.image,
+                }
+              : p
+          )
+        );
+        flashImgSaved(propId);
+      }
+    } finally {
+      setImgDeleting(null);
+    }
   }
 
   const getValue = (section: string, key: string): string => {

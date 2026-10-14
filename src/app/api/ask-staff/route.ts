@@ -52,8 +52,9 @@ Be friendly, clear, and practical. Use bullet points when listing steps. Max 120
     const systemText = systemPrompts[role] || systemPrompts.maintenance;
     const prompt = `${systemText}\n\nSTAFF QUESTION: "${question}"`;
 
+    const MODEL = "gemini-2.5-flash";
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,7 +71,13 @@ Be friendly, clear, and practical. Use bullet points when listing steps. Max 120
     }
 
     const data = await geminiRes.json();
-    const response = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "No response generated.";
+    const parts: { text?: string; thought?: boolean }[] = data.candidates?.[0]?.content?.parts || [];
+    const response =
+      parts
+        ?.filter((p: { thought?: boolean }) => !p.thought)
+        .map((p: { text?: string }) => p.text || "")
+        .join("")
+        .trim() || "No response generated.";
     return NextResponse.json({ response });
 
   } catch (err: unknown) {

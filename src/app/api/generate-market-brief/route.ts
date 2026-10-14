@@ -63,8 +63,9 @@ Write the brief in 3 short sections:
 
 Keep it under 250 words total. Be direct and smart. No preamble, no "here is your brief".`;
 
+    const MODEL = "gemini-2.5-flash";
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,7 +84,11 @@ Keep it under 250 words total. Be direct and smart. No preamble, no "here is you
 
     const geminiData = await geminiRes.json();
     const parts = geminiData.candidates?.[0]?.content?.parts || [];
-    const text = parts.map((p: { text?: string }) => p.text || "").join("").trim();
+    const text = parts
+      ?.filter((p: { thought?: boolean }) => !p.thought)
+      .map((p: { text?: string }) => p.text || "")
+      .join("")
+      .trim();
 
     if (!text) {
       return NextResponse.json({ error: "No brief generated. Please try again." }, { status: 500 });

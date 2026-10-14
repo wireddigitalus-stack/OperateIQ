@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getRequestContext, requireOrgAdmin, requireSuperAdmin } from "@/lib/server-auth";
+import { requireOrgAdmin, requireSuperAdmin } from "@/lib/server-auth";
 
 // Fields safe to expose for public site rendering (slug / domain lookups).
 const PUBLIC_ORG_FIELDS =
@@ -36,13 +36,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ organization: org || null });
     }
 
-    // Lookup by id: members of that org or super-admins.
+    // Lookup by id: org admins of that org or super-admins.
     if (id) {
-      const ctx = await getRequestContext(req);
-      const allowed = ctx && (ctx.isSuperAdmin || ctx.memberships.some((m) => m.org_id === id));
-      if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      const { data: org } = await supabaseAdmin.from("organizations").select("*").eq("id", id).maybeSingle();
-      return NextResponse.json({ organization: org });
+      const g = await requireOrgAdmin(req);
+      if (!g.ok) return g.res;
+      if (!g.ctx.isSuperAdmin && g.ctx.orgId !== id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      const [{ data: org }, { data: profileSetting }] = await Promise.all([
+        supabaseAdmin.from("organizations").select("*").eq("id", id).maybeSingle(),
+        supabaseAdmin
+          .from("site_settings")
+          .select("value")
+          .eq("org_id", id)
+          .eq("key", "org_profile")
+          .maybeSingle(),
+      ]);
+      if (!org) {
+        return NextResponse.json({ organization: null });
+      }
+      const prof = ((profileSetting?.value || {}) as Record<string, unknown>);
+      const organization = {
+        ...org,
+        city: typeof prof.city === "string" ? prof.city : "",
+        state: typeof prof.state === "string" ? prof.state : "",
+        address: typeof prof.address === "string" ? prof.address : "",
+        description: typeof prof.description === "string" ? prof.description : "",
+      };
+      return NextResponse.json({ organization });
     }
 
     // Full list: platform super-admins only.

@@ -24,6 +24,7 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 function SignupForm() {
   const searchParams = useSearchParams();
   const initialPlan = (searchParams.get("plan") as Tier) || "pro";
+  const billing = searchParams.get("billing") === "annual" ? "annual" : "monthly";
 
   const [selectedPlan, setSelectedPlan] = useState<Tier>(initialPlan);
   const [fullName, setFullName] = useState("");
@@ -183,7 +184,7 @@ function SignupForm() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-white uppercase tracking-wider">Selected Plan:</span>
             <span className="text-xs font-black text-sky-400 font-mono bg-sky-950/80 border border-sky-400/30 px-2 py-0.5 rounded">
-              {activePlan.name} · ${activePlan.monthly}/mo
+              {activePlan.name} · {billing === "annual" ? `$${Math.round(activePlan.annual / 12)}/mo billed annually` : `$${activePlan.monthly}/mo`}
             </span>
           </div>
           <p className="text-[11px] text-slate-400">{activePlan.blurb}</p>
@@ -368,7 +369,10 @@ function SignupForm() {
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-300 font-mono mt-0.5">${p.monthly}/mo</p>
+                      <p className="text-[11px] text-slate-300 font-mono mt-0.5">
+                        {billing === "annual" ? `$${Math.round(p.annual / 12)}/mo` : `$${p.monthly}/mo`}
+                        {billing === "annual" && <span className="block text-[9px] text-emerald-400">billed annually</span>}
+                      </p>
                     </button>
                   );
                 })}

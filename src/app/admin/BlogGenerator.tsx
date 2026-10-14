@@ -44,9 +44,12 @@ export default function BlogGenerator() {
       fetch("/api/platform/session").then(r => r.json()).catch(() => ({})),
     ]).then(([propData, sessData]) => {
       const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
-      const dynNames: string[] = Array.isArray(propData.properties)
-        ? propData.properties.map((p: any) => p.name).filter(Boolean)
-        : [];
+      const list = Array.isArray(propData)
+        ? propData
+        : Array.isArray(propData?.properties)
+          ? propData.properties
+          : [];
+      const dynNames: string[] = list.map((p: any) => p.name).filter(Boolean);
       const staticNames = isDemoOrg ? PROPERTIES.map(p => p.name) : [];
       setPropertyNames(Array.from(new Set([...dynNames, ...staticNames])));
     });

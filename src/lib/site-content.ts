@@ -6,8 +6,11 @@
  * Missing keys = use hardcoded defaults in the component.
  */
 
+import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform-org";
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const DEFAULT_ORG_ID = DEFAULT_PLATFORM_ORG_ID;
 
 export type ContentMap = Record<string, string>;
 
@@ -16,10 +19,11 @@ export type ContentMap = Record<string, string>;
  * Returns an object like { headline: "...", subtext: "..." }.
  * If the table doesn't exist or the fetch fails, returns {}.
  */
-export async function getSiteContent(section: string, orgId?: string): Promise<ContentMap> {
+export async function getSiteContent(section: string, orgId: string = DEFAULT_ORG_ID): Promise<ContentMap> {
   try {
-    let url = `${SUPABASE_URL}/rest/v1/site_content?section=eq.${encodeURIComponent(section)}&select=key,value`;
-    if (orgId) url += `&org_id=eq.${encodeURIComponent(orgId)}`;
+    const effectiveOrgId = orgId || DEFAULT_ORG_ID;
+    const orgFilter = `&org_id=eq.${encodeURIComponent(effectiveOrgId)}`;
+    const url = `${SUPABASE_URL}/rest/v1/site_content?section=eq.${encodeURIComponent(section)}&select=key,value${orgFilter}`;
     const res = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
@@ -42,13 +46,16 @@ export async function getSiteContent(section: string, orgId?: string): Promise<C
   }
 }
 
+export const getSectionContent = getSiteContent;
+
 /**
  * Fetch ALL sections at once (used by pages to avoid multiple fetches).
  */
-export async function getAllSiteContent(orgId?: string): Promise<Record<string, ContentMap>> {
+export async function getAllSiteContent(orgId: string = DEFAULT_ORG_ID): Promise<Record<string, ContentMap>> {
   try {
-    let url = `${SUPABASE_URL}/rest/v1/site_content?select=section,key,value`;
-    if (orgId) url += `&org_id=eq.${encodeURIComponent(orgId)}`;
+    const effectiveOrgId = orgId || DEFAULT_ORG_ID;
+    const orgFilter = `&org_id=eq.${encodeURIComponent(effectiveOrgId)}`;
+    const url = `${SUPABASE_URL}/rest/v1/site_content?select=section,key,value${orgFilter}`;
     const res = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
@@ -76,10 +83,11 @@ export async function getAllSiteContent(orgId?: string): Promise<Record<string, 
  * Fetch all property-related overrides (sections starting with "property:").
  * Returns { "city-centre": { name: "...", description: "..." }, ... }
  */
-export async function getPropertyOverrides(orgId?: string): Promise<Record<string, ContentMap>> {
+export async function getPropertyOverrides(orgId: string = DEFAULT_ORG_ID): Promise<Record<string, ContentMap>> {
   try {
-    let url = `${SUPABASE_URL}/rest/v1/site_content?section=like.property:*&select=section,key,value`;
-    if (orgId) url += `&org_id=eq.${encodeURIComponent(orgId)}`;
+    const effectiveOrgId = orgId || DEFAULT_ORG_ID;
+    const orgFilter = `&org_id=eq.${encodeURIComponent(effectiveOrgId)}`;
+    const url = `${SUPABASE_URL}/rest/v1/site_content?section=like.property:*&select=section,key,value${orgFilter}`;
     const res = await fetch(url, {
       headers: {
         "Content-Type": "application/json",

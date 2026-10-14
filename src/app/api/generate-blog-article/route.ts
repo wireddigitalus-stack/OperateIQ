@@ -65,7 +65,11 @@ Rules:
 
     const data = await res.json();
     const parts = data.candidates?.[0]?.content?.parts ?? [];
-    const raw   = parts.map((p: { text?: string }) => p.text ?? "").join("").trim();
+    const raw   = parts
+      ?.filter((p: { thought?: boolean }) => !p.thought)
+      .map((p: { text?: string }) => p.text ?? "")
+      .join("")
+      .trim();
 
     // Strip markdown code fences if present
     const json  = raw.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();

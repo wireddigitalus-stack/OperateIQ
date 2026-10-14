@@ -151,7 +151,13 @@ User context note: ${userPromptHint || "None provided"}`;
     }
 
     const geminiData = await geminiRes.json();
-    const rawOutput = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
+    const parts: { text?: string; thought?: boolean }[] = geminiData.candidates?.[0]?.content?.parts || [];
+    const rawOutput =
+      parts
+        ?.filter((p: { thought?: boolean }) => !p.thought)
+        .map((p: { text?: string }) => p.text || "")
+        .join("")
+        .trim() || "{}";
 
     let parsedResult;
     try {

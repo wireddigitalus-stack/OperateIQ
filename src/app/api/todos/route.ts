@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   const { orgId } = g.ctx;
 
   const body = (await req.json()) as Record<string, unknown>;
-  const id = `todo_${Date.now()}`;
+  const id = `todo_${crypto.randomUUID()}`;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/todos`, {
     method: "POST",
     headers: { ...HEADERS, Prefer: "return=representation" },
@@ -67,6 +67,24 @@ export async function PATCH(req: NextRequest) {
   const body = (await req.json()) as Record<string, unknown>;
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
+  const existingRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/todos?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}&select=id,is_private,created_by`,
+    { headers: HEADERS, cache: "no-store" }
+  );
+  const existingRows = existingRes.ok ? await existingRes.json() : [];
+  const row = Array.isArray(existingRows) ? existingRows[0] : null;
+  if (row?.is_private === true) {
+    const callerEmail = g.ctx.user?.email?.toLowerCase();
+    const callerName = g.ctx.user?.name?.toLowerCase();
+    const createdBy = String(row.created_by || "").toLowerCase();
+    const isOwner =
+      (Boolean(callerEmail) && createdBy === callerEmail) ||
+      (Boolean(callerName) && createdBy === callerName);
+    if (!isOwner) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
     method: "PATCH",
     headers: { ...HEADERS, Prefer: "return=representation" },
@@ -83,6 +101,24 @@ export async function DELETE(req: NextRequest) {
 
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  const existingRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/todos?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}&select=id,is_private,created_by`,
+    { headers: HEADERS, cache: "no-store" }
+  );
+  const existingRows = existingRes.ok ? await existingRes.json() : [];
+  const row = Array.isArray(existingRows) ? existingRows[0] : null;
+  if (row?.is_private === true) {
+    const callerEmail = g.ctx.user?.email?.toLowerCase();
+    const callerName = g.ctx.user?.name?.toLowerCase();
+    const createdBy = String(row.created_by || "").toLowerCase();
+    const isOwner =
+      (Boolean(callerEmail) && createdBy === callerEmail) ||
+      (Boolean(callerName) && createdBy === callerName);
+    if (!isOwner) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`, {
     method: "DELETE",

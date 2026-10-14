@@ -24,7 +24,13 @@ function verifyStripeSignature(payload: string, sigHeader: string, secret: strin
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+    const webhookSecret = (process.env.STRIPE_WEBHOOK_SECRET || "")
+      .trim()
+      .replace(/^['"]+|['"]+$/g, "");
+
+    if (!webhookSecret && process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Stripe webhook secret is not configured." }, { status: 503 });
+    }
 
     if (webhookSecret) {
       const sig = req.headers.get("stripe-signature") || "";
@@ -46,8 +52,10 @@ export async function POST(req: NextRequest) {
           trial_ends_at: null,
         };
         if (["starter", "growth", "pro"].includes(rawTier)) updates.tier = rawTier;
-        if (typeof obj.customer === "string") updates.stripe_customer_id = obj.customer;
-        if (typeof obj.subscription === "string") updates.stripe_subscription_id = obj.subscription;
+        const customerId = typeof obj.customer === "string" ? obj.customer : obj.customer?.id || null;
+        const subscriptionId = typeof obj.subscription === "string" ? obj.subscription : obj.subscription?.id || null;
+        if (customerId) updates.stripe_customer_id = customerId;
+        if (subscriptionId) updates.stripe_subscription_id = subscriptionId;
         await supabaseAdmin.from("organizations").update(updates).eq("id", orgId);
       }
     } else if (type === "customer.subscription.updated" || type === "customer.subscription.deleted") {
@@ -57,9 +65,12 @@ export async function POST(req: NextRequest) {
       const rawTier = String(obj.metadata?.tier || "").toLowerCase();
 
       const mappedStatus =
-        type === "customer.subscription.deleted" || stripeStatus === "canceled" || stripeStatus === "unpaid"
+        type === "customer.subscription.deleted" ||
+        stripeStatus === "canceled" ||
+        stripeStatus === "unpaid" ||
+        stripeStatus === "incomplete_expired"
           ? "canceled"
-          : stripeStatus === "past_due"
+          : stripeStatus === "past_due" || stripeStatus === "incomplete"
           ? "past_due"
           : stripeStatus === "paused"
           ? "paused"
