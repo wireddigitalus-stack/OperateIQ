@@ -3,7 +3,7 @@ import { requireOrgAdmin } from "@/lib/server-auth";
 import { BRAND } from "@/lib/brand";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "OperateIQ <notifications@operateiq.com>";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || "OperateIQ <notifications@getoperateiq.com>";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const origin =
       req.headers.get("origin") ||
       process.env.NEXT_PUBLIC_SITE_URL ||
-      "https://getoperateiq.com";
+      "https://www.getoperateiq.com";
     const loginUrl = `${origin}/admin/login?email=${encodeURIComponent(cleanEmail)}`;
 
     if (!RESEND_API_KEY) {
