@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [status, setStatus] = useState("Signing you in…");
+  const [pkceError, setPkceError] = useState(false);
   const redirected = useRef(false);
 
   useEffect(() => {
@@ -30,6 +31,8 @@ export default function AuthCallbackPage() {
       router.replace(getNextPath());
     }
 
+    let interval: ReturnType<typeof setInterval>;
+
     // Check for PKCE ?code= query parameter
     if (typeof window !== "undefined" && window.location.search) {
       const searchParams = new URLSearchParams(window.location.search);
@@ -44,13 +47,33 @@ export default function AuthCallbackPage() {
       if (code) {
         supabaseBrowser.auth
           .exchangeCodeForSession(code)
-          .then(({ data, error }) => {
+          .then(async ({ data, error }) => {
             if (!error && data.session) {
               goToAdmin();
+            } else if (error) {
+              const { data: sessionData } = await supabaseBrowser.auth.getSession();
+              if (sessionData.session) {
+                goToAdmin();
+              } else {
+                clearInterval(interval);
+                setPkceError(true);
+                setStatus(
+                  "This sign-in link was opened in a different browser or email app than where it was requested. Please open the link in your main browser, or sign in with your password or Google."
+                );
+              }
             }
           })
-          .catch(() => {
-            // Let fallback listener / poll handle it
+          .catch(async () => {
+            const { data: sessionData } = await supabaseBrowser.auth.getSession();
+            if (sessionData.session) {
+              goToAdmin();
+            } else {
+              clearInterval(interval);
+              setPkceError(true);
+              setStatus(
+                "This sign-in link was opened in a different browser or email app than where it was requested. Please open the link in your main browser, or sign in with your password or Google."
+              );
+            }
           });
       }
     }
@@ -96,7 +119,7 @@ export default function AuthCallbackPage() {
 
     // Backup: poll every 500ms for up to 8 seconds
     let attempts = 0;
-    const interval = setInterval(async () => {
+    interval = setInterval(async () => {
       attempts++;
       const { data } = await supabaseBrowser.auth.getSession();
       if (data.session) {
@@ -116,13 +139,24 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-[#080C14] flex items-center justify-center">
-      <div className="text-center">
+    <div className="min-h-screen bg-[#080C14] flex items-center justify-center px-5">
+      <div className="text-center max-w-md">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-[0_0_32px_rgba(59,130,246,0.35)]">
-          <Loader2 size={24} className="text-white animate-spin" />
+          <Loader2 size={24} className={`text-white ${pkceError ? "" : "animate-spin"}`} />
         </div>
-        <h2 className="text-base font-bold text-white mb-1">OperateIQ</h2>
-        <p className="text-xs text-gray-400">{status}</p>
+        <h2 className="text-base font-bold text-white mb-2">OperateIQ</h2>
+        <p className="text-xs text-gray-300 leading-relaxed">{status}</p>
+        {pkceError && (
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={() => router.replace("/admin/login")}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-md hover:opacity-95 transition-all cursor-pointer"
+            >
+              Go to Sign In
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

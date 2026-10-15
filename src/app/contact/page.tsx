@@ -148,7 +148,7 @@ export default function ContactPage() {
               ref={formRef}
               id="contact-form"
               onSubmit={handleSubmit}
-              className="glass rounded-2xl p-8 border border-[rgba(99,102,241,0.1)] space-y-5"
+              className="glass rounded-2xl p-5 sm:p-8 border border-[rgba(99,102,241,0.1)] space-y-5"
               aria-label="Contact OperateIQ"
             >
               {/* ── Honeypot — hidden from humans, invisible via CSS ─────── */}

@@ -237,7 +237,7 @@ export default function PropertyToDataHero() {
                     </span>
 
                     {/* Pop-Out Micro Telemetry Card */}
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 whitespace-nowrap px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/15 shadow-xl text-left pointer-events-none transition-transform duration-300">
+                    <div className={`absolute ${h.x > 60 ? "right-6" : "left-6"} top-1/2 -translate-y-1/2 whitespace-nowrap px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-white/15 shadow-xl text-left pointer-events-none transition-transform duration-300`}>
                       <p className="text-[10px] font-bold text-white leading-tight">{h.label}</p>
                       <p className="text-[9px] text-slate-300 font-mono">{h.sub}</p>
                     </div>

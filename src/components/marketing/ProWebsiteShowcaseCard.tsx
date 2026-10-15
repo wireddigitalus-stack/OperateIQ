@@ -128,9 +128,9 @@ export default function ProWebsiteShowcaseCard() {
                 </div>
 
                 {/* Simulated URL bar */}
-                <div className="px-3 py-1 rounded-md bg-black/50 border border-white/10 text-[10px] font-mono text-slate-300 flex items-center gap-1.5 w-48 justify-center">
+                <div className="px-3 py-1 rounded-md bg-black/50 border border-white/10 text-[10px] font-mono text-slate-300 flex items-center gap-1.5 flex-1 max-w-[12rem] min-w-0 mx-2 truncate justify-center">
                   <span className="text-emerald-400">🔒</span>
-                  <span className="text-slate-200">acme-regional.demo</span>
+                  <span className="text-slate-200 truncate">acme-regional.demo</span>
                 </div>
 
                 <div className="text-[10px] font-bold text-sky-400 flex items-center gap-1">
@@ -179,7 +179,7 @@ export default function ProWebsiteShowcaseCard() {
                 </div>
 
                 {/* Hover Invitation Overlay */}
-                <div className="absolute inset-0 bg-sky-950/20 opacity-0 group-hover/mockup:opacity-100 transition-opacity backdrop-blur-[1px] flex items-center justify-center">
+                <div className="absolute inset-0 bg-sky-950/20 opacity-100 sm:opacity-0 sm:group-hover/mockup:opacity-100 transition-opacity backdrop-blur-[1px] flex items-center justify-center">
                   <span className="px-3.5 py-1.5 rounded-xl bg-black/85 border border-sky-400/50 text-sky-300 text-xs font-bold shadow-xl flex items-center gap-1.5">
                     <span>Open Demo Website</span>
                     <ExternalLink size={12} />

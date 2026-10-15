@@ -683,7 +683,7 @@ function WeekGrid({ assignments, weekStart, workerIndex, onDelete }:
                         </span>
                         <button
                           onClick={() => onDelete(a.id, `${a.property} — ${a.area}`)}
-                          className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 flex-shrink-0 transition-all">
+                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-gray-600 hover:text-red-400 flex-shrink-0 transition-all">
                           <X size={9} />
                         </button>
                       </div>
@@ -773,7 +773,7 @@ function TodayView({ assignments, today, workerIndex, onDelete }:
                       : "bg-[rgba(255,255,255,0.05)] text-gray-500"
                     }`}>{a.status.replace("_", " ")}</span>
                     <button onClick={() => onDelete(a.id, `${a.property} — ${a.area}`)}
-                      className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 flex-shrink-0 transition-all">
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-gray-600 hover:text-red-400 flex-shrink-0 transition-all">
                       <Trash2 size={13} />
                     </button>
                   </div>

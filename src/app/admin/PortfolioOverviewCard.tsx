@@ -104,6 +104,7 @@ function BarChart({ data }: { data: BarDatum[] }) {
               className="flex-1 flex flex-col items-center justify-end gap-0.5 group relative cursor-pointer"
               onMouseEnter={() => setHoveredIdx(i)}
               onMouseLeave={() => setHoveredIdx(null)}
+              onClick={() => setHoveredIdx(prev => (prev === i ? null : i))}
             >
               {/* Hover tooltip */}
               {isHovered && (
@@ -322,7 +323,7 @@ export default function PortfolioOverviewCard({ properties: propProperties, tena
     <div className="glass rounded-2xl border border-[rgba(255,255,255,0.08)] overflow-hidden">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[rgba(255,255,255,0.06)]">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[rgba(255,255,255,0.06)]">
         <div>
           <h2 className="text-base font-black text-white flex items-center gap-2">
             <BarChart3 size={17} className="text-[#A78BFA]" /> Executive Overview
@@ -351,41 +352,56 @@ export default function PortfolioOverviewCard({ properties: propProperties, tena
       </div>
 
       {/* Chart */}
-      <div className="px-6 pt-5 pb-4 border-t border-[rgba(255,255,255,0.04)]">
+      <div className="px-4 sm:px-6 pt-5 pb-4 border-t border-[rgba(255,255,255,0.04)]">
         <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Revenue vs Expenses by Property</p>
         <BarChart data={chartData} />
       </div>
 
       {/* Property Health Strip */}
-      <div className="border-t border-[rgba(255,255,255,0.04)] px-6 py-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Property Health</p>
-        <div className="space-y-2.5">
+      <div className="border-t border-[rgba(255,255,255,0.04)] py-4">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 px-4 sm:px-6">Property Health</p>
+        <div className="divide-y divide-[rgba(255,255,255,0.03)] sm:divide-y-0 sm:space-y-1">
           {propData.map(({ property, occupancy, revenue, profit, trend, alerts, expenses, missedRevenue: propMissed, expiringTenants }) => {
             const trendCfg = TREND_MAP[trend];
             const TrendIcon = trendCfg.icon;
             const occColor = occupancy >= 80 ? "#4ADE80" : occupancy >= 40 ? "#FACC15" : "#EF4444";
 
             return (
-              <div key={property.id} className="flex items-center gap-3">
-                {/* Name + trend */}
-                <div className="w-44 flex-shrink-0 flex items-center gap-1.5 min-w-0">
-                  <TrendIcon size={12} style={{ color: trendCfg.color, flexShrink: 0 }} />
-                  <span className="text-sm font-semibold text-white truncate">{property.name}</span>
+              <div key={property.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-1.5">
+                {/* Top line on mobile / Left columns on desktop */}
+                <div className="flex items-center justify-between sm:w-44 sm:flex-shrink-0 gap-2 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <TrendIcon size={12} style={{ color: trendCfg.color, flexShrink: 0 }} />
+                    <span className="text-sm font-semibold text-white truncate">{property.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 sm:hidden flex-shrink-0">
+                    <span className="text-xs font-bold" style={{ color: occColor }}>
+                      {occupancy}%
+                    </span>
+                    <span className="text-xs font-bold" style={{ color: (revenue === 0 && expenses === 0) ? "#94A3B8" : profit >= 0 ? "#4ADE80" : "#EF4444" }}>
+                      {(revenue === 0 && expenses === 0) ? "No data" : `${profit >= 0 ? "+" : ""}${fmtK(profit)}/mo`}
+                    </span>
+                    {alerts > 0 && (
+                      <span className="flex items-center gap-1 text-xs font-bold text-yellow-400">
+                        <AlertTriangle size={11} />{alerts}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Occupancy bar */}
-                <div className="flex-1 h-2 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
+                <div className="w-full sm:flex-1 h-2 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-700"
                     style={{ width: `${occupancy}%`, background: occColor }} />
                 </div>
 
-                {/* Occ % */}
-                <span className="w-10 text-right text-xs font-bold flex-shrink-0" style={{ color: occColor }}>
+                {/* Occ % (desktop) */}
+                <span className="hidden sm:block w-10 text-right text-xs font-bold flex-shrink-0" style={{ color: occColor }}>
                   {occupancy}%
                 </span>
 
-                {/* P&L chip */}
-                <div className="w-28 text-right flex-shrink-0">
+                {/* P&L chip (desktop) */}
+                <div className="hidden sm:block w-28 text-right flex-shrink-0">
                   <p className="text-xs font-bold leading-none"
                     style={{ color: (revenue === 0 && expenses === 0) ? "#94A3B8" : profit >= 0 ? "#4ADE80" : "#EF4444" }}>
                     {(revenue === 0 && expenses === 0) ? "No data" : `${profit >= 0 ? "+" : ""}${fmtK(profit)}/mo`}
@@ -397,14 +413,21 @@ export default function PortfolioOverviewCard({ properties: propProperties, tena
                   )}
                 </div>
 
-                {/* Alert badge */}
+                {/* Mobile missed revenue */}
+                {propMissed > 0 && (
+                  <p className="sm:hidden text-[11px] font-semibold text-red-400">
+                    -${propMissed.toLocaleString()} vacant
+                  </p>
+                )}
+
+                {/* Alert badge (desktop) */}
                 {alerts > 0 ? (
-                  <span className="flex-shrink-0 flex items-center gap-1 text-xs font-bold text-yellow-400 cursor-help"
+                  <span className="hidden sm:flex flex-shrink-0 items-center gap-1 text-xs font-bold text-yellow-400 cursor-help"
                     title={`Expiring Lease(s):\n${expiringTenants.map(t => `• ${t.name} (ends ${t.leaseEnd || t.renewalDate || "TBD"})`).join("\n")}`}>
                     <AlertTriangle size={11} />{alerts}
                   </span>
                 ) : (
-                  <span className="w-5 flex-shrink-0" />
+                  <span className="hidden sm:block w-5 flex-shrink-0" />
                 )}
               </div>
             );

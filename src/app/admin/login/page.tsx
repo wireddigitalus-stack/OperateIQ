@@ -9,9 +9,10 @@ import { Loader2, Shield, Mail, KeyRound, ArrowRight, CheckCircle2, Zap } from "
 function AdminLoginForm() {
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email") || "";
+  const modeParam = searchParams.get("mode");
 
   const [authMode, setAuthMode] = useState<"google" | "email" | "password">(
-    emailParam ? "email" : "google"
+    modeParam === "password" ? "password" : modeParam === "email" ? "email" : emailParam ? "password" : "google"
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -23,9 +24,15 @@ function AdminLoginForm() {
   useEffect(() => {
     if (emailParam) {
       setEmail(emailParam);
-      setAuthMode("email");
     }
-  }, [emailParam]);
+    if (modeParam === "password") {
+      setAuthMode("password");
+    } else if (modeParam === "email") {
+      setAuthMode("email");
+    } else if (emailParam) {
+      setAuthMode("password");
+    }
+  }, [emailParam, modeParam]);
 
   // Already signed in? Skip the login screen.
   useEffect(() => {

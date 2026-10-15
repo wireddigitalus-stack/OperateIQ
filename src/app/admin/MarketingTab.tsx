@@ -267,7 +267,7 @@ export default function MarketingTab({ onSubTabChange }: { onSubTabChange?: (sub
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                  <p className="text-sm font-black text-white whitespace-nowrap">{label}</p>
+                  <p className="text-sm font-black text-white truncate">{label}</p>
                   <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full bg-gradient-to-r ${grad} text-white opacity-80 whitespace-nowrap`}>{tag}</span>
                 </div>
                 <p className="text-[11px] text-gray-500 leading-relaxed">{desc}</p>
@@ -449,7 +449,7 @@ export default function MarketingTab({ onSubTabChange }: { onSubTabChange?: (sub
               <div key={pr.id} className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] overflow-hidden">
                 {/* Card header */}
                 <div
-                  className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+                  className="flex items-center flex-wrap gap-3 px-5 py-4 cursor-pointer hover:bg-[rgba(255,255,255,0.02)] transition-colors"
                   onClick={() => setExpandedId(expandedId === pr.id ? null : pr.id)}
                 >
                   <div className="flex-1 min-w-0">

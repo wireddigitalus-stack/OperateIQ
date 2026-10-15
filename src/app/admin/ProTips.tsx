@@ -689,6 +689,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [pulse, setPulse] = useState(false);
+  const [mobileShowArticle, setMobileShowArticle] = useState(false);
   const prevTab = useRef<TabKey>(activeTab);
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -705,6 +706,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
       prevTab.current = activeTab;
       setSelectedCategory(activeTab);
       setSelectedIdx(0);
+      setMobileShowArticle(false);
       setPulse(true);
       const t = setTimeout(() => setPulse(false), 1800);
       return () => clearTimeout(t);
@@ -716,6 +718,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
     setSelectedCategory(activeTab);
     setSelectedIdx(0);
     setSearchQuery("");
+    setMobileShowArticle(false);
     setOpen(true);
   };
 
@@ -725,6 +728,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
       setSelectedCategory(activeTab);
       setSelectedIdx(0);
       setSearchQuery("");
+      setMobileShowArticle(false);
       setOpen(true);
     };
     window.addEventListener("open-help-center", onOpenEvent);
@@ -881,8 +885,8 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
       <button
         onClick={handleOpen}
         aria-label="Open Help & Guide Center"
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl
-          bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white font-bold text-sm
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center gap-2 sm:gap-2.5 px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl
+          bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white font-bold text-xs sm:text-sm
           border border-sky-300/30
           shadow-[0_10px_30px_rgba(37,99,235,0.45),0_0_20px_rgba(56,189,248,0.35)]
           hover:shadow-[0_12px_36px_rgba(37,99,235,0.65),0_0_28px_rgba(56,189,248,0.55)]
@@ -890,7 +894,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
           ${pulse ? "ring-4 ring-sky-400/40" : ""}`}
         title="Open Help & Guide Center"
       >
-        <HelpCircle size={20} className="text-white flex-shrink-0" />
+        <HelpCircle size={18} className="text-white flex-shrink-0 sm:w-5 sm:h-5" />
         <span className="tracking-tight">Help &amp; Guide</span>
         {pulse && (
           <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping" />
@@ -899,7 +903,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
 
       {/* ── Centered Large Modal Popup ── */}
       {open && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 md:p-8">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-6 md:p-8">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/75 backdrop-blur-md animate-in fade-in duration-200" />
 
@@ -909,36 +913,36 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
             role="dialog"
             aria-modal="true"
             aria-label="OperateIQ Help and Guide Center"
-            className="relative w-full max-w-5xl max-h-[90vh] flex flex-col bg-[#0B1120] border border-white/15 rounded-3xl
+            className="relative w-full max-w-5xl h-[90dvh] md:h-auto max-h-[90dvh] flex flex-col bg-[#0B1120] border border-white/15 rounded-3xl
               shadow-[0_25px_90px_rgba(0,0,0,0.85),0_0_60px_rgba(56,189,248,0.16)] overflow-hidden
               animate-in zoom-in-95 fade-in duration-200"
           >
             {/* ── Top Header Bar ── */}
-            <div className="px-6 sm:px-8 pt-6 pb-5 border-b border-white/10 bg-gradient-to-r from-sky-500/[0.08] via-indigo-500/[0.05] to-transparent flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 flex-shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_24px_rgba(56,189,248,0.4)] flex-shrink-0">
-                  <BookOpen size={24} />
+            <div className="px-4 sm:px-8 pt-4 sm:pt-6 pb-3.5 sm:pb-5 border-b border-white/10 bg-gradient-to-r from-sky-500/[0.08] via-indigo-500/[0.05] to-transparent flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 flex-shrink-0">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_24px_rgba(56,189,248,0.4)] flex-shrink-0">
+                  <BookOpen size={20} className="sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight">
                       Help &amp; Guide Center
                     </h2>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-500/15 border border-sky-400/30 text-sky-300">
+                    <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-sky-500/15 border border-sky-400/30 text-sky-300">
                       {TAB_LABELS[selectedCategory] || "Platform Guide"}
                     </span>
                   </div>
-                  <p className="text-sm sm:text-base text-slate-300 mt-1">
+                  <p className="text-xs sm:text-base text-slate-300 mt-0.5 sm:mt-1 hidden sm:block">
                     Step-by-step guides and best practices for your workspace
                   </p>
                 </div>
               </div>
 
               {/* Search + Close */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <div className="relative flex-1 sm:w-72">
                   <Search
-                    size={18}
+                    size={16}
                     className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
                   />
                   <input
@@ -947,15 +951,17 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
                       setSelectedIdx(0);
+                      setMobileShowArticle(false);
                     }}
                     placeholder="Search all help topics..."
-                    className="w-full pl-10 pr-8 py-2.5 rounded-xl bg-white/[0.06] border border-white/15 text-sm sm:text-base text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:bg-white/[0.09] transition-all"
+                    className="w-full pl-9 pr-8 py-2 sm:py-2.5 rounded-xl bg-white/[0.06] border border-white/15 text-sm sm:text-base text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:bg-white/[0.09] transition-all"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => {
                         setSearchQuery("");
                         setSelectedIdx(0);
+                        setMobileShowArticle(false);
                       }}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                       title="Clear search"
@@ -968,17 +974,17 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                 <button
                   onClick={() => setOpen(false)}
                   aria-label="Close Help Center"
-                  className="w-10 h-10 rounded-xl bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
             </div>
 
-            {/* ── Stacked Category Navigation Grid (All Categories Visible at Once, Zero Side-Scrolling) ── */}
+            {/* ── Compact Single-Row Horizontal Scroll on Mobile, 6-Col Grid on Desktop ── */}
             {!searchQuery && (
-              <div className="px-6 sm:px-8 py-3.5 border-b border-white/10 bg-[#080D1A] flex-shrink-0">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+              <div className="px-4 sm:px-8 py-2.5 sm:py-3.5 border-b border-white/10 bg-[#080D1A] flex-shrink-0">
+                <div className="flex md:grid md:grid-cols-6 gap-1.5 sm:gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                   {SECTION_CATEGORIES.map((cat) => {
                     const Icon = cat.icon;
                     const isActive =
@@ -991,18 +997,19 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                         onClick={() => {
                           setSelectedCategory(cat.key);
                           setSelectedIdx(0);
+                          setMobileShowArticle(false);
                         }}
-                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-left ${
+                        className={`flex items-center gap-2 px-3 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-left shrink-0 md:shrink ${
                           isActive
                             ? "bg-gradient-to-r from-sky-500/25 to-indigo-500/20 border border-sky-400/60 text-white shadow-[0_0_16px_rgba(56,189,248,0.22)]"
                             : "bg-white/[0.03] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.07] hover:border-white/20"
                         }`}
                       >
                         <Icon
-                          size={16}
+                          size={15}
                           className={`flex-shrink-0 ${isActive ? "text-sky-400" : "text-slate-400"}`}
                         />
-                        <span className="truncate">{cat.label}</span>
+                        <span className="whitespace-nowrap md:truncate">{cat.label}</span>
                       </button>
                     );
                   })}
@@ -1013,7 +1020,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
             {/* ── Main Split Body: Left Topic List + Right Guide Content ── */}
             <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
               {/* Left Sidebar: Topic List with Modern Scroll UI Graphic */}
-              <div className="relative w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-white/10 bg-[#090E1C] flex flex-col max-h-60 md:max-h-none flex-shrink-0">
+              <div className={`${mobileShowArticle ? "hidden md:flex" : "flex"} relative w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-white/10 bg-[#090E1C] flex-col flex-1 md:flex-initial md:flex-shrink-0 min-h-0`}>
                 {/* Sidebar Header with Scroll Progress Graphic */}
                 <div className="px-5 pt-3.5 pb-2.5 border-b border-white/[0.06] flex items-center justify-between gap-2 flex-shrink-0">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400 truncate">
@@ -1055,7 +1062,10 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                         <button
                           key={`${tip.title}-${i}`}
                           data-tip-idx={i}
-                          onClick={() => setSelectedIdx(i)}
+                          onClick={() => {
+                            setSelectedIdx(i);
+                            setMobileShowArticle(true);
+                          }}
                           className={`w-full text-left p-3.5 rounded-2xl flex items-start gap-3.5 transition-all cursor-pointer border ${
                             isSelected
                               ? "bg-gradient-to-r from-sky-500/20 to-indigo-500/10 border-sky-400/50 shadow-[0_0_20px_rgba(56,189,248,0.12)]"
@@ -1116,9 +1126,19 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
               </div>
 
               {/* Right Content Pane */}
-              <div className="flex-1 flex flex-col justify-between p-6 sm:p-8 md:p-10 overflow-y-auto help-scroll bg-[#0B1120]">
+              <div className={`${mobileShowArticle ? "flex" : "hidden md:flex"} flex-1 flex-col justify-between p-4 sm:p-8 md:p-10 overflow-y-auto help-scroll bg-[#0B1120]`}>
                 {current ? (
                   <div key={`${current.title}-${safeIdx}`} className="animate-in fade-in duration-200">
+                    {/* Sticky Back to Topics button on mobile */}
+                    <div className="md:hidden sticky top-0 z-10 -mx-4 px-4 py-2.5 mb-4 bg-[#0B1120]/95 backdrop-blur-md border-b border-white/10">
+                      <button
+                        onClick={() => setMobileShowArticle(false)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 border border-sky-400/35 text-xs font-bold text-sky-300 hover:text-white transition-colors"
+                      >
+                        <ChevronLeft size={14} />
+                        ← Back to Topics
+                      </button>
+                    </div>
                     {/* Interactive Segmented Topic Stepper Graphic */}
                     {displayedTips.length > 1 && (
                       <div className="mb-6">

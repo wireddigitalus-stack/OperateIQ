@@ -133,7 +133,7 @@ export async function PATCH(req: NextRequest) {
     estimatedCost: "estimated_cost", actualCost: "actual_cost",
     estimatedHours: "estimated_hours", scheduledDate: "scheduled_date",
     completedDate: "completed_date", notes: "notes",
-    photoUrl: "photo_url", completionNotes: "completion_notes", actualMinutes: "actual_minutes",
+    photoUrl: "photo_url", photo_url: "photo_url", completionNotes: "completion_notes", actualMinutes: "actual_minutes",
     partsNeeded: "parts_needed",
     firstResponseAt: "first_response_at",
     completedAt: "completed_at",

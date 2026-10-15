@@ -299,7 +299,7 @@ ALTER TABLE properties ENABLE ROW LEVEL SECURITY;`}</pre>
                 <div key={i} className={`relative group rounded-xl overflow-hidden border-2 transition-all ${form.hero_image === url ? "border-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.3)]" : "border-transparent"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={url} alt="" className="w-full h-20 object-cover" />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                  <div className="absolute inset-0 bg-black/50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                     <button onClick={() => set("hero_image", url)} title="Set as hero" className="text-sky-400 hover:scale-110 transition-transform">
                       <CheckCircle2 size={14} />
                     </button>

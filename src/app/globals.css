@@ -468,66 +468,71 @@ textarea {
 /* Hidden on screen, visible when printing */
 .print-only { display: none; }
 
-/* ─── Admin Dashboard — Desktop Contrast Lift ──────────────────────────────
-   Only fires on sm (640px+) so mobile is unchanged.
+/* ─── Admin Dashboard — Contrast Lift & Dark Select Styling ─────────────────
+   Applies across both mobile and desktop viewports for WCAG AA contrast.
    Targets Tailwind utility classes used throughout the admin tabs.
    Public site is completely unaffected — this selector is admin-dash scoped.
 ──────────────────────────────────────────────────────────────────────────── */
-@media (min-width: 640px) {
-  /* Supporting / caption text: gray-600 → readable mid-gray */
-  .admin-dash .text-gray-600 {
-    color: #9ca3af !important; /* Tailwind gray-400 */
-  }
+/* Supporting / caption text: gray-600 → readable mid-gray */
+.admin-dash .text-gray-600 {
+  color: #9ca3af !important; /* Tailwind gray-400 */
+}
 
-  /* Secondary labels: gray-500 → slightly lighter */
-  .admin-dash .text-gray-500 {
-    color: #d1d5db !important; /* Tailwind gray-300 */
-  }
+/* Secondary labels: gray-500 → slightly lighter */
+.admin-dash .text-gray-500 {
+  color: #d1d5db !important; /* Tailwind gray-300 */
+}
 
-  /* Body / muted text: gray-400 → near-white */
-  .admin-dash .text-gray-400 {
-    color: #e5e7eb !important; /* Tailwind gray-200 */
-  }
+/* Body / muted text: gray-400 → near-white */
+.admin-dash .text-gray-400 {
+  color: #e5e7eb !important; /* Tailwind gray-200 */
+}
 
-  /* Inputs + textareas — lift placeholder and value contrast */
-  .admin-dash input::placeholder,
-  .admin-dash textarea::placeholder {
-    color: #6b7280 !important; /* gray-500 — readable but clearly a placeholder */
-  }
+/* Inputs + textareas — lift placeholder and value contrast */
+.admin-dash input::placeholder,
+.admin-dash textarea::placeholder {
+  color: #6b7280 !important; /* gray-500 — readable but clearly a placeholder */
+}
 
-  /* Table cells and small stat labels */
-  .admin-dash td,
-  .admin-dash th {
-    color: inherit;
-  }
+/* Table cells and small stat labels */
+.admin-dash td,
+.admin-dash th {
+  color: inherit;
+}
 
-  /* Border lines — barely bump so cards stay sharp without extra glow */
-  .admin-dash .border-\[rgba\(255\,255\,255\,0\.06\)\] {
-    border-color: rgba(255, 255, 255, 0.10) !important;
-  }
-  .admin-dash .border-\[rgba\(255\,255\,255\,0\.05\)\] {
-    border-color: rgba(255, 255, 255, 0.09) !important;
-  }
-  .admin-dash .border-\[rgba\(255\,255\,255\,0\.04\)\] {
-    border-color: rgba(255, 255, 255, 0.08) !important;
-  }
+/* Border lines — barely bump so cards stay sharp without extra glow */
+.admin-dash .border-\[rgba\(255\,255\,255\,0\.06\)\] {
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+.admin-dash .border-\[rgba\(255\,255\,255\,0\.05\)\] {
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+.admin-dash .border-\[rgba\(255\,255\,255\,0\.04\)\] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
 
-  /* Force dark rendering on all dropdowns — fixes Edge/Windows rendering
-     white/gray backgrounds with white text on <select> elements */
-  .admin-dash select,
-  .admin-dash option {
-    color-scheme: dark;
-    background-color: #111827 !important; /* gray-900 */
-    color: #f9fafb !important;            /* gray-50  */
-  }
+/* Force dark rendering on all dropdowns — fixes Edge/Windows & mobile rendering
+   white/gray backgrounds with white text on <select> elements */
+.admin-dash select,
+.admin-dash option {
+  color-scheme: dark;
+  background-color: #111827 !important; /* gray-900 */
+  color: #f9fafb !important;            /* gray-50  */
+}
 
-  .admin-dash select:focus {
-    background-color: #1f2937 !important; /* gray-800 on focus */
-  }
+.admin-dash select:focus {
+  background-color: #1f2937 !important; /* gray-800 on focus */
+}
 
-  .admin-dash option:hover,
-  .admin-dash option:checked {
-    background-color: #1f2937 !important; /* gray-800 */
+.admin-dash option:hover,
+.admin-dash option:checked {
+  background-color: #1f2937 !important; /* gray-800 */
+}
+
+/* Prevent iOS Safari from auto-zooming when focusing inputs (< 16px) */
+@media (max-width: 639px) {
+  input, select, textarea {
+    font-size: 16px !important;
   }
 }
 

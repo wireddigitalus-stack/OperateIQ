@@ -337,7 +337,7 @@ export default function PlatformDashboardPage() {
   return (
     <div className="min-h-screen bg-[#080C14] text-slate-200">
       {/* ── Top Bar ── */}
-      <header className="h-16 border-b border-white/[0.08] bg-[#0A1020]/80 backdrop-blur-xl px-6 flex items-center justify-between sticky top-0 z-30">
+      <header className="min-h-16 py-2.5 border-b border-white/[0.08] bg-[#0A1020]/80 backdrop-blur-xl px-4 sm:px-6 flex flex-wrap items-center justify-between gap-2 sticky top-0 z-30">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2.5 group">
             <Image

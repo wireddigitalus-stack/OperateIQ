@@ -199,7 +199,7 @@ export default function AcmeHeroBanner({
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full pt-10 sm:pt-16">
         
         {/* Top Tagline / Context Pill */}
-        <div key={`tag-${slide.propertyId}`} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.08] border border-white/20 backdrop-blur-md text-xs text-sky-300 font-semibold mb-6 shadow-[0_0_20px_rgba(56,189,248,0.2)] animate-in fade-in duration-500">
+        <div key={`tag-${slide.propertyId}`} className="inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.08] border border-white/20 backdrop-blur-md text-xs text-sky-300 font-semibold mb-6 shadow-[0_0_20px_rgba(56,189,248,0.2)] animate-in fade-in duration-500">
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
@@ -221,7 +221,7 @@ export default function AcmeHeroBanner({
 
         {/* Floating Glassmorphism Availability Card */}
         <div key={`card-${slide.propertyId}`} className="mt-8 max-w-xl p-5 rounded-2xl bg-[#0B1020]/80 backdrop-blur-xl border border-white/20 shadow-[0_0_40px_rgba(56,189,248,0.18)] space-y-3 animate-in fade-in slide-in-from-bottom-1 duration-500 ease-out">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
@@ -242,7 +242,7 @@ export default function AcmeHeroBanner({
             </p>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               onClick={() => onOpenTourModal(slide.propertyId)}
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-95 shadow-[0_0_15px_rgba(59,130,246,0.35)] transition-all flex items-center gap-1.5"
@@ -266,13 +266,18 @@ export default function AcmeHeroBanner({
             <button
               key={item.propertyId}
               onClick={() => goToSlide(idx)}
-              className={`h-2 rounded-full transition-all duration-500 ${
-                idx === currentIdx
-                  ? "w-10 bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.8)]"
-                  : "w-2.5 bg-white/30 hover:bg-white/60"
-              }`}
+              className="py-2 px-1 group cursor-pointer"
               title={item.name}
-            />
+              aria-label={`View slide ${idx + 1}: ${item.name}`}
+            >
+              <span
+                className={`block h-2 rounded-full transition-all duration-500 ${
+                  idx === currentIdx
+                    ? "w-10 bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.8)]"
+                    : "w-2.5 bg-white/30 group-hover:bg-white/60"
+                }`}
+              />
+            </button>
           ))}
           <span className="text-[10px] text-gray-400 ml-2 font-mono">
             0{currentIdx + 1} / 0{activeSlides.length}
@@ -295,9 +300,9 @@ export default function AcmeHeroBanner({
                 onChange={(e) => setSelectedType(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
               >
-                <option value="all">All Asset Classes</option>
+                <option value="all" className="bg-[#0A1020] text-white">All Asset Classes</option>
                 {dynamicTypes.map((type) => (
-                  <option key={type} value={type}>
+                  <option key={type} value={type} className="bg-[#0A1020] text-white">
                     {type}
                   </option>
                 ))}
@@ -314,11 +319,11 @@ export default function AcmeHeroBanner({
                 onChange={(e) => setSelectedSqft(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
               >
-                <option value="0">Any Square Footage</option>
-                <option value="800">800+ RSF</option>
-                <option value="1500">1,500+ RSF</option>
-                <option value="3000">3,000+ RSF</option>
-                <option value="5000">5,000+ RSF</option>
+                <option value="0" className="bg-[#0A1020] text-white">Any Square Footage</option>
+                <option value="800" className="bg-[#0A1020] text-white">800+ RSF</option>
+                <option value="1500" className="bg-[#0A1020] text-white">1,500+ RSF</option>
+                <option value="3000" className="bg-[#0A1020] text-white">3,000+ RSF</option>
+                <option value="5000" className="bg-[#0A1020] text-white">5,000+ RSF</option>
               </select>
             </div>
 
@@ -328,9 +333,9 @@ export default function AcmeHeroBanner({
                 Regional Submarket
               </label>
               <select className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors">
-                <option value="all">All Regional Markets</option>
+                <option value="all" className="bg-[#0A1020] text-white">All Regional Markets</option>
                 {dynamicMarkets.map((market) => (
-                  <option key={market} value={market}>
+                  <option key={market} value={market} className="bg-[#0A1020] text-white">
                     {market}
                   </option>
                 ))}

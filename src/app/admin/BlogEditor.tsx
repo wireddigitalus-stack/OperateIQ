@@ -444,7 +444,7 @@ function ImageSourcePicker({
                           <CheckCircle2 size={20} className="text-white drop-shadow" />
                         </div>
                       )}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <p className="text-[8px] text-gray-300 leading-tight line-clamp-2">{img.label}</p>
                       </div>
                     </button>
@@ -894,7 +894,7 @@ function BlogImageUploader({ currentUrl, currentAlt, onUrlChange, onAltChange }:
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={currentUrl} alt={currentAlt || "Featured image"} className="w-full h-48 object-cover"
             onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
-          <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+          <div className="absolute inset-0 bg-black/50 opacity-100 sm:opacity-0 sm:hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
             <button type="button" onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#A78BFA] text-white text-xs font-black hover:bg-[#9333ea] transition-colors">
               <Upload size={12} /> Upload New

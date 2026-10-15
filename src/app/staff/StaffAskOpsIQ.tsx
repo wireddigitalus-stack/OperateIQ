@@ -148,7 +148,7 @@ export default function StaffAskOpsIQ({ role, context }: StaffAskOpsIQProps) {
           </div>
 
           {/* Input */}
-          <div className="flex-shrink-0 px-4 py-4 pb-8 border-t border-[rgba(255,255,255,0.07)] bg-[rgba(8,12,20,0.97)]">
+          <div className="flex-shrink-0 px-4 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-[rgba(255,255,255,0.07)] bg-[rgba(8,12,20,0.97)]">
             <div className="flex items-end gap-2">
               <textarea
                 value={input}

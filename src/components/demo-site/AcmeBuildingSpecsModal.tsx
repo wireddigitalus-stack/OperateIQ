@@ -32,18 +32,18 @@ export default function AcmeBuildingSpecsModal({
       <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl bg-[#080C14] border border-white/20 shadow-[0_0_50px_rgba(56,189,248,0.2)] overflow-hidden">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0A1020]/90">
-          <div className="flex items-center gap-3">
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-500/10 border border-sky-400/30 text-sky-300">
+        <div className="flex items-center justify-between gap-2 px-6 py-4 border-b border-white/10 bg-[#0A1020]/90">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-500/10 border border-sky-400/30 text-sky-300 shrink-0">
               {property.type}
             </span>
-            <h3 className="text-base font-bold text-white tracking-wide">
+            <h3 className="text-base font-bold text-white tracking-wide truncate">
               {property.name} — Asset Specifications
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
           >
             <X size={18} />
           </button>
@@ -60,7 +60,7 @@ export default function AcmeBuildingSpecsModal({
               className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#080C14] via-transparent to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+            <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-bold text-white bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/20">
                 {property.address}
               </span>
@@ -120,7 +120,7 @@ export default function AcmeBuildingSpecsModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-white/10 bg-[#0A1020]/95">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-white/10 bg-[#0A1020]/95">
           <button
             type="button"
             onClick={onClose}

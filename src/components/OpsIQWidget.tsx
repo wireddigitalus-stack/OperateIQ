@@ -83,7 +83,10 @@ export default function OpsIQWidget() {
   return (
     <>
       {open && (
-        <div className="fixed bottom-24 right-4 sm:right-6 z-[60] w-[calc(100vw-2rem)] sm:w-[25rem] h-[35rem] max-h-[calc(100dvh-7.5rem)] flex flex-col rounded-3xl border border-sky-400/30 bg-[#0A1022]/95 backdrop-blur-2xl shadow-[0_24px_70px_rgba(0,0,0,0.75),0_0_32px_rgba(56,189,248,0.18)] overflow-hidden">
+        <div
+          id="oiq-chat-panel"
+          className="fixed bottom-3 sm:bottom-24 right-3 sm:right-6 z-[60] w-[calc(100vw-1.5rem)] sm:w-[25rem] h-[34rem] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-7.5rem)] flex flex-col rounded-3xl border border-sky-400/30 bg-[#0A1022]/95 backdrop-blur-2xl shadow-[0_24px_70px_rgba(0,0,0,0.75),0_0_32px_rgba(56,189,248,0.18)] overflow-hidden"
+        >
           {/* Header */}
           <div className="oiq-grad-bg px-4 py-3.5 flex items-center justify-between border-b border-white/15">
             <div className="flex items-center gap-2.5">
@@ -216,6 +219,7 @@ export default function OpsIQWidget() {
       )}
 
       <button
+        id="lease-bot-toggle"
         onClick={() => setOpen(!open)}
         className="fixed bottom-6 right-4 sm:right-6 z-[60] h-14 px-4 rounded-full oiq-grad-bg text-white flex items-center gap-2.5 shadow-[0_10px_30px_-5px_rgba(99,102,241,.7)] hover:scale-105 transition-transform cursor-pointer border border-white/20"
         aria-label="Chat with OpsIQ"

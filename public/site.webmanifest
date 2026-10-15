@@ -8,7 +8,7 @@
   "theme_color": "#6366F1",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/operateiq-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

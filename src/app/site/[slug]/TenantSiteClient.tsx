@@ -367,6 +367,7 @@ export default function TenantSiteClient({
         onOpenTourModal={handleOpenTour}
         orgName={brandName}
         orgSlug={org.slug}
+        orgPhone={org.contact_phone}
         customDomain={org.custom_domain}
         tier={org.tier}
         hasTopBar={isMember}

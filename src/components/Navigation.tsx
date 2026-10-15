@@ -9,6 +9,7 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 const links = [
   { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
+  { href: "/demo-site", label: "Live Demo" },
   { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
 ];
@@ -57,14 +58,14 @@ export default function Navigation() {
             </>
           )}
         </div>
-        <button className="md:hidden text-white" onClick={() => setOpen(!open)} aria-label="Toggle menu">
+        <button className="md:hidden p-2.5 -mr-2 text-white" onClick={() => setOpen(!open)} aria-label="Toggle menu">
           {open ? <X size={24} /> : <Menu size={24} />}
         </button>
       </nav>
       {open && (
         <div className="md:hidden px-5 pb-6 flex flex-col gap-4">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="text-slate-200 font-medium">
+            <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="py-2 text-base text-slate-200 font-medium">
               {l.label}
             </Link>
           ))}
@@ -72,7 +73,7 @@ export default function Navigation() {
             <Link href="/admin" onClick={() => setOpen(false)} className="oiq-btn">Go to Dashboard</Link>
           ) : (
             <>
-              <Link href="/admin/login" onClick={() => setOpen(false)} className="text-slate-200 font-medium">Log in</Link>
+              <Link href="/admin/login" onClick={() => setOpen(false)} className="py-2 text-base text-slate-200 font-medium">Log in</Link>
               <Link href="/signup" onClick={() => setOpen(false)} className="oiq-btn">Start free trial</Link>
             </>
           )}

@@ -259,7 +259,7 @@ function AssignmentCard({ a, savedChecks, onSaveChecks, onComplete }: {
           <>
             <div className="px-4 pb-3">
               <p className="text-[11px] font-black text-gray-600 uppercase tracking-widest mb-2">Checklist</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {checklist.map(item => {
                   const isChecked = checked.has(item);
                   return (
@@ -396,15 +396,15 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#080C14] flex flex-col items-center justify-center px-6 py-12">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center mb-6">
+    <div className="min-h-screen bg-[#080C14] flex flex-col items-center justify-center px-6 py-6 sm:py-12">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center mb-4 sm:mb-6">
         <Sparkles size={28} className="text-black" />
       </div>
       <h1 className="text-3xl font-black text-white text-center mb-1">Cleaning Portal</h1>
-      <p className="text-gray-500 text-center mb-8">Enter your 6-digit PIN</p>
+      <p className="text-gray-500 text-center mb-5 sm:mb-8">Enter your 6-digit PIN</p>
 
       {/* PIN dots */}
-      <div className={`flex gap-3 mb-8 ${shake ? "animate-shake" : ""}`}
+      <div className={`flex gap-3 mb-5 sm:mb-8 ${shake ? "animate-shake" : ""}`}
         style={shake ? { animation: "shake 0.4s ease-in-out" } : {}}>
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="w-4 h-4 rounded-full transition-all duration-200"
@@ -564,7 +564,7 @@ export default function CleaningStaffPage() {
   const allDone = assignments.length > 0 && pending.length === 0;
 
   return (
-    <div className="min-h-screen bg-[#080C14] text-white">
+    <div className="min-h-screen bg-[#080C14] text-white pb-24">
 
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 px-4 py-4 flex items-center justify-between"

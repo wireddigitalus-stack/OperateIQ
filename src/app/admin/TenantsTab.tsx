@@ -1178,7 +1178,7 @@ function TenantCard({
       {/* Quick Renew Modal */}
       {showRenewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-[#0B1120] border border-white/15 rounded-2xl p-5 shadow-[0_24px_80px_rgba(0,0,0,0.8),0_0_35px_rgba(56,189,248,0.12)] relative">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-[#0B1120] border border-white/15 rounded-2xl p-5 shadow-[0_24px_80px_rgba(0,0,0,0.8),0_0_35px_rgba(56,189,248,0.12)] relative">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-[rgba(255,255,255,0.06)]">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_12px_rgba(59,130,246,0.35)] text-white">

@@ -543,39 +543,17 @@ function EditTicketModal({
             </div>
           </div>
 
-          {/* Costs & Hours */}
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Est. Cost ($)</label>
-              <input
-                type="number"
-                value={form.estimatedCost ?? ""}
-                onChange={(e) => set("estimatedCost", Number(e.target.value) || 0)}
-                placeholder="0"
-                className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#FACC15]"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Est. Hours</label>
-              <input
-                type="number"
-                step="0.5"
-                value={form.estimatedHours ?? ""}
-                onChange={(e) => set("estimatedHours", Number(e.target.value) || 0)}
-                placeholder="1"
-                className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#FACC15]"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Actual Cost ($)</label>
-              <input
-                type="number"
-                value={form.actualCost ?? ""}
-                onChange={(e) => set("actualCost", Number(e.target.value) || 0)}
-                placeholder="0"
-                className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#FACC15]"
-              />
-            </div>
+          {/* Est. Hours */}
+          <div>
+            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Est. Hours</label>
+            <input
+              type="number"
+              step="0.5"
+              value={form.estimatedHours ?? ""}
+              onChange={(e) => set("estimatedHours", Number(e.target.value) || 0)}
+              placeholder="1"
+              className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-[#FACC15]"
+            />
           </div>
 
           {/* Description */}
@@ -805,7 +783,7 @@ function ReportModal({
         </div>
 
         {/* Location */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Building</p>
             {propertyNames.length > 0 ? (
@@ -1290,15 +1268,15 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#080C14] flex flex-col items-center justify-center px-6 py-12">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FACC15] to-[#F97316] flex items-center justify-center mb-6">
+    <div className="min-h-screen bg-[#080C14] flex flex-col items-center justify-center px-6 py-6 sm:py-12">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FACC15] to-[#F97316] flex items-center justify-center mb-4 sm:mb-6">
         <Wrench size={28} className="text-black" />
       </div>
       <h1 className="text-3xl font-black text-white text-center mb-1">Maintenance Portal</h1>
-      <p className="text-gray-500 text-center mb-8">Enter your 6-digit PIN</p>
+      <p className="text-gray-500 text-center mb-5 sm:mb-8">Enter your 6-digit PIN</p>
 
       {/* PIN dots */}
-      <div className={`flex gap-3 mb-8 ${shake ? "animate-shake" : ""}`}
+      <div className={`flex gap-3 mb-5 sm:mb-8 ${shake ? "animate-shake" : ""}`}
         style={shake ? { animation: "shake 0.4s ease-in-out" } : {}}>
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="w-4 h-4 rounded-full transition-all duration-200"
@@ -1482,7 +1460,7 @@ export default function MaintenanceStaffPage() {
     const patch: Record<string, unknown> = { status, actorName: workerName };
     if (status === "complete") { patch.completedDate = new Date().toISOString().split("T")[0]; patch.partsNeeded = false; }
     if (meta?.notes && meta.notes.trim()) patch.notes = meta.notes;
-    if (meta?.photoUrl) patch.photo_url = meta.photoUrl;
+    if (meta?.photoUrl) { patch.photoUrl = meta.photoUrl; patch.photo_url = meta.photoUrl; }
     if (meta?.minutes) patch.actualMinutes = meta.minutes;
     if (meta?.partsNeeded !== undefined) patch.partsNeeded = meta.partsNeeded;
     if (meta?.assignedTo !== undefined) patch.assignedTo = meta.assignedTo;
@@ -1597,7 +1575,7 @@ export default function MaintenanceStaffPage() {
   const emergency = open.filter(t => t.priority === 1);
 
   return (
-    <div className="min-h-screen bg-[#080C14] text-white">
+    <div className="min-h-screen bg-[#080C14] text-white pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[rgba(8,12,20,0.95)] backdrop-blur-sm border-b border-[rgba(255,255,255,0.06)] px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">

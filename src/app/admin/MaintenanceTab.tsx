@@ -502,7 +502,7 @@ function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName, b
       </div>
 
       {/* Building / Unit / Priority */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="sm:col-span-2">
           <label className={LABEL}>Building / Property</label>
           {buildingList.length > 0 ? (

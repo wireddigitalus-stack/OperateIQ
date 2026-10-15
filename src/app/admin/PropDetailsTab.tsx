@@ -121,7 +121,7 @@ function AddSpaceModal({ properties, onAdd, onClose }: {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="glass rounded-2xl border border-[rgba(167,139,250,0.2)] w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="glass rounded-2xl border border-[rgba(167,139,250,0.2)] w-full max-w-md max-h-[90dvh] overflow-y-auto p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-black text-white flex items-center gap-2">
             <Plus size={14} className="text-[#A78BFA]" /> Add Unleased Space
@@ -406,24 +406,26 @@ function PrintReport({ data, onClose }: { data: PrintData[]; onClose: () => void
 
                 {/* Tenant list */}
                 {ts.length > 0 && (
-                  <table className="w-full text-xs border-t border-gray-100">
-                    <thead><tr className="bg-gray-50">
-                      <th className="text-left px-4 py-2 text-gray-500 font-semibold">Tenant</th>
-                      <th className="text-left px-4 py-2 text-gray-500 font-semibold">Unit</th>
-                      <th className="text-right px-4 py-2 text-gray-500 font-semibold">Rent/mo</th>
-                      <th className="text-right px-4 py-2 text-gray-500 font-semibold">Lease End</th>
-                    </tr></thead>
-                    <tbody>
-                      {ts.map(t => (
-                        <tr key={t.id} className="border-t border-gray-50">
-                          <td className="px-4 py-2 font-medium text-gray-800">{t.name}</td>
-                          <td className="px-4 py-2 text-gray-500">{t.unit || "—"}</td>
-                          <td className="px-4 py-2 text-right text-gray-800">{t.monthlyRent ? `$${t.monthlyRent.toLocaleString()}` : "—"}</td>
-                          <td className="px-4 py-2 text-right text-gray-500">{t.leaseEnd || t.renewalDate || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-t border-gray-100">
+                      <thead><tr className="bg-gray-50">
+                        <th className="text-left px-4 py-2 text-gray-500 font-semibold">Tenant</th>
+                        <th className="text-left px-4 py-2 text-gray-500 font-semibold">Unit</th>
+                        <th className="text-right px-4 py-2 text-gray-500 font-semibold">Rent/mo</th>
+                        <th className="text-right px-4 py-2 text-gray-500 font-semibold">Lease End</th>
+                      </tr></thead>
+                      <tbody>
+                        {ts.map(t => (
+                          <tr key={t.id} className="border-t border-gray-50">
+                            <td className="px-4 py-2 font-medium text-gray-800">{t.name}</td>
+                            <td className="px-4 py-2 text-gray-500">{t.unit || "—"}</td>
+                            <td className="px-4 py-2 text-right text-gray-800">{t.monthlyRent ? `$${t.monthlyRent.toLocaleString()}` : "—"}</td>
+                            <td className="px-4 py-2 text-right text-gray-500">{t.leaseEnd || t.renewalDate || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
                 {d?.notes && <p className="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-100 italic">{d.notes}</p>}
               </div>
@@ -773,7 +775,7 @@ function AddPropertyForm({ onAdd, onClose }: { onAdd: (p: typeof EMPTY_ADD) => P
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="glass rounded-2xl border border-[rgba(167,139,250,0.2)] w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="glass rounded-2xl border border-[rgba(167,139,250,0.2)] w-full max-w-md max-h-[90dvh] overflow-y-auto p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-black text-white flex items-center gap-2">
             <Plus size={14} className="text-[#A78BFA]" /> Add New Property
@@ -1618,7 +1620,7 @@ export default function PropDetailsTab() {
 
                               {/* Delete */}
                               <button onClick={() => { if (confirm(`Remove unleased space "${space.name}"?`)) handleDeleteSpace(space.id); }}
-                                className="w-7 h-7 rounded-lg border border-[rgba(255,255,255,0.06)] flex items-center justify-center text-gray-700 hover:text-red-400 hover:border-red-500/30 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                className="w-7 h-7 rounded-lg border border-[rgba(255,255,255,0.06)] flex items-center justify-center text-gray-700 hover:text-red-400 hover:border-red-500/30 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex-shrink-0"
                                 title="Remove space">
                                 <Trash2 size={11} />
                               </button>
@@ -1732,7 +1734,7 @@ function ParkingLotCard({ lot, properties, onDelete }: { lot: any, properties: a
           {confirmDelete ? (
             <button onClick={() => onDelete(lot.id)} className="text-[10px] font-black text-red-400 bg-red-400/10 px-2 py-1 rounded-lg">Confirm?</button>
           ) : (
-            <button onClick={() => setConfirmDelete(true)} className="p-2 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} /></button>
+            <button onClick={() => setConfirmDelete(true)} className="p-2 text-gray-700 hover:text-red-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"><Trash2 size={14} /></button>
           )}
         </div>
       </div>
@@ -1783,7 +1785,7 @@ function ParkingLotModal({ properties, onAdd, onClose }: { properties: any[], on
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-[#04060A]/80 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-lg glass rounded-3xl border border-[rgba(255,255,255,0.1)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-lg max-h-[90dvh] overflow-y-auto glass rounded-3xl border border-[rgba(255,255,255,0.1)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="px-6 py-5 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between bg-gradient-to-r from-[rgba(96,165,250,0.05)] to-transparent">
           <div>
             <h3 className="text-base font-black text-white uppercase tracking-widest">Add Parking Lot</h3>

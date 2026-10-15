@@ -151,15 +151,18 @@ function SVGAreaChart({ data, series }: { data: Snapshot[]; series: Series[] }) 
         )}
 
         {/* X-axis labels — rendered as proper upright SVG text */}
-        {data.map((d, i) => (
-          <text key={i}
-            x={px(i)} y={H - 6}
-            textAnchor="middle"
-            fontSize="12" fill="#E2E8F0" fontFamily="system-ui,sans-serif" fontWeight="700"
-          >
-            {fmtDate(d.snapshot_date)}
-          </text>
-        ))}
+        {data.map((d, i) => {
+          if (data.length > 6 && i % 2 !== 0 && i !== data.length - 1) return null;
+          return (
+            <text key={i}
+              x={px(i)} y={H - 6}
+              textAnchor="middle"
+              fontSize="12" fill="#E2E8F0" fontFamily="system-ui,sans-serif" fontWeight="700"
+            >
+              {fmtDate(d.snapshot_date)}
+            </text>
+          );
+        })}
 
         {/* Invisible hit zones */}
         {data.map((_, i) => {
@@ -170,6 +173,7 @@ function SVGAreaChart({ data, series }: { data: Snapshot[]; series: Series[] }) 
               x={left} y={padT} width={right - left} height={chartH}
               fill="transparent"
               onMouseEnter={() => setHovered(i)}
+              onClick={() => setHovered(i)}
             />
           );
         })}
@@ -276,13 +280,15 @@ export default function PortfolioHistoryChart() {
   ];
 
   return (
-    <div style={{
-      background: "rgba(15,23,42,0.6)",
-      border: "1px solid rgba(148,163,184,0.12)",
-      borderRadius: 20,
-      padding: "28px 32px",
-      backdropFilter: "blur(20px)",
-    }}>
+    <div
+      className="p-4 sm:p-7"
+      style={{
+        background: "rgba(15,23,42,0.6)",
+        border: "1px solid rgba(148,163,184,0.12)",
+        borderRadius: 20,
+        backdropFilter: "blur(20px)",
+      }}
+    >
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -342,7 +348,7 @@ export default function PortfolioHistoryChart() {
 
       {/* KPI delta row */}
       {snapshots.length >= 2 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 24 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           {[
             { label: "Net Income", val: fmt(last?.net_income ?? 0),      delta: (last?.net_income ?? 0)      - (first?.net_income ?? 0),      base: first?.net_income ?? 1 },
             { label: "Total Revenue",    val: fmt(last?.total_revenue ?? 0),   delta: (last?.total_revenue ?? 0)   - (first?.total_revenue ?? 0),   base: first?.total_revenue ?? 1 },
@@ -361,7 +367,7 @@ export default function PortfolioHistoryChart() {
 
       {/* Single snapshot — show current values without delta comparison */}
       {snapshots.length === 1 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 24 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           {[
             { label: "Net Income", val: fmt(last?.net_income ?? 0),    color: (last?.net_income ?? 0) >= 0 ? "#4ADE80" : "#F87171" },
             { label: "Total Revenue",    val: fmt(last?.total_revenue ?? 0), color: "#4ADE80" },

@@ -684,7 +684,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
               </button>
             )}
             {payments.length > 0 && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={syncAllFees}
                   disabled={syncingAll || isMonthSubmitted}
@@ -971,6 +971,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                     payment={p}
                     isSubmitted={isMonthSubmitted}
                     onUpdate={updatePayment}
+                    onSync={syncFees}
                   />
                 ))}
                 {/* Mobile Totals */}
@@ -1175,27 +1176,31 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
 
 // ─── Mobile Payment Card ────────────────────────────────────────────────────
 
-function MobilePaymentCard({ payment: p, isSubmitted, onUpdate }: {
+function MobilePaymentCard({ payment: p, isSubmitted, onUpdate, onSync }: {
   payment: RentPayment;
   isSubmitted: boolean;
   onUpdate: (id: string, field: keyof RentPayment, value: unknown) => void;
+  onSync: (id: string, tenantId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [feesOpen, setFeesOpen] = useState(false);
+  const totalDue = (p.rentDue || 0) + (p.nnFee || 0) + (p.nnnFee || 0) + (p.utilityFee || 0) + (p.cleaningFee || 0) + (p.camFee || 0) + (p.lateFee || 0);
 
   return (
     <div className={`px-4 py-3 ${p.paid ? "bg-[rgba(16,185,129,0.04)]" : ""}`}>
       {/* Collapsed row */}
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between text-left">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between text-left gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.paid ? "bg-[#10B981]" : "bg-[rgba(255,255,255,0.15)]"}`} />
           <div className="min-w-0">
             <p className="text-xs font-bold text-white truncate">{p.tenantName}</p>
-            <p className="text-[10px] text-gray-500">{p.building}{p.unit ? ` / ${p.unit}` : ""}</p>
+            <p className="text-[10px] text-gray-500 truncate">{p.building}{p.unit ? ` / ${p.unit}` : ""}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="text-right">
-            <p className="text-xs font-black text-white tabular-nums">{fmtMoney(p.rentDue)}</p>
+            <p className="text-[10px] font-semibold text-gray-400 tabular-nums">Base Rent: {fmtMoney(p.rentDue)}</p>
+            <p className="text-xs font-black text-white tabular-nums">Total Due: {fmtMoney(totalDue)}</p>
             <p className={`text-[10px] font-bold ${p.paid ? "text-[#10B981]" : "text-gray-500"}`}>{p.paid ? "Paid" : "Unpaid"}</p>
           </div>
           {expanded ? <ChevronUp size={12} className="text-gray-600" /> : <ChevronDown size={12} className="text-gray-600" />}
@@ -1205,7 +1210,7 @@ function MobilePaymentCard({ payment: p, isSubmitted, onUpdate }: {
       {/* Expanded fields */}
       {expanded && (
         <div className="mt-3 space-y-2.5 pl-4 border-l-2 border-[rgba(255,255,255,0.06)]">
-          {/* Paid toggle */}
+          {/*Paid toggle */}
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Paid</span>
             <button
@@ -1218,6 +1223,59 @@ function MobilePaymentCard({ payment: p, isSubmitted, onUpdate }: {
               <CheckCircle2 size={14} />
             </button>
           </div>
+
+          {/* Collapsible Monthly Fees (NN / NNN / Util / Clean / CAM) */}
+          <div className="rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setFeesOpen(prev => !prev)}
+              className="w-full flex items-center justify-between px-3 py-2 text-left text-[11px] font-bold text-gray-300 hover:text-white transition-colors"
+            >
+              <span>Monthly Fees (NN / NNN / Util / Clean / CAM)</span>
+              {feesOpen ? <ChevronUp size={12} className="text-gray-500" /> : <ChevronDown size={12} className="text-gray-500" />}
+            </button>
+            {feesOpen && (
+              <div className="px-3 pb-3 pt-1.5 border-t border-[rgba(255,255,255,0.06)] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500">Pull current building/tenant fee rates:</span>
+                  <button
+                    type="button"
+                    onClick={() => onSync(p.id, p.tenantId)}
+                    disabled={isSubmitted}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-[#60A5FA] bg-[rgba(96,165,250,0.1)] border border-[rgba(96,165,250,0.25)] hover:bg-[rgba(96,165,250,0.2)] transition-colors disabled:opacity-40"
+                  >
+                    <RefreshCw size={10} /> Sync from Property/Tenant
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {([
+                    { field: "nnFee" as const, label: "NN Fee" },
+                    { field: "nnnFee" as const, label: "NNN Fee" },
+                    { field: "utilityFee" as const, label: "Util Fee" },
+                    { field: "cleaningFee" as const, label: "Clean Fee" },
+                    { field: "camFee" as const, label: "CAM Fee" },
+                  ]).map(({ field, label }) => (
+                    <div key={field}>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">{label}</label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-600 text-xs">$</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={p[field] || ""}
+                          onChange={e => onUpdate(p.id, field, Number(e.target.value) || 0)}
+                          disabled={isSubmitted}
+                          className={FIELD_SM + " pl-6"}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Amount Paid */}
           <div>
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Amount Paid</label>

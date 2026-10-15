@@ -635,7 +635,7 @@ function RevenueForecast({ tenants }: { tenants: Tenant[] }) {
 
 // ─── Main AnalyticsTab ────────────────────────────────────────────────────────
 
-export default function AnalyticsTab({ leads }: { leads: AnalyticsLead[] }) {
+export default function AnalyticsTab({ leads, currentUserName }: { leads: AnalyticsLead[]; currentUserName?: string }) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [brief, setBrief] = useState("");
@@ -850,7 +850,7 @@ export default function AnalyticsTab({ leads }: { leads: AnalyticsLead[] }) {
       <WeeklyReportSection />
 
       {/* ── Acquisitions & Sales Board ───────────────────────────── */}
-      <SalesLeadsSection currentUserName="Staff" />
+      <SalesLeadsSection currentUserName={currentUserName || "Admin"} />
 
       {/* ── System Architecture Map ────────────────────────────────── */}
       <ArchitectureSection />

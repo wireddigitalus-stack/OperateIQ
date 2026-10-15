@@ -1903,12 +1903,18 @@ export default function AdminPage() {
             This account isn&apos;t linked to an OperateIQ workspace yet.
             <br />Ask your company&apos;s admin to add your email, or start a free trial.
           </p>
+          <a
+            href="/signup"
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-400 hover:from-indigo-400 hover:to-cyan-300 text-slate-950 font-bold text-xs transition-all shadow-lg flex items-center justify-center gap-2 mb-2.5"
+          >
+            Create Your Workspace (14-Day Free Trial) →
+          </a>
           <button
             onClick={async () => {
               await signOutEverywhere();
               router.replace("/admin/login");
             }}
-            className="px-5 py-2.5 rounded-xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-red-400 text-sm font-bold hover:bg-[rgba(239,68,68,0.18)] transition-colors"
+            className="w-full px-5 py-2.5 rounded-xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-red-400 text-sm font-bold hover:bg-[rgba(239,68,68,0.18)] transition-colors"
           >
             Sign out and try another account
           </button>
@@ -2235,12 +2241,12 @@ export default function AdminPage() {
         )}
 
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <img src="/operateiq_google_ICON_logo_1791954043128.png" alt="OperateIQ" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.25)] object-contain" />
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-white font-black text-xl tracking-tight truncate">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <img src="/operateiq_google_ICON_logo_1791954043128.png" alt="OperateIQ" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.25)] object-contain flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="text-white font-black text-lg sm:text-xl tracking-tight min-w-0 truncate">
                   {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001" ? activeOrg.name : "OperateIQ"}
                 </h1>
                 <span className="flex items-center gap-1.5 text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-400/25 px-2 py-0.5 rounded-lg flex-shrink-0">
@@ -2255,7 +2261,7 @@ export default function AdminPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
             <span className="text-xs text-gray-600 hidden sm:block">Last refresh: {lastRefresh.toLocaleTimeString()}</span>
 
             {/* Online presence avatars */}
@@ -2283,7 +2289,7 @@ export default function AdminPage() {
             {/* Activity Feed bell */}
             <button
               onClick={() => setShowActivityFeed(true)}
-              className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[rgba(96,165,250,0.08)] border border-[rgba(96,165,250,0.2)] text-[#60A5FA] text-xs font-bold hover:bg-[rgba(96,165,250,0.14)] transition-colors"
+              className="relative flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-[rgba(96,165,250,0.08)] border border-[rgba(96,165,250,0.2)] text-[#60A5FA] text-xs font-bold hover:bg-[rgba(96,165,250,0.14)] transition-colors"
               title="Activity Log"
             >
               <Bell size={13} />
@@ -2293,7 +2299,7 @@ export default function AdminPage() {
 
             <button
               onClick={() => setShowAskOpsIQ(true)}
-              className="btn-ask-opsiq px-3 sm:px-4 py-2"
+              className="btn-ask-opsiq px-2.5 sm:px-4 py-2"
               title="Ask OpsIQ"
             >
               <Brain size={13} />
@@ -2302,7 +2308,7 @@ export default function AdminPage() {
 
             <button
               onClick={() => setShowIntakeModal(true)}
-              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600/30 to-cyan-600/20 border border-cyan-400/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/20 hover:border-cyan-300 transition-all shadow-[0_0_12px_rgba(6,182,212,0.18)] cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600/30 to-cyan-600/20 border border-cyan-400/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/20 hover:border-cyan-300 transition-all shadow-[0_0_12px_rgba(6,182,212,0.18)] cursor-pointer"
               title="Import Buildings & Tenants (Excel / Docs / Photos)"
             >
               <Sparkles size={13} className="text-cyan-400" />
@@ -2321,7 +2327,7 @@ export default function AdminPage() {
             )}
             {/* User avatar + sign-out */}
             {currentUser && (
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 {currentUser.avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-7 h-7 rounded-full border border-white/20 flex-shrink-0" />
@@ -2335,10 +2341,11 @@ export default function AdminPage() {
                     await signOutEverywhere();
                     router.replace("/admin/login");
                   }}
-                  className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                  className="text-xs text-gray-500 hover:text-red-400 transition-colors px-1.5 sm:px-3 whitespace-nowrap"
                   title="Sign out"
                 >
-                  Sign out
+                  <span className="hidden sm:inline">Sign out</span>
+                  <span className="sm:hidden text-[11px]">Exit</span>
                 </button>
               </div>
             )}
@@ -2425,6 +2432,7 @@ export default function AdminPage() {
                     { key: "content",     label: "Content",     icon: Pencil, color: "#FACC15" },
                     { key: "teamboard",   label: "Team Board",  icon: Users, color: "#60A5FA" },
                     { key: "archived",    label: `Archive (${archivedLeads.length})`, icon: Archive, color: "#9CA3AF" },
+                    { key: "settings",    label: "Settings",    icon: Settings, color: "#38BDF8" },
                   ] as const).map(({ key, label, icon: Icon, color }) => {
                     const locked = isTabLocked(key);
                     return (
@@ -3543,8 +3551,8 @@ export default function AdminPage() {
                         />
                       </div>
                       {/* Actions */}
-                      <div className="flex items-center justify-between mt-2.5 gap-2">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-between mt-2.5 gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => {
                               setPrepopulatedTenant({
@@ -3638,7 +3646,7 @@ export default function AdminPage() {
                       const logsForLead = callLogs.filter(l => l.lead_id === lead.id);
                       const lastLog = logsForLead[0];
                       return (
-                        <div key={lead.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[rgba(96,165,250,0.04)] border border-[rgba(96,165,250,0.1)] hover:border-[rgba(96,165,250,0.25)] transition-all">
+                        <div key={lead.id} className="flex flex-wrap items-center gap-2 sm:gap-3 px-4 py-3 rounded-xl bg-[rgba(96,165,250,0.04)] border border-[rgba(96,165,250,0.1)] hover:border-[rgba(96,165,250,0.25)] transition-all">
                           {/* Score circle */}
                           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-black text-gray-500 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)]">{getDecayedScore(lead.score, lead, callLogs)}</div>
                           {/* Info */}
@@ -3727,7 +3735,7 @@ export default function AdminPage() {
                       "Track lead conversion funnels, revenue KPIs, occupancy trends, and weekly executive AI reports across your portfolio.",
                       "Growth"
                     )
-                  : <AnalyticsTab leads={activeLeads as unknown as AnalyticsLead[]} />
+                  : <AnalyticsTab leads={activeLeads as unknown as AnalyticsLead[]} currentUserName={currentUser?.name || "Admin"} />
               )}
 
               {/* ─ MAINTENANCE TAB ─────────────────────────────────────────── */}
@@ -3901,7 +3909,7 @@ export default function AdminPage() {
                     <div className="space-y-3">
                       {archivedLeads.map(lead => (
                         <div key={lead.id} className="glass rounded-2xl border border-[rgba(255,255,255,0.04)] p-4 opacity-70 hover:opacity-90 transition-opacity">
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                             <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center border border-[rgba(148,163,184,0.2)] bg-[rgba(148,163,184,0.05)] flex-shrink-0">
                               <span className="text-lg font-black tabular-nums text-gray-500">{lead.score}</span>
                               <span className="text-[8px] text-gray-700">/ 100</span>

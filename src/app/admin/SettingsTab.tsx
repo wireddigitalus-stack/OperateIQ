@@ -579,7 +579,7 @@ Save a shortcut to your phone's Home Screen:
       {/* Add form */}
       {showAdd && (
         <div className="mb-4 p-3 rounded-xl border border-[rgba(255,255,255,0.07)] bg-[rgba(0,0,0,0.2)] space-y-2">
-          <div className={`grid ${isStaffRole ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+          <div className={`grid ${isStaffRole ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'} gap-2`}>
             <div>
               <label className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Full Name {isStaffRole && '*'}</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Mike D." className={FIELD} />
@@ -738,7 +738,7 @@ Save a shortcut to your phone's Home Screen:
       {/* Invite Modal Overlay */}
       {inviteUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-md bg-[#0D1117] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-md max-h-[90dvh] overflow-y-auto bg-[#0D1117] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -2296,13 +2296,13 @@ function DangerZoneSection({ leads, deletingAll, deleteAllConfirm, setDeleteAllC
             This will permanently remove <strong className="text-red-400">{leads.length}</strong> lead{leads.length !== 1 ? "s" : ""} from Supabase.
             Type <code className="text-red-400 bg-[rgba(239,68,68,0.1)] px-1.5 py-0.5 rounded text-xs font-bold">DELETE</code> below to confirm.
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <input
               type="text"
               value={deleteAllConfirm}
               onChange={e => setDeleteAllConfirm(e.target.value)}
               placeholder='Type "DELETE" to confirm'
-              className="flex-1 px-3 py-2 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(239,68,68,0.15)] text-white text-xs placeholder:text-gray-600 outline-none focus:border-[rgba(239,68,68,0.4)] transition-colors font-mono"
+              className="flex-1 min-w-[160px] px-3 py-2 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(239,68,68,0.15)] text-white text-xs placeholder:text-gray-600 outline-none focus:border-[rgba(239,68,68,0.4)] transition-colors font-mono"
             />
             <button
               onClick={deleteAllLeads}

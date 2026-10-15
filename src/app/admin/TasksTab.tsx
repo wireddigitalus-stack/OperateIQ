@@ -279,7 +279,7 @@ function TaskCard({ todo, onStatusChange, onDelete }: { todo: Todo, onStatusChan
           </h4>
           {todo.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{todo.description}</p>}
         </div>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           {confirmDelete ? (
             <button onClick={() => onDelete(todo.id)} className="p-1 text-red-400 hover:bg-red-500/10 rounded-lg"><CheckCircle2 size={12} /></button>
           ) : (

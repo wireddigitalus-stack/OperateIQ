@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Image as ImageIcon, Plus, X, GripVertical, Upload, Loader2, Eye, EyeOff,
-  Save, CheckCircle2, AlertCircle, Video, Link2, ChevronDown, ChevronRight,
+  Save, CheckCircle2, AlertCircle, Video, Link2, ChevronUp, ChevronDown, ChevronRight,
   RotateCcw, Trash2,
 } from "lucide-react";
 
@@ -266,6 +266,21 @@ export default function HeroBannerManager({
     setDragOverIdx(null);
   };
 
+  const moveSlide = (idx: number, dir: -1 | 1) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= slides.length) return;
+    const next = [...slides];
+    const [moved] = next.splice(idx, 1);
+    next.splice(targetIdx, 0, moved);
+    const reordered = next.map((s, i) => ({ ...s, order: i }));
+    updateSlides(reordered);
+
+    const nextRes = [...resolved];
+    const [movedRes] = nextRes.splice(idx, 1);
+    nextRes.splice(targetIdx, 0, movedRes);
+    setResolved(nextRes);
+  };
+
   /* ── Video toggle ──────────────────────────────────────────────────────── */
   const toggleVideo = () => {
     if (!config) return;
@@ -387,7 +402,7 @@ export default function HeroBannerManager({
                   onDragStart={() => handleDragStart(idx)}
                   onDragOver={(e) => handleDragOver(e, idx)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-stretch gap-3 rounded-xl border transition-all duration-200 ${
+                  className={`flex flex-col sm:flex-row sm:items-stretch gap-2.5 sm:gap-3 p-3 sm:p-0 rounded-xl border transition-all duration-200 ${
                     isDragOver
                       ? "border-sky-400/60 bg-blue-500/[0.04] scale-[1.01] shadow-[0_0_16px_rgba(56,189,248,0.15)]"
                       : slide.enabled
@@ -395,58 +410,80 @@ export default function HeroBannerManager({
                       : "border-white/[0.04] bg-white/[0.01] opacity-50"
                   }`}
                 >
-                  {/* Drag Handle */}
-                  <div className="flex items-center pl-3 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400">
-                    <GripVertical size={16} />
-                  </div>
-
-                  {/* Thumbnail */}
-                  <div className="relative w-28 sm:w-36 flex-shrink-0 my-2 rounded-lg overflow-hidden bg-[rgba(255,255,255,0.03)]">
-                    {imgSrc ? (
-                      <img src={imgSrc} alt={label} className="w-full h-full object-cover aspect-video" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center aspect-video">
-                        <ImageIcon size={20} className="text-gray-700" />
+                  <div className="flex items-stretch gap-2.5 sm:gap-3 flex-1 min-w-0">
+                    {/* Drag Handle + Up/Down Reorder */}
+                    <div className="flex flex-col items-center justify-center gap-0.5 sm:pl-3 text-gray-600">
+                      <button
+                        type="button"
+                        onClick={() => moveSlide(idx, -1)}
+                        disabled={idx === 0}
+                        className="p-0.5 rounded hover:text-white hover:bg-white/10 disabled:opacity-25 transition-colors"
+                        title="Move slide up"
+                      >
+                        <ChevronUp size={13} />
+                      </button>
+                      <div className="cursor-grab active:cursor-grabbing hover:text-gray-400">
+                        <GripVertical size={15} />
                       </div>
-                    )}
-                    {isUploading && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <Loader2 size={20} className="animate-spin text-sky-400" />
-                      </div>
-                    )}
-                    {/* Order badge */}
-                    <div className="absolute top-1 left-1 w-5 h-5 rounded-md bg-black/70 flex items-center justify-center text-[9px] font-bold text-white">
-                      {idx + 1}
+                      <button
+                        type="button"
+                        onClick={() => moveSlide(idx, 1)}
+                        disabled={idx === slides.length - 1}
+                        className="p-0.5 rounded hover:text-white hover:bg-white/10 disabled:opacity-25 transition-colors"
+                        title="Move slide down"
+                      >
+                        <ChevronDown size={13} />
+                      </button>
                     </div>
-                  </div>
 
-                  {/* Content */}
-                  <div className="flex-1 py-3 pr-2 min-w-0">
-                    <input
-                      value={label}
-                      onChange={e => updateField(idx, "label", e.target.value)}
-                      className="bg-transparent text-sm font-bold text-white w-full outline-none border-b border-transparent focus:border-sky-400/50 transition-colors pb-0.5"
-                      placeholder="Slide label…"
-                    />
-                    <input
-                      value={location}
-                      onChange={e => updateField(idx, "location", e.target.value)}
-                      className="bg-transparent text-xs text-gray-500 w-full outline-none border-b border-transparent focus:border-[rgba(255,255,255,0.1)] transition-colors mt-1"
-                      placeholder="Location…"
-                    />
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
-                        slide.type === "property"
-                          ? "bg-[rgba(96,165,250,0.1)] text-blue-400 border border-blue-500/20"
-                          : "bg-[rgba(250,204,21,0.1)] text-[#FACC15] border border-yellow-500/20"
-                      }`}>
-                        {slide.type === "property" ? `Property: ${slide.propertyId}` : "Custom Upload"}
-                      </span>
+                    {/* Thumbnail */}
+                    <div className="relative w-24 sm:w-36 flex-shrink-0 sm:my-2 rounded-lg overflow-hidden bg-[rgba(255,255,255,0.03)]">
+                      {imgSrc ? (
+                        <img src={imgSrc} alt={label} className="w-full h-full object-cover aspect-video" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center aspect-video">
+                          <ImageIcon size={20} className="text-gray-700" />
+                        </div>
+                      )}
+                      {isUploading && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Loader2 size={20} className="animate-spin text-sky-400" />
+                        </div>
+                      )}
+                      {/* Order badge */}
+                      <div className="absolute top-1 left-1 w-5 h-5 rounded-md bg-black/70 flex items-center justify-center text-[9px] font-bold text-white">
+                        {idx + 1}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 sm:py-3 sm:pr-2 min-w-0">
+                      <input
+                        value={label}
+                        onChange={e => updateField(idx, "label", e.target.value)}
+                        className="bg-transparent text-sm font-bold text-white w-full outline-none border-b border-transparent focus:border-sky-400/50 transition-colors pb-0.5"
+                        placeholder="Slide label…"
+                      />
+                      <input
+                        value={location}
+                        onChange={e => updateField(idx, "location", e.target.value)}
+                        className="bg-transparent text-xs text-gray-500 w-full outline-none border-b border-transparent focus:border-[rgba(255,255,255,0.1)] transition-colors mt-1"
+                        placeholder="Location…"
+                      />
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
+                          slide.type === "property"
+                            ? "bg-[rgba(96,165,250,0.1)] text-blue-400 border border-blue-500/20"
+                            : "bg-[rgba(250,204,21,0.1)] text-[#FACC15] border border-yellow-500/20"
+                        }`}>
+                          {slide.type === "property" ? `Property: ${slide.propertyId}` : "Custom Upload"}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 pr-3 flex-shrink-0">
+                  <div className="flex items-center justify-end gap-1 pt-2 sm:pt-0 sm:pr-3 border-t border-white/[0.05] sm:border-t-0 flex-shrink-0">
                     {/* Replace Image */}
                     <button
                       onClick={() => startReplace(idx)}

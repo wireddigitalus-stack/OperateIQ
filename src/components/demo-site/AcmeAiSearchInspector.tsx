@@ -132,7 +132,7 @@ export default function AcmeAiSearchInspector({
         </div>
 
         {/* Tab Selector */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-white/10 bg-[#060911]">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-6 py-3 border-b border-white/10 bg-[#060911]">
           <button
             onClick={() => setActiveTab("llm")}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -200,11 +200,11 @@ export default function AcmeAiSearchInspector({
               {/* Simulated AI Search UI Window */}
               <div className="rounded-2xl border border-white/15 bg-black/60 overflow-hidden shadow-2xl">
                 {/* Search Bar Prompt */}
-                <div className="px-5 py-4 border-b border-white/10 bg-[#0B1020] flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400">
+                <div className="px-5 py-4 border-b border-white/10 bg-[#0B1020] flex flex-wrap items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 shrink-0">
                     <Search size={15} />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-[180px]">
                     <span className="text-[10px] text-gray-500 font-mono block">USER QUERY PROMPT</span>
                     <p className="text-xs sm:text-sm font-semibold text-white">
                       "{currentQuery.prompt}"

@@ -340,7 +340,7 @@ export default function ActivityFeedPanel({ onClose }: Props) {
                       onClick={() => deleteLog(log.id)}
                       disabled={deletingId === log.id}
                       title="Remove this entry"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 rounded-full bg-[rgba(239,68,68,0.12)] border border-[rgba(239,68,68,0.25)] flex items-center justify-center hover:bg-[rgba(239,68,68,0.25)] hover:border-[rgba(239,68,68,0.5)] active:scale-95"
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity w-5 h-5 rounded-full bg-[rgba(239,68,68,0.12)] border border-[rgba(239,68,68,0.25)] flex items-center justify-center hover:bg-[rgba(239,68,68,0.25)] hover:border-[rgba(239,68,68,0.5)] active:scale-95"
                     >
                       <X size={9} className="text-red-400" />
                     </button>

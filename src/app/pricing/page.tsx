@@ -23,19 +23,19 @@ export default function PricingPage() {
       </section>
       <section className="px-5 pb-24">
         <div className="mx-auto max-w-5xl oiq-card overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="border-b border-[var(--oiq-border)]">
-                <th className="text-left p-4 text-slate-400 font-medium">Compare features</th>
-                {PLANS.map((p) => <th key={p.id} className="p-4 text-white font-semibold">{p.name}</th>)}
+                <th className="text-left p-3 sm:p-4 text-slate-400 font-medium">Compare features</th>
+                {PLANS.map((p) => <th key={p.id} className="p-3 sm:p-4 text-white font-semibold">{p.name}</th>)}
               </tr>
             </thead>
             <tbody>
               {ALL.map((f) => (
                 <tr key={f} className="border-b border-[var(--oiq-border)] last:border-0">
-                  <td className="p-4 text-slate-300">{FEATURE_LABELS[f]}</td>
+                  <td className="p-3 sm:p-4 text-slate-300">{FEATURE_LABELS[f]}</td>
                   {PLANS.map((p) => (
-                    <td key={p.id} className="p-4 text-center">
+                    <td key={p.id} className="p-3 sm:p-4 text-center">
                       {p.features.includes(f)
                         ? <Check size={18} className="inline text-[var(--oiq-cyan)]" />
                         : <Minus size={18} className="inline text-slate-600" />}

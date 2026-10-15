@@ -53,6 +53,7 @@ export default function Turnstile({ siteKey, onVerify, onExpire, onError }: Turn
           "expired-callback": () => callbacksRef.current.onExpire?.(),
           "error-callback": () => callbacksRef.current.onError?.(),
           theme: "dark",
+          size: "flexible",
         });
       }
     };

@@ -86,7 +86,7 @@ export default function AdminHeader() {
             className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-[0_0_12px_rgba(34,211,238,0.3)] group-hover:scale-105 transition-transform"
             priority
           />
-          <span className="text-white font-extrabold tracking-tight text-lg">
+          <span className={`text-white font-extrabold tracking-tight text-lg truncate ${activeOrg && memberships.length > 1 ? "hidden sm:inline" : ""}`}>
             Operate<span className="oiq-grad-text">IQ</span>
           </span>
           {activeOrg && memberships.length <= 1 ? (
@@ -103,14 +103,14 @@ export default function AdminHeader() {
         </button>
 
         {activeOrg && memberships.length > 1 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)]">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)] min-w-0">
             <Building2 size={11} className="text-cyan-400 flex-shrink-0" />
             <select
               value={activeOrg.id}
               disabled={switchingOrg}
               onChange={(e) => handleSwitchOrg(e.target.value)}
               aria-label="Switch active organization"
-              className="bg-transparent text-sky-200 font-bold text-[11px] outline-none cursor-pointer pr-1"
+              className="bg-transparent text-sky-200 font-bold text-[11px] outline-none cursor-pointer pr-1 max-w-[130px] sm:max-w-[220px] truncate"
               style={{ colorScheme: "dark" }}
             >
               {memberships.map((m) => (

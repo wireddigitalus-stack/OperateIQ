@@ -65,6 +65,7 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
+  manifest: "/site.webmanifest",
   // Pre-launch: noindex everywhere until NEXT_PUBLIC_ALLOW_INDEXING=true
   robots: ALLOW_INDEXING
     ? { index: true, follow: true }

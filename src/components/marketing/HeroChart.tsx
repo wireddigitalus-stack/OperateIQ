@@ -611,9 +611,9 @@ export default function HeroChart() {
                   <div
                     className="absolute min-w-[150px] rounded-2xl border border-white/15 bg-[#0B1224]/85 backdrop-blur-xl px-3 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
                     style={{
-                      left: scrubX,
+                      left: w < 420 ? Math.min(Math.max(scrubX - 80, 8), Math.max(w - 190, 8)) : scrubX,
                       top: Math.max(4, Math.min(H - 92, scrubY - 44)),
-                      transform: scrubX > w - 200 ? "translateX(calc(-100% - 18px))" : "translateX(18px)",
+                      transform: w < 420 ? "none" : scrubX > w - 200 ? "translateX(calc(-100% - 18px))" : "translateX(18px)",
                     }}
                   >
                     <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
