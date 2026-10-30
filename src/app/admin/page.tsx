@@ -3847,128 +3847,129 @@ export default function AdminPage() {
 
               {/* ─ TENANTS TAB ──────────────────────────────────────────────── */}
               {activeTab === "tenants" && (
-                <>
-                  {renderLeaseAlerts()}
+                <TenantsTab
+                  currentUserName={currentUser?.name}
+                  currentUserEmail={currentUser?.email}
+                  leads={leads}
+                  prepopulatedTenant={prepopulatedTenant}
+                  onClearPrepopulated={() => setPrepopulatedTenant(null)}
+                  onLeadConverted={(leadId) => {
+                    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, archivedAt: new Date().toISOString() } : l));
+                    fetchLeads();
+                  }}
+                  ledgersSlot={
+                    <>
+                      {renderLeaseAlerts()}
 
-                  {/* ═══ Rent Ledger — collapsible panel ═══ */}
-                  <div className="mb-6">
-                    <button
-                      onClick={() => setRentLedgerOpen(prev => !prev)}
-                      className={`w-full group flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 ${
-                        rentLedgerOpen
-                          ? "bg-[rgba(16,185,129,0.06)] border-[rgba(16,185,129,0.25)]"
-                          : "bg-[rgba(16,185,129,0.03)] border-[rgba(16,185,129,0.12)] hover:border-[rgba(16,185,129,0.3)] hover:bg-[rgba(16,185,129,0.06)]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                            rentLedgerOpen ? "shadow-lg" : "group-hover:shadow-md"
+                      {/* ═══ Rent Ledger — collapsible panel ═══ */}
+                      <div className="mb-6">
+                        <button
+                          onClick={() => setRentLedgerOpen(prev => !prev)}
+                          className={`w-full group flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 ${
+                            rentLedgerOpen
+                              ? "bg-[rgba(16,185,129,0.06)] border-[rgba(16,185,129,0.25)]"
+                              : "bg-[rgba(16,185,129,0.03)] border-[rgba(16,185,129,0.12)] hover:border-[rgba(16,185,129,0.3)] hover:bg-[rgba(16,185,129,0.06)]"
                           }`}
-                          style={{
-                            background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.15))",
-                            border: "1px solid rgba(16,185,129,0.35)",
-                            boxShadow: rentLedgerOpen ? "0 0 20px rgba(16,185,129,0.2)" : undefined,
-                          }}
                         >
-                          <DollarSign size={18} className="text-[#10B981]" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-black text-white">Rent Ledger</p>
-                          <p className="text-[10px] text-gray-500 uppercase tracking-widest">Monthly Payment Tracking</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="hidden sm:inline text-[10px] font-bold text-[#10B981]/60 uppercase tracking-widest">
-                          {rentLedgerOpen ? "Collapse" : "Open"}
-                        </span>
-                        <ChevronDown
-                          size={16}
-                          className={`text-[#10B981] transition-transform duration-300 ${
-                            rentLedgerOpen ? "rotate-180" : "group-hover:translate-y-0.5"
-                          }`}
-                        />
-                      </div>
-                    </button>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                                rentLedgerOpen ? "shadow-lg" : "group-hover:shadow-md"
+                              }`}
+                              style={{
+                                background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.15))",
+                                border: "1px solid rgba(16,185,129,0.35)",
+                                boxShadow: rentLedgerOpen ? "0 0 20px rgba(16,185,129,0.2)" : undefined,
+                              }}
+                            >
+                              <DollarSign size={18} className="text-[#10B981]" />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-black text-white">Rent Ledger</p>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-widest">Monthly Payment Tracking</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="hidden sm:inline text-[10px] font-bold text-[#10B981]/60 uppercase tracking-widest">
+                              {rentLedgerOpen ? "Collapse" : "Open"}
+                            </span>
+                            <ChevronDown
+                              size={16}
+                              className={`text-[#10B981] transition-transform duration-300 ${
+                                rentLedgerOpen ? "rotate-180" : "group-hover:translate-y-0.5"
+                              }`}
+                            />
+                          </div>
+                        </button>
 
-                    {/* Expanded content */}
-                    {rentLedgerOpen && (
-                      <div
-                        className="mt-2 rounded-2xl border border-[rgba(16,185,129,0.15)] bg-[rgba(0,0,0,0.2)] p-4 sm:p-6"
-                        style={{ animation: "fadeSlideIn 0.3s ease-out" }}
-                      >
-                        <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-                        <RentLedgerTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
+                        {/* Expanded content */}
+                        {rentLedgerOpen && (
+                          <div
+                            className="mt-2 rounded-2xl border border-[rgba(16,185,129,0.15)] bg-[rgba(0,0,0,0.2)] p-4 sm:p-6"
+                            style={{ animation: "fadeSlideIn 0.3s ease-out" }}
+                          >
+                            <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                            <RentLedgerTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* ═══ Security Deposit Ledger — collapsible panel ═══ */}
-                  <div className="mb-6">
-                    <button
-                      onClick={() => setSecDepLedgerOpen(prev => !prev)}
-                      className={`w-full group flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 ${
-                        secDepLedgerOpen
-                          ? "bg-[rgba(96,165,250,0.06)] border-[rgba(96,165,250,0.25)]"
-                          : "bg-[rgba(96,165,250,0.03)] border-[rgba(96,165,250,0.12)] hover:border-[rgba(96,165,250,0.3)] hover:bg-[rgba(96,165,250,0.06)]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                            secDepLedgerOpen ? "shadow-lg" : "group-hover:shadow-md"
+                      {/* ═══ Security Deposit Ledger — collapsible panel ═══ */}
+                      <div className="mb-6">
+                        <button
+                          onClick={() => setSecDepLedgerOpen(prev => !prev)}
+                          className={`w-full group flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 ${
+                            secDepLedgerOpen
+                              ? "bg-[rgba(96,165,250,0.06)] border-[rgba(96,165,250,0.25)]"
+                              : "bg-[rgba(96,165,250,0.03)] border-[rgba(96,165,250,0.12)] hover:border-[rgba(96,165,250,0.3)] hover:bg-[rgba(96,165,250,0.06)]"
                           }`}
-                          style={{
-                            background: "linear-gradient(135deg, rgba(96,165,250,0.2), rgba(37,99,235,0.15))",
-                            border: "1px solid rgba(96,165,250,0.35)",
-                            boxShadow: secDepLedgerOpen ? "0 0 20px rgba(96,165,250,0.2)" : undefined,
-                          }}
                         >
-                          <Landmark size={18} className="text-[#60A5FA]" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-black text-white">Security Deposit Ledger</p>
-                          <p className="text-[10px] text-gray-500 uppercase tracking-widest">Deposit Tracking & Management</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="hidden sm:inline text-[10px] font-bold text-[#60A5FA]/60 uppercase tracking-widest">
-                          {secDepLedgerOpen ? "Collapse" : "Open"}
-                        </span>
-                        <ChevronDown
-                          size={16}
-                          className={`text-[#60A5FA] transition-transform duration-300 ${
-                            secDepLedgerOpen ? "rotate-180" : "group-hover:translate-y-0.5"
-                          }`}
-                        />
-                      </div>
-                    </button>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                                secDepLedgerOpen ? "shadow-lg" : "group-hover:shadow-md"
+                              }`}
+                              style={{
+                                background: "linear-gradient(135deg, rgba(96,165,250,0.2), rgba(37,99,235,0.15))",
+                                border: "1px solid rgba(96,165,250,0.35)",
+                                boxShadow: secDepLedgerOpen ? "0 0 20px rgba(96,165,250,0.2)" : undefined,
+                              }}
+                            >
+                              <Landmark size={18} className="text-[#60A5FA]" />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-black text-white">Security Deposit Ledger</p>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-widest">Deposit Tracking & Management</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="hidden sm:inline text-[10px] font-bold text-[#60A5FA]/60 uppercase tracking-widest">
+                              {secDepLedgerOpen ? "Collapse" : "Open"}
+                            </span>
+                            <ChevronDown
+                              size={16}
+                              className={`text-[#60A5FA] transition-transform duration-300 ${
+                                secDepLedgerOpen ? "rotate-180" : "group-hover:translate-y-0.5"
+                              }`}
+                            />
+                          </div>
+                        </button>
 
-                    {secDepLedgerOpen && (
-                      <div
-                        className="mt-2 rounded-2xl border border-[rgba(96,165,250,0.15)] bg-[rgba(0,0,0,0.2)] p-4 sm:p-6"
-                        style={{ animation: "fadeSlideIn 0.3s ease-out" }}
-                      >
-                        <SecurityDepositLedgerTab
-                          currentUserName={currentUser?.name}
-                          currentUserEmail={currentUser?.email}
-                        />
+                        {secDepLedgerOpen && (
+                          <div
+                            className="mt-2 rounded-2xl border border-[rgba(96,165,250,0.15)] bg-[rgba(0,0,0,0.2)] p-4 sm:p-6"
+                            style={{ animation: "fadeSlideIn 0.3s ease-out" }}
+                          >
+                            <SecurityDepositLedgerTab
+                              currentUserName={currentUser?.name}
+                              currentUserEmail={currentUser?.email}
+                            />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-
-                  <TenantsTab
-                    currentUserName={currentUser?.name}
-                    currentUserEmail={currentUser?.email}
-                    leads={leads}
-                    prepopulatedTenant={prepopulatedTenant}
-                    onClearPrepopulated={() => setPrepopulatedTenant(null)}
-                    onLeadConverted={(leadId) => {
-                      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, archivedAt: new Date().toISOString() } : l));
-                      fetchLeads();
-                    }}
-                  />
-                </>
+                    </>
+                  }
+                />
               )}
 
               {/* ─ PROP DETAILS TAB ─────────────────────────────────────────────── */}

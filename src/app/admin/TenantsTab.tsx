@@ -1352,6 +1352,7 @@ export default function TenantsTab({
   prepopulatedTenant = null,
   onClearPrepopulated,
   onLeadConverted,
+  ledgersSlot,
 }: {
   currentUserName?: string;
   currentUserEmail?: string;
@@ -1359,6 +1360,7 @@ export default function TenantsTab({
   prepopulatedTenant?: Partial<Tenant> | null;
   onClearPrepopulated?: () => void;
   onLeadConverted?: (leadId: string) => void;
+  ledgersSlot?: React.ReactNode;
 }) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1612,7 +1614,109 @@ export default function TenantsTab({
     });
 
   return (
-    <div className="mt-6">
+    <div className="mt-1">
+      {/* ═══ TOP HERO CARD: Add a New Tenant or Import Tenants ═══ */}
+      <div className="mb-6 rounded-2xl border border-sky-400/30 bg-gradient-to-br from-sky-500/[0.09] via-blue-600/[0.06] to-indigo-600/[0.04] p-4 sm:p-6 relative overflow-hidden shadow-[0_0_32px_rgba(56,189,248,0.12)]">
+        <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-sky-400 opacity-[0.08] blur-3xl pointer-events-none" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-start gap-3.5 max-w-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_20px_rgba(56,189,248,0.35)]">
+              <Building2 size={22} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-white text-base sm:text-lg font-black tracking-tight">
+                  Add a New Tenant or Import Tenants
+                </h2>
+                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-400/30 text-sky-300">
+                  Quick Onboarding
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+                Onboard new tenants quickly: manually key in a single tenant, drop an Excel/CSV spreadsheet, or upload photos of legal pad notes and lease PDFs to auto-extract with AI.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+            <button
+              onClick={() => { setEditingTenant(null); setShowForm(true); }}
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-95 text-white text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(59,130,246,0.4)] transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Add Single Tenant</span>
+            </button>
+            <button
+              onClick={() => setShowIntakeStaging(true)}
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-sky-500/25 via-blue-500/25 to-indigo-500/25 hover:from-sky-500/35 hover:to-indigo-500/35 border border-sky-400/45 text-sky-200 text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(56,189,248,0.22)] hover:shadow-[0_0_24px_rgba(56,189,248,0.38)] transition-all cursor-pointer"
+              title="Fast intake from Excel, photos of legal pads, or lease documents"
+            >
+              <Sparkles size={15} className="text-sky-300 animate-pulse" />
+              <span>⚡ Fast Intake (Excel, Legal Pad, Leases)</span>
+            </button>
+            <button
+              onClick={() => setShowImporter(true)}
+              className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-gray-200 hover:text-white text-xs sm:text-sm font-bold transition-all cursor-pointer"
+            >
+              <FileSpreadsheet size={15} className="text-emerald-400" />
+              <span>Import Excel / CSV</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Intake & Staging Modal */}
+      {showIntakeStaging && (
+        <IntakeStagingModal
+          onClose={() => setShowIntakeStaging(false)}
+          onImportSuccess={async () => {
+            await fetchTenants();
+          }}
+          knownBuildings={buildingOptions}
+        />
+      )}
+
+      {/* Legacy Excel Importer Modal */}
+      {showImporter && (
+        <TenantImporter
+          onImport={handleBatchImport}
+          onClose={() => setShowImporter(false)}
+        />
+      )}
+
+      {/* Add form — opens right below the top onboarding bar */}
+      {showForm && !editingTenant && (
+        <TenantForm
+          initial={prepopulatedTenant || BLANK()}
+          onSave={async (data) => {
+            await handleSaveNew(data);
+            if (onClearPrepopulated) onClearPrepopulated();
+          }}
+          onCancel={() => {
+            setShowForm(false);
+            if (onClearPrepopulated) onClearPrepopulated();
+          }}
+          currentUserName={currentUserName}
+          buildingOptions={buildingOptions}
+          leads={leads}
+        />
+      )}
+
+      {/* Edit form — opens right below the top onboarding bar */}
+      {editingTenant && (
+        <TenantForm
+          initial={editingTenant}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingTenant(null)}
+          currentUserName={currentUserName}
+          buildingOptions={buildingOptions}
+          leads={leads}
+        />
+      )}
+
+      {/* Collapsible Ledgers Slot (Rent Ledger & Security Deposit Ledger) */}
+      {ledgersSlot}
+
       {/* Revenue Intelligence Banner */}
       <RevenueBanner tenants={tenants} onTenantClick={scrollToTenant} />
 
@@ -1729,73 +1833,8 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS nn_fee NUMERIC DEFAULT 0;`}</pre>
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
           </button>
           <PrintButton zoneId="print-tenants" label="Print Roster" title="Tenant Roster" />
-          <button
-            onClick={() => setShowIntakeStaging(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500/20 via-blue-500/20 to-indigo-500/20 hover:from-sky-500/30 hover:to-indigo-500/30 border border-sky-400/40 text-sky-300 text-xs font-bold shadow-[0_0_15px_rgba(56,189,248,0.2)] hover:shadow-[0_0_22px_rgba(56,189,248,0.35)] transition-all"
-            title="Fast intake from Excel, photos of legal pads, or lease documents"
-          >
-            <Sparkles size={13} className="text-sky-400 animate-pulse" />
-            <span>⚡ AI Intake & Scan</span>
-          </button>
-          <button onClick={() => setShowImporter(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-white/15 bg-white/[0.03] text-gray-300 text-xs font-semibold hover:text-white hover:border-white/30 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] transition-all">
-            <FileSpreadsheet size={13} /> Excel Only
-          </button>
-          <button onClick={() => { setEditingTenant(null); setShowForm(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 shadow-[0_0_14px_rgba(59,130,246,0.35)] transition-all">
-            <Plus size={13} /> Add Tenant
-          </button>
         </div>
       </div>
-
-      {/* AI Intake & Staging Modal */}
-      {showIntakeStaging && (
-        <IntakeStagingModal
-          onClose={() => setShowIntakeStaging(false)}
-          onImportSuccess={async () => {
-            await fetchTenants();
-          }}
-          knownBuildings={buildingOptions}
-        />
-      )}
-
-      {/* Legacy Excel Importer Modal */}
-      {showImporter && (
-        <TenantImporter
-          onImport={handleBatchImport}
-          onClose={() => setShowImporter(false)}
-        />
-      )}
-
-      {/* Add form */}
-      {showForm && !editingTenant && (
-        <TenantForm
-          initial={prepopulatedTenant || BLANK()}
-          onSave={async (data) => {
-            await handleSaveNew(data);
-            if (onClearPrepopulated) onClearPrepopulated();
-          }}
-          onCancel={() => {
-            setShowForm(false);
-            if (onClearPrepopulated) onClearPrepopulated();
-          }}
-          currentUserName={currentUserName}
-          buildingOptions={buildingOptions}
-          leads={leads}
-        />
-      )}
-
-      {/* Edit form */}
-      {editingTenant && (
-        <TenantForm
-          initial={editingTenant}
-          onSave={handleSaveEdit}
-          onCancel={() => setEditingTenant(null)}
-          currentUserName={currentUserName}
-          buildingOptions={buildingOptions}
-          leads={leads}
-        />
-      )}
 
       {/* Loading */}
       {loading && (
@@ -1807,29 +1846,10 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS nn_fee NUMERIC DEFAULT 0;`}</pre>
 
       {/* Empty state */}
       {!loading && displayed.length === 0 && filterStatus === "all" && tenants.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-sky-400 mb-4 shadow-[0_0_24px_rgba(56,189,248,0.1)]">
-            <Building2 size={32} />
-          </div>
-          <p className="text-white text-xl sm:text-2xl font-black tracking-tight">No tenants in this portfolio yet</p>
-          <p className="text-sm sm:text-base text-gray-300 mt-2 mb-8 max-w-lg leading-relaxed">
-            Onboard new tenants quickly: drop an Excel spreadsheet, upload photos of legal pad notes or lease documents, or manually key in your first tenant.
+        <div className="flex flex-col items-center justify-center py-10 text-center px-4 rounded-2xl border border-white/[0.06] bg-white/[0.01]">
+          <p className="text-gray-400 text-sm font-medium">
+            No tenants added yet — use the <strong className="text-white">Add Single Tenant</strong> or <strong className="text-sky-300">⚡ Fast Intake</strong> buttons at the top of the page to get started.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <button
-              onClick={() => setShowIntakeStaging(true)}
-              className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white text-sm sm:text-base font-black hover:opacity-95 shadow-[0_0_24px_rgba(56,189,248,0.4)] transition-all cursor-pointer"
-            >
-              <Sparkles size={18} className="text-white animate-pulse" />
-              <span>⚡ Fast Intake (Excel, Legal Pad, Leases)</span>
-            </button>
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 text-white text-sm sm:text-base font-bold transition-all cursor-pointer"
-            >
-              <Plus size={18} /> <span>Add Single Tenant</span>
-            </button>
-          </div>
         </div>
       )}
 
