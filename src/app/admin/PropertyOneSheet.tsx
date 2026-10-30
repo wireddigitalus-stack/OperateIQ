@@ -114,7 +114,7 @@ function buildOneSheetHTML(
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>${property.name} — OperateIQ</title>
+  <title>${property.name} — OpsIQ</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     @page { margin: 0; size: letter portrait; }
@@ -566,7 +566,7 @@ function buildOneSheetHTML(
             : ""
         }
 
-        <!-- OperateIQ Brand Trust Block -->
+        <!-- OpsIQ Brand Trust Block -->
         <div class="trust-block">
           <div class="trust-label">Why ${org.name}</div>
           <div class="trust-pillars">

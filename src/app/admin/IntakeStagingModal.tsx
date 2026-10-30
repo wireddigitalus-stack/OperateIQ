@@ -591,7 +591,7 @@ export default function IntakeStagingModal({
   // Load sample test data in 1 click
   const handleLoadSample = () => {
     setErrorMsg("");
-    setSourceFile({ name: "OperateIQ Mixed Portfolio Test Roll (Demo).xlsx", type: "sample" });
+    setSourceFile({ name: "OpsIQ Mixed Portfolio Test Roll (Demo).xlsx", type: "sample" });
     setStagedRecords(DEMO_STAGED_RECORDS);
     setPortfolioSummary("18 Verified commercial & residential tenant leases across 4 properties loaded.");
     setDetectedBuilding("Multiple Properties");
@@ -720,7 +720,7 @@ export default function IntakeStagingModal({
               lease_status: "active",
               published: false,
               in_banner: false,
-              description: `Auto-enrolled via OperateIQ AI Multi-Tenant Intake on ${new Date().toLocaleDateString()}`,
+              description: `Auto-enrolled via OpsIQ AI Multi-Tenant Intake on ${new Date().toLocaleDateString()}`,
             }),
           });
           if (!propRes.ok) {

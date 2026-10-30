@@ -521,7 +521,7 @@ function DailyBriefCard({ leads, onBadgeClick, onLeadClick, currentUserName, cal
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: `OPERATEIQ DAILY BRIEF — max 2 short sentences, facts only, no greetings or headers:
+          question: `OPSIQ DAILY BRIEF — max 2 short sentences, facts only, no greetings or headers:
 1. Name the top 2 leads by revenue potential (highest budget × score). For each: name, budget/month, timeline.
 2. Hot pipeline total per month. Mention whale count only if above 0.
 Use real names and numbers. Be punchy.`,
@@ -1912,7 +1912,7 @@ export default function AdminPage() {
           </div>
           <h1 className="text-xl font-black text-white mb-2">Access Denied</h1>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-            This account isn&apos;t linked to an OperateIQ workspace yet.
+            This account isn&apos;t linked to an OpsIQ workspace yet.
             <br />Ask your company&apos;s admin to add your email, or start a free trial.
           </p>
           <a
@@ -2177,7 +2177,7 @@ export default function AdminPage() {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-[0_0_24px_rgba(59,130,246,0.35)] animate-pulse">
             <Zap size={20} className="text-white" />
           </div>
-          <p className="text-xs text-gray-600">Loading OperateIQ…</p>
+          <p className="text-xs text-gray-600">Loading OpsIQ…</p>
         </div>
       </div>
     );
@@ -2255,11 +2255,11 @@ export default function AdminPage() {
         {/* Page Header */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <img src="/operateiq_google_ICON_logo_1791954043128.png" alt="OperateIQ" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.25)] object-contain flex-shrink-0" />
+            <img src="/operateiq_google_ICON_logo_1791954043128.png" alt="OpsIQ" className="w-10 h-10 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.25)] object-contain flex-shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 min-w-0">
                 <h1 className="text-white font-black text-lg sm:text-xl tracking-tight min-w-0 truncate">
-                  {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001" ? activeOrg.name : "OperateIQ"}
+                  {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001" ? activeOrg.name : "OpsIQ"}
                 </h1>
                 <span className="flex items-center gap-1.5 text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-400/25 px-2 py-0.5 rounded-lg flex-shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
@@ -4066,7 +4066,7 @@ export default function AdminPage() {
         )}
 
         <div className="text-center text-[10px] sm:text-xs text-gray-700 mt-10 mb-6 px-4 space-y-0.5">
-          <p className="font-semibold text-gray-600">OperateIQ Property Operations Platform</p>
+          <p className="font-semibold text-gray-600">OpsIQ Property Operations Platform</p>
           <p>AI-Powered by Gemini · Auto-refreshes every 30s</p>
         </div>
       </div>

@@ -46,7 +46,7 @@ export default function ProWebsiteShowcaseCard() {
                 Your Entire Portfolio, Live on the Web in One Click.
               </h3>
               <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
-                Built with agency-grade web architecture right out of the box. OperateIQ automatically generates a premier public property showcase site powered by <strong>Ultra SEO &amp; Generative AI Search (GEO)</strong> — synced live with your rent roll and availability.
+                Built with agency-grade web architecture right out of the box. OpsIQ automatically generates a premier public property showcase site powered by <strong>Ultra SEO &amp; Generative AI Search (GEO)</strong> — synced live with your rent roll and availability.
               </p>
             </div>
 
@@ -78,7 +78,7 @@ export default function ProWebsiteShowcaseCard() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Direct-to-CRM Tour Ingestion</h4>
-                  <p className="text-[11px] text-slate-400">Tour requests feed straight into your OperateIQ sales board.</p>
+                  <p className="text-[11px] text-slate-400">Tour requests feed straight into your OpsIQ sales board.</p>
                 </div>
               </div>
 

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     let customerId: string | null = (orgRow as { stripe_customer_id?: string | null } | null)?.stripe_customer_id || null;
     const customerEmail = g.ctx.org.contact_email || g.ctx.user?.email || "";
-    const customerName = g.ctx.org.brand_name || g.ctx.org.name || "OperateIQ Customer";
+    const customerName = g.ctx.org.brand_name || g.ctx.org.name || "OpsIQ Customer";
 
     // Create a Stripe Customer if the organization doesn't have one yet
     if (!customerId) {
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     const reqOrigin = req.nextUrl.origin || BRAND.url;
     const unitAmountCents = String((billingCycle === "annual" ? plan.annual : plan.monthly) * 100);
     const interval = billingCycle === "annual" ? "year" : "month";
-    const productName = `OperateIQ ${plan.id === "pro" ? "Scale (Pro)" : plan.name} Plan (${
+    const productName = `OpsIQ ${plan.id === "pro" ? "Scale (Pro)" : plan.name} Plan (${
       billingCycle === "annual" ? "Annual" : "Monthly"
     })`;
 

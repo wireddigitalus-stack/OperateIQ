@@ -14,7 +14,7 @@ type Msg = {
 const GREETING: Msg = {
   role: "assistant",
   content:
-    "Hi, I'm OpsIQ 👋 Tell me how many properties you manage or what you want to automate, and I'll show you how OperateIQ works — plus help you launch a 14-day free trial in 60 seconds.",
+    "Hi, I'm OpsIQ 👋 Tell me how many properties you manage or what you want to automate, and I'll show you how OpsIQ works — plus help you launch a 14-day free trial in 60 seconds.",
   recommendedPlan: "growth",
 };
 
@@ -22,7 +22,7 @@ const SUGGESTIONS = [
   "Which plan fits my portfolio?",
   "What's included in the 14-day free trial?",
   "How do crew PIN portals work?",
-  "Can OperateIQ host my property website?",
+  "Can OpsIQ host my property website?",
   "How is my portfolio data kept private?",
 ];
 
@@ -92,7 +92,7 @@ export default function OpsIQWidget() {
             <div className="flex items-center gap-2.5">
               <Image
                 src="/operateiq_google_ICON_logo_1791954043128.png"
-                alt="OperateIQ"
+                alt="OpsIQ"
                 width={32}
                 height={32}
                 className="w-8 h-8 rounded-lg object-contain bg-slate-950/30 p-0.5 shadow"

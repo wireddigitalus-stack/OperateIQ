@@ -98,7 +98,7 @@ export default function DemoPropertySitePage() {
         <div className="flex items-center gap-2 truncate">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
           <span className="text-gray-400 hidden sm:inline">Live Public Website:</span>
-          <span className="text-sky-300 font-bold truncate">{activeOrg ? activeOrg.name : "OperateIQ Showcase Portfolio"}</span>
+          <span className="text-sky-300 font-bold truncate">{activeOrg ? activeOrg.name : "OpsIQ Showcase Portfolio"}</span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Link

@@ -151,7 +151,7 @@ export default function MarketIntel() {
               <strong className="text-gray-400">BusinessWire</strong>, and{" "}
               <strong className="text-gray-400">PR Newswire</strong> for companies
               expanding, relocating, or opening offices — then <strong className="text-gray-400">Gemini AI</strong>{" "}
-              scores each signal for relevance to OperateIQ.
+              scores each signal for relevance to OpsIQ.
             </span>
           </div>
         </div>

@@ -437,14 +437,14 @@ function UserSection({ title, role, icon, color, users, onRefresh, ownerEmail }:
     const domain = typeof window !== "undefined" ? window.location.origin : "";
     if (u.role === "admin" || u.role === "manager" || u.role === "owner") {
       const loginUrl = `${domain}/admin/login?email=${encodeURIComponent(u.email || "")}`;
-      return `Hi ${u.name.split(" ")[0] || "there"}, you've been invited to join our team on OperateIQ:
+      return `Hi ${u.name.split(" ")[0] || "there"}, you've been invited to join our team on OpsIQ:
 
 ${loginUrl}
 
 Sign in with your email (${u.email}) using Magic Link, Password, or Google to access the dashboard.`;
     }
     const portalUrl = `${domain}/staff/${u.role}`;
-    return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your OperateIQ ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
+    return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your OpsIQ ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
 
 ${portalUrl}
 
@@ -1951,7 +1951,7 @@ function LoginHistory() {
         </div>
       </button>
       <p className="text-xs text-gray-500 mb-3">
-        AI-audited authentication sessions and allowlist defense to safeguard the OperateIQ dashboard.
+        AI-audited authentication sessions and allowlist defense to safeguard the OpsIQ dashboard.
       </p>
 
       {expanded && (

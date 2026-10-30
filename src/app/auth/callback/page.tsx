@@ -144,7 +144,7 @@ export default function AuthCallbackPage() {
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-[0_0_32px_rgba(59,130,246,0.35)]">
           <Loader2 size={24} className={`text-white ${pkceError ? "" : "animate-spin"}`} />
         </div>
-        <h2 className="text-base font-bold text-white mb-2">OperateIQ</h2>
+        <h2 className="text-base font-bold text-white mb-2">OpsIQ</h2>
         <p className="text-xs text-gray-300 leading-relaxed">{status}</p>
         {pkceError && (
           <div className="mt-5">

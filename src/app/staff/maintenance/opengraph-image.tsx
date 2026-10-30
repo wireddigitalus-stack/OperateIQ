@@ -56,7 +56,7 @@ export default function Image() {
             marginBottom: 24,
           }}
         >
-          <span>OperateIQ Portal</span>
+          <span>OpsIQ Portal</span>
         </div>
 
         {/* Main Icon Area */}
@@ -117,7 +117,7 @@ export default function Image() {
             letterSpacing: "1px",
           }}
         >
-          <span>OperateIQ</span>
+          <span>OpsIQ</span>
           <span style={{ color: "#4B5563" }}>|</span>
           <span>STAFF DIRECTORY</span>
         </div>

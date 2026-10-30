@@ -111,7 +111,7 @@ export default function AcmeAiSearchInspector({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-white tracking-wide">
-                  OperateIQ Ultra SEO & Generative AI Search (GEO) Engine
+                  OpsIQ Ultra SEO & Generative AI Search (GEO) Engine
                 </h2>
                 <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-400">
                   Perplexity & ChatGPT Ready
@@ -251,10 +251,10 @@ export default function AcmeAiSearchInspector({
                 <div className="space-y-1">
                   <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                     <Zap size={14} className="text-amber-400" />
-                    Why Landlords Switch to OperateIQ Site Engine
+                    Why Landlords Switch to OpsIQ Site Engine
                   </h4>
                   <p className="text-[11px] text-gray-400 max-w-xl">
-                    Traditional commercial sites rely on PDFs and obsolete 2015 meta tags. OperateIQ generates structured knowledge graphs so that conversational AI assistants recommend your properties directly to corporate tenants without paying CoStar or LoopNet listing fees.
+                    Traditional commercial sites rely on PDFs and obsolete 2015 meta tags. OpsIQ generates structured knowledge graphs so that conversational AI assistants recommend your properties directly to corporate tenants without paying CoStar or LoopNet listing fees.
                   </p>
                 </div>
                 <div className="px-4 py-2 rounded-xl bg-white/[0.06] border border-white/20 text-white font-bold text-xs whitespace-nowrap">
@@ -307,7 +307,7 @@ export default function AcmeAiSearchInspector({
                   <div className="text-3xl font-black text-purple-400">100%</div>
                   <div className="text-xs font-bold text-white">Direct Lead Capture</div>
                   <p className="text-[11px] text-gray-400">
-                    Tour requests pipe directly to your OperateIQ CRM board.
+                    Tour requests pipe directly to your OpsIQ CRM board.
                   </p>
                 </div>
               </div>
@@ -318,7 +318,7 @@ export default function AcmeAiSearchInspector({
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-white/10 bg-[#0B1020]/95">
           <span className="text-xs text-gray-400">
-            Powered by OperateIQ Ultra SEO & GEO Platform
+            Powered by OpsIQ Ultra SEO & GEO Platform
           </span>
           <button
             onClick={onClose}

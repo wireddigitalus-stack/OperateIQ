@@ -3,7 +3,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { BRAND } from "@/lib/brand";
 import { PLANS, FEATURE_LABELS, TRIAL_DAYS } from "@/lib/plans";
 
-// OpsIQ — public product & trial-conversion assistant for the OperateIQ marketing site.
+// OpsIQ — public product & trial-conversion assistant for the OpsIQ marketing site.
 
 const planSummary = PLANS.map(
   (p) =>

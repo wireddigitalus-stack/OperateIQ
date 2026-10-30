@@ -1137,7 +1137,7 @@ export default function PropDetailsTab() {
     let htmlContent = `
       <html>
         <head>
-          <title>OperateIQ - Unleased Spaces Report</title>
+          <title>OpsIQ - Unleased Spaces Report</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111827; margin: 40px; }
             h1 { font-size: 20px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; border-bottom: 2px solid #111827; padding-bottom: 10px; }
@@ -1221,7 +1221,7 @@ export default function PropDetailsTab() {
 
     htmlContent += `
           <div style="margin-top: 50px; text-align: center; font-size: 11px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 10px;">
-            OperateIQ Property Operations Platform &copy; ${new Date().getFullYear()}
+            OpsIQ Property Operations Platform &copy; ${new Date().getFullYear()}
           </div>
           <script>
             window.onload = function() {

@@ -1,7 +1,7 @@
 {
-  "name": "OperateIQ Maintenance",
+  "name": "OpsIQ Maintenance",
   "short_name": "OIQ Maintenance",
-  "description": "OperateIQ Maintenance crew portal",
+  "description": "OpsIQ Maintenance crew portal",
   "start_url": "/staff/maintenance",
   "scope": "/staff/maintenance/",
   "display": "standalone",

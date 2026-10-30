@@ -92,14 +92,14 @@ export default function AdminHeader() {
         >
           <Image
             src="/operateiq_google_ICON_logo_1791954043128.png"
-            alt="OperateIQ"
+            alt="OpsIQ"
             width={32}
             height={32}
             className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-[0_0_12px_rgba(34,211,238,0.3)] group-hover:scale-105 transition-transform"
             priority
           />
           <span className={`text-white font-extrabold tracking-tight text-lg truncate ${activeOrg && memberships.length > 1 ? "hidden sm:inline" : ""}`}>
-            Operate<span className="oiq-grad-text">IQ</span>
+            Ops<span className="oiq-grad-text">IQ</span>
           </span>
           {activeOrg && memberships.length <= 1 ? (
             <span
@@ -190,7 +190,7 @@ export default function AdminHeader() {
           <button
             type="button"
             onClick={handleCopySupportId}
-            title="Click to copy your OperateIQ Support ID"
+            title="Click to copy your OpsIQ Support ID"
             className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-cyan-950/60 hover:bg-cyan-900/70 border border-cyan-500/35 text-cyan-300 transition-all cursor-pointer"
           >
             <span>{copiedId ? "Copied ID!" : `ID: ${customerCode}`}</span>

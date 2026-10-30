@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       cleanDomain.endsWith(".vercel.app")
     ) {
       return NextResponse.json(
-        { error: "Cannot claim an OperateIQ platform domain as a custom domain." },
+        { error: "Cannot claim an OpsIQ platform domain as a custom domain." },
         { status: 400 }
       );
     }

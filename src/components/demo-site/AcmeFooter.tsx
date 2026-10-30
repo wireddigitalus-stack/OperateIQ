@@ -61,7 +61,7 @@ export default function AcmeFooter({
                   {orgName ? `${orgName} Public Property Website` : "Live Commercial Property Website"}
                 </p>
                 <p className="text-[11px] text-gray-400">
-                  Workspace active · Managed by OperateIQ Site Engine.
+                  Workspace active · Managed by OpsIQ Site Engine.
                 </p>
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function AcmeFooter({
           {/* Quick Links / Ecosystem */}
           <div className="space-y-2">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-              {isMember ? "OperateIQ Architecture" : "Company & Platform"}
+              {isMember ? "OpsIQ Architecture" : "Company & Platform"}
             </h4>
             <ul className="text-xs space-y-1.5">
               {isMember && (
@@ -163,7 +163,7 @@ export default function AcmeFooter({
               )}
               <li>
                 <Link href="/" className="text-gray-400 hover:text-white flex items-center gap-1">
-                  <span>OperateIQ Platform</span>
+                  <span>OpsIQ Platform</span>
                   <ArrowUpRight size={11} />
                 </Link>
               </li>
@@ -176,7 +176,7 @@ export default function AcmeFooter({
           <p>© {new Date().getFullYear()} {orgName || "Commercial Property Partners"}. All rights reserved.</p>
           <p className="flex items-center gap-1">
             <span>Powered by</span>
-            <strong className="text-gray-300">OperateIQ</strong>
+            <strong className="text-gray-300">OpsIQ</strong>
             <span>Property Intelligence Platform</span>
           </p>
         </div>

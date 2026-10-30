@@ -1,7 +1,7 @@
 {
-  "name": "OperateIQ Cleaning",
+  "name": "OpsIQ Cleaning",
   "short_name": "OIQ Cleaning",
-  "description": "OperateIQ Cleaning crew portal",
+  "description": "OpsIQ Cleaning crew portal",
   "start_url": "/staff/cleaning",
   "scope": "/staff/cleaning/",
   "display": "standalone",

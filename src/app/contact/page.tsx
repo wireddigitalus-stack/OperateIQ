@@ -100,7 +100,7 @@ export default function ContactPage() {
               Message Sent!
             </h1>
             <p className="text-gray-400 text-sm leading-relaxed mb-2">
-              Thanks for reaching out. A member of the OperateIQ team will review your message and
+              Thanks for reaching out. A member of the OpsIQ team will review your message and
               follow up at{" "}
               {submittedEmail && (
                 <span className="text-white font-semibold">{submittedEmail}</span>
@@ -156,7 +156,7 @@ export default function ContactPage() {
               id="contact-form"
               onSubmit={handleSubmit}
               className="glass rounded-2xl p-5 sm:p-8 border border-[rgba(99,102,241,0.1)] space-y-5"
-              aria-label="Contact OperateIQ"
+              aria-label="Contact OpsIQ"
             >
               {/* ── Honeypot — hidden from humans, invisible via CSS ─────── */}
               <div style={{ position: "absolute", left: "-9999px", opacity: 0, pointerEvents: "none" }} aria-hidden="true">

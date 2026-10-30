@@ -312,7 +312,7 @@ export const TIPS: Record<TabKey, Tip[]> = {
       accent: "amber",
       audience: "admin",
       title: "Automated Lease Expiry Alerts",
-      body: "OperateIQ automatically monitors every tenant's lease end date and renewal date. Color-coded badges warn you at 90 days (Watch), 60 days (Soon), 30 days (Urgent), and Expired so you never miss a renewal window.",
+      body: "OpsIQ automatically monitors every tenant's lease end date and renewal date. Color-coded badges warn you at 90 days (Watch), 60 days (Soon), 30 days (Urgent), and Expired so you never miss a renewal window.",
       highlights: [
         "Customize the alert threshold per tenant (e.g., 90, 120, or 180 days)",
         "Expiring leases also surface in the top-of-dashboard Lease Renewal Alert banner",
@@ -366,7 +366,7 @@ export const TIPS: Record<TabKey, Tip[]> = {
       accent: "purple",
       audience: "admin",
       title: "Financials, Valuations & Taxes",
-      body: "Record purchase price, estimated market value, mortgage debt, annual property taxes, and insurance costs on each building. OperateIQ calculates your portfolio equity, cap rate, and net operating metrics automatically.",
+      body: "Record purchase price, estimated market value, mortgage debt, annual property taxes, and insurance costs on each building. OpsIQ calculates your portfolio equity, cap rate, and net operating metrics automatically.",
     },
     {
       icon: Car,
@@ -689,7 +689,7 @@ export const TIPS: Record<TabKey, Tip[]> = {
       accent: "cyan",
       audience: "admin",
       title: "Custom Domain Manager (GoDaddy / IONOS / Cloudflare)",
-      body: "On the Pro plan, connect your own custom domain (e.g., properties.yourcompany.com) to your public OperateIQ website. Enter your domain, add the displayed DNS records at your registrar, and click 'Verify DNS Connection'.",
+      body: "On the Pro plan, connect your own custom domain (e.g., properties.yourcompany.com) to your public OpsIQ website. Enter your domain, add the displayed DNS records at your registrar, and click 'Verify DNS Connection'.",
     },
     {
       icon: KeyRound,
@@ -839,7 +839,7 @@ export const TECH_SUPPORT_GUIDES: TechSupportGuide[] = [
       "Once signed in via Magic Link or Google, open Settings → Password & Account Security to set a permanent password for future logins.",
       "If you are a Maintenance or Cleaning technician, do not use /admin/login — use /staff/maintenance or /staff/cleaning with your 6-digit PIN.",
     ],
-    proTip: "Check your spam or promotions folder for emails from OperateIQ if a Magic Link takes more than 30 seconds to arrive.",
+    proTip: "Check your spam or promotions folder for emails from OpsIQ if a Magic Link takes more than 30 seconds to arrive.",
   },
   {
     id: "crew-pin-portal",
@@ -853,7 +853,7 @@ export const TECH_SUPPORT_GUIDES: TechSupportGuide[] = [
       "Verify the crew member is on the matching portal URL: Maintenance techs must use /staff/maintenance and Cleaners must use /staff/cleaning.",
       "In the Admin Dashboard, open Settings → Team Members, Roles & Crew PINs and confirm the staff member's profile is set to Active and verify their 6-digit PIN.",
       "For photo upload issues on iPhone (Safari) or Android (Chrome), tap the lock/settings icon in the browser address bar and ensure Camera & Photos permissions are set to 'Allow'.",
-      "Have the crew member tap 'Add to Home Screen' in their mobile browser to install the OperateIQ Crew Web App for 1-tap daily access.",
+      "Have the crew member tap 'Add to Home Screen' in their mobile browser to install the OpsIQ Crew Web App for 1-tap daily access.",
     ],
     proTip: "You can regenerate or view any technician's 6-digit PIN at any time inside Settings → Team & Access.",
   },
@@ -869,7 +869,7 @@ export const TECH_SUPPORT_GUIDES: TechSupportGuide[] = [
       "Click 'Import Docs / Excel' in the top navigation bar of your Admin Dashboard.",
       "Upload an .xlsx, .xls, .csv spreadsheet, a lease PDF, or a clear photo of a rent roll sheet.",
       "Review the interactive preview table before saving — you can edit any building name, suite number, monthly rent, or lease date right in the preview modal.",
-      "Make sure the building name on tenant rows matches your property name so OperateIQ automatically links each tenant to the right building.",
+      "Make sure the building name on tenant rows matches your property name so OpsIQ automatically links each tenant to the right building.",
     ],
     proTip: "If you have a massive workbook with multiple tabs, exporting the active Rent Roll tab as a .csv or single-sheet .xlsx gives the fastest AI extraction.",
   },
@@ -880,7 +880,7 @@ export const TECH_SUPPORT_GUIDES: TechSupportGuide[] = [
     category: "Domains & Website",
     icon: Globe,
     accent: "blue",
-    solutionSummary: "Custom domains require an A record (for root domains) or CNAME record (for subdomains) pointing to OperateIQ's edge network.",
+    solutionSummary: "Custom domains require an A record (for root domains) or CNAME record (for subdomains) pointing to OpsIQ's edge network.",
     steps: [
       "Open Settings → Custom Domain Manager in your Admin Dashboard (available on the Pro tier).",
       "Enter your desired domain (e.g., yourcompany.com or properties.yourcompany.com) and click Save.",
@@ -960,7 +960,7 @@ export const BASIC_FAQS: FaqItem[] = [
   {
     id: "faq-import",
     category: "Getting Started",
-    question: "How do I move my current properties and tenants into OperateIQ?",
+    question: "How do I move my current properties and tenants into OpsIQ?",
     answer:
       "You don't have to type them one by one. Click 'Import Docs / Excel' in the top navigation bar of your dashboard and upload your current rent roll (.xlsx or .csv), lease PDF, or even a smartphone photo of a property sheet. Gemini AI extracts your buildings, units, and tenant records so you can review and save them in one click.",
     relatedTab: "global",
@@ -970,7 +970,7 @@ export const BASIC_FAQS: FaqItem[] = [
     category: "Getting Started",
     question: "Does a new account come with fake data or start clean?",
     answer:
-      "Every new OperateIQ workspace starts 100% clean so your reports and public website only reflect your real business. If you want to test features before importing your own buildings, you can click 'Load Sample Properties' inside the dashboard to load 4 clearly labeled demo properties that you can edit or delete anytime.",
+      "Every new OpsIQ workspace starts 100% clean so your reports and public website only reflect your real business. If you want to test features before importing your own buildings, you can click 'Load Sample Properties' inside the dashboard to load 4 clearly labeled demo properties that you can edit or delete anytime.",
     relatedTab: "propdetails",
   },
   {
@@ -978,7 +978,7 @@ export const BASIC_FAQS: FaqItem[] = [
     category: "Crew Portals",
     question: "How do my maintenance technicians and cleaners log in on their phones?",
     answer:
-      "Field staff never need an email login or password. In Settings → Team Members, create a Maintenance or Cleaning staff member and OperateIQ generates a unique 6-digit PIN. Maintenance techs visit /staff/maintenance and cleaners visit /staff/cleaning on any smartphone, enter their 6-digit PIN, and immediately see their assigned work orders, checklists, and photo upload tools.",
+      "Field staff never need an email login or password. In Settings → Team Members, create a Maintenance or Cleaning staff member and OpsIQ generates a unique 6-digit PIN. Maintenance techs visit /staff/maintenance and cleaners visit /staff/cleaning on any smartphone, enter their 6-digit PIN, and immediately see their assigned work orders, checklists, and photo upload tools.",
     relatedTab: "maintenance",
   },
   {
@@ -1002,7 +1002,7 @@ export const BASIC_FAQS: FaqItem[] = [
     category: "Daily Operations",
     question: "How do automated lease expiration alerts work?",
     answer:
-      "OperateIQ checks every tenant's lease end date daily. Leases approaching expiration are highlighted with clear badges at 90 days (Watch), 60 days (Soon), 30 days (Urgent), and Expired. You also get a Lease Renewal Alert summary banner at the top of your dashboard so you can start renewal conversations early.",
+      "OpsIQ checks every tenant's lease end date daily. Leases approaching expiration are highlighted with clear badges at 90 days (Watch), 60 days (Soon), 30 days (Urgent), and Expired. You also get a Lease Renewal Alert summary banner at the top of your dashboard so you can start renewal conversations early.",
     relatedTab: "tenants",
   },
   {
@@ -1010,7 +1010,7 @@ export const BASIC_FAQS: FaqItem[] = [
     category: "Daily Operations",
     question: "How does AI Lead Scoring decide if a prospect is Hot, Warm, or Nurture?",
     answer:
-      "When a prospect submits a form on your website or you log a phone/walk-in lead, OperateIQ evaluates their budget, square footage needs, move-in timeline, and business type on a 0–100 scale. Scores of 75–100 are marked Hot Leads, 50–74 are Warm Leads, and under 50 are Nurture. High-value prospects ($2,500+/mo) also receive a Whale badge.",
+      "When a prospect submits a form on your website or you log a phone/walk-in lead, OpsIQ evaluates their budget, square footage needs, move-in timeline, and business type on a 0–100 scale. Scores of 75–100 are marked Hot Leads, 50–74 are Warm Leads, and under 50 are Nurture. High-value prospects ($2,500+/mo) also receive a Whale badge.",
     relatedTab: "leads",
   },
   {
@@ -1024,7 +1024,7 @@ export const BASIC_FAQS: FaqItem[] = [
   {
     id: "faq-data-security",
     category: "Billing & Security",
-    question: "Is my portfolio data private and isolated from other OperateIQ customers?",
+    question: "Is my portfolio data private and isolated from other OpsIQ customers?",
     answer:
       "Yes. Every organization workspace is strictly isolated by a unique Organization ID (org_id) enforced by PostgreSQL Row-Level Security (RLS) policies and server-side authentication checks. Your properties, tenants, documents, and AI assistant queries are 100% private to your organization.",
     relatedTab: "settings",
@@ -1034,7 +1034,7 @@ export const BASIC_FAQS: FaqItem[] = [
     category: "Billing & Security",
     question: "What happens during the 14-day free trial and how do I change plans?",
     answer:
-      "You get 14 days of full access to test OperateIQ with your own properties or sample data. You can upgrade, downgrade, or manage billing anytime under Settings → Subscription & Billing. Choose Starter ($99/mo, up to 5 properties & 3 team members), Growth ($249/mo, up to 25 properties & 10 team members + Rent Ledger, Maintenance, Cleaning, Crew Portals, Inspections, HVAC Filters & Reports), or Pro ($499/mo, unlimited properties & team members + Turnkey Public Website Builder, Custom Domain, Marketing Studio, AI Blog & Social Studio, and Cold Outreach CRM).",
+      "You get 14 days of full access to test OpsIQ with your own properties or sample data. You can upgrade, downgrade, or manage billing anytime under Settings → Subscription & Billing. Choose Starter ($99/mo, up to 5 properties & 3 team members), Growth ($249/mo, up to 25 properties & 10 team members + Rent Ledger, Maintenance, Cleaning, Crew Portals, Inspections, HVAC Filters & Reports), or Pro ($499/mo, unlimited properties & team members + Turnkey Public Website Builder, Custom Domain, Marketing Studio, AI Blog & Social Studio, and Cold Outreach CRM).",
     relatedTab: "settings",
   },
 ];
@@ -1059,7 +1059,7 @@ export function buildHelpKnowledgeContext(): string {
   const faqLines = BASIC_FAQS.map((f) => `[FAQ - ${f.category}] Q: ${f.question} A: ${f.answer}`);
 
   return [
-    "=== OPERATEIQ PRO-TIPS & FEATURE GUIDES ===",
+    "=== OPSIQ PRO-TIPS & FEATURE GUIDES ===",
     ...tipLines,
     "",
     "=== TECH SUPPORT & TROUBLESHOOTING GUIDES ===",

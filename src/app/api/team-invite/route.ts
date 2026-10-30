@@ -3,7 +3,7 @@ import { requireOrgAdmin } from "@/lib/server-auth";
 import { BRAND } from "@/lib/brand";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || "OperateIQ <notifications@getoperateiq.com>";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || "OpsIQ <notifications@getoperateiq.com>";
 
 function escapeHtml(s: string): string {
   return s
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = String(email).trim().toLowerCase();
     const cleanName = String(name || "").trim() || cleanEmail.split("@")[0];
-    const orgName = org?.name || "OperateIQ Workspace";
+    const orgName = org?.name || "OpsIQ Workspace";
     const rawRole = String(role || "member").trim().toLowerCase();
     const roleDescription =
       rawRole === "owner"

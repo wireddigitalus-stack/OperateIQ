@@ -85,7 +85,7 @@ function findRelatedGuides(query: string): { title: string; categoryLabel: strin
 function buildLocalFallbackAnswer(query: string, customerCode?: string): string {
   const q = query.toLowerCase();
   if (customerCode && (q.includes("support code") || q.includes("customer code") || q.includes("account id"))) {
-    return `Your organization's Customer Support Code (Account ID) is ${customerCode}. You can copy it in one click from the Help Center header, footer, or inside your Admin Dashboard header and Settings tab whenever contacting OperateIQ Support.`;
+    return `Your organization's Customer Support Code (Account ID) is ${customerCode}. You can copy it in one click from the Help Center header, footer, or inside your Admin Dashboard header and Settings tab whenever contacting OpsIQ Support.`;
   }
   for (const faq of BASIC_FAQS) {
     if (faq.question.toLowerCase().includes(q) || q.split(/\s+/).filter((w) => w.length > 3 && faq.question.toLowerCase().includes(w)).length >= 2) {

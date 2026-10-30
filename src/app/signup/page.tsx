@@ -146,7 +146,7 @@ function SignupForm() {
         <div className="space-y-2">
           <h2 className="text-2xl font-black text-white">Your Workspace Is Ready!</h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm mx-auto">
-            Welcome to <strong>OperateIQ</strong>, {fullName.split(" ")[0]}. We have provisioned a dedicated <strong>{TRIAL_DAYS}-day free trial</strong> workspace for <strong>{companyName}</strong> on the <strong>{activePlan.name}</strong> plan.
+            Welcome to <strong>OpsIQ</strong>, {fullName.split(" ")[0]}. We have provisioned a dedicated <strong>{TRIAL_DAYS}-day free trial</strong> workspace for <strong>{companyName}</strong> on the <strong>{activePlan.name}</strong> plan.
           </p>
         </div>
 
