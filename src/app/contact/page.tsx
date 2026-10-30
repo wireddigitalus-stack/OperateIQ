@@ -310,7 +310,7 @@ export default function ContactPage() {
             <div className="glass rounded-xl p-5 border border-[rgba(99,102,241,0.2)] bg-[rgba(99,102,241,0.04)]">
               <div className="flex items-center gap-3 mb-3">
                 <MessageSquare size={18} className="text-[#22D3EE]" />
-                <span className="text-sm font-bold text-white">Chat with PropOpsIQ</span>
+                <span className="text-sm font-bold text-white">Chat with OpsIQ</span>
                 <div className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#22D3EE] pulse-green" />
                   <span className="text-[10px] text-[#22D3EE]">Online</span>
@@ -319,10 +319,10 @@ export default function ContactPage() {
               <p className="text-xs text-gray-400 mb-3">Get instant answers about features, plans, and getting started.</p>
               <button
                 id="contact-open-chat"
-                onClick={() => (document.querySelector<HTMLButtonElement>("[aria-label=\"Chat with PropOpsIQ\"]") as HTMLButtonElement)?.click()}
+                onClick={() => (document.querySelector<HTMLButtonElement>("[aria-label=\"Chat with OpsIQ\"]") as HTMLButtonElement)?.click()}
                 className="btn-secondary w-full py-2.5 text-sm justify-center"
               >
-                Ask PropOpsIQ
+                Ask OpsIQ
               </button>
             </div>
           </div>

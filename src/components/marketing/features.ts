@@ -15,6 +15,6 @@ export const FEATURES = [
   { icon: HardHat, title: "Vendor directory", body: "Rated subcontractors by trade, ready to assign to any ticket." },
   { icon: Building2, title: "Portfolio & expenses", body: "Per-property taxes, insurance and utilities with occupancy and NOI rolled up across the portfolio." },
   { icon: BarChart3, title: "AI reports", body: "Weekly ops summaries and quarterly business reviews written for you from live data." },
-  { icon: Bot, title: "PropOpsIQ assistant", body: "Ask questions about your portfolio in plain English and get answers grounded in your data." },
+  { icon: Bot, title: "OpsIQ AI assistant", body: "Ask questions about your portfolio in plain English and get answers grounded in your data." },
   { icon: Globe, title: "Website builder", body: "Publish a listings site with your brand, pages, blog and SEO tools — on your own domain." },
 ];

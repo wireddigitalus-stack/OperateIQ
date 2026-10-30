@@ -177,8 +177,8 @@ export const TIPS: Record<TabKey, Tip[]> = {
       icon: Brain,
       accent: "purple",
       audience: "all",
-      title: "Ask PropOpsIQ Portfolio Assistant",
-      body: "Click 'Ask PropOpsIQ' in the top bar anytime to ask natural-language questions about your portfolio — such as expiring leases, overdue rent, open maintenance tickets, or top-scoring leads.",
+      title: "Ask OpsIQ Portfolio Assistant",
+      body: "Click 'Ask OpsIQ' in the top bar anytime to ask natural-language questions about your portfolio — such as expiring leases, overdue rent, open maintenance tickets, or top-scoring leads.",
       highlights: [
         "Reads live data across your organization's buildings, tenants, and tickets",
         "Available to both Admin users and mobile Crew Portal staff",
@@ -240,7 +240,7 @@ export const TIPS: Record<TabKey, Tip[]> = {
       accent: "purple",
       audience: "admin",
       title: "AI Priority Call List",
-      body: "The Priority Call List card at the top of the Leads tab ranks your top prospects to call today. Click 'Refresh Brief' to have Ask PropOpsIQ generate a 2-sentence executive summary of who to call first and why.",
+      body: "The Priority Call List card at the top of the Leads tab ranks your top prospects to call today. Click 'Refresh Brief' to have Ask OpsIQ generate a 2-sentence executive summary of who to call first and why.",
       highlights: [
         "Click any prospect's name in the priority list to jump straight to their lead card",
         "Shows your personal overdue follow-up checklist right below the AI brief",
@@ -713,7 +713,7 @@ export const SECTION_CATEGORIES: { key: TabKey; label: string; icon: LucideIcon;
   { key: "content-properties", label: "Website Builder", icon: Globe, description: "Public leasing site, hero banners & property listings" },
   { key: "settings", label: "Settings & Billing", icon: Settings, description: "Plans, Stripe billing, team invites, PINs & domains" },
   { key: "archived", label: "Archived Leads", icon: Archive, description: "Restore inactive prospects or permanently remove spam" },
-  { key: "global", label: "Platform AI Tools", icon: Brain, description: "AI Document/Excel intake & Ask PropOpsIQ assistant" },
+  { key: "global", label: "Platform AI Tools", icon: Brain, description: "AI Document/Excel intake & Ask OpsIQ assistant" },
 ];
 
 export const TAB_LABELS: Record<TabKey, string> = {
@@ -961,9 +961,9 @@ export const QUICK_START_STEPS = [
   },
   {
     step: "Step 3",
-    title: "Track Rent, Dispatch Tickets & Ask PropOpsIQ",
+    title: "Track Rent, Dispatch Tickets & Ask OpsIQ",
     description:
-      "Use the Rent Ledger to track monthly payments, dispatch work orders with photo verification, and click 'Ask PropOpsIQ' anytime to get instant answers about expiring leases, overdue rent, or hot leads.",
+      "Use the Rent Ledger to track monthly payments, dispatch work orders with photo verification, and click 'Ask OpsIQ' anytime to get instant answers about expiring leases, overdue rent, or hot leads.",
     tabKey: "tenants" as TabKey,
     badge: "Real-time operations",
   },

@@ -1028,7 +1028,7 @@ function NotificationsCard() {
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Triggers</p>
             <div className="space-y-1">
               {[
-                { icon: <Zap size={12} className="text-[#FACC15]" />, label: "New Lead (Chatbot)", desc: "Instant email when someone submits via Ask PropOpsIQ" },
+                { icon: <Zap size={12} className="text-[#FACC15]" />, label: "New Lead (Chatbot)", desc: "Instant email when someone submits via Ask OpsIQ" },
                 { icon: <MessageSquare size={12} className="text-[#60A5FA]" />, label: "Contact Form", desc: "Inquiry from the website contact page" },
               ].map((t, i) => (
                 <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[rgba(0,0,0,0.15)]">

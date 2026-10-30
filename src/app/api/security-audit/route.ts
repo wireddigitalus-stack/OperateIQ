@@ -4,7 +4,7 @@ import { requireOrgAdmin } from "@/lib/server-auth";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
-const SYSTEM_PROMPT = `You are the Ask PropOpsIQ AI Security Auditor.
+const SYSTEM_PROMPT = `You are the Ask OpsIQ AI Security Auditor.
 Your task is to analyze the recent admin panel authentication logs for suspicious activity and rate the security posture of the platform.
 
 LOG FORMAT:

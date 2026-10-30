@@ -69,7 +69,7 @@ export default function StaffAskOpsIQ({ role, context }: StaffAskOpsIQProps) {
       <button
         onClick={() => setOpen(true)}
         className={`fixed bottom-24 right-4 z-30 w-14 h-14 rounded-full bg-gradient-to-br ${roleGradient} shadow-lg flex items-center justify-center text-black transition-transform active:scale-90`}
-        aria-label="Ask PropOpsIQ AI"
+        aria-label="Ask OpsIQ AI"
       >
         <Brain size={22} />
       </button>
@@ -84,7 +84,7 @@ export default function StaffAskOpsIQ({ role, context }: StaffAskOpsIQProps) {
                 <Brain size={18} className="text-black" />
               </div>
               <div>
-                <p className="text-sm font-black text-white">Ask PropOpsIQ AI</p>
+                <p className="text-sm font-black text-white">Ask OpsIQ AI</p>
                 <p className="text-[11px] text-gray-500">
                   {role === "maintenance" ? "Repair guides & troubleshooting" : "Cleaning procedures & tips"}
                 </p>

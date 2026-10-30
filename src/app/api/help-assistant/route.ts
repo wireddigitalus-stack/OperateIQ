@@ -104,7 +104,7 @@ function buildLocalFallbackAnswer(query: string, customerCode?: string): string 
       return `${tip.title}: ${tip.body}${tip.highlights?.length ? `\n\nKey Tips:\n• ${tip.highlights.join("\n• ")}` : ""}`;
     }
   }
-  return `You can search all ${BRAND.name} ProTips and Tech Support guides right below, or use the "Import Docs / Excel" and "Ask PropOpsIQ" tools in your dashboard top bar.${customerCode ? ` Your Customer Support Code is ${customerCode}.` : ""} Need 1-on-1 assistance? Click "Contact Tech Support" at the bottom of this page.`;
+  return `You can search all ${BRAND.name} ProTips and Tech Support guides right below, or use the "Import Docs / Excel" and "Ask OpsIQ" tools in your dashboard top bar.${customerCode ? ` Your Customer Support Code is ${customerCode}.` : ""} Need 1-on-1 assistance? Click "Contact Tech Support" at the bottom of this page.`;
 }
 
 export async function POST(req: NextRequest) {

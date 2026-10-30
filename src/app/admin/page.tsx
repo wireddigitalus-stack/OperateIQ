@@ -335,12 +335,12 @@ function AskOpsIQModal({
           <div className="flex items-center gap-3 min-w-0">
             <img
               src="/operateiq_google_ICON_logo_1791954043128.png"
-              alt="PropOpsIQ"
+              alt="OpsIQ"
               className="w-10 h-10 rounded-xl object-contain flex-shrink-0 shadow-[0_0_18px_rgba(56,189,248,0.3)]"
             />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-white font-black text-sm sm:text-base">Ask PropOpsIQ</p>
+                <p className="text-white font-black text-sm sm:text-base">Ask OpsIQ</p>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-black text-emerald-300 uppercase tracking-wider">
                   <Lock size={10} /> Isolated to {resolvedOrgName}
                 </span>
@@ -404,7 +404,7 @@ function AskOpsIQModal({
                   ) : (
                     <div className="w-full rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_0_15px_rgba(56,189,248,0.06)]">
                       <p className="text-[11px] text-[#4ADE80] font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                        <Sparkles size={11} /> PropOpsIQ Executive Brief · {resolvedOrgName}
+                        <Sparkles size={11} /> OpsIQ Executive Brief · {resolvedOrgName}
                       </p>
                       <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">
                         {m.content}
@@ -635,7 +635,7 @@ Use real names and numbers. Be punchy.`,
           <p className="text-sm text-gray-500 italic">Top priority: {topLead.name} — {topLead.spaceType} at ${parseBudget(topLead.budget).toLocaleString()}/mo</p>
         ) : null}
         <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
-          <Sparkles size={9} /> Powered by Ask PropOpsIQ
+          <Sparkles size={9} /> Powered by Ask OpsIQ
         </p>
       </div>
 
@@ -1029,7 +1029,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail, orgId }:
                 </span>
               </div>
               <p className="text-xs text-gray-300 mt-1 leading-relaxed">
-                Log a phone inquiry, walk-in tour, or referral and auto-score it with PropOpsIQ AI — or capture web prospects 24/7 via Ask PropOpsIQ.
+                Log a phone inquiry, walk-in tour, or referral and auto-score it with OpsIQ AI — or capture web prospects 24/7 via Ask OpsIQ.
               </p>
             </div>
           </div>
@@ -2335,10 +2335,10 @@ export default function AdminPage() {
             <button
               onClick={() => setShowAskOpsIQ(true)}
               className="btn-ask-opsiq px-2.5 sm:px-4 py-2"
-              title="Ask PropOpsIQ"
+              title="Ask OpsIQ"
             >
               <Brain size={13} />
-              <span className="hidden sm:inline">Ask PropOpsIQ</span>
+              <span className="hidden sm:inline">Ask OpsIQ</span>
             </button>
 
             <button
@@ -3729,7 +3729,7 @@ export default function AdminPage() {
               <div className="text-center py-20 text-gray-600">
                 <Zap size={32} className="mx-auto mb-3 opacity-30" />
                 <p>No {filter.toLowerCase()}s yet.</p>
-                <p className="text-sm mt-1">Leads appear here as they come in through Ask PropOpsIQ.</p>
+                <p className="text-sm mt-1">Leads appear here as they come in through Ask OpsIQ.</p>
               </div>
             )}
 

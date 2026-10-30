@@ -20,7 +20,7 @@ const KPIS = [
   { label: "Net Monthly Rent", to: 284500, prefix: "$", suffix: "", decimals: 0, change: "+14.8% YoY", sub: "98.4% collected on-time", icon: DollarSign, color: "text-emerald-400" },
   { label: "Annualized Run Rate", to: 3414000, prefix: "$", suffix: "", decimals: 0, change: "+$442k added", sub: "Contracted lease value", icon: TrendingUp, color: "text-sky-400" },
   { label: "Portfolio Occupancy", to: 96.4, prefix: "", suffix: "%", decimals: 1, change: "+5.2% vs Q1", sub: "98 of 102 units leased", icon: Building2, color: "text-indigo-400" },
-  { label: "Inbound Pipeline", to: 58400, prefix: "$", suffix: "/mo", decimals: 0, change: "3 Whale Leads", sub: "PropOpsIQ scored & verified", icon: Zap, color: "text-amber-400" },
+  { label: "Inbound Pipeline", to: 58400, prefix: "$", suffix: "/mo", decimals: 0, change: "3 Whale Leads", sub: "OpsIQ scored & verified", icon: Zap, color: "text-amber-400" },
 ];
 
 export default function MockDemoCard() {
@@ -65,7 +65,7 @@ export default function MockDemoCard() {
           </div>
         </div>
 
-        {/* 2. PropOpsIQ Daily Brief */}
+        {/* 2. OpsIQ Daily Brief */}
         <div className="px-5 sm:px-7 py-3.5 bg-gradient-to-r from-blue-600/[0.14] via-indigo-600/[0.08] to-cyan-500/[0.14] border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 via-sky-400 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(56,189,248,0.45)]">
@@ -73,7 +73,7 @@ export default function MockDemoCard() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold text-white tracking-wide">PropOpsIQ Daily Brief</span>
+                <span className="text-xs font-bold text-white tracking-wide">OpsIQ Daily Brief</span>
                 <span className="text-[10px] text-sky-300 font-mono px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-400/30">08:00 AM · Auto-generated</span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
@@ -83,7 +83,7 @@ export default function MockDemoCard() {
           </div>
           <div className="flex items-center gap-2 text-xs font-semibold text-sky-300 hover:text-white px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/12 transition-all cursor-pointer self-end sm:self-auto flex-shrink-0 shadow-[0_0_14px_rgba(56,189,248,0.18)]">
             <Sparkles size={13} className="text-sky-400" />
-            <span>Ask PropOpsIQ</span>
+            <span>Ask OpsIQ</span>
             <ChevronRight size={13} className="text-slate-400" />
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function MockDemoCard() {
               {
                 tone: "blue", icon: Zap, tag: "Whale Lead (Score 96)", meta: "$6,800/mo",
                 title: "Valley Medical Practice", sub: "2,400 sqft · Matches Oakridge Plaza #210",
-                left: "Scored by PropOpsIQ", leftCls: "text-slate-300", action: "Review LOI",
+                left: "Scored by OpsIQ", leftCls: "text-slate-300", action: "Review LOI",
               },
               {
                 tone: "amber", icon: Wrench, tag: "Crew Dispatched", meta: "14m ago",

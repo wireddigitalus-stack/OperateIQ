@@ -354,7 +354,7 @@ INSTRUCTIONS:
       },
     });
   } catch (error: unknown) {
-    console.error("Ask PropOpsIQ error:", error);
+    console.error("Ask OpsIQ error:", error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: `Analysis failed: ${message}` }, { status: 500 });
   }

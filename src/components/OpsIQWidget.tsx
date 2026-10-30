@@ -14,7 +14,7 @@ type Msg = {
 const GREETING: Msg = {
   role: "assistant",
   content:
-    "Hi, I'm PropOpsIQ 👋 Tell me how many properties you manage or what you want to automate, and I'll show you how PropOpsIQ works — plus help you launch a 14-day free trial in 60 seconds.",
+    "Hi, I'm OpsIQ 👋 Tell me how many properties you manage or what you want to automate, and I'll show you how PropOpsIQ works — plus help you launch a 14-day free trial in 60 seconds.",
   recommendedPlan: "growth",
 };
 
@@ -92,14 +92,14 @@ export default function OpsIQWidget() {
             <div className="flex items-center gap-2.5">
               <Image
                 src="/operateiq_google_ICON_logo_1791954043128.png"
-                alt="PropOpsIQ"
+                alt="OpsIQ"
                 width={32}
                 height={32}
                 className="w-8 h-8 rounded-lg object-contain bg-slate-950/30 p-0.5 shadow"
               />
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="font-extrabold text-white text-sm leading-none">Ask PropOpsIQ</p>
+                  <p className="font-extrabold text-white text-sm leading-none">Ask OpsIQ</p>
                   <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-300/30">
                     14-Day Free Trial
                   </span>
@@ -166,7 +166,7 @@ export default function OpsIQWidget() {
             {loading && (
               <div className="flex items-center gap-2 text-xs text-sky-300 px-1">
                 <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-                <span>PropOpsIQ is thinking…</span>
+                <span>OpsIQ is thinking…</span>
               </div>
             )}
             <div ref={endRef} />
@@ -222,14 +222,14 @@ export default function OpsIQWidget() {
         id="lease-bot-toggle"
         onClick={() => setOpen(!open)}
         className="fixed bottom-6 right-4 sm:right-6 z-[60] h-14 px-4 rounded-full oiq-grad-bg text-white flex items-center gap-2.5 shadow-[0_10px_30px_-5px_rgba(99,102,241,.7)] hover:scale-105 transition-transform cursor-pointer border border-white/20"
-        aria-label="Chat with PropOpsIQ"
+        aria-label="Chat with OpsIQ"
       >
         {open ? (
           <X size={22} />
         ) : (
           <>
             <MessageCircle size={22} />
-            <span className="text-xs font-extrabold tracking-tight hidden sm:inline">Ask PropOpsIQ</span>
+            <span className="text-xs font-extrabold tracking-tight hidden sm:inline">Ask OpsIQ</span>
           </>
         )}
       </button>
