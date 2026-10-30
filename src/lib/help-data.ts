@@ -93,7 +93,7 @@ export type TechSupportGuide = {
   id: string;
   title: string;
   symptom: string;
-  category: "Account & Login" | "Crew Mobile Portals" | "AI & Data Import" | "Domains & Website" | "Billing & Plans";
+  category: "Account & Login" | "Crew Mobile Portals" | "Rent & Payments" | "AI & Data Import" | "Domains & Website" | "Billing & Plans";
   icon: LucideIcon;
   accent: TipAccent;
   solutionSummary: string;
@@ -300,10 +300,32 @@ export const TIPS: Record<TabKey, Tip[]> = {
       accent: "blue",
       audience: "admin",
       title: "Managing Your Tenant Directory",
-      body: "Click '+ Add Tenant' to create a tenant record with lease dates, monthly rent, security deposit, square footage, and contact info — or use 'Import Docs / Excel' in the top bar to bulk-import an entire rent roll.",
+      body: "Use the Tenant Onboarding & Directory Hub at the top of the Tenants tab to click '+ Add Single Tenant', '✨ Import Lease / Excel / Photo (AI)', or 'Upload CSV / Excel' to bulk-import your rent roll.",
       highlights: [
         "Filter tenants by building or search by business name, contact, or unit",
-        "Click any tenant row to expand full lease details, documents, and payment history",
+        "Click any tenant card to expand full lease details, documents, and payment history",
+      ],
+    },
+    {
+      icon: CheckCircle2,
+      accent: "emerald",
+      audience: "admin",
+      title: "Quick '$ Log Rent' on Tenant Cards & 1-Tap Receipts",
+      body: "When a tenant hands you a check, pays cash, or sends a Zelle or Venmo transfer, click the green '$ Log Rent' button right on their Tenant Card. Pick the payment method pill (Check, Zelle, Venmo, Cash, ACH, Cash App, Wire, Money Order, or Card), enter an optional check/reference number, and save in 1 click.",
+      highlights: [
+        "Automatically syncs with your 12-Month Rent Ledger and updates collection totals",
+        "Instantly print an official PDF Rent Receipt or send a 1-tap SMS / Email confirmation",
+      ],
+    },
+    {
+      icon: DollarSign,
+      accent: "emerald",
+      audience: "admin",
+      title: "1-Click Rent Ledger, Payment Instructions & Reminders",
+      body: "Open the 'Rent Ledger' to view every tenant's monthly rent status. Selecting a payment method (like Venmo, Zelle, Check, or Cash) or clicking 'Paid' automatically fills the tenant's full monthly obligation and today's date — zero manual typing required.",
+      highlights: [
+        "Save your Zelle, Venmo, Cash App, and Check drop-off info once in 'Payment Instructions'",
+        "Click '🔔 Remind' on unpaid rows to text/email payment instructions, or '🧾 Receipt' on paid rows to issue an official receipt",
       ],
     },
     {
@@ -315,17 +337,6 @@ export const TIPS: Record<TabKey, Tip[]> = {
       highlights: [
         "Customize the alert threshold per tenant (e.g., 90, 120, or 180 days)",
         "Expiring leases also surface in the top-of-dashboard Lease Renewal Alert banner",
-      ],
-    },
-    {
-      icon: DollarSign,
-      accent: "emerald",
-      audience: "admin",
-      title: "Monthly Rent Ledger",
-      body: "Click 'Rent Ledger' at the top of the Tenants tab to open the full 12-month payment matrix. Click any month cell for a tenant to mark rent Paid, Partial, Late, or Unpaid, and record check numbers or payment notes.",
-      highlights: [
-        "Tracks total collected vs. expected rent for every month of the year",
-        "Export or print the rent ledger for accounting and ownership reporting",
       ],
     },
     {
@@ -343,10 +354,10 @@ export const TIPS: Record<TabKey, Tip[]> = {
       accent: "blue",
       audience: "admin",
       title: "Adding & Managing Properties",
-      body: "Click '+ Add Property' to add a building to your portfolio, or use 'Import Docs / Excel' in the top bar to let AI import buildings and units from a spreadsheet or document. Select any building pill at the top to view its full operational profile.",
+      body: "Use the top Portfolio Hub ('Add a Property, Import Portfolio, or Log Vacancy') to click '+ Add Property', '⚡ Import Buildings & Tenants' with AI, '+ Add Unleased Space', or '+ Add Parking Lot'. Select any building pill to view its full operational profile.",
       highlights: [
         "New workspaces start 100% clean — or you can load editable sample properties in 1 click",
-        "Delete or archive any property directly from its property detail header",
+        "Delete, archive, or print a full report for any property directly from its detail header",
       ],
     },
     {
@@ -396,7 +407,7 @@ export const TIPS: Record<TabKey, Tip[]> = {
       accent: "amber",
       audience: "all",
       title: "Creating & Dispatching Work Orders",
-      body: "Click '+ New Ticket' to log a maintenance issue for any building and unit. Set the priority (Low, Medium, High, Urgent/Emergency), category (Plumbing, HVAC, Electrical, General), and assign a maintenance technician.",
+      body: "Use the top Maintenance Dispatch Hub ('Create a Work Order or Dispatch Maintenance') to click '+ New Work Order', manage Subcontractors, or jump to your Mobile Crew Portal. Set priority (Low, Medium, High, Urgent/Emergency), category (Plumbing, HVAC, Electrical, General), and assign a technician.",
       highlights: [
         "Assigned tickets appear immediately on the crew member's mobile portal",
         "Filter tickets by Open, In Progress, Completed, Priority, or Building",
@@ -435,7 +446,7 @@ export const TIPS: Record<TabKey, Tip[]> = {
       accent: "cyan",
       audience: "all",
       title: "Scheduling Cleaning Assignments",
-      body: "Create recurring or one-off cleaning assignments by building, floor, or suite. Use Quick Mode for fast dispatch or Full Mode to attach room-by-room checklists and special instructions.",
+      body: "Use the top Cleaning Dispatch Hub ('Schedule Cleaning & Crew Dispatch') to click '+ New Assignment' or switch between Quick Mode (fast dispatch) and Full Mode (room-by-room checklists and special instructions).",
       highlights: [
         "Track status across Scheduled, In Progress, and Completed assignments",
         "View daily and weekly workload across your cleaning crew",
@@ -845,6 +856,23 @@ export const TECH_SUPPORT_GUIDES: TechSupportGuide[] = [
     proTip: "You can regenerate or view any technician's 6-digit PIN at any time inside Settings → Team & Access.",
   },
   {
+    id: "rent-payments-receipts",
+    title: "Logging Cash, Check, Zelle & Venmo Rent + Sending Receipts & Reminders",
+    symptom: "You want to log a tenant's rent payment in 1 click, configure your Zelle/Venmo handles, or send an official rent receipt.",
+    category: "Rent & Payments",
+    icon: DollarSign,
+    accent: "emerald",
+    solutionSummary: "Use the green '$ Log Rent' button on any Tenant Card or the 1-Click Rent Ledger to log payments with zero processing fees, send reminders, and print/text/email receipts.",
+    steps: [
+      "From the Tenants Directory: click the green '$ Log Rent' button on any tenant card, tap the payment method pill (Check, Zelle, Venmo, Cash, ACH, Cash App, Wire, Money Order, or Card), add an optional check/reference memo, and click Save.",
+      "From the Rent Ledger: open the Rent Ledger view and select a payment method (e.g., Venmo, Zelle, Check, Cash) or click 'Paid' on any row — PropOpsIQ automatically marks the tenant Paid, fills their full monthly obligation, and sets Today's Date.",
+      "To set up Payment Instructions: click 'Payment Instructions (Zelle / Venmo / Check)' at the top of the Rent Ledger and save your Zelle handle, Venmo @username, Cash App $cashtag, and Check payable/drop-off address once.",
+      "To remind unpaid tenants: filter the Rent Ledger by 'Unpaid' and click '🔔 Remind' on any row to send a 1-tap SMS or Email pre-filled with the tenant's balance due and your saved payment instructions.",
+      "To send a receipt: click '🧾 Receipt' on any paid Rent Ledger row (or inside the '$ Log Rent' modal) to print/save an Official Rent Receipt PDF or send a 1-tap text/email confirmation.",
+    ],
+    proTip: "PropOpsIQ charges $0 / 0% payment processing fees — your tenants pay you directly via Check, Cash, Zelle, Venmo, or ACH and you keep 100% of your rent.",
+  },
+  {
     id: "ai-import-ocr",
     title: "Importing Rent Rolls, Excel Spreadsheets, or Lease PDFs",
     symptom: "A spreadsheet or PDF didn't import all rows, or tenants weren't linked to a building.",
@@ -979,9 +1007,17 @@ export const BASIC_FAQS: FaqItem[] = [
   {
     id: "faq-rent-ledger",
     category: "Daily Operations",
-    question: "How do I record monthly rent payments and track late or partial rent?",
+    question: "How do I record monthly rent payments (Check, Cash, Zelle, Venmo) and send receipts or reminders?",
     answer:
-      "Open the Tenants tab and click 'Rent Ledger' at the top. You'll see a 12-month payment matrix for all active tenants. Click any month cell next to a tenant to mark their rent Paid, Partial, Late, or Unpaid, enter the amount paid or check/reference number, and add notes. Your collection totals update automatically.",
+      "You can log rent in two fast ways: (1) On any Tenant Card in the Tenants Directory, click the green '$ Log Rent' button, tap a payment method pill (Check, Zelle, Venmo, Cash, ACH, Cash App, Wire, Money Order, or Card), enter an optional check/reference memo, and save — or immediately print/text/email an official receipt. (2) Open the 'Rent Ledger' and pick a payment method or click 'Paid' on any row — PropOpsIQ automatically fills the tenant's full monthly obligation and today's date in 1 click. Use '🔔 Remind' on unpaid rows to text/email payment instructions, or '🧾 Receipt' on paid rows to generate an official printable PDF receipt.",
+    relatedTab: "tenants",
+  },
+  {
+    id: "faq-payment-instructions",
+    category: "Daily Operations",
+    question: "Does PropOpsIQ charge payment processing fees, or can tenants pay me directly via Zelle, Venmo, Cash, or Check?",
+    answer:
+      "PropOpsIQ charges $0 (0%) payment processing fees and never holds your funds. Your tenants pay you directly the way you already prefer — Check, Cash, Zelle, Venmo, Cash App, ACH, or Wire. Click 'Payment Instructions (Zelle / Venmo / Check)' at the top of the Rent Ledger to save your Zelle handle, Venmo @username, Cash App $cashtag, and Check mailing/drop-off address once, and PropOpsIQ will automatically include them whenever you send a 1-tap rent reminder.",
     relatedTab: "tenants",
   },
   {

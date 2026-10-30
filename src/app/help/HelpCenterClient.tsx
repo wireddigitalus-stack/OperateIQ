@@ -62,9 +62,9 @@ type DiagnosticResult = {
 };
 
 const POPULAR_QUESTIONS = [
+  "How do I log Cash, Check, Zelle, or Venmo rent & send a receipt?",
   "How do I import my rent roll spreadsheet?",
   "How do maintenance & cleaning crews log in with a 6-digit PIN?",
-  "How do I record monthly rent payments?",
   "Why isn't my property showing on my public website?",
   "How do I connect my GoDaddy or Cloudflare domain?",
   "How do I reset my password or use a Magic Link?",
@@ -75,8 +75,11 @@ function getDeepLinkForTip(categoryKey: TabKey, tipTitle: string): { href: strin
   if (titleLower.includes("import") || titleLower.includes("excel")) {
     return { href: "/admin?action=import", label: "Launch AI Document / Excel Import" };
   }
-  if (titleLower.includes("rent ledger")) {
-    return { href: "/admin?tab=rentledger", label: "Open Monthly Rent Ledger" };
+  if (titleLower.includes("rent ledger") || titleLower.includes("payment instructions")) {
+    return { href: "/admin?tab=rentledger", label: "Open 1-Click Rent Ledger" };
+  }
+  if (titleLower.includes("log rent")) {
+    return { href: "/admin?tab=tenants", label: "Open Tenants Directory ($ Log Rent)" };
   }
   if (titleLower.includes("task board")) {
     return { href: "/admin?tab=tasks", label: "Open Shared & Private Task Board" };
