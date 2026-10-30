@@ -104,7 +104,7 @@ export default function BlogGenerator() {
           category: draft.category, tags: draft.tags, read_time: draft.read_time,
           content: draft.content, status,
           published_at: new Date().toISOString(),
-          author: "OpsIQ", author_title: "Commercial Real Estate",
+          author: "PropOpsIQ", author_title: "Commercial Real Estate",
         }),
       });
       const d = await res.json();

@@ -47,7 +47,7 @@ const EMPTY_POST: Omit<BlogPost, "id" | "created_at" | "published_at"> = {
   read_time: 5,
   content: "",
   status: "draft",
-  author: "OpsIQ",
+  author: "PropOpsIQ",
   author_title: "Commercial Real Estate",
   image_url: "",
   image_alt: "",
@@ -77,7 +77,7 @@ const STATIC_POSTS = [
     tags: ["Market Report", "Commercial Real Estate", "Leasing"],
     read_time: 6,
     published_at: "2026-04-01T00:00:00.000Z",
-    author: "OpsIQ Team",
+    author: "PropOpsIQ Team",
     author_title: "Property Management Team",
     image_url: "",
     image_alt: "",
@@ -93,7 +93,7 @@ const STATIC_POSTS = [
     tags: ["Flexible Workspace", "Office Space", "Small Business"],
     read_time: 5,
     published_at: "2026-04-04T00:00:00.000Z",
-    author: "OpsIQ Team",
+    author: "PropOpsIQ Team",
     author_title: "Property Management Team",
     image_url: "",
     image_alt: "",
@@ -109,7 +109,7 @@ const STATIC_POSTS = [
     tags: ["Renovation", "Adaptive Reuse", "Development"],
     read_time: 6,
     published_at: "2026-04-07T00:00:00.000Z",
-    author: "OpsIQ Team",
+    author: "PropOpsIQ Team",
     author_title: "Property Management Team",
     image_url: "",
     image_alt: "",
@@ -125,7 +125,7 @@ const STATIC_POSTS = [
     tags: ["Market Report", "Industrial", "Office Space"],
     read_time: 6,
     published_at: "2026-04-10T00:00:00.000Z",
-    author: "OpsIQ Team",
+    author: "PropOpsIQ Team",
     author_title: "Property Management Team",
     image_url: "",
     image_alt: "",
@@ -141,7 +141,7 @@ const STATIC_POSTS = [
     tags: ["Property Management", "Maintenance", "Owners"],
     read_time: 7,
     published_at: "2026-04-14T00:00:00.000Z",
-    author: "OpsIQ Team",
+    author: "PropOpsIQ Team",
     author_title: "Property Management Team",
     image_url: "",
     image_alt: "",
@@ -1063,7 +1063,7 @@ function PostEditor({ initial, onSave, onCancel }: {
         read_time: initial.read_time || 5,
         content: initial.content || "",
         status: initial.status,
-        author: initial.author || "OpsIQ",
+        author: initial.author || "PropOpsIQ",
         author_title: initial.author_title || "Commercial Real Estate",
         image_url: initial.image_url || "",
         image_alt: initial.image_alt || "",
@@ -1267,7 +1267,7 @@ function PostEditor({ initial, onSave, onCancel }: {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={LABEL}>Author Name</label>
-                <input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} className={FIELD} placeholder="OpsIQ" />
+                <input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} className={FIELD} placeholder="PropOpsIQ" />
               </div>
               <div>
                 <label className={LABEL}>Author Title</label>

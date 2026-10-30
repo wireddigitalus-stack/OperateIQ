@@ -1609,7 +1609,7 @@ export default function HelpCenterClient() {
                 <div className="p-6 sm:p-8 rounded-2xl bg-emerald-950/40 border border-emerald-400/45 text-center space-y-3">
                   <CheckCircle2 size={36} className="text-emerald-400 mx-auto" />
                   <h3 className="text-xl sm:text-2xl font-black text-white">
-                    Support Ticket Sent to OpsIQ Master Support!
+                    Support Ticket Sent to PropOpsIQ Master Support!
                   </h3>
                   <p className="text-sm sm:text-base text-slate-200 max-w-xl mx-auto">
                     Your request has been logged directly in our Master Support Queue under Support Code{" "}
@@ -1634,7 +1634,7 @@ export default function HelpCenterClient() {
                       <span>Submit a Direct Support Ticket</span>
                     </h3>
                     <span className="text-xs text-sky-300 font-semibold">
-                      Connected directly to OpsIQ Master Admin Support Console
+                      Connected directly to PropOpsIQ Master Admin Support Console
                     </span>
                   </div>
 

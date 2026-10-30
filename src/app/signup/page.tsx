@@ -146,7 +146,7 @@ function SignupForm() {
         <div className="space-y-2">
           <h2 className="text-2xl font-black text-white">Your Workspace Is Ready!</h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm mx-auto">
-            Welcome to <strong>OpsIQ</strong>, {fullName.split(" ")[0]}. We have provisioned a dedicated <strong>{TRIAL_DAYS}-day free trial</strong> workspace for <strong>{companyName}</strong> on the <strong>{activePlan.name}</strong> plan.
+            Welcome to <strong>PropOpsIQ</strong>, {fullName.split(" ")[0]}. We have provisioned a dedicated <strong>{TRIAL_DAYS}-day free trial</strong> workspace for <strong>{companyName}</strong> on the <strong>{activePlan.name}</strong> plan.
           </p>
         </div>
 
@@ -206,7 +206,7 @@ function SignupForm() {
         <div className="space-y-3 pt-2">
           {[
             "Full access to rent ledgers, maintenance & crew portals",
-            "Autonomous AI operations assistant (OpsIQ) included",
+            "Autonomous AI operations assistant (PropOpsIQ) included",
             "Start with a clean workspace — or load sample demo properties in 1 click",
             "Turnkey public property showcase site on Pro tier",
             "Cancel or upgrade anytime with zero penalties",

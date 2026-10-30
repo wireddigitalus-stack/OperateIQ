@@ -235,7 +235,7 @@ export default function SocialStudio() {
   function exportPack() {
     const prop = propertiesList.find(p => p.id === propId);
     const txt = [
-      "OpsIQ — SOCIAL CONTENT PACK",
+      "PropOpsIQ — SOCIAL CONTENT PACK",
       `Property: ${prop?.name}  |  ${new Date().toLocaleString()}`,
       "=".repeat(60),
       `\nUNIVERSAL POST (Variant 1):\n${post}`,

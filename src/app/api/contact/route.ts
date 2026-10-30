@@ -17,7 +17,7 @@ const TO_EMAILS = (process.env.CONTACT_NOTIFY_TO || "")
 const FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL ||
   process.env.RESEND_FROM ||
-  "OpsIQ <notifications@getoperateiq.com>";
+  "PropOpsIQ <notifications@getoperateiq.com>";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cleaning Portal — OpsIQ",
-  description: "OpsIQ Staff Cleaning Portal. Manage daily property updates and reports.",
+  title: "Cleaning Portal — PropOpsIQ",
+  description: "PropOpsIQ Staff Cleaning Portal. Manage daily property updates and reports.",
   robots: { index: false, follow: false },
   openGraph: {
-    title: "Cleaning Portal — OpsIQ",
-    description: "OpsIQ Staff Cleaning Portal. Manage daily property updates and reports.",
+    title: "Cleaning Portal — PropOpsIQ",
+    description: "PropOpsIQ Staff Cleaning Portal. Manage daily property updates and reports.",
     type: "website",
     url: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/staff/cleaning`,
-    siteName: "OpsIQ Cleaning",
+    siteName: "PropOpsIQ Cleaning",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cleaning Portal — OpsIQ",
-    description: "OpsIQ Staff Cleaning Portal. Manage daily property updates and reports.",
+    title: "Cleaning Portal — PropOpsIQ",
+    description: "PropOpsIQ Staff Cleaning Portal. Manage daily property updates and reports.",
   },
   manifest: "/cleaning.webmanifest",
   icons: {

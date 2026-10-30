@@ -367,7 +367,7 @@ export default function PlatformDashboardPage() {
           <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 text-cyan-400 flex items-center justify-center mx-auto mb-5 shadow-[0_0_24px_rgba(34,211,238,0.18)]">
             <ShieldCheck size={28} />
           </div>
-          <h1 className="text-xl font-extrabold text-white mb-2">OpsIQ Master Console</h1>
+          <h1 className="text-xl font-extrabold text-white mb-2">PropOpsIQ Master Console</h1>
           <p className="text-sm text-slate-400 mb-6">
             Sign in with your authorized Google Super-Admin account to manage client organizations and platform operations.
             {currentUserEmail ? (
@@ -456,14 +456,14 @@ export default function PlatformDashboardPage() {
           <Link href="/" className="flex items-center gap-2.5 group">
             <Image
               src="/operateiq_google_ICON_logo_1791954043128.png"
-              alt="OpsIQ"
+              alt="PropOpsIQ"
               width={32}
               height={32}
               className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-[0_0_12px_rgba(34,211,238,0.3)] group-hover:scale-105 transition-transform"
               priority
             />
             <span className="text-white font-extrabold tracking-tight text-lg">
-              Ops<span className="oiq-grad-text">IQ</span>
+              PropOps<span className="oiq-grad-text">IQ</span>
             </span>
           </Link>
           <span className="h-4 w-px bg-white/10" />
@@ -927,7 +927,7 @@ export default function PlatformDashboardPage() {
                             {t.email && (
                               <a
                                 href={`mailto:${t.email}?subject=${encodeURIComponent(
-                                  `Re: [OpsIQ Support ${t.customer_code}] ${t.category}`
+                                  `Re: [PropOpsIQ Support ${t.customer_code}] ${t.category}`
                                 )}`}
                                 className="text-sky-400 hover:underline inline-flex items-center gap-1 font-semibold"
                               >
@@ -1391,7 +1391,7 @@ export default function PlatformDashboardPage() {
 
             <h2 className="text-xl font-bold text-white mb-1">Add Client Organization</h2>
             <p className="text-xs text-slate-400 mb-5">
-              Provision a new customer portfolio in OpsIQ.
+              Provision a new customer portfolio in PropOpsIQ.
             </p>
 
             {createError && (

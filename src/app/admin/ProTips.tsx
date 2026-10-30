@@ -191,7 +191,7 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
             ref={modalRef}
             role="dialog"
             aria-modal="true"
-            aria-label="OpsIQ Help and Guide Center"
+            aria-label="PropOpsIQ Help and Guide Center"
             className="relative w-full max-w-5xl h-[90dvh] md:h-auto max-h-[90dvh] flex flex-col bg-[#0B1120] border border-white/15 rounded-3xl
               shadow-[0_25px_90px_rgba(0,0,0,0.85),0_0_60px_rgba(56,189,248,0.16)] overflow-hidden
               animate-in zoom-in-95 fade-in duration-200"

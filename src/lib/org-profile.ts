@@ -11,7 +11,7 @@ export interface OrgProfile {
   email: string;         // may be ""
   website: string;       // may be ""
   description: string;   // one-line about
-  platform: string;      // "OpsIQ"
+  platform: string;      // "PropOpsIQ"
 }
 
 export function getOrgProfile(): OrgProfile {

@@ -7,5 +7,5 @@
   </defs>
   <rect x="2" y="8" width="40" height="40" rx="10" fill="url(#g)"/>
   <text x="22" y="36" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="19" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="-0.8">IQ</text>
-  <text x="54" y="38" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="30" font-weight="800" fill="#ffffff">Operate<tspan fill="url(#g)">IQ</tspan></text>
+  <text x="54" y="38" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="30" font-weight="800" fill="#ffffff">PropOps<tspan fill="url(#g)">IQ</tspan></text>
 </svg>

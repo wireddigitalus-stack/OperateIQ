@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Empty image or file payload." }, { status: 400 });
     }
 
-    const systemInstruction = `You are an elite real estate intelligence extraction AI for OpsIQ property management software.
+    const systemInstruction = `You are an elite real estate intelligence extraction AI for PropOpsIQ property management software.
 You are inspecting an image or scanned document uploaded by a property owner or asset manager.
 The source material may be:
 1. A photo of a printed commercial or residential lease agreement / contract summary.

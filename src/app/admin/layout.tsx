@@ -4,18 +4,18 @@ import AdminHeader from "@/components/AdminHeader";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 export const metadata: Metadata = {
-  title: "OpsIQ | Property Intelligence Platform",
-  description: "Internal admin dashboard for OpsIQ — real-time property analytics, lead management, content editing, and marketing tools.",
+  title: "PropOpsIQ | Property Intelligence Platform",
+  description: "Internal admin dashboard for PropOpsIQ — real-time property analytics, lead management, content editing, and marketing tools.",
   robots: { index: false, follow: false },
   openGraph: {
-    title: "OpsIQ — Admin Dashboard",
+    title: "PropOpsIQ — Admin Dashboard",
     description: "Property Intelligence Platform · Lead management, content editing, analytics & marketing tools.",
-    siteName: "OpsIQ",
+    siteName: "PropOpsIQ",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "OpsIQ — Admin Dashboard",
+    title: "PropOpsIQ — Admin Dashboard",
     description: "Property Intelligence Platform · Internal admin tools.",
   },
 };

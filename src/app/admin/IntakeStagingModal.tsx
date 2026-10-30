@@ -591,7 +591,7 @@ export default function IntakeStagingModal({
   // Load sample test data in 1 click
   const handleLoadSample = () => {
     setErrorMsg("");
-    setSourceFile({ name: "OpsIQ Mixed Portfolio Test Roll (Demo).xlsx", type: "sample" });
+    setSourceFile({ name: "PropOpsIQ Mixed Portfolio Test Roll (Demo).xlsx", type: "sample" });
     setStagedRecords(DEMO_STAGED_RECORDS);
     setPortfolioSummary("18 Verified commercial & residential tenant leases across 4 properties loaded.");
     setDetectedBuilding("Multiple Properties");
@@ -720,7 +720,7 @@ export default function IntakeStagingModal({
               lease_status: "active",
               published: false,
               in_banner: false,
-              description: `Auto-enrolled via OpsIQ AI Multi-Tenant Intake on ${new Date().toLocaleDateString()}`,
+              description: `Auto-enrolled via PropOpsIQ AI Multi-Tenant Intake on ${new Date().toLocaleDateString()}`,
             }),
           });
           if (!propRes.ok) {
@@ -977,7 +977,7 @@ export default function IntakeStagingModal({
                 </div>
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">OpsIQ Document Intelligence</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">PropOpsIQ Document Intelligence</h3>
                 <p className="text-base sm:text-lg text-sky-300 font-bold tracking-wide animate-pulse">
                   {scanStatusText}
                 </p>

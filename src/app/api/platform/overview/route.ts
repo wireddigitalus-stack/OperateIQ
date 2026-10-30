@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
           {
             id: demoId,
             customer_code: getCustomerCode(demoId),
-            name: "OpsIQ Demo",
+            name: "PropOpsIQ Demo",
             slug: "operateiq-demo",
             tier: "pro",
             subscription_status: "active",
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
           {
             id: demoId,
             customer_code: getCustomerCode(demoId),
-            name: "OpsIQ Demo",
+            name: "PropOpsIQ Demo",
             slug: "operateiq-demo",
             tier: "pro",
             subscription_status: "active",

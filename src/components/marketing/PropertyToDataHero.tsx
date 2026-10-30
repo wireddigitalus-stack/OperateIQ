@@ -151,7 +151,7 @@ export default function PropertyToDataHero() {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,1)]" />
               </span>
               <span className="text-xs font-black text-white tracking-wide uppercase">
-                OpsIQ Live Telemetry Engine
+                PropOpsIQ Live Telemetry Engine
               </span>
               <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300">
                 <Radio size={10} className="animate-pulse text-cyan-400" />
@@ -334,7 +334,7 @@ export default function PropertyToDataHero() {
             {/* ── Content on the Right: Intelligence Feed + Live Metrics ── */}
             <div className="relative z-30 space-y-6">
               
-              {/* OpsIQ AI Daily Brief Banner */}
+              {/* PropOpsIQ AI Daily Brief Banner */}
               <div className="px-4 sm:px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600/[0.16] via-indigo-600/[0.10] to-cyan-500/[0.16] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-sky-400 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-[0_0_18px_rgba(56,189,248,0.4)]">
@@ -342,7 +342,7 @@ export default function PropertyToDataHero() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white tracking-wide">OpsIQ Telemetry Processor</span>
+                      <span className="text-xs font-bold text-white tracking-wide">PropOpsIQ Telemetry Processor</span>
                       <span className="text-[10px] text-sky-300 font-mono px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30">
                         Autonomous Sync
                       </span>
@@ -461,7 +461,7 @@ export default function PropertyToDataHero() {
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Continuous reconciliation from tenant payments, utility meters, and OpsIQ lead pipeline.
+                Continuous reconciliation from tenant payments, utility meters, and PropOpsIQ lead pipeline.
               </p>
             </div>
 
@@ -469,7 +469,7 @@ export default function PropertyToDataHero() {
               <span className="inline-block w-3 h-1.5 rounded-full bg-sky-400" />
               <span>Historical Rent Roll</span>
               <span className="inline-block w-3 h-1.5 rounded-full bg-emerald-400 ml-3" />
-              <span>OpsIQ 90-Day Projections</span>
+              <span>PropOpsIQ 90-Day Projections</span>
             </div>
           </div>
 

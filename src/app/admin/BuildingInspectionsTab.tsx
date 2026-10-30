@@ -534,7 +534,7 @@ export default function BuildingInspectionsTab({
           </div>
         </div>
         <p style="font-size:9px;color:#94a3b8;margin-top:10px;font-style:italic;">
-          OpsIQ Commercial Property Portfolio · Generated for institutional record keeping, municipal safety records, and risk management insurance compliance.
+          PropOpsIQ Commercial Property Portfolio · Generated for institutional record keeping, municipal safety records, and risk management insurance compliance.
         </p>
       </div>
     `;
@@ -626,7 +626,7 @@ export default function BuildingInspectionsTab({
         <tbody>${tableRows}</tbody>
       </table>
       <div style="margin-top:24px;display:flex;justify-content:space-between;font-size:10px;color:#64748b;border-top:1px solid #cbd5e1;padding-top:12px;">
-        <span>OpsIQ · Property Management Portfolio</span>
+        <span>PropOpsIQ · Property Management Portfolio</span>
         <span>${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
       </div>
     `;

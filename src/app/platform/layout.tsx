@@ -4,8 +4,8 @@ import { getAuthUser } from "@/lib/server-auth";
 import { isSuperAdmin } from "@/lib/platform";
 
 export const metadata: Metadata = {
-  title: "Platform Master Console | OpsIQ",
-  description: "OpsIQ Platform Master Control Center — multi-tenant management and support impersonation.",
+  title: "Platform Master Console | PropOpsIQ",
+  description: "PropOpsIQ Platform Master Control Center — multi-tenant management and support impersonation.",
   robots: { index: false, follow: false },
 };
 

@@ -85,7 +85,7 @@ function findRelatedGuides(query: string): { title: string; categoryLabel: strin
 function buildLocalFallbackAnswer(query: string, customerCode?: string): string {
   const q = query.toLowerCase();
   if (customerCode && (q.includes("support code") || q.includes("customer code") || q.includes("account id"))) {
-    return `Your organization's Customer Support Code (Account ID) is ${customerCode}. You can copy it in one click from the Help Center header, footer, or inside your Admin Dashboard header and Settings tab whenever contacting OpsIQ Support.`;
+    return `Your organization's Customer Support Code (Account ID) is ${customerCode}. You can copy it in one click from the Help Center header, footer, or inside your Admin Dashboard header and Settings tab whenever contacting PropOpsIQ Support.`;
   }
   for (const faq of BASIC_FAQS) {
     if (faq.question.toLowerCase().includes(q) || q.split(/\s+/).filter((w) => w.length > 3 && faq.question.toLowerCase().includes(w)).length >= 2) {
@@ -104,7 +104,7 @@ function buildLocalFallbackAnswer(query: string, customerCode?: string): string 
       return `${tip.title}: ${tip.body}${tip.highlights?.length ? `\n\nKey Tips:\n• ${tip.highlights.join("\n• ")}` : ""}`;
     }
   }
-  return `You can search all ${BRAND.name} ProTips and Tech Support guides right below, or use the "Import Docs / Excel" and "Ask OpsIQ" tools in your dashboard top bar.${customerCode ? ` Your Customer Support Code is ${customerCode}.` : ""} Need 1-on-1 assistance? Click "Contact Tech Support" at the bottom of this page.`;
+  return `You can search all ${BRAND.name} ProTips and Tech Support guides right below, or use the "Import Docs / Excel" and "Ask PropOpsIQ" tools in your dashboard top bar.${customerCode ? ` Your Customer Support Code is ${customerCode}.` : ""} Need 1-on-1 assistance? Click "Contact Tech Support" at the bottom of this page.`;
 }
 
 export async function POST(req: NextRequest) {

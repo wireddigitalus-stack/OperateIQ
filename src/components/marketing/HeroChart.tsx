@@ -43,9 +43,9 @@ const N_HIST = REVENUE.length;
 
 const EVENTS: Record<number, { title: string; detail: string }> = {
   4: { title: "Cedar Creek Trade acquired", detail: "8 contractor flex bays added to the regional portfolio." },
-  19: { title: "Heritage Square Lofts leased", detail: "12 residential lofts absorbed in 14 days via OpsIQ lead matching." },
+  19: { title: "Heritage Square Lofts leased", detail: "12 residential lofts absorbed in 14 days via PropOpsIQ lead matching." },
   21: { title: "Annual escalations executed", detail: "18 regional leases auto-escalated · +$5.2k/mo with zero manual work." },
-  24: { title: "Regional Clinic LOI closes", detail: "OpsIQ forecast · Suite 210 at $6,800/mo (88% confidence)." },
+  24: { title: "Regional Clinic LOI closes", detail: "PropOpsIQ forecast · Suite 210 at $6,800/mo (88% confidence)." },
 };
 
 function makePoint(i: number, revenue: number): Pt {
@@ -365,7 +365,7 @@ export default function HeroChart() {
           <div className="flex flex-wrap items-center gap-2.5">
             <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">Portfolio Performance</h3>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-purple-400/30 text-purple-200">
-              <Sparkles size={11} /> OpsIQ Forecast
+              <Sparkles size={11} /> PropOpsIQ Forecast
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
@@ -727,7 +727,7 @@ export default function HeroChart() {
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-4 border-t-2 border-dashed border-purple-400" />
-              OpsIQ forecast
+              PropOpsIQ forecast
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-4 rounded-sm bg-purple-500/25" />

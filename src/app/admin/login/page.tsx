@@ -177,14 +177,14 @@ function AdminLoginForm() {
         <div className="flex items-center justify-center gap-3 mb-8">
           <Image
             src="/operateiq_google_ICON_logo_1791954043128.png"
-            alt="OpsIQ"
+            alt="PropOpsIQ"
             width={44}
             height={44}
             className="w-11 h-11 object-contain drop-shadow-[0_0_16px_rgba(34,211,238,0.4)]"
             priority
           />
           <span className="text-white font-extrabold tracking-tight text-2xl">
-            Ops<span className="oiq-grad-text">IQ</span>
+            PropOps<span className="oiq-grad-text">IQ</span>
           </span>
         </div>
 
@@ -195,7 +195,7 @@ function AdminLoginForm() {
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_rgba(59,130,246,0.35)] text-white">
               <Shield size={22} className="text-white" />
             </div>
-            <h1 className="text-xl font-black text-white mb-1">OpsIQ</h1>
+            <h1 className="text-xl font-black text-white mb-1">PropOpsIQ</h1>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Property Intelligence Platform</p>
             <p className="text-xs text-gray-400">Sign in to access your dashboard</p>
           </div>
@@ -375,7 +375,7 @@ function AdminLoginForm() {
         </div>
 
         <p className="text-center text-[11px] text-gray-600 mt-6">
-          OpsIQ · Property Intelligence Platform
+          PropOpsIQ · Property Intelligence Platform
         </p>
       </div>
     </div>

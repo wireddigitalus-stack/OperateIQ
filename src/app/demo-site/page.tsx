@@ -85,7 +85,7 @@ export default function DemoPropertySitePage() {
         <div className="flex items-center gap-2 truncate">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
           <span className="text-gray-400 hidden sm:inline">Interactive Showcase:</span>
-          <span className="text-sky-300 font-bold truncate">OpsIQ Showcase Portfolio (Demo)</span>
+          <span className="text-sky-300 font-bold truncate">PropOpsIQ Showcase Portfolio (Demo)</span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Link
@@ -101,7 +101,7 @@ export default function DemoPropertySitePage() {
           >
             <ArrowLeft size={12} />
             <span className="hidden sm:inline">Back to</span>
-            <span>OpsIQ</span>
+            <span>PropOpsIQ</span>
           </Link>
         </div>
       </div>

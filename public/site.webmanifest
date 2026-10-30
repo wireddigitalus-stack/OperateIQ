@@ -1,6 +1,6 @@
 {
-  "name": "OpsIQ",
-  "short_name": "OpsIQ",
+  "name": "PropOpsIQ",
+  "short_name": "PropOpsIQ",
   "description": "Property operations, finally intelligent.",
   "start_url": "/",
   "display": "standalone",

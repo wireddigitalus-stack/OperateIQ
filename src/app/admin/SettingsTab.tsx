@@ -437,14 +437,14 @@ function UserSection({ title, role, icon, color, users, onRefresh, ownerEmail }:
     const domain = typeof window !== "undefined" ? window.location.origin : "";
     if (u.role === "admin" || u.role === "manager" || u.role === "owner") {
       const loginUrl = `${domain}/admin/login?email=${encodeURIComponent(u.email || "")}`;
-      return `Hi ${u.name.split(" ")[0] || "there"}, you've been invited to join our team on OpsIQ:
+      return `Hi ${u.name.split(" ")[0] || "there"}, you've been invited to join our team on PropOpsIQ:
 
 ${loginUrl}
 
 Sign in with your email (${u.email}) using Magic Link, Password, or Google to access the dashboard.`;
     }
     const portalUrl = `${domain}/staff/${u.role}`;
-    return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your OpsIQ ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
+    return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your PropOpsIQ ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
 
 ${portalUrl}
 
@@ -1028,7 +1028,7 @@ function NotificationsCard() {
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Triggers</p>
             <div className="space-y-1">
               {[
-                { icon: <Zap size={12} className="text-[#FACC15]" />, label: "New Lead (Chatbot)", desc: "Instant email when someone submits via Ask OpsIQ" },
+                { icon: <Zap size={12} className="text-[#FACC15]" />, label: "New Lead (Chatbot)", desc: "Instant email when someone submits via Ask PropOpsIQ" },
                 { icon: <MessageSquare size={12} className="text-[#60A5FA]" />, label: "Contact Form", desc: "Inquiry from the website contact page" },
               ].map((t, i) => (
                 <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[rgba(0,0,0,0.15)]">
@@ -1951,7 +1951,7 @@ function LoginHistory() {
         </div>
       </button>
       <p className="text-xs text-gray-500 mb-3">
-        AI-audited authentication sessions and allowlist defense to safeguard the OpsIQ dashboard.
+        AI-audited authentication sessions and allowlist defense to safeguard the PropOpsIQ dashboard.
       </p>
 
       {expanded && (
@@ -2030,7 +2030,7 @@ function LoginHistory() {
                 ) : (
                   <>
                     <p className="text-sm text-gray-300 leading-relaxed font-medium mb-3">
-                      {auditResult?.summary ?? "OpsIQ Security Guard is active. Logs are scanned for anomalies continuously. No immediate concerns."}
+                      {auditResult?.summary ?? "PropOpsIQ Security Guard is active. Logs are scanned for anomalies continuously. No immediate concerns."}
                     </p>
 
                     {auditResult?.anomalies && auditResult.anomalies.length > 0 && (

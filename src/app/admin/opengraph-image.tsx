@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "OpsIQ | Admin Dashboard";
+export const alt = "PropOpsIQ | Admin Dashboard";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -94,7 +94,7 @@ export default function OGImage() {
                 display: "flex",
               }}
             >
-              OpsIQ
+              PropOpsIQ
             </div>
             <div
               style={{
@@ -160,7 +160,7 @@ export default function OGImage() {
             display: "flex",
           }}
         >
-          OpsIQ
+          PropOpsIQ
         </div>
       </div>
     ),
