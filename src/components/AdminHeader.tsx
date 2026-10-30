@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle, LifeBuoy, Copy, Check, ShieldCheck } from "lucide-react";
+import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle, LifeBuoy, Copy, Check } from "lucide-react";
 import { getCustomerCode } from "@/lib/platform";
 
 interface OrgOption {
@@ -20,9 +20,6 @@ interface OrgOption {
 export default function AdminHeader() {
   const router = useRouter();
   const [activeOrg, setActiveOrg] = useState<OrgOption | null>(null);
-  const [memberships, setMemberships] = useState<OrgOption[]>([]);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [switchingOrg, setSwitchingOrg] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
 
   const customerCode = activeOrg ? getCustomerCode(activeOrg.id, activeOrg.customer_code) : null;
@@ -41,10 +38,8 @@ export default function AdminHeader() {
       fetch("/api/platform/session", { cache: "no-store" })
         .then((res) => res.json())
         .then((data) => {
-          if (typeof data.isSuperAdmin === "boolean") setIsSuperAdmin(data.isSuperAdmin);
-          if (Array.isArray(data.memberships)) setMemberships(data.memberships);
-          if (data.activeOrg) setActiveOrg(data.activeOrg);
-          else if (data.impersonatingOrg) setActiveOrg(data.impersonatingOrg);
+          if (data.impersonatingOrg) setActiveOrg(data.impersonatingOrg);
+          else if (data.activeOrg) setActiveOrg(data.activeOrg);
         })
         .catch(() => {});
     };
@@ -55,9 +50,6 @@ export default function AdminHeader() {
       const detail = (e as CustomEvent<{ tier?: string; subscription_status?: string }>).detail;
       if (detail?.tier) {
         setActiveOrg((prev) => (prev ? { ...prev, tier: detail.tier! } : prev));
-        setMemberships((prev) =>
-          prev.map((m) => (activeOrg && m.id === activeOrg.id ? { ...m, tier: detail.tier! } : m))
-        );
       }
       loadSession();
     };
@@ -66,30 +58,15 @@ export default function AdminHeader() {
     return () => window.removeEventListener("oiq-org-updated", handleOrgUpdated);
   }, [activeOrg?.id]);
 
-  async function handleSwitchOrg(orgId: string) {
-    if (!orgId || orgId === activeOrg?.id) return;
-    setSwitchingOrg(true);
-    try {
-      await fetch("/api/platform/set-active-org", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orgId }),
-      });
-      window.location.href = "/admin";
-    } catch {
-      setSwitchingOrg(false);
-    }
-  }
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 sm:px-6
       bg-[rgba(8,12,20,0.92)] backdrop-blur-xl border-b border-[rgba(255,255,255,0.06)]">
 
-      {/* ── Left: Logo + workspace context badge / switcher ── */}
-      <div className="flex items-center gap-3">
+      {/* ── Left: Logo + active tenant workspace badge (strictly isolated) ── */}
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={() => router.push("/admin?tab=leads")}
-          className="flex items-center gap-2.5 group"
+          className="flex items-center gap-2.5 group min-w-0"
           aria-label="Go to dashboard home"
         >
           <Image
@@ -100,62 +77,28 @@ export default function AdminHeader() {
             className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-[0_0_12px_rgba(34,211,238,0.3)] group-hover:scale-105 transition-transform"
             priority
           />
-          <span className={`text-white font-extrabold tracking-tight text-lg truncate ${activeOrg && memberships.length > 1 ? "hidden sm:inline" : ""}`}>
+          <span className="text-white font-extrabold tracking-tight text-lg flex-shrink-0">
             Ops<span className="oiq-grad-text">IQ</span>
           </span>
-          {activeOrg && memberships.length <= 1 ? (
+          {activeOrg ? (
             <span
               title={customerCode ? `${activeOrg.name} — Support ID: ${customerCode}` : activeOrg.name}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)]"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)] truncate max-w-[240px]"
             >
-              <Building2 size={11} className="text-cyan-400" />
-              <span>{activeOrg.name}</span>
+              <Building2 size={11} className="text-cyan-400 flex-shrink-0" />
+              <span className="truncate">{activeOrg.name}</span>
             </span>
-          ) : !activeOrg ? (
+          ) : (
             <span className="hidden sm:flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-white/15 bg-white/[0.04] text-[10px] font-black text-sky-400 uppercase tracking-widest shadow-[0_0_12px_rgba(56,189,248,0.2)]">
               <LayoutDashboard size={9} />
               Workspace
             </span>
-          ) : null}
+          )}
         </button>
-
-        {activeOrg && memberships.length > 1 && (
-          <div
-            title={customerCode ? `${activeOrg.name} — Support ID: ${customerCode}` : activeOrg.name}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)] min-w-0"
-          >
-            <Building2 size={11} className="text-cyan-400 flex-shrink-0" />
-            <select
-              value={activeOrg.id}
-              disabled={switchingOrg}
-              onChange={(e) => handleSwitchOrg(e.target.value)}
-              aria-label="Switch active organization"
-              className="bg-transparent text-sky-200 font-bold text-[11px] outline-none cursor-pointer pr-1 max-w-[130px] sm:max-w-[220px] truncate"
-              style={{ colorScheme: "dark" }}
-            >
-              {memberships.map((m) => (
-                <option key={m.id} value={m.id} className="bg-[#0A0F1A] text-white">
-                  {m.name} ({m.tier})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
-      {/* ── Right: View Public Site, Help & Workspace Plan ── */}
+      {/* ── Right: View Public Site, Help & Workspace Plan (Tenant Context Only) ── */}
       <div className="flex items-center gap-2">
-        {isSuperAdmin && (
-          <Link
-            href="/platform"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 hover:bg-cyan-500/30 hover:text-white shadow-[0_0_16px_rgba(34,211,238,0.28)] transition-all"
-            title="Open OpsIQ Master Admin Console (/platform)"
-          >
-            <ShieldCheck size={14} className="text-cyan-400" />
-            <span className="hidden sm:inline">Master Console</span>
-            <span className="sm:hidden">Master</span>
-          </Link>
-        )}
         {(() => {
           const siteUrl = activeOrg?.custom_domain
             ? `https://${activeOrg.custom_domain}`

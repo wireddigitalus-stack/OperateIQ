@@ -180,20 +180,39 @@ export async function getRequestContext(
     const superAdmin = isSuperAdmin(user.email);
     const memberships = await loadMemberships(user);
 
-    // Platform super-admin support mode
+    // Platform super-admin support mode:
+    // Strictly isolate the Master Admin from client tenant workspaces unless IMPERSONATE_COOKIE is set.
     if (superAdmin) {
       const imp = await readCookie(IMPERSONATE_COOKIE);
       if (imp) {
         const org = await loadOrg(imp);
         if (org) {
-          return { kind: "user", user, staff: null, orgId: org.id, org, role: "platform", isSuperAdmin: true, impersonating: true, memberships };
+          return {
+            kind: "user",
+            user,
+            staff: null,
+            orgId: org.id,
+            org,
+            role: "platform",
+            isSuperAdmin: true,
+            impersonating: true,
+            memberships: [{ org_id: org.id, role: "owner" }],
+          };
         }
       }
-      if (!memberships.length) {
-        const fallbackOrg = await loadOrg(DEFAULT_PLATFORM_ORG_ID);
-        if (fallbackOrg) {
-          return { kind: "user", user, staff: null, orgId: fallbackOrg.id, org: fallbackOrg, role: "platform", isSuperAdmin: true, impersonating: false, memberships: [{ org_id: fallbackOrg.id, role: "owner" }] };
-        }
+      const fallbackOrg = await loadOrg(DEFAULT_PLATFORM_ORG_ID);
+      if (fallbackOrg) {
+        return {
+          kind: "user",
+          user,
+          staff: null,
+          orgId: fallbackOrg.id,
+          org: fallbackOrg,
+          role: "platform",
+          isSuperAdmin: true,
+          impersonating: false,
+          memberships: [{ org_id: fallbackOrg.id, role: "owner" }],
+        };
       }
     }
 

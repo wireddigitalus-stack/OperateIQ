@@ -133,6 +133,10 @@ export default function PlatformDashboardPage() {
       setCurrentUserEmail(email);
       if (email && isSuperAdmin(email)) {
         setAuthorized(true);
+      } else if (email) {
+        // Strictly forbid authenticated tenants from viewing /platform
+        router.replace("/admin");
+        return;
       }
       setAuthChecking(false);
     }).catch(() => {

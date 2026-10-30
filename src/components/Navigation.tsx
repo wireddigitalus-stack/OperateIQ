@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Logo from "./Logo";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { isSuperAdmin } from "@/lib/platform";
 
 const links = [
   { label: "Features", href: "/features" },
@@ -21,10 +22,17 @@ export default function Navigation() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [superAdmin, setSuperAdmin] = useState(false);
 
   useEffect(() => {
-    supabaseBrowser.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
-    const { data: sub } = supabaseBrowser.auth.onAuthStateChange((_e, session) => setSignedIn(!!session));
+    supabaseBrowser.auth.getSession().then(({ data }) => {
+      setSignedIn(!!data.session);
+      setSuperAdmin(isSuperAdmin(data.session?.user?.email));
+    });
+    const { data: sub } = supabaseBrowser.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(!!session);
+      setSuperAdmin(isSuperAdmin(session?.user?.email));
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -62,7 +70,9 @@ export default function Navigation() {
         </div>
         <div className="hidden md:flex items-center gap-3">
           {signedIn ? (
-            <Link href="/admin" className="oiq-btn !py-2 text-sm">Go to Dashboard</Link>
+            <Link href={superAdmin ? "/platform" : "/admin"} className="oiq-btn !py-2 text-sm">
+              {superAdmin ? "Master Console" : "Go to Dashboard"}
+            </Link>
           ) : (
             <>
               <Link href="/admin/login" className="text-sm font-medium text-slate-300 hover:text-white">Log in</Link>
@@ -82,7 +92,9 @@ export default function Navigation() {
             </Link>
           ))}
           {signedIn ? (
-            <Link href="/admin" onClick={() => setOpen(false)} className="oiq-btn">Go to Dashboard</Link>
+            <Link href={superAdmin ? "/platform" : "/admin"} onClick={() => setOpen(false)} className="oiq-btn">
+              {superAdmin ? "Master Console" : "Go to Dashboard"}
+            </Link>
           ) : (
             <>
               <Link href="/admin/login" onClick={() => setOpen(false)} className="py-2 text-base text-slate-200 font-medium">Log in</Link>

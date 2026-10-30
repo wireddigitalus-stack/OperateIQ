@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, getCustomerCode } from "@/lib/platform";
+import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, getCustomerCode, isSuperAdmin } from "@/lib/platform";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getAuthUser } from "@/lib/server-auth";
 
@@ -59,9 +59,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Signup is temporarily unavailable. Please try again shortly." }, { status: 503 });
     }
 
-    // If the visitor is already signed in, the new workspace belongs to THAT verified account.
-    const authedUser = await getAuthUser(req);
-    const ownerEmail = authedUser?.email || cleanEmail;
+    // Only reuse an existing session if it is NOT a platform super-admin and its email matches the signup form email.
+    // This prevents Master Admin testing or shared browsers from attaching new tenant workspaces to the wrong user.
+    const rawAuthedUser = await getAuthUser(req);
+    const authedUser =
+      rawAuthedUser &&
+      !isSuperAdmin(rawAuthedUser.email) &&
+      rawAuthedUser.email.toLowerCase() === cleanEmail
+        ? rawAuthedUser
+        : null;
+    const ownerEmail = cleanEmail;
 
     if (!authedUser && (!password || password.length < 8)) {
       return NextResponse.json(
