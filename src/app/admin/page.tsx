@@ -3969,7 +3969,7 @@ export default function AdminPage() {
                   ? renderUpgradeGate(
                       "marketing_studio",
                       "AI Marketing & Social Studio",
-                      "Generate property one-sheet PDFs, social media graphics, AI blog articles, and market intelligence reports.",
+                      "Generate property one-sheet PDFs, social media graphics, press releases, and AI blog articles.",
                       "Scale"
                     )
                   : (

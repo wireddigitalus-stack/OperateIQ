@@ -57,8 +57,7 @@ const NODES: FlowNode[] = [
   { id: "api-analytics",  label: "/api/analytics",        type: "api", domain: "analytics",  x: 370, y: 700,  sub: "Page views, sessions" },
   { id: "api-content",    label: "/api/content-gen",      type: "api", domain: "content",    x: 370, y: 790,  sub: "Blog, social, press releases" },
   { id: "api-activity",   label: "/api/activity-log",     type: "api", domain: "leads",      x: 370, y: 880,  sub: "Audit trail" },
-  { id: "api-intel",      label: "/api/market-intel",     type: "api", domain: "content",    x: 370, y: 970,  sub: "AI news radar — local market" },
-  { id: "api-askopsiq",  label: "/api/ask-opsiq",       type: "api", domain: "leads",      x: 370, y: 1060, sub: "AI chatbot for visitors" },
+  { id: "api-askopsiq",  label: "/api/ask-opsiq",       type: "api", domain: "leads",      x: 370, y: 970, sub: "AI chatbot for visitors" },
 
   // ─── Database Tables (Column 3 ~x=710) ─────────────────────────────────
   { id: "db-leads",        label: "leads",                type: "db", domain: "leads",       x: 710, y: 80,   sub: "Lead records" },
@@ -81,7 +80,7 @@ const NODES: FlowNode[] = [
   { id: "tab-maint",      label: "Maintenance",       type: "tab", domain: "operations",  x: 1060, y: 600,  sub: "Ticket dashboard" },
   { id: "tab-cleaning",   label: "Cleaning",          type: "tab", domain: "operations",  x: 1060, y: 700,  sub: "Staff assignments" },
   { id: "tab-content",    label: "Content Tab",       type: "tab", domain: "content",     x: 1060, y: 810,  sub: "CMS & blog editor" },
-  { id: "tab-marketing",  label: "Marketing Tab",     type: "tab", domain: "content",     x: 1060, y: 900,  sub: "AI market intel" },
+  { id: "tab-marketing",  label: "Marketing Tab",     type: "tab", domain: "content",     x: 1060, y: 900,  sub: "Blog, social & flyers" },
 ];
 
 // ── Connections ───────────────────────────────────────────────────────────────
@@ -138,12 +137,10 @@ const CONNECTIONS: Connection[] = [
   // Content + AI
   { from: "src-ai",       to: "api-content",    domain: "content" },
   { from: "src-ai",       to: "api-leasebot",   domain: "leads" },
-  { from: "src-ai",       to: "api-intel",      domain: "content" },
   { from: "src-ai",       to: "api-askopsiq",  domain: "leads" },
   { from: "api-content",  to: "db-blog",        domain: "content" },
   { from: "db-blog",      to: "tab-content",    domain: "content" },
   { from: "db-blog",      to: "tab-marketing",  domain: "content" },
-  { from: "api-intel",    to: "tab-marketing",  domain: "content" },
 
   // Activity log cross-cutting (writes flow through /api/activity-log)
   { from: "api-leasebot", to: "api-activity",  domain: "leads" },

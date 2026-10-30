@@ -67,7 +67,6 @@ export type TabKey =
   | "marketing-banner"
   | "marketing-properties"
   | "marketing-social"
-  | "marketing-intel"
   | "marketing-one-sheet"
   | "archived"
   | "content"
@@ -492,7 +491,7 @@ export const TIPS: Record<TabKey, Tip[]> = {
       accent: "purple",
       audience: "admin",
       title: "AI Marketing & Leasing Studio",
-      body: "Use the Marketing Studio sub-tabs to generate SEO blog articles, press releases, social media posts, property one-sheets, and market intelligence briefs powered by Gemini AI and tailored to your portfolio.",
+      body: "Use the Marketing Studio sub-tabs to generate SEO blog articles, press releases, social media posts, and property one-sheets powered by Gemini AI and tailored to your portfolio.",
       highlights: [
         "Blog Articles & Press Releases for local SEO and announcements",
         "One-Sheet PDF generator for printable property flyers",
@@ -562,16 +561,6 @@ export const TIPS: Record<TabKey, Tip[]> = {
       audience: "admin",
       title: "Social Media Copy Studio",
       body: "Select any property in your portfolio and generate platform-ready leasing posts for LinkedIn, Facebook, and Instagram — complete with hooks, amenity highlights, and hashtags.",
-    },
-  ],
-
-  "marketing-intel": [
-    {
-      icon: Compass,
-      accent: "cyan",
-      audience: "admin",
-      title: "Local Market Intelligence",
-      body: "Track regional commercial real estate trends, comparable lease rates, and economic news, and generate AI Market Briefs for your team or investors.",
     },
   ],
 
@@ -730,7 +719,6 @@ export const TAB_LABELS: Record<TabKey, string> = {
   "marketing-banner": "Homepage Hero Banner",
   "marketing-properties": "Property Listings",
   "marketing-social": "Social Media Studio",
-  "marketing-intel": "Market Intelligence",
   "marketing-one-sheet": "Property One-Sheets",
   archived: "Archived Leads",
   content: "Website & Content Builder",
@@ -790,7 +778,6 @@ export function getTipsForCategory(selectedCategory: TabKey, searchQuery = "", a
       "marketing-banner",
       "marketing-social",
       "marketing-one-sheet",
-      "marketing-intel",
     ];
     for (const k of extraKeys) {
       if (k === selectedCategory) continue;

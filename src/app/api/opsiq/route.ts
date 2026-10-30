@@ -24,7 +24,7 @@ KEY PLATFORM HIGHLIGHTS:
 - AI Leasing & CRM: Instant AI lead scoring (Hot/Warm/Prospect + Whale alerts), call logs, pipeline tracking, and automated email alerts.
 - Tenants & Rent Ledger: Track every tenant, lease expiration, move-in checklist, and monthly rent collection status in one place.
 - Mobile Crew Portals (6-Digit PIN): Maintenance techs (/staff/maintenance) and cleaning crews (/staff/cleaning) log in with a 6-digit PIN from their phone to view work orders, upload completion photos, log HVAC filter changes, and record building inspections — without seeing admin financials.
-- Executive Reporting & AI: Weekly QBRs, portfolio snapshots, market intelligence, and a private in-dashboard Ask OpsIQ advisor.
+- Executive Reporting & AI: Weekly QBRs, portfolio snapshots, and a private in-dashboard Ask OpsIQ advisor.
 - Pro Website & CMS (Pro Tier): Full custom-domain property showcase website + Site Builder CMS + AI Blog & Social Studio.
 - Enterprise Multi-Tenant Security: Every customer workspace is 100% isolated by organization ID (org_id) with strict database Row-Level Security (RLS). Zero cross-pollination between accounts.
 

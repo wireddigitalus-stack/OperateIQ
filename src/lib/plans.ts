@@ -9,7 +9,7 @@ export type Feature =
   | "subcontractors" | "tasks" | "call_logs" | "reports"
   | "opsiq_basic" | "opsiq_full"
   | "weekly_report" | "portfolio_snapshots"
-  | "sales_crm" | "marketing_studio" | "market_intel"
+  | "sales_crm" | "marketing_studio"
   | "site_card" | "site_basic" | "site_builder" | "blog" | "custom_domain";
 
 export interface Plan {
@@ -36,7 +36,7 @@ const GROWTH: Feature[] = [
 const PRO: Feature[] = [
   ...GROWTH,
   "weekly_report", "portfolio_snapshots", "sales_crm", "marketing_studio",
-  "market_intel", "site_builder", "blog", "custom_domain",
+  "site_builder", "blog", "custom_domain",
 ];
 
 export const PLANS: Plan[] = [
@@ -82,7 +82,6 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   portfolio_snapshots: "Portfolio history & trends",
   sales_crm: "Leads & sales CRM",
   marketing_studio: "Social & marketing studio",
-  market_intel: "Market intelligence",
   site_card: "Digital business card website",
   site_basic: "Basic listings website",
   site_builder: "Full website builder",

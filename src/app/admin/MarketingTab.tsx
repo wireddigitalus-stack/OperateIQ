@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Sparkles, Copy, Download, CheckCircle2, Trash2, FileText, Clock, ChevronDown, BookOpen, Instagram, Radar } from "lucide-react";
+import { Loader2, Sparkles, Copy, Download, CheckCircle2, Trash2, FileText, Clock, ChevronDown, BookOpen, Instagram } from "lucide-react";
 import BlogGenerator from "./BlogGenerator";
 import BlogEditor from "./BlogEditor";
 import PropertyOneSheet from "./PropertyOneSheet";
 import SocialStudio from "./SocialStudio";
-import MarketIntel from "./MarketIntel";
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -98,9 +97,9 @@ function BlogSection() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function MarketingTab({ onSubTabChange }: { onSubTabChange?: (sub: string) => void }) {
-  const [subTab, setSubTab] = useState<"press" | "blog" | "social" | "one-sheet" | "intel">("blog");
+  const [subTab, setSubTab] = useState<"press" | "blog" | "social" | "one-sheet">("blog");
 
-  const switchSubTab = (key: "press" | "blog" | "social" | "one-sheet" | "intel") => {
+  const switchSubTab = (key: "press" | "blog" | "social" | "one-sheet") => {
     setSubTab(key);
     onSubTabChange?.(key);
   };
@@ -243,20 +242,10 @@ export default function MarketingTab({ onSubTabChange }: { onSubTabChange?: (sub
             border:"rgba(249,115,22,0.4)",
             tag:   "PDF",
           },
-          {
-            key:   "intel",
-            label: "Market Intel",
-            desc:  "AI relocation radar",
-            icon:  Radar,
-            grad:  "from-[#EF4444] to-[#F97316]",
-            glow:  "rgba(239,68,68,0.2)",
-            border:"rgba(239,68,68,0.4)",
-            tag:   "Beta",
-          },
         ] as const).map(({ key, label, desc, icon: Icon, grad, glow, border, tag }) => (
           <button
             key={key}
-            onClick={() => switchSubTab(key as "press"|"blog"|"social"|"one-sheet"|"intel")}
+            onClick={() => switchSubTab(key as "press"|"blog"|"social"|"one-sheet")}
             className={`relative text-left p-4 rounded-2xl border-2 transition-all duration-200 group overflow-hidden w-full ${
               subTab === key
                 ? "bg-[rgba(255,255,255,0.04)]"
@@ -530,9 +519,6 @@ export default function MarketingTab({ onSubTabChange }: { onSubTabChange?: (sub
           <SocialStudio />
         </div>
       )}{/* end social tab */}
-
-      {/* ── Market Intel ── */}
-      {subTab === "intel" && <MarketIntel />}
 
     </div>
   );
