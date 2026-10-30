@@ -144,10 +144,15 @@ async function loadOrg(orgId: string): Promise<OrgSummary | null> {
   ]);
   if (!data) return null;
   const org = data as OrgSummary;
+  const normalizedName =
+    org.id === DEFAULT_PLATFORM_ORG_ID && (org.name === "OperateIQ Demo" || org.name === "OpsIQ Demo")
+      ? "PropOpsIQ Demo"
+      : org.name;
   const prof = (profileSetting?.value || {}) as Record<string, unknown>;
   const customCode = typeof prof.customer_code === "string" ? prof.customer_code : null;
   return {
     ...org,
+    name: normalizedName,
     city: typeof prof.city === "string" ? prof.city : null,
     state: typeof prof.state === "string" ? prof.state : null,
     address: typeof prof.address === "string" ? prof.address : null,

@@ -108,8 +108,9 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    const enrichedOrgs = (orgs || []).map((org: { id: string; subscription_status: string }) => ({
+    const enrichedOrgs = (orgs || []).map((org: { id: string; name?: string; subscription_status: string }) => ({
       ...org,
+      name: org.name === "OperateIQ Demo" || org.name === "OpsIQ Demo" ? "PropOpsIQ Demo" : org.name,
       customer_code: getCustomerCode(org.id),
       properties_count: propsMap[org.id] || 0,
       tenants_count: tenantsMap[org.id] || 0,

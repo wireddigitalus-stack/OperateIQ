@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
         .in("id", ctx.memberships.map((m) => m.org_id));
       memberships = (orgs || []).map((o: { id: string; name: string; slug: string; tier: string }) => ({
         ...o,
+        name: o.name === "OperateIQ Demo" || o.name === "OpsIQ Demo" ? "PropOpsIQ Demo" : o.name,
         role: ctx.memberships.find((m) => m.org_id === o.id)?.role || "member",
         customer_code: getCustomerCode(o.id),
       }));
