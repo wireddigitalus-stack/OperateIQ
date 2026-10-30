@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   // Do NOT send `id` — let Supabase generate a UUID via DEFAULT gen_random_uuid()
-  const assignment = {
+  const rawPhotoUrl = (body.photoUrl || body.photo_url || "").trim();
+  const assignment: Record<string, unknown> = {
     org_id:         orgId,
     worker_name:    body.workerName?.trim()  || "",
     property:       body.property?.trim()    || "",
@@ -75,12 +76,30 @@ export async function POST(req: NextRequest) {
     estimated_cost: Number(body.estimatedCost) || 0,
     actual_cost:    Number(body.actualCost)    || 0,
   };
+  if (rawPhotoUrl) {
+    assignment.photo_url = rawPhotoUrl;
+  }
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments`, {
+  let res = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments`, {
     method: "POST",
     headers: { ...H, "Prefer": "return=representation" },
     body: JSON.stringify(assignment),
   });
+
+  if (!res.ok && rawPhotoUrl) {
+    const firstErr = await res.text();
+    if (firstErr.includes("photo_url")) {
+      const { photo_url: _omitted, ...fallbackAssignment } = assignment;
+      res = await fetch(`${SUPABASE_URL}/rest/v1/cleaning_assignments`, {
+        method: "POST",
+        headers: { ...H, "Prefer": "return=representation" },
+        body: JSON.stringify(fallbackAssignment),
+      });
+    } else {
+      console.error("[cleaning POST] Supabase insert failed:", firstErr);
+      return NextResponse.json({ error: "Insert failed", detail: firstErr }, { status: 500 });
+    }
+  }
 
   if (!res.ok) {
     const err = await res.text();
@@ -120,7 +139,7 @@ export async function PATCH(req: NextRequest) {
   if (body.status           !== undefined) patch.status            = body.status;
   if (body.completedAt      !== undefined) patch.completed_at      = body.completedAt;
   if (body.notes            !== undefined) patch.notes             = body.notes;
-  if (body.photoUrl         !== undefined) patch.photo_url         = body.photoUrl;
+  if (body.photoUrl !== undefined || body.photo_url !== undefined) patch.photo_url = body.photoUrl ?? body.photo_url;
   if (body.completionNotes  !== undefined) patch.completion_notes  = body.completionNotes;
   if (g.ctx.kind !== "staff") {
     if (body.estimatedCost !== undefined) patch.estimated_cost = Number(body.estimatedCost) || 0;

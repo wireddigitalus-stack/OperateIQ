@@ -3,10 +3,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Sparkles, Plus, X, Save, Loader2, RefreshCw, Trash2,
   ChevronLeft, ChevronRight, CheckCircle2, Clock, Building2,
-  User, Calendar, AlertTriangle, Circle,
+  User, Calendar, AlertTriangle, Circle, Camera,
 } from "lucide-react";
 import PrintButton from "./PrintButton";
 import MicButton from "@/components/MicButton";
+import { compressImageFile, formatFileSize } from "@/lib/image-compression";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ interface Assignment {
   status: "pending" | "in_progress" | "done";
   estimatedCost?: number;
   actualCost?: number;
+  photoUrl?: string | null;
+  completionNotes?: string | null;
 }
 
 // ─── DEMO DATA — remove before go-live ───────────────────────────────────────
@@ -91,6 +94,8 @@ function rowToAssignment(r: Record<string, unknown>): Assignment {
     status: (r.status as Assignment["status"]) || "pending",
     estimatedCost: Number(r.estimated_cost) || 0,
     actualCost: Number(r.actual_cost) || 0,
+    photoUrl: (r.photo_url as string) || null,
+    completionNotes: (r.completion_notes as string) || null,
   };
 }
 
@@ -234,9 +239,42 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail, p
   const [error, setError] = useState("");
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
   const [actualCost, setActualCost] = useState<number>(0);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [photoMeta, setPhotoMeta] = useState("");
   const [newPinInfo, setNewPinInfo] = useState<{ name: string; pin: string } | null>(null);
   const [knownWorkers, setKnownWorkers] = useState<string[]>([]);
   const propertyOptions = Array.from(new Set([...properties, ...(property ? [property] : [])])).filter(Boolean);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoUploading(true);
+    setPhotoError("");
+    setPhotoMeta("");
+    try {
+      const { file: compressed, originalSize, compressedSize, savingsPercent } = await compressImageFile(file);
+      const fd = new FormData();
+      fd.append("file", compressed, compressed.name);
+      const res = await fetch("/api/crew-photo", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        setPhotoUrl(data.url);
+        setPhotoMeta(
+          savingsPercent > 0
+            ? `${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)}`
+            : formatFileSize(compressedSize)
+        );
+      } else {
+        setPhotoError(data.error || "Upload failed — please try again.");
+      }
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "Upload failed — please try again.");
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   // Load real cleaning staff names for the datalist autocomplete
   useEffect(() => {
@@ -291,6 +329,7 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail, p
                 actorEmail: currentUserEmail || "",
                 estimatedCost: estimatedCost,
                 actualCost: actualCost,
+                photoUrl: photoUrl || null,
               }),
             })
           )
@@ -337,6 +376,7 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail, p
           actorEmail: currentUserEmail || "",
           estimatedCost: estimatedCost,
           actualCost: actualCost,
+          photoUrl: photoUrl || null,
         }),
       });
       if (!res.ok) {
@@ -452,14 +492,56 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail, p
               }}
             />
           </div>
+          {/* Photo / Reference Attachment */}
+          <div>
+            <label style={{ color: "#94A3B8", fontSize: 13, fontWeight: 700, display: "block", marginBottom: 8 }}>
+              Photo / Reference Attachment (optional)
+            </label>
+            {photoUrl ? (
+              <div className="flex items-start gap-3">
+                <a href={photoUrl} target="_blank" rel="noopener noreferrer" className="block flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photoUrl} alt="Cleaning reference" className="w-20 h-20 object-cover rounded-xl border border-white/15 hover:opacity-80 transition-opacity" />
+                </a>
+                <div className="flex flex-col gap-1.5 mt-1">
+                  <p className="text-[11px] text-gray-400">
+                    {photoMeta ? `Auto-compressed (${photoMeta}) — click to view` : "Photo attached — click to view"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setPhotoUrl(null); setPhotoMeta(""); }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-red-400 border border-red-500/25 hover:bg-red-500/10 transition-colors w-fit"
+                  >
+                    <X size={11} /> Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-dashed cursor-pointer transition-all ${photoUploading ? "border-[#4ADE80]/40 bg-[#4ADE80]/5" : "border-white/10 hover:border-[#4ADE80]/40 hover:bg-[#4ADE80]/[0.03]"}`}>
+                <input
+                  type="file"
+                  accept="image/*,.heic,.heif"
+                  className="hidden"
+                  disabled={photoUploading}
+                  onChange={handlePhotoUpload}
+                />
+                {photoUploading ? (
+                  <><Loader2 size={16} className="animate-spin text-[#4ADE80]" /><span className="text-xs text-[#4ADE80] font-semibold">Compressing &amp; uploading…</span></>
+                ) : (
+                  <><Camera size={16} className="text-gray-400" /><span className="text-xs text-gray-400">Attach photo or reference image (auto-compressed)</span></>
+                )}
+              </label>
+            )}
+            {photoError && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertTriangle size={11} />{photoError}</p>}
+          </div>
           {error && <p style={{ color: "#F87171", fontSize: 13 }}>{error}</p>}
           <button
-            onClick={submitQuick} disabled={saving}
+            onClick={submitQuick} disabled={saving || photoUploading}
             style={{
               width: "100%", padding: "16px", borderRadius: 14,
-              background: saving ? "rgba(74,222,128,0.2)" : "linear-gradient(135deg,#4ADE80,#22D3EE)",
+              background: saving || photoUploading ? "rgba(74,222,128,0.2)" : "linear-gradient(135deg,#4ADE80,#22D3EE)",
               border: "none", color: "#0F172A", fontWeight: 800, fontSize: 16,
-              cursor: saving ? "wait" : "pointer", transition: "all 0.2s",
+              cursor: saving || photoUploading ? "wait" : "pointer", transition: "all 0.2s",
             }}
           >
             {saving ? "Saving…" : "✓ Log Job"}
@@ -566,6 +648,47 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail, p
         </div>
       </div>
 
+      {/* Photo / Reference Attachment */}
+      <div>
+        <label className={LABEL}>Photo / Reference Attachment (optional)</label>
+        {photoUrl ? (
+          <div className="flex items-start gap-3">
+            <a href={photoUrl} target="_blank" rel="noopener noreferrer" className="block flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photoUrl} alt="Cleaning photo" className="w-20 h-20 object-cover rounded-xl border border-white/15 hover:opacity-80 transition-opacity" />
+            </a>
+            <div className="flex flex-col gap-1.5 mt-1">
+              <p className="text-[10px] text-gray-500">
+                {photoMeta ? `Auto-compressed (${photoMeta}) — click to view full size` : "Photo attached — click to view full size"}
+              </p>
+              <button
+                type="button"
+                onClick={() => { setPhotoUrl(null); setPhotoMeta(""); }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-red-400 border border-[rgba(239,68,68,0.25)] hover:bg-[rgba(239,68,68,0.08)] transition-colors w-fit"
+              >
+                <X size={11} /> Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <label className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-all ${photoUploading ? "border-[rgba(74,222,128,0.35)] bg-[rgba(74,222,128,0.05)]" : "border-[rgba(255,255,255,0.1)] hover:border-[rgba(74,222,128,0.35)] hover:bg-[rgba(74,222,128,0.03)]"}`}>
+            <input
+              type="file"
+              accept="image/*,.heic,.heif"
+              className="hidden"
+              disabled={photoUploading}
+              onChange={handlePhotoUpload}
+            />
+            {photoUploading ? (
+              <><Loader2 size={16} className="animate-spin text-[#4ADE80]" /><span className="text-xs text-[#4ADE80]">Compressing &amp; uploading…</span></>
+            ) : (
+              <><Camera size={16} className="text-gray-500" /><span className="text-xs text-gray-500">Click to attach a photo (auto-compressed)</span></>
+            )}
+          </label>
+        )}
+        {photoError && <p className="text-[10px] text-red-400 mt-1 flex items-center gap-1"><AlertTriangle size={10} />{photoError}</p>}
+      </div>
+
       {/* Recurring preview */}
       {recurring !== "none" && endDate && (
         <p className="text-[11px] text-gray-500 flex items-center gap-1">
@@ -594,7 +717,7 @@ function AssignmentForm({ onSave, onCancel, currentUserName, currentUserEmail, p
       )}
 
       <div className="flex gap-2">
-        <button onClick={submit} disabled={saving}
+        <button onClick={submit} disabled={saving || photoUploading}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all shadow-[0_0_14px_rgba(59,130,246,0.35)]">
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
           {saving ? "Saving…" : "Create Assignment"}
@@ -681,6 +804,11 @@ function WeekGrid({ assignments, weekStart, workerIndex, onDelete }:
                         <span className="truncate font-semibold flex-1" style={{ color: c.text }}>
                           {a.workerName.split(" ")[0]}
                         </span>
+                        {a.photoUrl && (
+                          <a href={a.photoUrl} target="_blank" rel="noopener noreferrer" title="View attached photo" className="text-[10px] hover:opacity-80 flex-shrink-0">
+                            📷
+                          </a>
+                        )}
                         <button
                           onClick={() => onDelete(a.id, `${a.property} — ${a.area}`)}
                           className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-gray-600 hover:text-red-400 flex-shrink-0 transition-all">
@@ -761,12 +889,21 @@ function TodayView({ assignments, today, workerIndex, onDelete }:
                         )}
                       </div>
                       <p className="text-xs text-gray-400 truncate">{a.area}</p>
+                      {a.completionNotes && (
+                        <p className="text-[11px] text-gray-300 italic truncate mt-0.5">&ldquo;{a.completionNotes}&rdquo;</p>
+                      )}
                       {a.completedAt && (
                         <p className="text-[10px] text-[#4ADE80]">
                           ✓ Done {new Date(a.completedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
                         </p>
                       )}
                     </div>
+                    {a.photoUrl && (
+                      <a href={a.photoUrl} target="_blank" rel="noopener noreferrer" title="View photo" className="flex-shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={a.photoUrl} alt="Cleaning photo" className="w-10 h-10 rounded-lg object-cover border border-white/15 hover:opacity-80 transition-opacity" />
+                      </a>
+                    )}
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0 ${
                       a.status === "done" ? "bg-[rgba(74,222,128,0.15)] text-[#4ADE80]"
                       : a.status === "in_progress" ? "bg-[rgba(250,204,21,0.12)] text-[#FACC15]"

@@ -12,6 +12,7 @@ import MicButton from "@/components/MicButton";
 import FilterChangesTab from "./FilterChangesTab";
 import BuildingInspectionsTab from "./BuildingInspectionsTab";
 import SubcontractorContactsTab from "./SubcontractorContactsTab";
+import { compressImageFile, formatFileSize } from "@/lib/image-compression";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -372,6 +373,7 @@ function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName, b
   const [knownStaff, setKnownStaff] = useState<string[]>([]);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState("");
+  const [photoMeta, setPhotoMeta] = useState("");
   const [showDraftRestore, setShowDraftRestore] = useState(false);
   const [restoredDraftTime, setRestoredDraftTime] = useState("");
   const set = (k: keyof Ticket, v: unknown) => setForm(f => ({ ...f, [k]: v }));
@@ -664,10 +666,12 @@ function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName, b
               <img src={form.photoUrl} alt="Ticket photo" className="w-24 h-24 object-cover rounded-xl border border-[rgba(255,255,255,0.1)] hover:opacity-80 transition-opacity" />
             </a>
             <div className="flex flex-col gap-2">
-              <p className="text-[10px] text-gray-500">Photo attached — click to view full size</p>
+              <p className="text-[10px] text-gray-500">
+                {photoMeta ? `Auto-compressed (${photoMeta}) — click to view full size` : "Photo attached — click to view full size"}
+              </p>
               <button
                 type="button"
-                onClick={() => set("photoUrl", null)}
+                onClick={() => { set("photoUrl", null); setPhotoMeta(""); }}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-red-400 border border-[rgba(239,68,68,0.25)] hover:bg-[rgba(239,68,68,0.08)] transition-colors w-fit"
               >
                 <X size={11} /> Remove
@@ -678,7 +682,7 @@ function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName, b
           <label className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-all ${photoUploading ? "border-[rgba(250,204,21,0.3)] bg-[rgba(250,204,21,0.04)]" : "border-[rgba(255,255,255,0.1)] hover:border-[rgba(250,204,21,0.35)] hover:bg-[rgba(250,204,21,0.03)]"}`}>
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               className="hidden"
               disabled={photoUploading}
               onChange={async (e) => {
@@ -686,25 +690,32 @@ function TicketForm({ initial, onSave, onSaveDraft, onCancel, currentUserName, b
                 if (!file) return;
                 setPhotoUploading(true);
                 setPhotoError("");
+                setPhotoMeta("");
                 try {
+                  const { file: compressed, originalSize, compressedSize, savingsPercent } = await compressImageFile(file);
                   const fd = new FormData();
-                  fd.append("file", file);
+                  fd.append("file", compressed, compressed.name);
                   const res = await fetch("/api/maintenance/upload", { method: "POST", body: fd });
-                  const data = await res.json();
-                  if (data.url) {
+                  const data = await res.json().catch(() => ({}));
+                  if (res.ok && data.url) {
                     set("photoUrl", data.url);
+                    setPhotoMeta(
+                      savingsPercent > 0
+                        ? `${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)}`
+                        : formatFileSize(compressedSize)
+                    );
                   } else {
-                    setPhotoError("Upload failed — please try again.");
+                    setPhotoError(data.error || "Upload failed — please try again.");
                   }
-                } catch {
-                  setPhotoError("Upload failed — please try again.");
+                } catch (err) {
+                  setPhotoError(err instanceof Error ? err.message : "Upload failed — please try again.");
                 } finally {
                   setPhotoUploading(false);
                 }
               }}
             />
             {photoUploading ? (
-              <><Loader2 size={16} className="animate-spin text-[#FACC15]" /><span className="text-xs text-[#FACC15]">Uploading…</span></>
+              <><Loader2 size={16} className="animate-spin text-[#FACC15]" /><span className="text-xs text-[#FACC15]">Compressing &amp; uploading…</span></>
             ) : (
               <><Camera size={16} className="text-gray-500" /><span className="text-xs text-gray-500">Click to attach a photo</span></>
             )}

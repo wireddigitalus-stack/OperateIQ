@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Sparkles, Loader2, Plus, Trash2, Upload, CheckCircle2, Building2, Eye, EyeOff, Edit3, X } from "lucide-react";
+import { compressImageFile } from "@/lib/image-compression";
 
 const TYPES = ["Office","CoWorking","Retail","Event Space","Warehouse","Suite","Mixed-Use","Industrial"];
 const STATUSES = [{ v:"available", l:"Available" },{ v:"leased", l:"Leased" },{ v:"coming-soon", l:"Coming Soon" }];
@@ -63,7 +64,8 @@ export default function PropertyCreator({
     setUploading(true);
     const urls: string[] = [];
     for (const file of Array.from(files)) {
-      const fd = new FormData(); fd.append("file", file); fd.append("type", "image");
+      const { file: compressed } = await compressImageFile(file, { maxDimension: 1920, maxBytes: 900 * 1024 });
+      const fd = new FormData(); fd.append("file", compressed); fd.append("type", "image");
       const r = await fetch("/api/hero-banner/upload", { method:"POST", body:fd });
       if (r.ok) { const d = await r.json(); urls.push(d.url); }
     }

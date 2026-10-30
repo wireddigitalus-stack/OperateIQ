@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   CheckCircle2, Clock, X, Loader2,
-  MapPin, AlertTriangle, Sparkles, RefreshCw, ArrowLeft,
+  MapPin, AlertTriangle, Sparkles, RefreshCw, ArrowLeft, HelpCircle,
 } from "lucide-react";
 import CompletionSheet from "@/components/crew/CompletionSheet";
 import SpeechTextarea from "@/components/crew/SpeechTextarea";
@@ -25,6 +26,8 @@ interface Assignment {
   status: "pending" | "in_progress" | "done";
   estimatedCost?: number;
   actualCost?: number;
+  photoUrl?: string | null;
+  completionNotes?: string | null;
 }
 
 function rowToAssignment(r: Record<string, unknown>): Assignment {
@@ -41,6 +44,8 @@ function rowToAssignment(r: Record<string, unknown>): Assignment {
     status: (r.status as Assignment["status"]) || "pending",
     estimatedCost: Number(r.estimated_cost) || 0,
     actualCost: Number(r.actual_cost) || 0,
+    photoUrl: (r.photo_url as string) || null,
+    completionNotes: (r.completion_notes as string) || null,
   };
 }
 
@@ -252,6 +257,20 @@ function AssignmentCard({ a, savedChecks, onSaveChecks, onComplete }: {
           {isDone && completedTime && (
             <p className="text-[#4ADE80] text-xs ml-5 mt-1 font-bold">✓ Done at {completedTime}</p>
           )}
+          {a.photoUrl && (
+            <a
+              href={a.photoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2.5 ml-5 inline-flex items-center gap-2.5 p-1.5 pr-3 rounded-2xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] hover:border-[rgba(74,222,128,0.4)] transition-all"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={a.photoUrl} alt="Assignment photo" className="w-12 h-12 rounded-xl object-cover border border-white/10" />
+              <span className="text-xs font-bold text-gray-300">
+                {isDone ? "📸 View Photo" : "📸 View Reference Photo"}
+              </span>
+            </a>
+          )}
         </div>
 
         {/* Checklist — only if not done */}
@@ -454,6 +473,16 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
         </div>
       )}
 
+      <div className="mt-8">
+        <Link
+          href="/help?category=cleaning"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-bold text-sky-300 hover:text-white transition-all"
+        >
+          <HelpCircle size={14} className="text-sky-400" />
+          <span>Need PIN or Portal Help?</span>
+        </Link>
+      </div>
+
       {/* Shake keyframe */}
       <style jsx>{`
         @keyframes shake {
@@ -548,7 +577,19 @@ export default function CleaningStaffPage() {
         resourceName: assignment ? `${assignment.property} — ${assignment.area}` : id,
       }),
     });
-    setAssignments(prev => prev.map(a => a.id === id ? { ...a, status: "done", completedAt } : a));
+    setAssignments(prev =>
+      prev.map(a =>
+        a.id === id
+          ? {
+              ...a,
+              status: "done",
+              completedAt,
+              photoUrl: data.photoUrl || a.photoUrl,
+              completionNotes: data.notes || a.completionNotes,
+            }
+          : a
+      )
+    );
     // Clear checklist for this assignment
     const next = { ...checkState };
     delete next[id];
@@ -577,8 +618,17 @@ export default function CleaningStaffPage() {
             <p className="text-base font-black text-white leading-none">{workerName}</p>
           </div>
         </div>
-        <button onClick={() => { localStorage.removeItem("oiq_cleaning_name"); setWorkerName(null); fetch("/api/staff-auth", { method: "DELETE" }).catch(() => {}); }}
-          className="text-xs text-gray-600 px-3 py-2 rounded-xl border border-[rgba(255,255,255,0.07)]">Switch</button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/help?category=cleaning"
+            className="flex items-center gap-1.5 text-xs font-bold text-sky-300 hover:text-white px-3 py-2 rounded-xl border border-sky-400/30 bg-sky-500/10 hover:bg-sky-500/20 transition-all"
+          >
+            <HelpCircle size={14} className="text-sky-400" />
+            <span>Help</span>
+          </Link>
+          <button onClick={() => { localStorage.removeItem("oiq_cleaning_name"); setWorkerName(null); fetch("/api/staff-auth", { method: "DELETE" }).catch(() => {}); }}
+            className="text-xs text-gray-600 px-3 py-2 rounded-xl border border-[rgba(255,255,255,0.07)]">Switch</button>
+        </div>
       </div>
 
       {/* Date + Status */}

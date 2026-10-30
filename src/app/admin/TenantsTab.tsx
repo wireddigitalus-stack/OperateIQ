@@ -12,6 +12,7 @@ import IntakeStagingModal from "./IntakeStagingModal";
 import PrintButton from "./PrintButton";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { compressImageFile } from "@/lib/image-compression";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -525,10 +526,11 @@ function TenantCard({
     const file = e.target.files?.[0];
     if (!file) return;
     setSavingNote(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("tenantId", tenant.id);
     try {
+      const { file: compressed } = await compressImageFile(file);
+      const fd = new FormData();
+      fd.append("file", compressed);
+      fd.append("tenantId", tenant.id);
       const res = await fetch("/api/tenant-upload", { method: "POST", body: fd });
       const d = await res.json();
       if (res.ok && d.url) {

@@ -1,16 +1,18 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   Wrench, CheckCircle2, Clock, AlertTriangle, ChevronRight,
   Loader2, Plus, X, Send, ArrowLeft, Building2, Flame,
   MessageSquare, Package, Sparkles, ShieldAlert,
-  Pencil, RotateCcw, Trash2, Users, User, Calendar, DollarSign, Crown, Edit3, Check, Camera
+  Pencil, RotateCcw, Trash2, Users, User, Calendar, DollarSign, Crown, Edit3, Check, Camera, HelpCircle
 } from "lucide-react";
 import CompletionSheet from "@/components/crew/CompletionSheet";
 import MicButton from "@/components/MicButton";
 import FilterChangesTab from "@/app/admin/FilterChangesTab";
 import BuildingInspectionsTab from "@/app/admin/BuildingInspectionsTab";
 import StaffAskOpsIQ from "../StaffAskOpsIQ";
+import { compressImageFile, formatFileSize } from "@/lib/image-compression";
 
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
@@ -686,19 +688,36 @@ function ReportModal({
   const [saving, setSaving] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [photoMeta, setPhotoMeta] = useState<string>("");
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setPhotoUploading(true);
+    setPhotoError("");
+    setPhotoMeta("");
     try {
+      const { file: compressed, originalSize, compressedSize, savingsPercent } = await compressImageFile(file);
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", compressed, compressed.name);
       const res = await fetch("/api/maintenance/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.url) setPhotoUrl(data.url);
-    } catch { /* silently fail */ }
-    finally { setPhotoUploading(false); }
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        setPhotoUrl(data.url);
+        setPhotoMeta(
+          savingsPercent > 0
+            ? `${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)}`
+            : formatFileSize(compressedSize)
+        );
+      } else {
+        setPhotoError(data.error || "Upload failed — please try again");
+      }
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "Upload failed — please try again");
+    } finally {
+      setPhotoUploading(false);
+    }
   };
 
   const submit = async () => {
@@ -878,10 +897,12 @@ function ReportModal({
               <img src={photoUrl} alt="Ticket photo" className="h-28 w-auto object-cover rounded-2xl border border-[rgba(255,255,255,0.1)]" />
             </a>
             <div className="flex flex-col gap-2 mt-1">
-              <p className="text-xs text-gray-500">Photo attached</p>
+              <p className="text-xs text-gray-500">
+                {photoMeta ? `Photo attached (${photoMeta})` : "Photo attached"}
+              </p>
               <button
                 type="button"
-                onClick={() => setPhotoUrl(null)}
+                onClick={() => { setPhotoUrl(null); setPhotoMeta(""); }}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs text-red-400 border border-[rgba(239,68,68,0.25)] hover:bg-[rgba(239,68,68,0.08)] transition-colors w-fit"
               >
                 <X size={12} /> Remove
@@ -890,13 +911,18 @@ function ReportModal({
           </div>
         ) : (
           <label className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl border-2 border-dashed mb-5 cursor-pointer transition-all ${photoUploading ? "border-[rgba(250,204,21,0.4)] bg-[rgba(250,204,21,0.05)]" : "border-[rgba(255,255,255,0.12)] hover:border-[rgba(250,204,21,0.4)] hover:bg-[rgba(250,204,21,0.04)]"}`}>
-            <input type="file" accept="image/*" capture="environment" className="hidden" disabled={photoUploading} onChange={handlePhotoChange} />
+            <input type="file" accept="image/*,.heic,.heif" capture="environment" className="hidden" disabled={photoUploading} onChange={handlePhotoChange} />
             {photoUploading ? (
-              <><Loader2 size={18} className="animate-spin text-[#FACC15]" /><span className="text-sm text-[#FACC15] font-semibold">Uploading…</span></>
+              <><Loader2 size={18} className="animate-spin text-[#FACC15]" /><span className="text-sm text-[#FACC15] font-semibold">Compressing &amp; uploading photo…</span></>
             ) : (
               <><Camera size={20} className="text-gray-500" /><span className="text-sm text-gray-500">Take photo or upload from gallery</span></>
             )}
           </label>
+        )}
+        {photoError && (
+          <p className="text-xs text-red-400 -mt-3 mb-4 flex items-center gap-1 font-semibold">
+            <AlertTriangle size={12} /> {photoError}
+          </p>
         )}
 
         <button onClick={submit} disabled={saving || photoUploading || !title.trim()}
@@ -1326,6 +1352,16 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
         </div>
       )}
 
+      <div className="mt-8">
+        <Link
+          href="/help?category=maintenance"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-bold text-sky-300 hover:text-white transition-all"
+        >
+          <HelpCircle size={14} className="text-sky-400" />
+          <span>Need PIN or Portal Help?</span>
+        </Link>
+      </div>
+
       {/* Shake keyframe */}
       <style jsx>{`
         @keyframes shake {
@@ -1597,6 +1633,13 @@ export default function MaintenanceStaffPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/help?category=maintenance"
+            className="flex items-center gap-1.5 text-xs font-bold text-sky-300 hover:text-white px-3 py-2 rounded-xl border border-sky-400/30 bg-sky-500/10 hover:bg-sky-500/20 transition-all"
+          >
+            <HelpCircle size={14} className="text-sky-400" />
+            <span>Help</span>
+          </Link>
           <button onClick={() => { localStorage.removeItem("oiq_staff_name"); setWorkerName(null); fetch("/api/staff-auth", { method: "DELETE" }).catch(() => {}); }}
             className="text-xs text-gray-400 hover:text-white px-3 py-2 rounded-xl border border-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.05)] transition-all">
             Switch

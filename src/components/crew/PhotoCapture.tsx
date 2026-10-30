@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { Camera, X, CheckCircle2, Loader2 } from "lucide-react";
+import { compressImageFile, formatFileSize } from "@/lib/image-compression";
 
 interface Props {
   onPhoto: (url: string) => void;
@@ -12,26 +13,37 @@ export default function PhotoCapture({ onPhoto, onClear, label = "Add Photo Proo
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [statusLabel, setStatusLabel] = useState<string>("Compressing…");
+  const [sizeSummary, setSizeSummary] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
   const handleFile = async (file: File) => {
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
     setUploading(true);
+    setStatusLabel("Compressing…");
+    setSizeSummary("");
     setError(null);
     try {
+      const { file: compressed, originalSize, compressedSize, savingsPercent } = await compressImageFile(file);
+      setStatusLabel("Uploading…");
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", compressed, compressed.name);
       const res = await fetch("/api/crew-photo", { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.url) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        setSizeSummary(
+          savingsPercent > 0
+            ? `${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)}`
+            : formatFileSize(compressedSize)
+        );
         onPhoto(data.url);
       } else {
-        setError("Upload failed — tap to retry");
+        setError(data.error || "Upload failed — tap to retry");
         setPreview(null);
       }
-    } catch {
-      setError("Upload failed — tap to retry");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed — tap to retry");
       setPreview(null);
     } finally {
       setUploading(false);
@@ -40,6 +52,7 @@ export default function PhotoCapture({ onPhoto, onClear, label = "Add Photo Proo
 
   const clear = () => {
     setPreview(null);
+    setSizeSummary("");
     setError(null);
     onClear?.();
     if (inputRef.current) inputRef.current.value = "";
@@ -50,7 +63,7 @@ export default function PhotoCapture({ onPhoto, onClear, label = "Add Photo Proo
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         capture="environment"
         className="hidden"
         onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
@@ -62,14 +75,16 @@ export default function PhotoCapture({ onPhoto, onClear, label = "Add Photo Proo
           {uploading && (
             <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2">
               <Loader2 size={28} className="text-white animate-spin" />
-              <p className="text-white text-sm font-black">Uploading…</p>
+              <p className="text-white text-sm font-black">{statusLabel}</p>
             </div>
           )}
           {!uploading && (
             <>
               <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-1.5">
                 <CheckCircle2 size={14} className="text-[#4ADE80]" />
-                <span className="text-white text-xs font-black">Photo saved ✓</span>
+                <span className="text-white text-xs font-black">
+                  Photo saved ✓{sizeSummary ? ` · ${sizeSummary}` : ""}
+                </span>
               </div>
               <button
                 onClick={clear}

@@ -7,6 +7,7 @@ import {
   Star, Trash2, Upload, ImageIcon, Plus, Eye, EyeOff,
 } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
+import { compressImageFile } from "@/lib/image-compression";
 
 interface PropertyImages {
   property_id: string;
@@ -191,8 +192,9 @@ export default function PropertyEditor({ refreshKey = 0 }: { refreshKey?: number
     setImgUploading(propId);
     const newUrls: string[] = [];
     for (const file of Array.from(files)) {
+      const { file: compressed } = await compressImageFile(file, { maxDimension: 1920, maxBytes: 900 * 1024 });
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", compressed);
       form.append("propertyId", propId);
       const res = await fetch("/api/property-images", { method: "POST", body: form });
       const d = await res.json();

@@ -6,6 +6,7 @@ import {
   Save, CheckCircle2, AlertCircle, Video, Link2, ChevronUp, ChevronDown, ChevronRight,
   RotateCcw, Trash2,
 } from "lucide-react";
+import { compressImageFile } from "@/lib/image-compression";
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
@@ -162,8 +163,9 @@ export default function HeroBannerManager({
     setError(null);
 
     try {
+      const { file: compressed } = await compressImageFile(file, { maxDimension: 1920, maxBytes: 900 * 1024 });
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", compressed);
       form.append("type", "slide");
 
       const res = await fetch("/api/hero-banner/upload", { method: "POST", body: form });

@@ -6,6 +6,7 @@ import {
   Star, Trash2, Plus, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
+import { compressImageFile } from "@/lib/image-compression";
 
 interface ImageRecord {
   url: string;
@@ -106,8 +107,9 @@ export default function PropertyImageManager() {
     const newUrls: string[] = [];
 
     for (const file of Array.from(files)) {
+      const { file: compressed } = await compressImageFile(file, { maxDimension: 1920, maxBytes: 900 * 1024 });
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", compressed);
       form.append("propertyId", propertyId);
       const res = await fetch("/api/property-images", { method: "POST", body: form });
       const d = await res.json();

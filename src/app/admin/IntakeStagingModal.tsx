@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import type { Tenant } from "./TenantsTab";
+import { compressImageFile } from "@/lib/image-compression";
 
 export interface StagedTenantRecord {
   id: string;
@@ -531,8 +532,14 @@ export default function IntakeStagingModal({
     }, 1200);
 
     try {
+      let uploadFile = file;
+      if (file.type.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp)$/i.test(file.name)) {
+        const { file: compressed } = await compressImageFile(file, { maxDimension: 2000, maxBytes: 1200 * 1024, quality: 0.85 });
+        uploadFile = compressed;
+      }
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", uploadFile);
       formData.append("notes", `Source from user upload for ${currentOrgName}`);
 
       const res = await fetch("/api/ai/intake-ocr", {

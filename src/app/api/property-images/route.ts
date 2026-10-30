@@ -37,7 +37,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ overrides: Array.isArray(data) ? data : [] });
 }
 
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif", "image/avif"];
+const IMAGE_EXT_RE = /\.(jpe?g|png|webp|gif|heic|heif|avif|bmp)$/i;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 /** POST — upload a single image file for a property, append to its gallery */
@@ -54,8 +55,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "file and propertyId required" }, { status: 400 });
   if (file.size > MAX_FILE_SIZE)
     return NextResponse.json({ error: "File exceeds 10MB limit." }, { status: 400 });
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type))
-    return NextResponse.json({ error: "Unsupported file type. Allowed: JPEG, PNG, WEBP, GIF." }, { status: 400 });
+  const isAllowedImage =
+    ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase()) ||
+    (!file.type && IMAGE_EXT_RE.test(file.name));
+  if (!isAllowedImage)
+    return NextResponse.json({ error: "Unsupported file type. Allowed: JPEG, PNG, WEBP, GIF, HEIC." }, { status: 400 });
 
   await ensureBucket();
 

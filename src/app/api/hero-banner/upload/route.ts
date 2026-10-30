@@ -5,7 +5,8 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const BUCKET = "property-images";
 
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif", "image/avif"];
+const IMAGE_EXT_RE = /\.(jpe?g|png|webp|gif|heic|heif|avif|bmp)$/i;
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
@@ -41,12 +42,15 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  if (!allowedTypes.includes(file.type)) {
+  const isAllowed =
+    allowedTypes.includes(file.type.toLowerCase()) ||
+    (!isVideo && !file.type && IMAGE_EXT_RE.test(file.name));
+  if (!isAllowed) {
     return NextResponse.json(
       {
         error: isVideo
           ? "Unsupported file type. Allowed: MP4, WEBM, MOV."
-          : "Unsupported file type. Allowed: JPEG, PNG, WEBP, GIF.",
+          : "Unsupported file type. Allowed: JPEG, PNG, WEBP, GIF, HEIC.",
       },
       { status: 400 }
     );

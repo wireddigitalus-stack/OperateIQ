@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Loader2, CheckCircle2, X, Upload, Video, ImageIcon, Trash2, Save, RefreshCw, AlertTriangle, Monitor } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
+import { compressImageFile } from "@/lib/image-compression";
 
 const MAIN_IDS = ["sample-office","sample-retail"];
 
@@ -108,7 +109,8 @@ export default function BannerManager() {
   async function uploadCustom(file: File) {
     setUploadingCustom(true); setError(null);
     try {
-      const fd = new FormData(); fd.append("file", file); fd.append("type","image");
+      const { file: compressed } = await compressImageFile(file, { maxDimension: 1920, maxBytes: 900 * 1024 });
+      const fd = new FormData(); fd.append("file", compressed); fd.append("type","image");
       const res = await fetch("/api/hero-banner/upload", { method:"POST", body:fd });
       const d = await res.json(); if (!res.ok) throw new Error(d.error);
       const maxOrder = Math.max(0, ...config.slides.map(s => s.order));
