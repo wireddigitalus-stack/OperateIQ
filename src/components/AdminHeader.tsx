@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle, LifeBuoy, Copy, Check } from "lucide-react";
+import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle, LifeBuoy, Copy, Check, ShieldCheck } from "lucide-react";
 import { getCustomerCode } from "@/lib/platform";
 
 interface OrgOption {
@@ -21,6 +21,7 @@ export default function AdminHeader() {
   const router = useRouter();
   const [activeOrg, setActiveOrg] = useState<OrgOption | null>(null);
   const [memberships, setMemberships] = useState<OrgOption[]>([]);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [switchingOrg, setSwitchingOrg] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
 
@@ -40,6 +41,7 @@ export default function AdminHeader() {
       fetch("/api/platform/session", { cache: "no-store" })
         .then((res) => res.json())
         .then((data) => {
+          if (typeof data.isSuperAdmin === "boolean") setIsSuperAdmin(data.isSuperAdmin);
           if (Array.isArray(data.memberships)) setMemberships(data.memberships);
           if (data.activeOrg) setActiveOrg(data.activeOrg);
           else if (data.impersonatingOrg) setActiveOrg(data.impersonatingOrg);
@@ -143,6 +145,17 @@ export default function AdminHeader() {
 
       {/* ── Right: View Public Site, Help & Workspace Plan ── */}
       <div className="flex items-center gap-2">
+        {isSuperAdmin && (
+          <Link
+            href="/platform"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 hover:bg-cyan-500/30 hover:text-white shadow-[0_0_16px_rgba(34,211,238,0.28)] transition-all"
+            title="Open OpsIQ Master Admin Console (/platform)"
+          >
+            <ShieldCheck size={14} className="text-cyan-400" />
+            <span className="hidden sm:inline">Master Console</span>
+            <span className="sm:hidden">Master</span>
+          </Link>
+        )}
         {(() => {
           const siteUrl = activeOrg?.custom_domain
             ? `https://${activeOrg.custom_domain}`
