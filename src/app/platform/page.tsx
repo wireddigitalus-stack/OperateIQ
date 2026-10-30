@@ -23,10 +23,17 @@ import {
   Phone,
   Copy,
   Check,
+  LifeBuoy,
+  BookOpen,
+  Wrench,
+  HelpCircle,
+  Trash2,
 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { isSuperAdmin, getCustomerCode } from "@/lib/platform";
 import { PLANS, type Tier } from "@/lib/plans";
+import { TECH_SUPPORT_GUIDES, BASIC_FAQS, ACCENT_STYLES } from "@/lib/help-data";
+import type { SupportTicketItem } from "@/app/api/support-tickets/route";
 
 interface Org {
   id: string;
@@ -73,9 +80,14 @@ export default function PlatformDashboardPage() {
   const [authChecking, setAuthChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"organizations" | "signups">("organizations");
+  const [activeTab, setActiveTab] = useState<"organizations" | "signups" | "support">("organizations");
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [signups, setSignups] = useState<PlatformSignup[]>([]);
+  const [supportTickets, setSupportTickets] = useState<SupportTicketItem[]>([]);
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<"all" | "Open" | "Resolved">("all");
+  const [lookupCode, setLookupCode] = useState("");
+  const [kbSearch, setKbSearch] = useState("");
+  const [expandedGuideId, setExpandedGuideId] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -144,11 +156,45 @@ export default function PlatformDashboardPage() {
         .then((res) => res.json())
         .then((data) => {
           if (data.signups) setSignups(data.signups);
-        })
+        }),
+      fetch("/api/support-tickets")
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data.tickets)) setSupportTickets(data.tickets);
+        }),
     ])
       .catch((err) => console.error("Error loading platform data:", err))
       .finally(() => setLoading(false));
   };
+
+  async function handleToggleTicketStatus(ticket: SupportTicketItem) {
+    const nextStatus: "Open" | "Resolved" = ticket.status === "Open" ? "Resolved" : "Open";
+    setSupportTickets((prev) =>
+      prev.map((t) => (t.id === ticket.id ? { ...t, status: nextStatus } : t))
+    );
+    try {
+      await fetch("/api/support-tickets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: ticket.id, status: nextStatus }),
+      });
+    } catch (err) {
+      console.error("Failed to toggle ticket status:", err);
+      loadPlatformData();
+    }
+  }
+
+  async function handleDeleteSupportTicket(ticketId: string) {
+    setSupportTickets((prev) => prev.filter((t) => t.id !== ticketId));
+    try {
+      await fetch(`/api/support-tickets?id=${encodeURIComponent(ticketId)}`, {
+        method: "DELETE",
+      });
+    } catch (err) {
+      console.error("Failed to delete support ticket:", err);
+      loadPlatformData();
+    }
+  }
 
   useEffect(() => {
     if (authorized) {
@@ -429,11 +475,26 @@ export default function PlatformDashboardPage() {
           <span className="text-xs text-slate-400 hidden sm:inline">
             Master Admin: <strong className="text-white">{currentUserEmail}</strong>
           </span>
+          <button
+            type="button"
+            onClick={() => setActiveTab("support")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+              activeTab === "support"
+                ? "text-white bg-sky-500/30 border-sky-400/60 shadow-[0_0_16px_rgba(56,189,248,0.3)]"
+                : "text-sky-200 bg-sky-500/15 border-sky-400/35 hover:bg-sky-500/25 hover:text-white"
+            }`}
+          >
+            <LifeBuoy size={13} className="text-sky-400" />
+            <span>Support Center</span>
+          </button>
           <Link
             href="/help"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-sky-200 bg-sky-500/15 border border-sky-400/35 hover:bg-sky-500/25 hover:text-white transition-all"
+            target="_blank"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all"
+            title="Open Public /help Page in New Tab"
           >
-            <span>Help &amp; Support</span>
+            <span>Public /help Page</span>
+            <ExternalLink size={11} />
           </Link>
           <a
             href="/demo-site"
@@ -556,6 +617,21 @@ export default function PlatformDashboardPage() {
               </span>
             )}
           </button>
+
+          <button
+            onClick={() => setActiveTab("support")}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === "support"
+                ? "bg-sky-500/20 text-white shadow-sm border border-sky-400/45"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <LifeBuoy size={16} className={activeTab === "support" ? "text-sky-400" : ""} />
+            <span>Help &amp; Support Center</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-sky-500/20 border border-sky-400/40 text-sky-200 font-mono font-bold">
+              {supportTickets.filter((t) => t.status === "Open").length} open
+            </span>
+          </button>
         </div>
 
         {/* Search & Filters */}
@@ -591,7 +667,440 @@ export default function PlatformDashboardPage() {
         </div>
 
         {/* Tables Section */}
-        {activeTab === "signups" ? (
+        {activeTab === "support" ? (
+          <div className="space-y-8">
+            {/* 1. Instant Customer Support Code (OIQ-XXXX) Troubleshooter */}
+            <div className="oiq-card p-6 border border-sky-500/30 bg-gradient-to-br from-[#0B1328] via-[#0A1020] to-[#0D1830]">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-400/40 mb-2">
+                    <Wrench size={12} /> Instant Tenant Troubleshooter
+                  </span>
+                  <h2 className="text-xl font-extrabold text-white">
+                    Lookup by Customer Support Code (OIQ-XXXX)
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
+                    Enter a customer&apos;s 4-character Support ID (shown in their Admin Header, Settings, and /help page) to inspect their system and jump straight into their dashboard.
+                  </p>
+                </div>
+
+                <div className="relative w-full lg:w-96">
+                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sky-400" />
+                  <input
+                    type="text"
+                    value={lookupCode}
+                    onChange={(e) => setLookupCode(e.target.value)}
+                    placeholder="Enter OIQ-XXXX code, company, or email…"
+                    className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#070B16] border border-sky-400/40 font-mono text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+                  />
+                  {lookupCode && (
+                    <button
+                      type="button"
+                      onClick={() => setLookupCode("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {(() => {
+                const q = (lookupCode || search).trim().toLowerCase();
+                const matchedOrgs = q
+                  ? orgs.filter((o) => {
+                      const code = (o.customer_code || getCustomerCode(o.id)).toLowerCase();
+                      const suffix = code.replace(/^oiq-/, "");
+                      return (
+                        code.includes(q) ||
+                        suffix.includes(q) ||
+                        o.name.toLowerCase().includes(q) ||
+                        o.slug.toLowerCase().includes(q) ||
+                        (o.contact_email && o.contact_email.toLowerCase().includes(q))
+                      );
+                    })
+                  : orgs.slice(0, 3);
+
+                if (matchedOrgs.length === 0) {
+                  return (
+                    <div className="p-6 rounded-2xl bg-black/30 border border-white/10 text-center text-sm text-slate-400">
+                      No tenant organization matched <strong className="text-white font-mono">{lookupCode || search}</strong>.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {matchedOrgs.slice(0, 6).map((org) => {
+                      const code = org.customer_code || getCustomerCode(org.id);
+                      return (
+                        <div
+                          key={org.id}
+                          className="p-4 rounded-2xl bg-[#070B16]/90 border border-white/12 hover:border-sky-400/45 transition-all flex flex-col justify-between gap-4"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <button
+                                type="button"
+                                onClick={() => handleCopyCode(code, `diag-${org.id}`)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/80 border border-cyan-400/45 text-cyan-300 font-mono text-xs font-black tracking-wider cursor-pointer"
+                              >
+                                <span>{copiedCode === `diag-${org.id}` ? "Copied!" : code}</span>
+                                {copiedCode === `diag-${org.id}` ? <Check size={12} /> : <Copy size={12} />}
+                              </button>
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/10 text-slate-200 border border-white/15">
+                                {org.tier} · {org.subscription_status}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-extrabold text-white truncate">{org.name}</h3>
+                            <p className="text-xs text-slate-400 truncate mt-0.5">
+                              {org.contact_email || `/${org.slug}`}
+                            </p>
+
+                            <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/10 text-center">
+                              <div className="p-1.5 rounded-lg bg-white/[0.03]">
+                                <p className="text-sm font-extrabold text-white">{org.properties_count}</p>
+                                <p className="text-[10px] text-slate-400">Properties</p>
+                              </div>
+                              <div className="p-1.5 rounded-lg bg-white/[0.03]">
+                                <p className="text-sm font-extrabold text-white">{org.tenants_count}</p>
+                                <p className="text-[10px] text-slate-400">Tenants</p>
+                              </div>
+                              <div className="p-1.5 rounded-lg bg-white/[0.03]">
+                                <p className="text-sm font-extrabold text-amber-300">{org.tickets_count}</p>
+                                <p className="text-[10px] text-slate-400">Maint. Open</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEnterSupportMode(org)}
+                              className="flex-1 py-2 px-3 rounded-xl text-xs font-extrabold text-white oiq-grad-bg hover:opacity-95 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span>Troubleshoot Dashboard</span>
+                              <ArrowRight size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditOrg(org);
+                                setEditTier(org.tier);
+                                setEditStatus(org.subscription_status);
+                                setEditDomain(org.custom_domain || "");
+                              }}
+                              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white cursor-pointer"
+                              title="Edit Plan Tier, Domain, or Extend Trial"
+                            >
+                              <Sliders size={15} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* 2. Live Support Tickets Queue (Connected to /help Page) */}
+            <div className="oiq-card overflow-hidden">
+              <div className="p-5 sm:p-6 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <LifeBuoy size={18} className="text-sky-400" />
+                    <h2 className="text-lg sm:text-xl font-extrabold text-white">
+                      Customer Support Tickets Queue
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-400/35">
+                      {supportTickets.length} total
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Tickets submitted directly from the <Link href="/help" className="text-sky-400 hover:underline">/help</Link> Support Center and contact escalations.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {(["all", "Open", "Resolved"] as const).map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setTicketStatusFilter(st)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
+                        ticketStatusFilter === st
+                          ? "bg-sky-500 text-slate-950"
+                          : "bg-white/5 text-slate-300 hover:text-white"
+                      }`}
+                    >
+                      {st === "all" ? "All Tickets" : st}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="divide-y divide-white/[0.06]">
+                {(() => {
+                  const q = (search || lookupCode).trim().toLowerCase();
+                  const visibleTickets = supportTickets.filter((t) => {
+                    if (ticketStatusFilter !== "all" && t.status !== ticketStatusFilter) return false;
+                    if (!q) return true;
+                    return (
+                      t.customer_code.toLowerCase().includes(q) ||
+                      t.company.toLowerCase().includes(q) ||
+                      t.name.toLowerCase().includes(q) ||
+                      t.email.toLowerCase().includes(q) ||
+                      t.category.toLowerCase().includes(q) ||
+                      t.message.toLowerCase().includes(q)
+                    );
+                  });
+
+                  if (visibleTickets.length === 0) {
+                    return (
+                      <div className="py-12 px-6 text-center text-slate-400 space-y-2">
+                        <CheckCircle2 size={28} className="text-emerald-400 mx-auto" />
+                        <p className="text-sm font-bold text-white">No matching support tickets in the queue</p>
+                        <p className="text-xs text-slate-400">
+                          When a customer submits a support request on <code className="text-sky-300">/help</code>, it appears here automatically with their <code className="text-cyan-300">OIQ-XXXX</code> code.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return visibleTickets.map((t) => {
+                    const priorityStyle =
+                      t.priority === "Urgent"
+                        ? "bg-rose-500/20 text-rose-300 border-rose-400/40"
+                        : t.priority === "High"
+                        ? "bg-amber-500/20 text-amber-300 border-amber-400/40"
+                        : "bg-slate-500/20 text-slate-300 border-slate-400/30";
+
+                    return (
+                      <div
+                        key={t.id}
+                        className="p-5 sm:p-6 hover:bg-white/[0.02] transition-colors flex flex-col lg:flex-row lg:items-start justify-between gap-4"
+                      >
+                        <div className="space-y-2 max-w-3xl">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
+                                t.status === "Open"
+                                  ? "bg-amber-500/20 text-amber-300 border-amber-400/45"
+                                  : "bg-emerald-500/20 text-emerald-300 border-emerald-400/45"
+                              }`}
+                            >
+                              {t.status}
+                            </span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${priorityStyle}`}>
+                              {t.priority} Priority
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-indigo-950/70 text-indigo-300 border border-indigo-500/35">
+                              {t.category}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyCode(t.customer_code, `ticket-${t.id}`)}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold cursor-pointer"
+                            >
+                              <span>{copiedCode === `ticket-${t.id}` ? "Copied!" : t.customer_code}</span>
+                              <Copy size={11} />
+                            </button>
+                            <span className="text-xs text-slate-400">
+                              {new Date(t.submitted_at).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+                            <strong className="text-white text-sm">{t.company}</strong>
+                            <span>·</span>
+                            <span>{t.name}</span>
+                            {t.email && (
+                              <a
+                                href={`mailto:${t.email}?subject=${encodeURIComponent(
+                                  `Re: [OpsIQ Support ${t.customer_code}] ${t.category}`
+                                )}`}
+                                className="text-sky-400 hover:underline inline-flex items-center gap-1 font-semibold"
+                              >
+                                <Mail size={12} /> {t.email}
+                              </a>
+                            )}
+                            {t.phone && (
+                              <a href={`tel:${t.phone}`} className="text-slate-300 hover:text-white inline-flex items-center gap-1">
+                                <Phone size={12} /> {t.phone}
+                              </a>
+                            )}
+                          </div>
+
+                          <p className="text-sm text-slate-200 whitespace-pre-wrap bg-black/30 border border-white/10 rounded-xl p-3.5 leading-relaxed">
+                            {t.message}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap lg:flex-col items-stretch sm:items-end gap-2 shrink-0">
+                          {t.org_id && (
+                            <button
+                              type="button"
+                              onClick={() => handleEnterSupportModeById(t.org_id!)}
+                              className="px-3.5 py-2 rounded-xl text-xs font-extrabold text-white oiq-grad-bg hover:opacity-95 transition-opacity inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span>Enter Customer Dashboard</span>
+                              <ArrowRight size={13} />
+                            </button>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTicketStatus(t)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                                t.status === "Open"
+                                  ? "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border-emerald-400/40"
+                                  : "bg-white/5 hover:bg-white/10 text-slate-300 border-white/15"
+                              }`}
+                            >
+                              {t.status === "Open" ? "Mark Resolved" : "Reopen Ticket"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSupportTicket(t.id)}
+                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 cursor-pointer"
+                              title="Delete ticket"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {/* 3. Connected /help Troubleshooting Guides & Quick-Share Reference */}
+            <div className="oiq-card p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={18} className="text-cyan-400" />
+                    <h2 className="text-lg sm:text-xl font-extrabold text-white">
+                      Connected Help Center Knowledge Base ({TECH_SUPPORT_GUIDES.length} Guides &amp; {BASIC_FAQS.length} FAQs)
+                    </h2>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Synced with <Link href="/help" className="text-sky-400 hover:underline">/help</Link> and the AI Help Assistant. Click any guide to view steps or copy a direct troubleshooting link for a client.
+                  </p>
+                </div>
+
+                <div className="relative w-full sm:w-72">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="text"
+                    value={kbSearch}
+                    onChange={(e) => setKbSearch(e.target.value)}
+                    placeholder="Filter guides (e.g. PIN, DNS, Excel)…"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TECH_SUPPORT_GUIDES.filter((g) => {
+                  const q = kbSearch.trim().toLowerCase();
+                  if (!q) return true;
+                  return (
+                    g.title.toLowerCase().includes(q) ||
+                    g.symptom.toLowerCase().includes(q) ||
+                    g.solutionSummary.toLowerCase().includes(q) ||
+                    g.category.toLowerCase().includes(q)
+                  );
+                }).map((guide) => {
+                  const Icon = guide.icon;
+                  const accent = ACCENT_STYLES[guide.accent];
+                  const isExp = expandedGuideId === guide.id;
+                  const shareUrl = `${typeof window !== "undefined" ? window.location.origin : "https://www.getoperateiq.com"}/help?view=techsupport&q=${encodeURIComponent(guide.title)}`;
+
+                  return (
+                    <div
+                      key={guide.id}
+                      className="rounded-2xl bg-[#070B16]/90 border border-white/10 p-4 flex flex-col justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${accent.badgeBg} ${accent.badgeBorder}`}>
+                              <Icon size={18} className={accent.iconText} />
+                            </div>
+                            <div>
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border mb-1 ${accent.pillBg} ${accent.pillText}`}>
+                                {guide.category}
+                              </span>
+                              <h3 className="text-sm font-bold text-white leading-snug">{guide.title}</h3>
+                              <p className="text-xs text-slate-400 mt-0.5">{guide.symptom}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {isExp && (
+                          <div className="mt-3 pt-3 border-t border-white/10 space-y-2 text-xs text-slate-200">
+                            <p className="font-semibold text-sky-300">{guide.solutionSummary}</p>
+                            <ol className="list-decimal list-inside space-y-1 text-slate-300">
+                              {guide.steps.map((st, idx) => (
+                                <li key={idx}>{st}</li>
+                              ))}
+                            </ol>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedGuideId(isExp ? null : guide.id)}
+                          className="text-xs font-bold text-sky-400 hover:text-sky-300 cursor-pointer"
+                        >
+                          {isExp ? "Hide Steps" : "View Fix Steps"}
+                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyCode(shareUrl, `guide-${guide.id}`)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-semibold text-slate-200 cursor-pointer"
+                          >
+                            {copiedCode === `guide-${guide.id}` ? (
+                              <>
+                                <Check size={11} className="text-emerald-400" />
+                                <span className="text-emerald-300">Link Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={11} />
+                                <span>Copy /help Link</span>
+                              </>
+                            )}
+                          </button>
+                          <Link
+                            href={`/help?view=techsupport&q=${encodeURIComponent(guide.title)}`}
+                            target="_blank"
+                            className="p-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-400/30"
+                            title="Open in /help page"
+                          >
+                            <ExternalLink size={12} />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : activeTab === "signups" ? (
           <div className="oiq-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">

@@ -135,6 +135,20 @@ export default function HelpCenterClient() {
   const [customerCode, setCustomerCode] = useState<string | null>(null);
   const [copiedCustomerCode, setCopiedCustomerCode] = useState(false);
 
+  // Direct Support Ticket Form state (connected to Master Admin /platform Support Area)
+  const [showSupportForm, setShowSupportForm] = useState(false);
+  const [supportName, setSupportName] = useState("");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportPhone, setSupportPhone] = useState("");
+  const [supportCompany, setSupportCompany] = useState("");
+  const [supportCodeInput, setSupportCodeInput] = useState("");
+  const [supportCategory, setSupportCategory] = useState("Login & Access");
+  const [supportPriority, setSupportPriority] = useState<"Normal" | "High" | "Urgent">("Normal");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [submittingTicket, setSubmittingTicket] = useState(false);
+  const [ticketSubmitted, setTicketSubmitted] = useState<{ id: string; code: string } | null>(null);
+  const [ticketError, setTicketError] = useState("");
+
   // FAQ states
   const [openFaqIds, setOpenFaqIds] = useState<Record<string, boolean>>({
     "faq-import": true,
@@ -180,12 +194,58 @@ export default function HelpCenterClient() {
         const activeOrg = data?.activeOrg;
         if (activeOrg?.customer_code) {
           setCustomerCode(activeOrg.customer_code);
+          setSupportCodeInput(activeOrg.customer_code);
         } else if (activeOrg?.id) {
-          setCustomerCode(getCustomerCode(activeOrg.id));
+          const derived = getCustomerCode(activeOrg.id);
+          setCustomerCode(derived);
+          setSupportCodeInput(derived);
+        }
+        if (activeOrg?.name) {
+          setSupportCompany(activeOrg.name);
+        }
+        if (data?.user?.email) {
+          setSupportEmail(data.user.email);
         }
       })
       .catch(() => {});
   }, []);
+
+  async function handleSubmitSupportTicket(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supportName.trim() || !supportEmail.trim() || !supportMessage.trim()) {
+      setTicketError("Please enter your name, email, and a brief description of what you need help with.");
+      return;
+    }
+    setSubmittingTicket(true);
+    setTicketError("");
+    try {
+      const res = await fetch("/api/support-tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: supportName.trim(),
+          email: supportEmail.trim(),
+          phone: supportPhone.trim(),
+          company: supportCompany.trim(),
+          customerCode: (supportCodeInput || customerCode || "").trim(),
+          category: supportCategory,
+          priority: supportPriority,
+          message: supportMessage.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit support ticket");
+      setTicketSubmitted({
+        id: data.ticket?.id || "support_ticket",
+        code: data.ticket?.customer_code || customerCode || "OIQ-HELP",
+      });
+      setSupportMessage("");
+    } catch (err) {
+      setTicketError(err instanceof Error ? err.message : "Could not send support ticket.");
+    } finally {
+      setSubmittingTicket(false);
+    }
+  }
 
   function handleCopyCustomerCode() {
     if (!customerCode || typeof navigator === "undefined") return;
@@ -1521,13 +1581,18 @@ export default function HelpCenterClient() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
-              <Link
-                href="/contact?interest=Support"
-                className="oiq-btn !px-6 !py-4 !rounded-2xl text-base sm:text-lg font-extrabold text-center"
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSupportForm((prev) => !prev);
+                  setTicketSubmitted(null);
+                }}
+                className="oiq-btn !px-6 !py-4 !rounded-2xl text-base sm:text-lg font-extrabold text-center cursor-pointer"
               >
-                <span>Contact Tech Support</span>
+                <MessageSquarePlus size={18} />
+                <span>{showSupportForm ? "Hide Support Ticket Form" : "Open a Support Ticket"}</span>
                 <ArrowRight size={18} />
-              </Link>
+              </button>
               <Link
                 href="/admin"
                 className="oiq-btn-ghost !px-6 !py-4 !rounded-2xl text-base sm:text-lg font-bold text-center"
@@ -1536,6 +1601,192 @@ export default function HelpCenterClient() {
               </Link>
             </div>
           </div>
+
+          {/* Direct Support Ticket Drawer (Synced to Master Admin /platform Support Area) */}
+          {showSupportForm && (
+            <div className="mt-8 pt-8 border-t border-sky-400/25">
+              {ticketSubmitted ? (
+                <div className="p-6 sm:p-8 rounded-2xl bg-emerald-950/40 border border-emerald-400/45 text-center space-y-3">
+                  <CheckCircle2 size={36} className="text-emerald-400 mx-auto" />
+                  <h3 className="text-xl sm:text-2xl font-black text-white">
+                    Support Ticket Sent to OpsIQ Master Support!
+                  </h3>
+                  <p className="text-sm sm:text-base text-slate-200 max-w-xl mx-auto">
+                    Your request has been logged directly in our Master Support Queue under Support Code{" "}
+                    <code className="px-2 py-0.5 rounded bg-black/50 border border-emerald-400/40 font-mono font-black text-emerald-300">
+                      {ticketSubmitted.code}
+                    </code>
+                    . Our team will review your workspace and respond shortly.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setTicketSubmitted(null)}
+                    className="mt-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold transition-all cursor-pointer"
+                  >
+                    Submit Another Support Request
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmitSupportTicket} className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                      <LifeBuoy size={18} className="text-sky-400" />
+                      <span>Submit a Direct Support Ticket</span>
+                    </h3>
+                    <span className="text-xs text-sky-300 font-semibold">
+                      Connected directly to OpsIQ Master Admin Support Console
+                    </span>
+                  </div>
+
+                  {ticketError && (
+                    <div className="p-3.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs sm:text-sm text-rose-200">
+                      {ticketError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Your Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={supportName}
+                        onChange={(e) => setSupportName(e.target.value)}
+                        placeholder="Jane Smith"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#070B16] border border-white/15 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={supportEmail}
+                        onChange={(e) => setSupportEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#070B16] border border-white/15 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Company / Portfolio
+                      </label>
+                      <input
+                        type="text"
+                        value={supportCompany}
+                        onChange={(e) => setSupportCompany(e.target.value)}
+                        placeholder="Acme Properties LLC"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#070B16] border border-white/15 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-sky-300 mb-1.5">
+                        Customer Code (OIQ-XXXX)
+                      </label>
+                      <input
+                        type="text"
+                        value={supportCodeInput}
+                        onChange={(e) => setSupportCodeInput(e.target.value.toUpperCase())}
+                        placeholder="e.g. OIQ-7F4K"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#070B16] border border-sky-400/40 font-mono text-sm font-bold text-sky-300 placeholder:text-slate-600 focus:outline-none focus:border-sky-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Issue Category
+                      </label>
+                      <select
+                        value={supportCategory}
+                        onChange={(e) => setSupportCategory(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#070B16] border border-white/15 text-sm text-white focus:outline-none focus:border-sky-400"
+                      >
+                        <option value="Login & Access">Login &amp; Account Access</option>
+                        <option value="Rent Roll & Excel Import">Rent Roll &amp; Excel Import</option>
+                        <option value="Crew 6-Digit PIN Portal">Crew 6-Digit PIN Portal</option>
+                        <option value="Custom Domain & DNS">Custom Domain &amp; DNS</option>
+                        <option value="Billing & Subscription">Billing &amp; Subscription Plan</option>
+                        <option value="Bug / Technical Issue">Bug / Technical Issue</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Urgency / Priority
+                      </label>
+                      <select
+                        value={supportPriority}
+                        onChange={(e) => setSupportPriority(e.target.value as "Normal" | "High" | "Urgent")}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#070B16] border border-white/15 text-sm text-white focus:outline-none focus:border-sky-400"
+                      >
+                        <option value="Normal">Normal — General Question</option>
+                        <option value="High">High — Needs Prompt Help</option>
+                        <option value="Urgent">Urgent — Blocking Operations</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Phone Number (Optional)
+                      </label>
+                      <input
+                        type="tel"
+                        value={supportPhone}
+                        onChange={(e) => setSupportPhone(e.target.value)}
+                        placeholder="(555) 000-0000"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#070B16] border border-white/15 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                      How can we help? *
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      value={supportMessage}
+                      onChange={(e) => setSupportMessage(e.target.value)}
+                      placeholder="Describe what you're seeing or what you'd like help setting up…"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#070B16] border border-white/15 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowSupportForm(false)}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs sm:text-sm font-bold text-slate-300 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingTicket}
+                      className="oiq-btn !px-6 !py-2.5 !rounded-xl text-sm font-extrabold cursor-pointer disabled:opacity-50"
+                    >
+                      {submittingTicket ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          <span>Sending to Support…</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Send Support Ticket</span>
+                          <ArrowRight size={16} />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
         </section>
       </div>
 
