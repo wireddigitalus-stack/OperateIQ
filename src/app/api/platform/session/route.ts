@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { IMPERSONATE_COOKIE, isSuperAdmin } from "@/lib/platform";
+import { IMPERSONATE_COOKIE, isSuperAdmin, getCustomerCode } from "@/lib/platform";
 import { getAuthUser, getRequestContext } from "@/lib/server-auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     }
 
     const ctx = await getRequestContext(req);
-    let memberships: { id: string; name: string; slug: string; tier: string; role: string }[] = [];
+    let memberships: { id: string; name: string; slug: string; tier: string; role: string; customer_code: string }[] = [];
     if (ctx?.memberships.length) {
       const { data: orgs } = await supabaseAdmin
         .from("organizations")
@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
       memberships = (orgs || []).map((o: { id: string; name: string; slug: string; tier: string }) => ({
         ...o,
         role: ctx.memberships.find((m) => m.org_id === o.id)?.role || "member",
+        customer_code: getCustomerCode(o.id),
       }));
     }
 
@@ -40,6 +41,7 @@ export async function GET(req: NextRequest) {
           trial_ends_at: org.trial_ends_at,
           created_at: org.created_at,
           custom_domain: org.custom_domain,
+          customer_code: org.customer_code || getCustomerCode(org.id),
         }
       : null;
 

@@ -407,7 +407,7 @@ export default function WeeklyReportTab() {
                       <tr key={p} className="hover:bg-[rgba(255,255,255,0.01)] transition-colors">
                         <td className="py-2.5 font-bold text-white">{p}</td>
                         <td className="py-2.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isOccupied ? "bg-rgba(74,222,128,0.1) text-[#4ADE80]" : "bg-rgba(239,68,68,0.1) text-[#EF4444]"}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isOccupied ? "bg-[rgba(74,222,128,0.1)] text-[#4ADE80]" : "bg-[rgba(239,68,68,0.1)] text-[#EF4444]"}`}>
                             {isOccupied ? "🟢 Lease Active" : "🔴 Vacant / Unoccupied"}
                           </span>
                         </td>

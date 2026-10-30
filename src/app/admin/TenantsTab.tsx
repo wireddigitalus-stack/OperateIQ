@@ -1534,7 +1534,7 @@ export default function TenantsTab({
 
   const handleBatchImport = async (tenants: Partial<Tenant>[]) => {
     for (const form of tenants) {
-      await fetch("/api/tenants", {
+      const res = await fetch("/api/tenants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1553,6 +1553,10 @@ export default function TenantsTab({
           status: form.status ?? "active", notes: form.notes ?? "",
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Failed to import tenant (${res.status})`);
+      }
     }
     await fetchTenants();
   };

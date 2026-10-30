@@ -24,6 +24,7 @@ import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { signOutEverywhere } from "@/lib/sign-out";
 import { hasFeature, FEATURE_LABELS, getPlan, type Feature, type Tier } from "@/lib/plans";
+import { getCustomerCode } from "@/lib/platform";
 import * as XLSX from "xlsx";
 import {
   Zap, RefreshCw, Phone, Clock, Building2, TrendingUp,
@@ -81,7 +82,7 @@ interface AllowedUser {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "maintenance" | "cleaning";
+  role: "owner" | "admin" | "manager" | "maintenance" | "cleaning";
   active: boolean;
   pin?: string;
   created_at?: string;
@@ -218,17 +219,6 @@ function ageBarPct(days: number): number {
   return Math.min(100, (days / MAX_AGE_DAYS) * 100);
 }
 
-// ─── Demo Data ────────────────────────────────────────────────────────────────
-
-const DEMO_LEADS: Lead[] = [
-  { id: "demo_1", timestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString(), name: "Sarah Mitchell", email: "", phone: "555-555-0192", spaceType: "Executive Office", budget: "3000", timeline: "ASAP — under 30 days", teamSize: "2–4 people", score: 91, scoreLabel: "Verified Lead", reasoning: "Strong budget, urgent timeline, and professional office need align perfectly with Sample Office Building availability.", matchedProperties: [{ id: "sample-office", name: "Sample Office Building", type: "Office", sqft: "1,200–3,000 sqft", location: "Anytown, ST", matchReason: "Premium finishes, immediate availability, fits 2-4 team." }] },
-  { id: "demo_2", timestamp: new Date(Date.now() - 1000 * 60 * 34).toISOString(), name: "Mark Delaney", email: "", phone: "", spaceType: "Flex Workspace", budget: "800", timeline: "1–2 months", teamSize: "Solo", score: 58, scoreLabel: "MQL", reasoning: "Solo operator with moderate budget — a small suite at Sample Office Building is an excellent fit. Nurture toward a longer lease.", matchedProperties: [{ id: "sample-office", name: "Sample Office Building", type: "Office", sqft: "150–400 sqft", location: "123 Main Street, Anytown, ST", matchReason: "Small private suite with flexible terms, perfect for solo professional." }] },
-  { id: "demo_3", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), name: "Dr. James Patel", email: "", phone: "555-555-0847", spaceType: "Private Office Suite", budget: "6000", timeline: "ASAP — under 30 days", teamSize: "5–10 people", score: 96, scoreLabel: "Verified Lead", reasoning: "Very high budget, urgent timeline, established team — priority contact for today.", matchedProperties: [{ id: "sample-office", name: "Sample Office Building", type: "Office", sqft: "2,000–6,000 sqft", location: "Anytown, ST", matchReason: "Prestige building, fits team of 5-10, premium positioning." }, { id: "sample-office-2", name: "Sample Office Building — Floor 3", type: "Office", sqft: "3,000–8,000 sqft", location: "Anytown, ST", matchReason: "Larger footprint option with flexible configuration." }], isWhale: true, whaleTier: "gold", whaleKeywords: [] },
-  { id: "demo_4", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), name: "Blake Thornton", email: "", phone: "", spaceType: "Retail Storefront", budget: "1500", timeline: "3–6 months", teamSize: "2–4 people", score: 42, scoreLabel: "MQL", reasoning: "Retail need with longer timeline. Good candidate for a Main Street storefront. Follow up in 60 days.", matchedProperties: [{ id: "sample-retail", name: "Sample Retail Center", type: "Retail", sqft: "800–2,000 sqft", location: "Anytown, ST", matchReason: "High foot traffic retail units at budget-friendly rates." }] },
-];
-
-
-
 // ─── Ask OpsIQ Modal ──────────────────────────────────────────────────────────
 
 const QUICK_QUERIES = [
@@ -242,10 +232,12 @@ const QUICK_QUERIES = [
 function AskOpsIQModal({
   leads,
   orgName,
+  customerCode,
   onClose,
 }: {
   leads: Lead[];
   orgName?: string;
+  customerCode?: string;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -352,6 +344,11 @@ function AskOpsIQModal({
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-black text-emerald-300 uppercase tracking-wider">
                   <Lock size={10} /> Isolated to {resolvedOrgName}
                 </span>
+                {customerCode && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/25 text-[10px] font-mono font-bold text-sky-300">
+                    Support ID: {customerCode}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 truncate mt-0.5">
                 {portfolioStats
@@ -845,7 +842,7 @@ function derivedLabel(score: number): "Verified Lead" | "MQL" | "Prospect Lead" 
 const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-600 transition-all";
 const LABEL = "block text-xs text-gray-500 font-bold uppercase tracking-wider mb-1";
 
-function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLeadAdded: (lead: Lead) => void; currentUserName?: string; currentUserEmail?: string }) {
+function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail, orgId }: { onLeadAdded: (lead: Lead) => void; currentUserName?: string; currentUserEmail?: string; orgId?: string }) {
   const [open, setOpen] = useState(false);
   const [scoreMode, setScoreMode] = useState<"ai" | "manual">("ai");
   const [submitting, setSubmitting] = useState(false);
@@ -867,7 +864,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
     createdByEmployee: "",
   });
 
-  const LEAD_DRAFT_KEY = "oiq_draft_lead_new";
+  const LEAD_DRAFT_KEY = `oiq_draft_lead_new_${orgId || "default"}`;
 
   const clearLocalDraft = () => { try { localStorage.removeItem(LEAD_DRAFT_KEY); } catch { /* ignore */ } };
 
@@ -885,7 +882,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
         }
       }
     } catch { /* ignore */ }
-  }, [open]);
+  }, [open, LEAD_DRAFT_KEY]);
 
   // Auto-save to localStorage on every form change (only when open)
   useEffect(() => {
@@ -894,7 +891,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
       try { localStorage.setItem(LEAD_DRAFT_KEY, JSON.stringify({ data: { form, scoreMode }, savedAt: new Date().toISOString() })); } catch { /* ignore */ }
     }, 800);
     return () => clearTimeout(t);
-  }, [form, scoreMode, open]);
+  }, [form, scoreMode, open, LEAD_DRAFT_KEY]);
 
   // Automatically pre-fill the employee field with current logged-in user when open
   useEffect(() => {
@@ -1045,7 +1042,7 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail }: { onLe
               <div className="flex gap-2 flex-shrink-0">
                 <button onClick={() => {
                   try {
-                    const raw = localStorage.getItem("oiq_draft_lead_new");
+                    const raw = localStorage.getItem(LEAD_DRAFT_KEY);
                     if (raw) {
                       const { data } = JSON.parse(raw);
                       if (data?.form) setForm(data.form);
@@ -1359,6 +1356,8 @@ export default function AdminPage() {
     if (norm === "rentledger" || norm === "tenants") return "tenants";
     if (norm === "conversations" || norm === "tasks" || norm === "teamboard") return "teamboard";
     if (norm === "reports" || norm === "analytics") return "analytics";
+    if (norm.startsWith("marketing-")) return "marketing";
+    if (norm.startsWith("content-")) return "content";
     if (VALID_TABS.includes(norm as TabKey)) return norm as TabKey;
     return "leads";
   };
@@ -1389,18 +1388,28 @@ export default function AdminPage() {
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBillingModal, setShowBillingModal] = useState(false);
 
-  // Sync URL ?tab= changes (e.g. when navigating via AdminHeader or deep link)
+  // Sync URL ?tab= changes (e.g. when navigating via AdminHeader or Help Center deep link)
   useEffect(() => {
     const checkoutParam = searchParams.get("checkout");
     if (checkoutParam === "success" || checkoutParam === "canceled") {
       setShowBillingModal(true);
     }
+    if (searchParams.get("action") === "import") {
+      setShowIntakeModal(true);
+    }
     if (!rawTabParam) return;
+    const norm = rawTabParam.toLowerCase().trim();
     const resolved = resolveTabParam(rawTabParam);
     setActiveTab(resolved);
-    if (rawTabParam.toLowerCase() === "rentledger") setRentLedgerOpen(true);
-    if (rawTabParam.toLowerCase() === "tasks") setTeamBoardSubTab("tasks");
-    if (rawTabParam.toLowerCase() === "conversations") setTeamBoardSubTab("chat");
+    if (norm === "rentledger") setRentLedgerOpen(true);
+    if (norm === "tasks") setTeamBoardSubTab("tasks");
+    if (norm === "conversations") setTeamBoardSubTab("chat");
+    if (norm.startsWith("marketing-")) {
+      setMarketingSubTab(norm.replace("marketing-", ""));
+    }
+    if (norm.startsWith("content-")) {
+      setContentSubView(norm);
+    }
   }, [rawTabParam, searchParams]);
 
   // Listen for org subscription updates dispatched by SettingsTab / PlanAndBillingModal
@@ -1475,7 +1484,9 @@ export default function AdminPage() {
     trial_ends_at?: string | null;
     created_at?: string | null;
     custom_domain?: string | null;
+    customer_code?: string | null;
   } | null>(null);
+  const activeOrgCode = activeOrg ? getCustomerCode(activeOrg.id, activeOrg.customer_code) : "";
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1705,7 +1716,7 @@ export default function AdminPage() {
         return;
       }
 
-      setIsSuperAdmin(!!session.impersonatingOrg);
+      setIsSuperAdmin(!!session.isSuperAdmin || !!session.impersonatingOrg);
       const org = session.impersonatingOrg || session.activeOrg || null;
       if (!org) {
         setAccessDenied(true);
@@ -1754,10 +1765,10 @@ export default function AdminPage() {
     try { localStorage.removeItem("oiq_live_leads"); } catch { /* ignore */ }
   }, []);
 
-  // Supabase Realtime Presence — show who else is online
+  // Supabase Realtime Presence — show who else is online (scoped per active organization)
   useEffect(() => {
     if (!currentUser) return;
-    const channel = supabaseBrowser.channel("admin_presence", {
+    const channel = supabaseBrowser.channel(`admin_presence_${activeOrg?.id || "default"}`, {
       config: { presence: { key: currentUser.email } },
     });
     channel
@@ -1771,7 +1782,7 @@ export default function AdminPage() {
         }
       });
     return () => { supabaseBrowser.removeChannel(channel); };
-  }, [currentUser]);
+  }, [currentUser, activeOrg?.id]);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -1793,10 +1804,11 @@ export default function AdminPage() {
     finally { setLoading(false); setLastRefresh(new Date()); }
   };
 
-  // ── localStorage live-lead poller (4s interval) ────────────────────────────
+  // ── localStorage live-lead poller (4s interval, scoped per org) ────────────
   const pollLocalStorage = useCallback(() => {
+    if (!activeOrg?.id) return;
     try {
-      const stored: Lead[] = JSON.parse(localStorage.getItem("oiq_live_leads") || "[]");
+      const stored: Lead[] = JSON.parse(localStorage.getItem(`oiq_live_leads_${activeOrg.id}`) || "[]");
       if (!stored.length) return;
 
       const brandNew = stored.filter(l => !seenIdsRef.current.has(l.id));
@@ -1806,7 +1818,7 @@ export default function AdminPage() {
       brandNew.forEach(l => seenIdsRef.current.add(l.id));
       setRecentLiveIds(prev => { const s = new Set(prev); brandNew.forEach(l => s.add(l.id)); return s; });
 
-      // Merge into leads list (new ones at top, before demo leads)
+      // Merge into leads list (new ones at top)
       setLeads(prev => {
         const existingIds = new Set(prev.map(l => l.id));
         const toAdd = brandNew.filter(l => !existingIds.has(l.id));
@@ -1820,7 +1832,7 @@ export default function AdminPage() {
       toastTimerRef.current = setTimeout(() => setNewLeadToast(null), 5000);
       setLastRefresh(new Date());
     } catch { /* ignore */ }
-  }, []);
+  }, [activeOrg?.id]);
 
   useEffect(() => {
     fetchLeads();
@@ -2358,6 +2370,7 @@ export default function AdminPage() {
           <AskOpsIQModal
             leads={leads}
             orgName={activeOrg?.name}
+            customerCode={activeOrgCode}
             onClose={() => setShowAskOpsIQ(false)}
           />
         )}
@@ -3026,6 +3039,7 @@ export default function AdminPage() {
               }}
               currentUserName={currentUser?.name}
               currentUserEmail={currentUser?.email}
+              orgId={activeOrg?.id}
             />
 
             {/* QR Leaderboard */}
@@ -4058,7 +4072,10 @@ export default function AdminPage() {
       </div>
 
       {/* ─ PRO TIPS floating button (always visible, context-aware) ─────────── */}
-      <ProTips activeTab={(activeTab === "marketing" ? `marketing-${marketingSubTab}` : activeTab === "content" ? contentSubView : activeTab) as import("./ProTips").TabKey} />
+      <ProTips
+        activeTab={(activeTab === "marketing" ? `marketing-${marketingSubTab}` : activeTab === "content" ? contentSubView : activeTab) as import("./ProTips").TabKey}
+        customerCode={activeOrgCode}
+      />
 
       {/* Activity Feed slide-in panel */}
       {showActivityFeed && (

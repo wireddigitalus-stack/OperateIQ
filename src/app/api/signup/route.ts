@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE } from "@/lib/platform";
+import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, getCustomerCode } from "@/lib/platform";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getAuthUser } from "@/lib/server-auth";
 
@@ -63,6 +63,13 @@ export async function POST(req: NextRequest) {
     const authedUser = await getAuthUser(req);
     const ownerEmail = authedUser?.email || cleanEmail;
 
+    if (!authedUser && (!password || password.length < 8)) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters." },
+        { status: 400 }
+      );
+    }
+
     if (!authedUser) {
       const { data: existingAllowed } = await supabaseAdmin
         .from("allowed_users")
@@ -79,7 +86,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    let createdAuthUserId: string | null = null;
+    let createdNewAuthUserId: string | null = null;
     if (!authedUser && password.length >= 8) {
       const { data: createdUser, error: createUserErr } = await supabaseAdmin.auth.admin.createUser({
         email: ownerEmail,
@@ -98,7 +105,7 @@ export async function POST(req: NextRequest) {
         console.error("[signup] auth.admin.createUser error:", createUserErr.message);
         return NextResponse.json({ error: "Could not create account. Please try again." }, { status: 500 });
       }
-      createdAuthUserId = createdUser?.user?.id || null;
+      createdNewAuthUserId = createdUser?.user?.id || null;
     }
 
     let orgId: string = crypto.randomUUID();
@@ -109,7 +116,7 @@ export async function POST(req: NextRequest) {
     let slugCandidate = orgSlug;
     for (let attempt = 0; attempt < 5 && !createdOrg; attempt++) {
       const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: newOrg, error: orgError } = await supabaseAdmin
+      const { data: newOrg, error: orgErr } = await supabaseAdmin
         .from("organizations")
         .insert({
           id: orgId,
@@ -125,41 +132,76 @@ export async function POST(req: NextRequest) {
         .select("id, slug")
         .single();
 
-      if (!orgError && newOrg) {
+      if (!orgErr && newOrg) {
         createdOrg = newOrg;
         break;
       }
-      if (orgError?.code === "23505") {
+      if (orgErr?.code === "23505") {
         slugCandidate = `${orgSlug}-${Math.random().toString(36).slice(2, 6)}`;
         continue;
       }
-      console.error("[signup] organizations insert failed:", orgError?.message);
+      console.error("[signup] organizations insert failed:", orgErr?.message);
+      if (createdNewAuthUserId) {
+        await supabaseAdmin.auth.admin.deleteUser(createdNewAuthUserId).catch(() => {});
+      }
       return NextResponse.json({ error: "Could not create workspace. Please try again." }, { status: 500 });
     }
     if (!createdOrg) {
+      if (createdNewAuthUserId) {
+        await supabaseAdmin.auth.admin.deleteUser(createdNewAuthUserId).catch(() => {});
+      }
       return NextResponse.json({ error: "That company name is taken. Try a slightly different name." }, { status: 409 });
     }
     orgId = createdOrg.id;
     orgSlug = createdOrg.slug;
+    const customerCode = getCustomerCode(orgId);
 
     // 2. Owner access. allowed_users drives the dashboard team list; memberships drives
     //    authorization (it is created now if signed in or created with password, otherwise on first login).
-    const { error: accessErr } = await supabaseAdmin.from("allowed_users").insert({
+    const { error: memberErr } = await supabaseAdmin.from("allowed_users").insert({
       email: ownerEmail,
       name: cleanName,
       role: "owner",
       active: true,
       org_id: orgId,
     });
-    if (accessErr) {
-      console.error("[signup] allowed_users insert failed:", accessErr.message);
+    if (memberErr) {
+      console.error("[signup] allowed_users insert failed:", memberErr.message);
       await supabaseAdmin.from("organizations").delete().eq("id", orgId);
+      if (createdNewAuthUserId) {
+        await supabaseAdmin.auth.admin.deleteUser(createdNewAuthUserId).catch(() => {});
+      }
       return NextResponse.json({ error: "Could not create workspace. Please try again." }, { status: 500 });
     }
-    const targetUserId = authedUser?.id || createdAuthUserId;
+    const targetUserId = authedUser?.id || createdNewAuthUserId;
     if (targetUserId) {
-      await supabaseAdmin.from("memberships").insert({ org_id: orgId, user_id: targetUserId, role: "owner" });
+      const { error: membershipErr } = await supabaseAdmin
+        .from("memberships")
+        .insert({ org_id: orgId, user_id: targetUserId, role: "owner" });
+      if (membershipErr) {
+        console.error("[signup] memberships insert failed:", membershipErr.message);
+        await supabaseAdmin.from("allowed_users").delete().eq("org_id", orgId);
+        await supabaseAdmin.from("organizations").delete().eq("id", orgId);
+        if (createdNewAuthUserId) {
+          await supabaseAdmin.auth.admin.deleteUser(createdNewAuthUserId).catch(() => {});
+        }
+        return NextResponse.json({ error: "Could not create workspace. Please try again." }, { status: 500 });
+      }
     }
+
+    // 2b. Save customer_code in org_profile setting
+    await supabaseAdmin
+      .from("site_settings")
+      .upsert(
+        {
+          org_id: orgId,
+          key: "org_profile",
+          value: { customer_code: customerCode, city: "", state: "", description: "" },
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "org_id,key" }
+      )
+      .then(() => {}, () => {});
 
     // 3. Record the signup for the platform console (platform org-agnostic log)
     const { error: subErr } = await supabaseAdmin.from("contact_submissions").insert({
@@ -171,7 +213,7 @@ export async function POST(req: NextRequest) {
       phone: cleanPhone,
       interest: `14-Day Trial (${cleanPlan.toUpperCase()})`,
       city: cleanPortfolioType,
-      message: `Trial Signup Intake:\n- Plan: ${cleanPlan}\n- Units: ${cleanUnitCount}\n- Portfolio: ${cleanPortfolioType}\n- Phone: ${cleanPhone || "None"}\n- Org ID: ${orgId}`,
+      message: `Trial Signup Intake:\n- Support Code: ${customerCode}\n- Plan: ${cleanPlan}\n- Units: ${cleanUnitCount}\n- Portfolio: ${cleanPortfolioType}\n- Phone: ${cleanPhone || "None"}\n- Org ID: ${orgId}`,
       org_id: orgId,
       ip_hash: ip.split(".").slice(0, 3).join(".") + ".x",
     });
@@ -186,8 +228,17 @@ export async function POST(req: NextRequest) {
       plan: cleanPlan,
       trialDays: 14,
       signedIn: !!authedUser,
-      accountCreated: !!createdAuthUserId,
+      accountCreated: !!createdNewAuthUserId,
       email: ownerEmail,
+      customerCode,
+      organization: {
+        id: orgId,
+        slug: orgSlug,
+        name: cleanCompany,
+        tier: cleanPlan,
+        customerCode,
+        customer_code: customerCode,
+      },
     });
 
     res.cookies.set({

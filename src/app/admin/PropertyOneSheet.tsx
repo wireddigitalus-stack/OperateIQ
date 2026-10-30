@@ -61,15 +61,14 @@ function buildOneSheetHTML(
   logoDataUri: string = "",
   orgMeta?: OrgMeta
 ): string {
-  const defaultOrg = getOrgProfile();
   const org: OrgMeta = orgMeta || {
-    name: defaultOrg.name,
-    phone: defaultOrg.phone || COMPANY.phone,
-    phoneHref: (defaultOrg.phone || COMPANY.phone).replace(/[^0-9+]/g, ""),
-    email: defaultOrg.email || COMPANY.email,
-    location: defaultOrg.location,
-    website: defaultOrg.website,
-    fullAddress: defaultOrg.location || COMPANY.fullAddress,
+    name: "Your Portfolio",
+    phone: "",
+    phoneHref: "",
+    email: "",
+    location: "",
+    website: "",
+    fullAddress: "",
   };
   const features = (property.features ?? []);
   const half = Math.ceil(features.length / 2);
@@ -510,8 +509,8 @@ function buildOneSheetHTML(
       <div class="top-bar">
         <img class="logo-img" src="${logoSrc}" alt="${org.name}" />
         <div class="top-bar-contact">
-          <p><a href="tel:${org.phoneHref}">${org.phone}</a></p>
-          <p><a href="mailto:${org.email}">${org.email}</a></p>
+          ${org.phone ? `<p><a href="tel:${org.phoneHref}">${org.phone}</a></p>` : ""}
+          ${org.email ? `<p><a href="mailto:${org.email}">${org.email}</a></p>` : ""}
         </div>
       </div>
 
@@ -574,7 +573,7 @@ function buildOneSheetHTML(
             <div class="trust-pillar">
               <span class="trust-pillar-icon">🏆</span>
               <div class="trust-pillar-title">Local Experts</div>
-              <div class="trust-pillar-sub">Serving ${org.location}</div>
+              <div class="trust-pillar-sub">${org.location ? `Serving ${org.location}` : "Dedicated local management"}</div>
             </div>
             <div class="trust-pillar">
               <span class="trust-pillar-icon">🤝</span>
@@ -621,21 +620,21 @@ function buildOneSheetHTML(
         <div class="cta-box">
           <div class="cta-title">Schedule a Showing</div>
 
-          <div class="cta-row">
+          ${org.phone ? `<div class="cta-row">
             <div class="cta-icon-dot">📞</div>
             <div>
               <div class="cta-label">Direct Line</div>
               <div class="cta-value">${org.phone}</div>
             </div>
-          </div>
+          </div>` : ""}
 
-          <div class="cta-row">
+          ${org.email ? `<div class="cta-row">
             <div class="cta-icon-dot">✉</div>
             <div>
               <div class="cta-label">Email</div>
               <div class="cta-value">${org.email}</div>
             </div>
-          </div>
+          </div>` : ""}
 
           ${org.website ? `<div class="cta-row">
             <div class="cta-icon-dot">🌐</div>
@@ -690,7 +689,7 @@ export default function PropertyOneSheet() {
       fetch("/api/properties-dynamic?admin=1").then(r => r.json()).catch(() => ({})),
       fetch("/api/platform/session").then(r => r.json()).catch(() => ({})),
     ]).then(async ([dynData, sessData]) => {
-      const activeOrg = sessData?.activeOrg;
+      const activeOrg = sessData?.impersonatingOrg || sessData?.activeOrg;
       const isDemoOrg = activeOrg?.id === "00000000-0000-0000-0000-000000000001";
 
       if (activeOrg?.id) {
@@ -698,17 +697,16 @@ export default function PropertyOneSheet() {
           const orgRes = await fetch(`/api/platform/organizations?id=${encodeURIComponent(activeOrg.id)}`);
           const orgJson = await orgRes.json().catch(() => ({}));
           const o = orgJson.organization || activeOrg;
-          const defaultProfile = getOrgProfile();
-          const phone = o.contact_phone || defaultProfile.phone || COMPANY.phone;
-          const email = o.contact_email || defaultProfile.email || COMPANY.email;
-          const loc = [o.city, o.state].filter(Boolean).join(", ") || defaultProfile.location || "";
+          const phone = o.contact_phone || "";
+          const email = o.contact_email || "";
+          const loc = [o.city, o.state].filter(Boolean).join(", ") || "";
           setOrgMeta({
-            name: o.brand_name || o.name || defaultProfile.name,
+            name: o.brand_name || o.name || "Your Portfolio",
             phone,
             phoneHref: phone.replace(/[^0-9+]/g, ""),
             email,
             location: loc,
-            website: o.custom_domain ? `https://${o.custom_domain}` : defaultProfile.website,
+            website: o.custom_domain ? `https://${o.custom_domain}` : "",
             fullAddress: loc,
           });
         } catch {

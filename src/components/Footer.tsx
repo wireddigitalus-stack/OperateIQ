@@ -3,8 +3,8 @@ import Logo from "./Logo";
 import { BRAND } from "@/lib/brand";
 
 const cols = [
-  { title: "Product", links: [["Features", "/features"], ["Pricing", "/pricing"], ["Start free trial", "/signup"]] },
-  { title: "Company", links: [["Blog", "/blog"], ["Contact", "/contact"]] },
+  { title: "Product", links: [["Features", "/features"], ["Pricing", "/pricing"], ["Live Demo", "/demo-site"], ["Start free trial", "/signup"]] },
+  { title: "Resources & Support", links: [["Help & Tech Support", "/help"], ["Blog", "/blog"], ["Contact", "/contact"]] },
   { title: "Legal", links: [["Privacy", "/privacy"], ["Terms", "/terms"]] },
 ];
 
@@ -38,12 +38,16 @@ export default function Footer() {
       <div className="border-t border-[var(--oiq-border)] py-6 px-5 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
         <p>© {new Date().getFullYear()} {BRAND.name} · {BRAND.domain}. All rights reserved.</p>
         <div className="flex items-center gap-4">
-          <Link href="/demo-site" className="text-slate-500 hover:text-slate-300 transition-colors">
-            Demo Property Site
+          <Link href="/help" className="text-slate-500 hover:text-slate-300 transition-colors">
+            Help &amp; Support
           </Link>
           <span className="text-slate-700">·</span>
-          <Link href="/platform" className="text-slate-600 hover:text-slate-400 transition-colors">
-            Master Admin
+          <Link href="/privacy" className="text-slate-500 hover:text-slate-300 transition-colors">
+            Privacy
+          </Link>
+          <span className="text-slate-700">·</span>
+          <Link href="/terms" className="text-slate-500 hover:text-slate-300 transition-colors">
+            Terms
           </Link>
         </div>
       </div>

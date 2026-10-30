@@ -46,7 +46,7 @@ export default function ProWebsiteShowcaseCard() {
                 Your Entire Portfolio, Live on the Web in One Click.
               </h3>
               <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
-                Skip the $15,000 custom web design agency fees. OperateIQ automatically generates a premier public property showcase site powered by <strong>Ultra SEO & Generative AI Search (GEO)</strong>.
+                Built with agency-grade web architecture right out of the box. OperateIQ automatically generates a premier public property showcase site powered by <strong>Ultra SEO &amp; Generative AI Search (GEO)</strong> — synced live with your rent roll and availability.
               </p>
             </div>
 

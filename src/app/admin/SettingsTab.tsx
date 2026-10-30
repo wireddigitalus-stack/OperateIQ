@@ -8,10 +8,11 @@ import {
   Sparkles, MessageSquare, BarChart3, Wrench,
   FileSpreadsheet, Download, Upload, AlertCircle,
   ChevronRight, Zap, Share2, Clock, Monitor, Globe,
-  Building2, CreditCard, KeyRound, Palette,
+  Building2, CreditCard, KeyRound, Palette, Copy,
 } from "lucide-react";
 import CustomDomainManager from "@/components/admin/CustomDomainManager";
 import { PLANS, getPlan, FEATURE_LABELS } from "@/lib/plans";
+import { getCustomerCode } from "@/lib/platform";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 // ─── Types (shared with page.tsx) ─────────────────────────────────────────────
@@ -1465,7 +1466,7 @@ function OrganizationProfileCard({
   activeOrg,
   onOwnerEmailLoaded,
 }: {
-  activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null } | null;
+  activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null; customer_code?: string | null } | null;
   onOwnerEmailLoaded?: (email: string | null) => void;
 }) {
   const [brandName, setBrandName] = useState("");
@@ -1476,9 +1477,13 @@ function OrganizationProfileCard({
   const [description, setDescription] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#38BDF8");
   const [accentColor, setAccentColor] = useState("#4ADE80");
+  const [customCode, setCustomCode] = useState<string | null>(activeOrg?.customer_code || null);
+  const [copiedCode, setCopiedCode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const customerCode = getCustomerCode(activeOrg?.id, customCode ?? activeOrg?.customer_code);
 
   useEffect(() => {
     if (!activeOrg?.id) return;
@@ -1497,6 +1502,7 @@ function OrganizationProfileCard({
         setDescription(org.description || "");
         setPrimaryColor(org.brand_primary_color || "#38BDF8");
         setAccentColor(org.brand_accent_color || "#4ADE80");
+        if (org.customer_code) setCustomCode(org.customer_code);
         onOwnerEmailLoaded?.(org.contact_email || null);
       })
       .catch(() => {})
@@ -1546,7 +1552,7 @@ function OrganizationProfileCard({
 
   return (
     <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-5 sm:p-6 shadow-[0_0_24px_rgba(56,189,248,0.05)]">
-      <div className="flex items-center justify-between gap-2 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center">
             <Building2 size={16} className="text-indigo-400" />
@@ -1560,7 +1566,31 @@ function OrganizationProfileCard({
             </p>
           </div>
         </div>
-        {loading && <Loader2 size={15} className="animate-spin text-sky-400" />}
+        <div className="flex items-center gap-2">
+          {customerCode && (
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard?.writeText(customerCode).catch(() => {});
+                setCopiedCode(true);
+                setTimeout(() => setCopiedCode(false), 2000);
+              }}
+              title="Click to copy your Customer Support Code"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/30 text-xs font-mono font-bold text-sky-300 transition-all"
+            >
+              <span className="text-[10px] uppercase tracking-wider font-sans text-gray-400">Support ID:</span>
+              <span className="text-sky-300 font-black">{customerCode}</span>
+              {copiedCode ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold text-emerald-400">
+                  <CheckCircle2 size={11} /> Copied!
+                </span>
+              ) : (
+                <Copy size={12} className="text-sky-400/80" />
+              )}
+            </button>
+          )}
+          {loading && <Loader2 size={15} className="animate-spin text-sky-400" />}
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-4">

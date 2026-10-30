@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireSuperAdmin } from "@/lib/server-auth";
+import { getCustomerCode } from "@/lib/platform";
 
 export async function GET(req: NextRequest) {
   const sa = await requireSuperAdmin(req);
@@ -8,10 +9,12 @@ export async function GET(req: NextRequest) {
   try {
     if (!supabaseAdmin) {
       // In development or before Supabase service role key is fully connected
+      const demoId = "00000000-0000-0000-0000-000000000001";
       return NextResponse.json({
         organizations: [
           {
-            id: "00000000-0000-0000-0000-000000000001",
+            id: demoId,
+            customer_code: getCustomerCode(demoId),
             name: "OperateIQ Demo",
             slug: "operateiq-demo",
             tier: "pro",
@@ -23,6 +26,7 @@ export async function GET(req: NextRequest) {
             tickets_count: 0,
           },
         ],
+        signups: [],
         stats: {
           totalOrgs: 1,
           totalProperties: 2,
@@ -41,10 +45,12 @@ export async function GET(req: NextRequest) {
 
     if (orgsError) {
       console.warn("[platform/overview] organizations table not yet migrated, using initial fallback:", orgsError.message);
+      const demoId = "00000000-0000-0000-0000-000000000001";
       return NextResponse.json({
         organizations: [
           {
-            id: "00000000-0000-0000-0000-000000000001",
+            id: demoId,
+            customer_code: getCustomerCode(demoId),
             name: "OperateIQ Demo",
             slug: "operateiq-demo",
             tier: "pro",
@@ -56,6 +62,7 @@ export async function GET(req: NextRequest) {
             tickets_count: 0,
           },
         ],
+        signups: [],
         stats: {
           totalOrgs: 1,
           totalProperties: 2,
@@ -66,18 +73,22 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. Fetch counts per organization
-    const { data: properties } = await supabaseAdmin
-      .from("properties")
-      .select("id, org_id");
-
-    const { data: tenants } = await supabaseAdmin
-      .from("tenants")
-      .select("id, org_id");
-
-    const { data: tickets } = await supabaseAdmin
-      .from("maintenance_tickets")
-      .select("id, org_id, status");
+    // 2. Fetch counts per organization & signups
+    const [
+      { data: properties },
+      { data: tenants },
+      { data: tickets },
+      { data: rawSignups },
+    ] = await Promise.all([
+      supabaseAdmin.from("properties").select("id, org_id"),
+      supabaseAdmin.from("tenants").select("id, org_id"),
+      supabaseAdmin.from("maintenance_tickets").select("id, org_id, status"),
+      supabaseAdmin
+        .from("contact_submissions")
+        .select("*")
+        .order("submitted_at", { ascending: false })
+        .limit(100),
+    ]);
 
     const propsMap: Record<string, number> = {};
     const tenantsMap: Record<string, number> = {};
@@ -99,9 +110,15 @@ export async function GET(req: NextRequest) {
 
     const enrichedOrgs = (orgs || []).map((org: { id: string; subscription_status: string }) => ({
       ...org,
+      customer_code: getCustomerCode(org.id),
       properties_count: propsMap[org.id] || 0,
       tenants_count: tenantsMap[org.id] || 0,
       tickets_count: ticketsMap[org.id] || 0,
+    }));
+
+    const enrichedSignups = (rawSignups || []).map((s: { org_id?: string | null } & Record<string, unknown>) => ({
+      ...s,
+      ...(s.org_id ? { customer_code: getCustomerCode(s.org_id) } : {}),
     }));
 
     const stats = {
@@ -114,6 +131,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       organizations: enrichedOrgs,
+      signups: enrichedSignups,
       stats,
     });
   } catch (error) {

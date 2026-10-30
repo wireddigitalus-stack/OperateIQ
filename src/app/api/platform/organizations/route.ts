@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireOrgAdmin, requireSuperAdmin } from "@/lib/server-auth";
+import { getCustomerCode } from "@/lib/platform";
 
 // Fields safe to expose for public site rendering (slug / domain lookups).
 const PUBLIC_ORG_FIELDS =
@@ -61,6 +62,10 @@ export async function GET(req: NextRequest) {
       const prof = ((profileSetting?.value || {}) as Record<string, unknown>);
       const organization = {
         ...org,
+        customer_code: getCustomerCode(
+          org.id,
+          typeof prof.customer_code === "string" ? prof.customer_code : null
+        ),
         city: typeof prof.city === "string" ? prof.city : "",
         state: typeof prof.state === "string" ? prof.state : "",
         address: typeof prof.address === "string" ? prof.address : "",
@@ -72,11 +77,33 @@ export async function GET(req: NextRequest) {
     // Full list: platform super-admins only.
     const sa = await requireSuperAdmin(req);
     if (!sa.ok) return sa.res;
-    const { data: orgs } = await supabaseAdmin
-      .from("organizations")
-      .select("*")
-      .order("created_at", { ascending: false });
-    return NextResponse.json({ organizations: orgs || [] });
+    const [{ data: orgs }, { data: profileSettings }] = await Promise.all([
+      supabaseAdmin
+        .from("organizations")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("site_settings")
+        .select("org_id, value")
+        .eq("key", "org_profile"),
+    ]);
+    const profMap = new Map<string, Record<string, unknown>>();
+    (profileSettings || []).forEach((s: { org_id: string; value: unknown }) => {
+      if (s.org_id && s.value && typeof s.value === "object") {
+        profMap.set(s.org_id, s.value as Record<string, unknown>);
+      }
+    });
+    const enriched = (orgs || []).map((o: { id: string } & Record<string, unknown>) => {
+      const prof = profMap.get(o.id) || {};
+      return {
+        ...o,
+        customer_code: getCustomerCode(
+          o.id,
+          typeof prof.customer_code === "string" ? prof.customer_code : null
+        ),
+      };
+    });
+    return NextResponse.json({ organizations: enriched });
   } catch (error) {
     console.error("[platform/organizations] GET error:", error);
     return NextResponse.json({ error: "Failed to fetch organizations" }, { status: 500 });
@@ -92,7 +119,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, slug, contact_email, contact_phone } = body;
+    const { name, slug, contact_email, contact_phone, brand_name } = body;
     const tier = TIERS.includes(body.tier) ? body.tier : "starter";
     const subscription_status = STATUSES.includes(body.subscription_status) ? body.subscription_status : "trialing";
 
@@ -100,17 +127,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Company name is required" }, { status: 400 });
     }
 
+    const cleanName = String(name).trim();
+    const cleanBrandName = brand_name ? String(brand_name).trim() : cleanName;
     const cleanSlug = String(slug || name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").trim();
+    const trial_ends_at =
+      subscription_status === "trialing"
+        ? new Date(Date.now() + 14 * 86400_000).toISOString()
+        : null;
 
     const { data: newOrg, error } = await supabaseAdmin
       .from("organizations")
       .insert({
-        name: String(name).trim(),
+        name: cleanName,
         slug: cleanSlug,
         tier,
         subscription_status,
-        brand_name: String(name).trim(),
-        contact_email: contact_email?.trim() || null,
+        trial_ends_at,
+        brand_name: cleanBrandName,
+        contact_email: contact_email?.trim() ? String(contact_email).toLowerCase().trim() : null,
         contact_phone: contact_phone?.trim() || null,
       })
       .select()
@@ -123,7 +157,44 @@ export async function POST(req: NextRequest) {
       throw error;
     }
 
-    return NextResponse.json({ success: true, organization: newOrg });
+    const customerCode = getCustomerCode(newOrg.id);
+
+    await supabaseAdmin
+      .from("site_settings")
+      .upsert(
+        {
+          org_id: newOrg.id,
+          key: "org_profile",
+          value: {
+            customer_code: customerCode,
+            city: "",
+            state: "",
+            address: "",
+            description: "",
+          },
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "org_id,key" }
+      )
+      .then(() => {}, () => {});
+
+    if (contact_email && String(contact_email).trim()) {
+      await supabaseAdmin
+        .from("allowed_users")
+        .insert({
+          org_id: newOrg.id,
+          email: String(contact_email).toLowerCase().trim(),
+          name: cleanBrandName || cleanName,
+          role: "owner",
+          active: true,
+        })
+        .then(() => {}, () => {});
+    }
+
+    return NextResponse.json({
+      success: true,
+      organization: { ...newOrg, customer_code: customerCode },
+    });
   } catch (error) {
     console.error("[platform/organizations] POST error:", error);
     return NextResponse.json({ error: "Failed to create organization" }, { status: 500 });
@@ -132,7 +203,7 @@ export async function POST(req: NextRequest) {
 
 /**
  * PATCH
- *  • Super-admin: may update tier / subscription_status / custom_domain / brand_name / contact / branding / profile of any org.
+ *  • Super-admin: may update tier / subscription_status / trial_ends_at / extend_trial_days / custom_domain / brand_name / contact / branding / profile of any org.
  *  • Org owner/admin: may update ONLY their own active org's brand_name, contact_email, contact_phone,
  *    brand_logo_url, brand_primary_color, brand_accent_color, profile (city, state, address, description),
  *    or clear custom_domain. (Setting a custom domain goes through /api/platform/verify-domain.)
@@ -146,6 +217,8 @@ export async function PATCH(req: NextRequest) {
     const {
       tier,
       subscription_status,
+      trial_ends_at,
+      extend_trial_days,
       custom_domain,
       brand_name,
       contact_email,
@@ -172,13 +245,37 @@ export async function PATCH(req: NextRequest) {
         if (!STATUSES.includes(subscription_status)) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
         updates.subscription_status = subscription_status;
       }
+      if (trial_ends_at !== undefined) {
+        updates.trial_ends_at = trial_ends_at ? String(trial_ends_at) : null;
+      }
+      if (extend_trial_days !== undefined && Number(extend_trial_days) > 0) {
+        const { data: currentOrg } = await supabaseAdmin
+          .from("organizations")
+          .select("trial_ends_at")
+          .eq("id", targetId)
+          .maybeSingle();
+        const existingEnd = currentOrg?.trial_ends_at ? new Date(currentOrg.trial_ends_at).getTime() : 0;
+        const baseTime = Math.max(Date.now(), Number.isFinite(existingEnd) ? existingEnd : 0);
+        updates.trial_ends_at = new Date(baseTime + Number(extend_trial_days) * 86400_000).toISOString();
+        updates.subscription_status = "trialing";
+      } else if (updates.subscription_status === "trialing" && trial_ends_at === undefined) {
+        const { data: currentOrg } = await supabaseAdmin
+          .from("organizations")
+          .select("trial_ends_at")
+          .eq("id", targetId)
+          .maybeSingle();
+        const existingEnd = currentOrg?.trial_ends_at ? new Date(currentOrg.trial_ends_at).getTime() : 0;
+        if (!existingEnd || !Number.isFinite(existingEnd) || existingEnd <= Date.now()) {
+          updates.trial_ends_at = new Date(Date.now() + 14 * 86400_000).toISOString();
+        }
+      }
       if (custom_domain !== undefined) updates.custom_domain = custom_domain ? String(custom_domain).trim().toLowerCase() : null;
       if (brand_name !== undefined) updates.brand_name = brand_name ? String(brand_name).trim() : null;
     } else {
       const g = await requireOrgAdmin(req);
       if (!g.ok) return g.res;
       targetId = g.ctx.orgId; // never trust body.id for tenants
-      if (tier !== undefined || subscription_status !== undefined) {
+      if (tier !== undefined || subscription_status !== undefined || trial_ends_at !== undefined || extend_trial_days !== undefined) {
         return NextResponse.json({ error: "Plan changes must be made through billing." }, { status: 403 });
       }
       if (custom_domain !== undefined) {
@@ -232,6 +329,10 @@ export async function PATCH(req: NextRequest) {
         .maybeSingle();
       const prev = ((existingProfile?.value || {}) as Record<string, unknown>);
       const nextProfile = {
+        customer_code: getCustomerCode(
+          targetId,
+          typeof prev.customer_code === "string" ? prev.customer_code : null
+        ),
         city: city !== undefined ? (city ? String(city).trim().slice(0, 120) : "") : (typeof prev.city === "string" ? prev.city : ""),
         state: state !== undefined ? (state ? String(state).trim().slice(0, 60) : "") : (typeof prev.state === "string" ? prev.state : ""),
         address: address !== undefined ? (address ? String(address).trim().slice(0, 240) : "") : (typeof prev.address === "string" ? prev.address : ""),
@@ -249,6 +350,11 @@ export async function PATCH(req: NextRequest) {
           { onConflict: "org_id,key" }
         );
       updatedOrg = { ...updatedOrg, ...nextProfile };
+    } else {
+      updatedOrg = {
+        ...updatedOrg,
+        customer_code: getCustomerCode(targetId),
+      };
     }
 
     return NextResponse.json({ success: true, organization: updatedOrg });

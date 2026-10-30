@@ -762,7 +762,7 @@ function PropertyCard({ property, tenants, detail, onSave, onDelete }: {
 
 // ── AddPropertyForm ───────────────────────────────────────────────────────────
 
-const EMPTY_ADD = { name: "", type: "Office", city: getOrgProfile().location, address: "", sqft: "" };
+const EMPTY_ADD = { name: "", type: "Office", city: "", address: "", sqft: "" };
 
 function AddPropertyForm({ onAdd, onClose }: { onAdd: (p: typeof EMPTY_ADD) => Promise<void>; onClose: () => void }) {
   const [form, setForm] = useState({ ...EMPTY_ADD });
@@ -842,6 +842,7 @@ export default function PropDetailsTab() {
   const [showAddParkingLot, setShowAddParkingLot] = useState(false);
   const [parkingLotMigrationSql, setParkingLotMigrationSql] = useState<string | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [orgName, setOrgName] = useState<string>("Your Portfolio");
   const [seedingDemo, setSeedingDemo] = useState(false);
 
   const load = useCallback(async () => {
@@ -857,7 +858,9 @@ export default function PropDetailsTab() {
     if (sessRes?.ok) {
       const sess = await sessRes.json().catch(() => ({}));
       const activeId = sess?.impersonatingOrg?.id || sess?.activeOrg?.id || null;
+      const activeName = sess?.impersonatingOrg?.name || sess?.activeOrg?.name || "Your Portfolio";
       setOrgId(activeId);
+      setOrgName(activeName);
     }
     if (tRes?.ok) { const d = await tRes.json(); if (Array.isArray(d.tenants)) setTenants(d.tenants.map(rowToTenant)); }
     if (dRes?.ok) {
@@ -1669,7 +1672,7 @@ export default function PropDetailsTab() {
           onClose={() => setShowIntakeModal(false)}
           onImportSuccess={() => setTick(t => t + 1)}
           knownBuildings={allProperties.map(p => p.name)}
-          currentOrgName={getOrgProfile().name}
+          currentOrgName={orgName || "Your Portfolio"}
         />
       )}
       

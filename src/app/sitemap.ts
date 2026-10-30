@@ -46,7 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   const base = BRAND.url.replace(/\/$/, "");
-  const pages = ["", "/features", "/pricing", "/blog", "/contact", "/signup", "/privacy", "/terms"].map((p) => ({
+  const pages = ["", "/features", "/pricing", "/help", "/blog", "/contact", "/signup", "/privacy", "/terms"].map((p) => ({
     url: `${base}${p}`,
     lastModified: new Date(),
     changeFrequency: "weekly" as const,

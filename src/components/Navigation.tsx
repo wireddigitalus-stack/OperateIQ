@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Logo from "./Logo";
 import { supabaseBrowser } from "@/lib/supabase-browser";
@@ -10,11 +11,13 @@ const links = [
   { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
   { href: "/demo-site", label: "Live Demo" },
+  { label: "Help & Support", href: "/help" },
   { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
 ];
 
 export default function Navigation() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
@@ -41,12 +44,21 @@ export default function Navigation() {
     >
       <nav className="mx-auto max-w-7xl px-5 h-16 flex items-center justify-between">
         <Logo />
-        <div className="hidden md:flex items-center gap-8">
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
-              {l.label}
-            </Link>
-          ))}
+        <div className="hidden md:flex items-center gap-7">
+          {links.map((l) => {
+            const active = pathname === l.href || (l.href !== "/" && pathname?.startsWith(`${l.href}/`));
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`text-sm font-semibold transition-colors ${
+                  active ? "text-sky-400" : "text-slate-300 hover:text-white"
+                }`}
+              >
+                {l.label}
+              </Link>
+            );
+          })}
         </div>
         <div className="hidden md:flex items-center gap-3">
           {signedIn ? (

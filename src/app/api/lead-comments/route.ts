@@ -46,13 +46,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "lead_id, author, and body are required" }, { status: 400 });
     }
 
-    // Make sure the lead belongs to the caller's org before attaching a comment.
+    // Make sure the lead belongs to the caller's org before attaching a comment (check leads first, then sales_leads).
+    const encodedLeadId = encodeURIComponent(String(lead_id));
     const leadRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/leads?select=id&id=eq.${encodeURIComponent(String(lead_id))}&org_id=eq.${orgId}&limit=1`,
+      `${SUPABASE_URL}/rest/v1/leads?select=id&id=eq.${encodedLeadId}&org_id=eq.${orgId}&limit=1`,
       { headers: HEADERS }
     );
     const leadRows = leadRes.ok ? await leadRes.json() : [];
-    if (!Array.isArray(leadRows) || leadRows.length === 0) {
+    let foundLead = Array.isArray(leadRows) && leadRows.length > 0;
+
+    if (!foundLead) {
+      const salesLeadRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/sales_leads?select=id&id=eq.${encodedLeadId}&org_id=eq.${orgId}&limit=1`,
+        { headers: HEADERS }
+      );
+      const salesLeadRows = salesLeadRes.ok ? await salesLeadRes.json() : [];
+      foundLead = Array.isArray(salesLeadRows) && salesLeadRows.length > 0;
+    }
+
+    if (!foundLead) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 

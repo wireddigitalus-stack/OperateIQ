@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase";
-import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, isSuperAdmin } from "@/lib/platform";
+import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, DEFAULT_PLATFORM_ORG_ID, isSuperAdmin, getCustomerCode } from "@/lib/platform";
 import { readStaffSession, type StaffSession } from "@/lib/staff-session";
 import { hasFeature, isSubscriptionActive, FEATURE_LABELS, type Feature } from "@/lib/plans";
 
@@ -41,6 +41,7 @@ export interface OrgSummary {
   state?: string | null;
   address?: string | null;
   description?: string | null;
+  customer_code?: string;
 }
 
 export interface AuthedUser {
@@ -144,12 +145,14 @@ async function loadOrg(orgId: string): Promise<OrgSummary | null> {
   if (!data) return null;
   const org = data as OrgSummary;
   const prof = (profileSetting?.value || {}) as Record<string, unknown>;
+  const customCode = typeof prof.customer_code === "string" ? prof.customer_code : null;
   return {
     ...org,
     city: typeof prof.city === "string" ? prof.city : null,
     state: typeof prof.state === "string" ? prof.state : null,
     address: typeof prof.address === "string" ? prof.address : null,
     description: typeof prof.description === "string" ? prof.description : null,
+    customer_code: getCustomerCode(org.id, customCode),
   };
 }
 
@@ -186,6 +189,12 @@ export async function getRequestContext(
           return { kind: "user", user, staff: null, orgId: org.id, org, role: "platform", isSuperAdmin: true, impersonating: true, memberships };
         }
       }
+      if (!memberships.length) {
+        const fallbackOrg = await loadOrg(DEFAULT_PLATFORM_ORG_ID);
+        if (fallbackOrg) {
+          return { kind: "user", user, staff: null, orgId: fallbackOrg.id, org: fallbackOrg, role: "platform", isSuperAdmin: true, impersonating: false, memberships: [{ org_id: fallbackOrg.id, role: "owner" }] };
+        }
+      }
     }
 
     if (!memberships.length) return null;
@@ -193,7 +202,7 @@ export async function getRequestContext(
     const chosen = memberships.find((m) => m.org_id === preferred) || memberships[0];
     const org = await loadOrg(chosen.org_id);
     if (!org) return null;
-    return { kind: "user", user, staff: null, orgId: org.id, org, role: chosen.role, isSuperAdmin: false, impersonating: false, memberships };
+    return { kind: "user", user, staff: null, orgId: org.id, org, role: chosen.role, isSuperAdmin: superAdmin, impersonating: false, memberships };
   }
 
   if (opts.allowStaff) {

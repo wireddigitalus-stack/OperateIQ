@@ -75,8 +75,12 @@ export default function ConversationTab({
     return () => clearInterval(interval);
   }, [currentUserName, currentUserEmail, onMention]);
 
+  const prevCountRef = useRef(0);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > prevCountRef.current) {
+      endRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevCountRef.current = messages.length;
   }, [messages]);
 
   const sendMessage = async () => {

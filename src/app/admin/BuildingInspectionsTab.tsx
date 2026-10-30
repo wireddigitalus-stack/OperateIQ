@@ -130,8 +130,13 @@ export default function BuildingInspectionsTab({
   const [configMap, setConfigMap] = useState<Record<string, Set<string>>>({});
   const [showConfig, setShowConfig] = useState(false);
 
-  const saveTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
+  const saveTimeouts = useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
   const savePatches = useRef<Record<string, Record<string, unknown>>>({});
+  const inFlightCreateRef = useRef<Record<string, Promise<string | null> | undefined>>({});
+  const recordsRef = useRef<InspectionRecord[]>([]);
+  useEffect(() => {
+    recordsRef.current = records;
+  }, [records]);
 
   useEffect(() => {
     fetch("/api/properties-list")
@@ -213,46 +218,172 @@ export default function BuildingInspectionsTab({
   useEffect(() => { if (view === "entry") fetchRecords(selectedMonth); }, [selectedMonth, view, fetchRecords]);
   useEffect(() => { if (view === "compliance") fetchCompliance(complianceYear); }, [view, complianceYear, fetchCompliance]);
 
-  // Debounced save — fixes the notes bug
-  const saveField = useCallback((recordId: string, field: string, value: unknown) => {
-    if (!savePatches.current[recordId]) savePatches.current[recordId] = {};
-    savePatches.current[recordId][field] = value;
-    if (saveTimeouts.current[recordId]) clearTimeout(saveTimeouts.current[recordId]);
-    saveTimeouts.current[recordId] = setTimeout(async () => {
-      const patch = savePatches.current[recordId];
-      delete savePatches.current[recordId];
-      delete saveTimeouts.current[recordId];
+  // Debounced save (450ms) with in-flight POST creation guard per ${propertyName}__${typeKey}
+  const saveField = useCallback((recordKey: string, field: string, value: unknown, meta?: { property?: string; inspectionType?: string; recordId?: string }) => {
+    if (!savePatches.current[recordKey]) savePatches.current[recordKey] = {};
+    savePatches.current[recordKey][field] = value;
+    if (saveTimeouts.current[recordKey]) clearTimeout(saveTimeouts.current[recordKey]);
+    saveTimeouts.current[recordKey] = setTimeout(async () => {
+      const patch = savePatches.current[recordKey];
+      delete savePatches.current[recordKey];
+      delete saveTimeouts.current[recordKey];
       if (!patch) return;
       try {
-        await fetch(`/api/building-inspections?id=${encodeURIComponent(recordId)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...patch, updatedBy: currentUserName || "Staff" }),
-        });
+        const currentRec = recordsRef.current.find(r =>
+          (meta?.recordId && r.id === meta.recordId) ||
+          r.id === recordKey ||
+          (meta?.property && meta?.inspectionType && r.property === meta.property && r.inspectionType === meta.inspectionType)
+        );
+        let targetId = currentRec?.id || meta?.recordId || (!recordKey.includes("__") ? recordKey : undefined);
+        const compositeKey =
+          meta?.property && meta?.inspectionType
+            ? `${meta.property}__${meta.inspectionType}`
+            : currentRec
+              ? `${currentRec.property}__${currentRec.inspectionType}`
+              : recordKey;
+
+        const pendingCreate = inFlightCreateRef.current[compositeKey];
+        if (!targetId && pendingCreate !== undefined) {
+          targetId = (await pendingCreate) || undefined;
+        }
+
+        if (targetId) {
+          await fetch(`/api/building-inspections?id=${encodeURIComponent(targetId)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...patch, updatedBy: currentUserName || "Staff" }),
+          });
+        } else if (meta?.property && meta?.inspectionType) {
+          const latestRec = recordsRef.current.find(
+            r => r.property === meta.property && r.inspectionType === meta.inspectionType
+          );
+          const createPromise = (async (): Promise<string | null> => {
+            const res = await fetch("/api/building-inspections", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                property: meta.property,
+                inspectionType: meta.inspectionType,
+                inspectionDate: latestRec?.inspectionDate ?? (patch.inspectionDate as string | null) ?? null,
+                crewType: latestRec?.crewType ?? (patch.crewType as string) ?? "internal",
+                notes: latestRec?.notes ?? (patch.notes as string) ?? "",
+                month: selectedMonth,
+                updatedBy: currentUserName || "Staff",
+              }),
+            });
+            if (!res.ok) throw new Error("Failed to create inspection record");
+            const d = await res.json();
+            const createdId: string | undefined = d?.record?.id;
+            if (createdId) {
+              const mapped = rowToRecord(d.record);
+              recordsRef.current = recordsRef.current.map(r =>
+                r.property === meta.property && r.inspectionType === meta.inspectionType && !r.id
+                  ? { ...mapped, ...r, id: createdId }
+                  : r
+              );
+              setRecords(prev =>
+                prev.map(r =>
+                  r.property === meta.property && r.inspectionType === meta.inspectionType && !r.id
+                    ? { ...mapped, ...r, id: createdId }
+                    : r
+                )
+              );
+            }
+            return createdId || null;
+          })();
+
+          inFlightCreateRef.current[compositeKey] = createPromise;
+          try {
+            await createPromise;
+          } finally {
+            delete inFlightCreateRef.current[compositeKey];
+          }
+        }
       } catch (err) { console.error("Auto-save failed:", err); }
-    }, 500);
-  }, [currentUserName]);
+    }, 450);
+  }, [currentUserName, selectedMonth]);
+
+  const updateField = useCallback((propertyName: string, typeKey: string, field: keyof InspectionRecord, value: unknown) => {
+    const compositeKey = `${propertyName}__${typeKey}`;
+    const existing = recordsRef.current.find(
+      r => r.property === propertyName && r.inspectionType === typeKey
+    );
+    if (existing) {
+      recordsRef.current = recordsRef.current.map(r =>
+        r.property === propertyName && r.inspectionType === typeKey ? { ...r, [field]: value } : r
+      );
+      setRecords(prev =>
+        prev.map(r =>
+          r.property === propertyName && r.inspectionType === typeKey ? { ...r, [field]: value } : r
+        )
+      );
+    } else {
+      const optimistic: InspectionRecord = {
+        property: propertyName,
+        inspectionType: typeKey,
+        inspectionDate: field === "inspectionDate" ? (value as string | null) : null,
+        crewType: field === "crewType" ? (value as "internal" | "external") : "internal",
+        notes: field === "notes" ? String(value || "") : "",
+        month: selectedMonth,
+        status: "draft",
+        updatedBy: currentUserName || "Staff",
+      };
+      recordsRef.current = [...recordsRef.current, optimistic];
+      setRecords(prev => [...prev, optimistic]);
+    }
+    const apiFieldMap: Record<string, string> = { inspectionType: "inspectionType", inspectionDate: "inspectionDate", crewType: "crewType", notes: "notes", status: "status" };
+    if (apiFieldMap[field]) {
+      saveField(compositeKey, apiFieldMap[field], value, {
+        property: propertyName,
+        inspectionType: typeKey,
+        recordId: existing?.id,
+      });
+    }
+  }, [currentUserName, selectedMonth, saveField]);
 
   const updateRecord = useCallback((id: string, field: keyof InspectionRecord, value: unknown) => {
+    const rec = recordsRef.current.find(r => r.id === id);
+    if (rec) {
+      updateField(rec.property, rec.inspectionType, field, value);
+      return;
+    }
     // Optimistic local update — prevents input flicker
+    recordsRef.current = recordsRef.current.map(r => r.id === id ? { ...r, [field]: value } : r);
     setRecords(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
     const apiFieldMap: Record<string, string> = { inspectionType: "inspectionType", inspectionDate: "inspectionDate", crewType: "crewType", notes: "notes", status: "status" };
-    if (apiFieldMap[field]) saveField(id, apiFieldMap[field], value);
-  }, [saveField]);
+    if (apiFieldMap[field]) saveField(id, apiFieldMap[field], value, { recordId: id });
+  }, [saveField, updateField]);
 
   const addEntry = async () => {
     if (adding) return;
+    const compositeKey = `${addForm.property}__${addForm.inspectionType}`;
+    if (inFlightCreateRef.current[compositeKey] !== undefined) return;
     setAdding(true);
     try {
-      const res = await fetch("/api/building-inspections", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...addForm, month: selectedMonth, updatedBy: currentUserName || "Staff" }),
-      });
-      if (!res.ok) throw new Error("Failed to add entry");
-      const d = await res.json();
-      if (d.record) setRecords(prev => [...prev, rowToRecord(d.record)]);
-      else fetchRecords(selectedMonth);
+      const createPromise = (async (): Promise<string | null> => {
+        const res = await fetch("/api/building-inspections", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...addForm, month: selectedMonth, updatedBy: currentUserName || "Staff" }),
+        });
+        if (!res.ok) throw new Error("Failed to add entry");
+        const d = await res.json();
+        if (d.record) {
+          const mapped = rowToRecord(d.record);
+          recordsRef.current = [...recordsRef.current, mapped];
+          setRecords(prev => [...prev, mapped]);
+          return mapped.id || null;
+        } else {
+          await fetchRecords(selectedMonth);
+          return null;
+        }
+      })();
+      inFlightCreateRef.current[compositeKey] = createPromise;
+      try {
+        await createPromise;
+      } finally {
+        delete inFlightCreateRef.current[compositeKey];
+      }
       setShowAdd(false);
       setAddForm(prev => ({ ...prev, inspectionType: INSPECTION_TYPES[0], notes: "", inspectionDate: new Date().toISOString().split("T")[0] }));
     } catch (err: any) { alert("Error adding entry: " + err.message); }

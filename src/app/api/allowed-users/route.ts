@@ -81,7 +81,11 @@ export async function GET(req: NextRequest) {
   const isAdmin = kind === "user" && ["owner", "admin", "manager", "platform"].includes(callerRole);
 
   let q = supabaseAdmin.from("allowed_users").select("*").eq("org_id", orgId).order("created_at", { ascending: true });
-  if (role) q = q.eq("role", role);
+  if (role === "admin") {
+    q = q.in("role", ["owner", "admin", "manager"]);
+  } else if (role) {
+    q = q.eq("role", role);
+  }
   if (email) q = q.eq("email", email.toLowerCase());
   const { data, error } = await q;
   if (error) return NextResponse.json({ users: [], allowed: false });

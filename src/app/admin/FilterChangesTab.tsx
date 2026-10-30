@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Sparkles, Search, RefreshCw, Loader2, Plus,
   Building2, AlertTriangle, FileSpreadsheet,
@@ -68,67 +68,144 @@ export default function FilterChangesTab({
     fetchRecords();
   }, [fetchRecords]);
 
-  const updateField = async (property: string, field: keyof FilterChangeRecord, value: any) => {
+  const timersRef = useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
+  const inFlightCreateRef = useRef<Record<string, Promise<string | null> | undefined>>({});
+  const recordsRef = useRef<FilterChangeRecord[]>([]);
+  useEffect(() => {
+    recordsRef.current = records;
+  }, [records]);
+
+  const flushPropertySave = async (property: string) => {
+    const current = recordsRef.current.find(r => r.property === property);
+    if (!current) return;
+
     setSavingProperty(property);
-    const existing = records.find(r => r.property === property);
-
-    const payload: Record<string, any> = {
+    const buildPayload = (rec: FilterChangeRecord) => ({
       property,
+      lastChanged: rec.lastChanged || null,
+      nextDue: rec.nextDue || null,
+      notes: rec.notes || "",
       updatedBy: currentUserName || "Staff",
-    };
-
-    if (field === "lastChanged") payload.lastChanged = value || null;
-    else if (field === "nextDue") payload.nextDue = value || null;
-    else if (field === "notes") payload.notes = value || "";
-
-    // Fill in other fields if updating an existing record
-    if (existing) {
-      if (field !== "lastChanged") payload.lastChanged = existing.lastChanged;
-      if (field !== "nextDue") payload.nextDue = existing.nextDue;
-      if (field !== "notes") payload.notes = existing.notes;
-    }
+    });
 
     try {
-      let res;
-      if (existing?.id) {
-        res = await fetch(`/api/filter-changes?id=${existing.id}`, {
+      let recordId = current.id;
+
+      // Guard initial POST creation with an in-flight promise map so concurrent duplicate POSTs never fire
+      const pendingCreate = inFlightCreateRef.current[property];
+      if (!recordId && pendingCreate !== undefined) {
+        recordId = (await pendingCreate) || undefined;
+      }
+
+      const latest = recordsRef.current.find(r => r.property === property) || current;
+      const payload = buildPayload(latest);
+
+      if (recordId || latest.id) {
+        const targetId = recordId || latest.id!;
+        const res = await fetch(`/api/filter-changes?id=${targetId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) throw new Error("Failed to save changes");
       } else {
-        res = await fetch("/api/filter-changes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
+        const snapshotNotes = latest.notes;
+        const snapshotLast = latest.lastChanged;
+        const snapshotNext = latest.nextDue;
 
-      if (!res.ok) throw new Error("Failed to save changes");
-      const resData = await res.json();
+        const createPromise = (async (): Promise<string | null> => {
+          const res = await fetch("/api/filter-changes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error("Failed to save changes");
+          const resData = await res.json();
+          const newId: string | undefined = resData?.record?.id;
+          if (newId) {
+            recordsRef.current = recordsRef.current.map(r =>
+              r.property === property
+                ? { ...r, id: newId, updatedAt: resData.record.updated_at }
+                : r
+            );
+            setRecords(prev =>
+              prev.map(r =>
+                r.property === property
+                  ? { ...r, id: newId, updatedAt: resData.record.updated_at }
+                  : r
+              )
+            );
+          }
+          return newId || null;
+        })();
 
-      // Refresh list from API or update local state
-      if (!existing?.id && resData.record) {
-        setRecords(prev => [...prev.filter(r => r.property !== property), {
-          id: resData.record.id,
-          property,
-          lastChanged: payload.lastChanged,
-          nextDue: payload.nextDue,
-          notes: payload.notes,
-          updatedBy: payload.updatedBy,
-          updatedAt: resData.record.updated_at,
-        }]);
-      } else {
-        setRecords(prev =>
-          prev.map(r => (r.property === property ? { ...r, [field]: value, updatedBy: payload.updatedBy } : r))
-        );
+        inFlightCreateRef.current[property] = createPromise;
+        let createdId: string | null = null;
+        try {
+          createdId = await createPromise;
+        } finally {
+          delete inFlightCreateRef.current[property];
+        }
+
+        // If the user typed further while POST was in-flight, flush the latest state via PATCH
+        const afterCreate = recordsRef.current.find(r => r.property === property);
+        if (
+          createdId &&
+          afterCreate &&
+          (afterCreate.notes !== snapshotNotes ||
+            afterCreate.lastChanged !== snapshotLast ||
+            afterCreate.nextDue !== snapshotNext)
+        ) {
+          await fetch(`/api/filter-changes?id=${createdId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(buildPayload(afterCreate)),
+          });
+        }
       }
     } catch (err: any) {
       console.error(err);
-      alert("Error saving: " + err.message);
     } finally {
-      setSavingProperty(null);
+      setSavingProperty(prev => (prev === property ? null : prev));
     }
+  };
+
+  const updateField = (property: string, field: keyof FilterChangeRecord, value: any) => {
+    const updatedBy = currentUserName || "Staff";
+    const normalizedVal =
+      field === "lastChanged" || field === "nextDue" ? value || null : field === "notes" ? value || "" : value;
+
+    // 1. Update local state & ref optimistically immediately
+    const exists = recordsRef.current.some(r => r.property === property);
+    if (exists) {
+      recordsRef.current = recordsRef.current.map(r =>
+        r.property === property ? { ...r, [field]: normalizedVal, updatedBy } : r
+      );
+      setRecords(prev =>
+        prev.map(r =>
+          r.property === property ? { ...r, [field]: normalizedVal, updatedBy } : r
+        )
+      );
+    } else {
+      const newRec: FilterChangeRecord = {
+        property,
+        lastChanged: field === "lastChanged" ? normalizedVal : null,
+        nextDue: field === "nextDue" ? normalizedVal : null,
+        notes: field === "notes" ? normalizedVal : "",
+        updatedBy,
+      };
+      recordsRef.current = [...recordsRef.current, newRec];
+      setRecords(prev => [...prev, newRec]);
+    }
+
+    // 2. Debounce network saves by 450ms per propertyName
+    if (timersRef.current[property]) {
+      clearTimeout(timersRef.current[property]);
+    }
+    timersRef.current[property] = setTimeout(() => {
+      delete timersRef.current[property];
+      void flushPropertySave(property);
+    }, 450);
   };
 
   const handleAddPropertyEntry = async () => {

@@ -48,9 +48,18 @@ export async function GET(req: NextRequest) {
     
     // Total tenants count
     const totalTenants = tenants.length;
-    
-    // Conversion rate
-    const conversionRate = totalLeads > 0 ? Math.round((totalTenants / totalLeads) * 100) : 0;
+
+    // Conversion rate (based on actual converted/closed leads, never raw tenant count)
+    const convertedLeadIds = new Set(
+      tenants.map((t: any) => String(t.source_lead_id || "").trim()).filter(Boolean)
+    );
+    const convertedLeads = leads.filter(
+      (l: any) =>
+        ["leased", "converted", "closed", "won"].includes(String(l.status || "").toLowerCase()) ||
+        ["leased", "converted", "closed", "won", "100%"].includes(String(l.progress || "").toLowerCase()) ||
+        (l.id && convertedLeadIds.has(String(l.id)))
+    ).length;
+    const conversionRate = totalLeads > 0 ? Math.min(100, Math.round((convertedLeads / totalLeads) * 100)) : 0;
     
     // Pipeline Value
     const pipelineValue = activeLeads.reduce((s: number, l: any) => s + (Number(l.budget) || 0), 0);
@@ -114,10 +123,12 @@ export async function GET(req: NextRequest) {
 You are an elite commercial real estate operations analyst. Analyze the following performance data for the properties under management this quarter and generate a premium, executive-level Quarterly Business Review (QBR) summary.
 
 Data Summary:
-- Leads:
+- Leads & Tenants:
   * Total Leads Created: ${totalLeads}
   * Active Leads: ${activeLeads.length}
-  * Conversion Rate (Total Tenants / Total Leads): ${conversionRate}%
+  * Converted Leads: ${convertedLeads}
+  * Conversion Rate (Converted Leads / Total Leads): ${conversionRate}%
+  * Total Active Tenants in Portfolio: ${totalTenants}
   * Total Pipeline Revenue Opportunity (Sum of Active Lead Budgets): $${pipelineValue.toLocaleString()}
 - Maintenance Tickets:
   * Total Work Orders: ${totalTickets}

@@ -28,38 +28,6 @@ interface Assignment {
   completionNotes?: string | null;
 }
 
-// ─── DEMO DATA — remove before go-live ───────────────────────────────────────
-// To remove: delete getDemoAssignments() and the `if (data.assignments.length === 0)` block in fetchAssignments
-
-function weekDay(offset: number): string {
-  const d = new Date();
-  const mon = new Date(d);
-  mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  mon.setDate(mon.getDate() + offset);
-  return mon.toISOString().split("T")[0];
-}
-
-function getDemoAssignments(): Assignment[] {
-  const mon = weekDay(0), tue = weekDay(1), wed = weekDay(2),
-        thu = weekDay(3), fri = weekDay(4);
-  return [
-    { id: "dc_1",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Common Areas & Lobby",    scheduledDate: mon, startTime: "08:00", endTime: "10:00", completedAt: new Date().toISOString(), notes: "", status: "done" },
-    { id: "dc_2",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Suites 101-110",          scheduledDate: mon, startTime: "10:00", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_3",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Common Areas & Lobby",    scheduledDate: wed, startTime: "08:00", endTime: "10:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_4",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Suites 201-210",          scheduledDate: wed, startTime: "10:00", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_5",  workerName: "Sarah M.", property: "Main Street Plaza",  area: "Full Building Deep Clean", scheduledDate: fri, startTime: "08:00", endTime: "14:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_6",  workerName: "Linda K.", property: "Sample Office Building",    area: "Lobby & Reception",       scheduledDate: tue, startTime: "09:00", endTime: "11:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_7",  workerName: "Linda K.", property: "Sample Office Building",    area: "Suites 101-112",          scheduledDate: tue, startTime: "11:00", endTime: "15:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_8",  workerName: "Linda K.", property: "Sample Office Building",    area: "Restrooms & Corridors",   scheduledDate: thu, startTime: "09:00", endTime: "12:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_9",  workerName: "Priya R.", property: "Sample Retail Center", area: "Restrooms (All Floors)",  scheduledDate: mon, startTime: "07:30", endTime: "10:30", completedAt: new Date().toISOString(), notes: "", status: "done" },
-    { id: "dc_10", workerName: "Priya R.", property: "Sample Retail Center", area: "Restrooms (All Floors)",  scheduledDate: tue, startTime: "07:30", endTime: "10:30", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_11", workerName: "Priya R.", property: "Sample Retail Center", area: "Lobby & Break Room",      scheduledDate: wed, startTime: "07:30", endTime: "10:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_12", workerName: "Priya R.", property: "Sample Retail Center", area: "Restrooms (All Floors)",  scheduledDate: thu, startTime: "07:30", endTime: "10:30", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_13", workerName: "Priya R.", property: "Sample Retail Center", area: "Full Building Clean",     scheduledDate: fri, startTime: "07:30", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
-    { id: "dc_14", workerName: "Jess T.",  property: "Sample Office Building",    area: "Executive Suites 201-205",scheduledDate: mon, startTime: "10:00", endTime: "13:00", completedAt: null, notes: "", status: "pending" },
-  ];
-}
-
 // ─── Worker color palette ─────────────────────────────────────────────────────
 
 const PALETTE = [
@@ -944,25 +912,6 @@ function WorkerLegend({ assignments, workerIndex }: { assignments: Assignment[];
   );
 }
 
-// ─── Setup SQL Banner ─────────────────────────────────────────────────────────
-
-const SETUP_SQL = `DROP TABLE IF EXISTS cleaning_assignments;
-
-CREATE TABLE cleaning_assignments (
-  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  worker_name   TEXT DEFAULT '',
-  property      TEXT DEFAULT '',
-  area          TEXT DEFAULT '',
-  scheduled_date DATE NOT NULL,
-  start_time    TEXT,
-  end_time      TEXT,
-  completed_at  TIMESTAMPTZ,
-  notes         TEXT DEFAULT '',
-  status        TEXT DEFAULT 'pending',
-  created_at    TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE cleaning_assignments ENABLE ROW LEVEL SECURITY;`;
-
 // ─── Main CleaningTab ─────────────────────────────────────────────────────────
 
 export default function CleaningTab({ currentUserName, currentUserEmail }: { currentUserName?: string; currentUserEmail?: string }) {
@@ -1026,10 +975,17 @@ export default function CleaningTab({ currentUserName, currentUserEmail }: { cur
 
       {/* Setup error */}
       {setupError && !loading && (
-        <div className="mb-6 p-4 rounded-xl border border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.04)]">
-          <p className="text-xs font-bold text-[#4ADE80] mb-2 flex items-center gap-1.5"><AlertTriangle size={12} />Database table not found — one-time setup required</p>
-          <p className="text-xs text-gray-400 mb-2">Run this SQL in your <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-[#4ADE80] underline">Supabase SQL Editor</a>, then click Refresh:</p>
-          <pre className="text-[10px] text-gray-300 bg-[rgba(0,0,0,0.4)] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">{SETUP_SQL}</pre>
+        <div className="mb-6 p-4 rounded-xl border border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.04)] flex items-center justify-between gap-3">
+          <p className="text-xs font-bold text-[#4ADE80] flex items-center gap-1.5">
+            <AlertTriangle size={12} /> Unable to load records — click Refresh to retry
+          </p>
+          <button
+            type="button"
+            onClick={() => fetchAssignments()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(74,222,128,0.3)] text-xs font-bold text-[#4ADE80] hover:bg-[rgba(74,222,128,0.1)] transition-colors"
+          >
+            <RefreshCw size={12} /> Refresh
+          </button>
         </div>
       )}
 

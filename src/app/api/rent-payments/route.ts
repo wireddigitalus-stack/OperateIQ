@@ -171,6 +171,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No matching tenants in your organization" }, { status: 400 });
     }
 
+    // Fetch existing rows for this month first to avoid redundant sequential PATCHes
+    const existingRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&month=eq.${encodeURIComponent(month)}`,
+      { headers: HEADERS, cache: "no-store" },
+    );
+    const existingRows = existingRes.ok ? ((await existingRes.json()) as Array<Record<string, unknown>>) : [];
+    const existingByTenantId = new Map<string, Record<string, unknown>>();
+    for (const r of existingRows) {
+      if (r.tenant_id) existingByTenantId.set(String(r.tenant_id), r);
+    }
+
+    const roundCents = (n: unknown) => Math.round((Number(n) || 0) * 100) / 100;
+
     const rows = tenants.map(t => ({
       org_id: orgId,
       id: `rp_${t.id}_${month}`,
@@ -179,17 +192,17 @@ export async function POST(req: NextRequest) {
       building: t.building || "",
       unit: t.unit || "",
       month,
-      rent_due: Math.round(t.monthlyRent || 0),
+      rent_due: roundCents(t.monthlyRent),
       amount_paid: 0,
       paid: false,
       payment_type: "",
       payment_date: null,
       late_fee: 0,
-      nn_fee: Math.round((t.nnFee || 0) * 100) / 100,
-      nnn_fee: Math.round((t.nnnFee || 0) * 100) / 100,
-      utility_fee: Math.round((t.utilityFee || 0) * 100) / 100,
-      cleaning_fee: Math.round((t.cleaningFee || 0) * 100) / 100,
-      cam_fee: Math.round((t.camFee || 0) * 100) / 100,
+      nn_fee: roundCents(t.nnFee),
+      nnn_fee: roundCents(t.nnnFee),
+      utility_fee: roundCents(t.utilityFee),
+      cleaning_fee: roundCents(t.cleaningFee),
+      cam_fee: roundCents(t.camFee),
       notes: "",
       is_submitted: false,
       submitted_at: null,
@@ -214,23 +227,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Insert failed" }, { status: 500 });
     }
 
-    // Sync fee columns for existing rows so tenant-card changes are reflected
-    for (const t of tenants) {
-      const feePatch = {
-        nn_fee: Math.round((t.nnFee || 0) * 100) / 100,
-        nnn_fee: Math.round((t.nnnFee || 0) * 100) / 100,
-        utility_fee: Math.round((t.utilityFee || 0) * 100) / 100,
-        cleaning_fee: Math.round((t.cleaningFee || 0) * 100) / 100,
-        cam_fee: Math.round((t.camFee || 0) * 100) / 100,
-        updated_at: new Date().toISOString(),
-      };
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&tenant_id=eq.${encodeURIComponent(t.id)}&month=eq.${encodeURIComponent(month)}&is_submitted=eq.false`,
-        {
-          method: "PATCH",
-          headers: { ...HEADERS, Prefer: "return=minimal" },
-          body: JSON.stringify(feePatch),
-        },
+    // Sync fee/rent columns in parallel ONLY for pre-existing unsubmitted rows where values actually differ
+    const tenantsToPatch = tenants.filter(t => {
+      const ex = existingByTenantId.get(String(t.id));
+      if (!ex || ex.is_submitted) return false;
+      return (
+        roundCents(ex.rent_due) !== roundCents(t.monthlyRent) ||
+        roundCents(ex.nn_fee) !== roundCents(t.nnFee) ||
+        roundCents(ex.nnn_fee) !== roundCents(t.nnnFee) ||
+        roundCents(ex.utility_fee) !== roundCents(t.utilityFee) ||
+        roundCents(ex.cleaning_fee) !== roundCents(t.cleaningFee) ||
+        roundCents(ex.cam_fee) !== roundCents(t.camFee)
+      );
+    });
+
+    if (tenantsToPatch.length > 0) {
+      await Promise.all(
+        tenantsToPatch.map(t => {
+          const feePatch = {
+            rent_due: roundCents(t.monthlyRent),
+            nn_fee: roundCents(t.nnFee),
+            nnn_fee: roundCents(t.nnnFee),
+            utility_fee: roundCents(t.utilityFee),
+            cleaning_fee: roundCents(t.cleaningFee),
+            cam_fee: roundCents(t.camFee),
+            updated_at: new Date().toISOString(),
+          };
+          return fetch(
+            `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&tenant_id=eq.${encodeURIComponent(t.id)}&month=eq.${encodeURIComponent(month)}&is_submitted=eq.false`,
+            {
+              method: "PATCH",
+              headers: { ...HEADERS, Prefer: "return=minimal" },
+              body: JSON.stringify(feePatch),
+            },
+          );
+        }),
       );
     }
 
@@ -288,13 +319,13 @@ export async function PATCH(req: NextRequest) {
     rentDue: "rent_due",
   };
 
-  // Numeric fields that should be rounded to whole dollars
+  // Numeric fields that should preserve cents (rounded to 2 decimal places)
   const numericFields = new Set(["amount_paid", "late_fee", "nn_fee", "nnn_fee", "utility_fee", "cleaning_fee", "cam_fee", "rent_due"]);
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const [js, db] of Object.entries(allowedFields)) {
     if (body[js] !== undefined) {
-      patch[db] = numericFields.has(db) ? Math.round(Number(body[js]) || 0) : body[js];
+      patch[db] = numericFields.has(db) ? Math.round((Number(body[js]) || 0) * 100) / 100 : body[js];
     }
   }
 

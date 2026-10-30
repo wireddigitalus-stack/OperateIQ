@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
   CheckCircle2, Circle, Clock, Plus, Trash2, 
   AlertCircle, User, Calendar, Loader2, X, Save,
@@ -26,6 +26,7 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
   const [filter, setFilter] = useState<"all" | "mine">("all");
   const [saving, setSaving] = useState(false);
 
+  const hasManuallyEditedAssignee = useRef(false);
   const [form, setForm] = useState({
     task: "",
     description: "",
@@ -34,6 +35,12 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
     priority: "medium" as Todo["priority"],
     is_private: false,
   });
+
+  useEffect(() => {
+    if (currentUserName && !hasManuallyEditedAssignee.current) {
+      setForm(prev => (prev.assigned_to === "Staff" || !prev.assigned_to ? { ...prev, assigned_to: currentUserName } : prev));
+    }
+  }, [currentUserName]);
 
   const fetchTodos = useCallback(async () => {
     try {
@@ -97,7 +104,7 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
 
   const filtered = todos.filter(t => {
     if (filter === "mine") return t.assigned_to === currentUserName || t.assigned_to === currentUserEmail;
-    if (t.is_private) return t.assigned_to === currentUserName || t.assigned_to === currentUserEmail;
+    if (t.is_private) return t.assigned_to === currentUserName || t.assigned_to === currentUserEmail || t.created_by === currentUserName || t.created_by === currentUserEmail;
     return true;
   });
 
@@ -155,11 +162,23 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
                 className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none"
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Description (Optional)</label>
+              <input 
+                value={form.description}
+                onChange={e => setForm({...form, description: e.target.value})}
+                placeholder="Additional details or context…"
+                className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none"
+              />
+            </div>
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Assigned To</label>
               <input 
                 value={form.assigned_to}
-                onChange={e => setForm({...form, assigned_to: e.target.value})}
+                onChange={e => {
+                  hasManuallyEditedAssignee.current = true;
+                  setForm({...form, assigned_to: e.target.value});
+                }}
                 placeholder="Name or Email"
                 className="w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-2.5 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none"
               />

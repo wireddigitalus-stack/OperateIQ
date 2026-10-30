@@ -13,6 +13,9 @@ const H = {
 export async function GET(req: NextRequest) {
   const g = await requireOrg(req, { allowStaff: true, requireFeature: "filter_changes" });
   if (!g.ok) return g.res;
+  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "maintenance") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { orgId } = g.ctx;
 
   const res = await fetch(
@@ -26,19 +29,75 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const g = await requireOrg(req, { allowStaff: true, requireFeature: "filter_changes" });
   if (!g.ok) return g.res;
+  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "maintenance") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { orgId, user, staff } = g.ctx;
 
   try {
     const body = await req.json();
+    const property = (body.property || body.property_name || "")?.trim() || "";
+    const updatedBy = body.updatedBy?.trim() || user?.name || staff?.name || "Staff";
+    const nowIso = new Date().toISOString();
+
+    // Check if a row already exists for (org_id, property) and PATCH if found instead of creating duplicates
+    const existingRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/filter_changes?select=id&org_id=eq.${orgId}&property=eq.${encodeURIComponent(property)}&limit=1`,
+      { headers: H, cache: "no-store" }
+    );
+    const existingRows = existingRes.ok ? await existingRes.json() : [];
+    const existingRow = Array.isArray(existingRows) && existingRows.length > 0 ? existingRows[0] : null;
+
+    if (existingRow?.id) {
+      const patchPayload = {
+        property,
+        last_changed: body.lastChanged || null,
+        next_due: body.nextDue || null,
+        notes: body.notes?.trim() || "",
+        updated_by: updatedBy,
+        updated_at: nowIso,
+      };
+
+      const patchRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/filter_changes?id=eq.${encodeURIComponent(existingRow.id)}&org_id=eq.${orgId}`,
+        {
+          method: "PATCH",
+          headers: { ...H, "Prefer": "return=representation" },
+          body: JSON.stringify(patchPayload),
+        }
+      );
+
+      if (!patchRes.ok) {
+        const err = await patchRes.text();
+        return NextResponse.json({ error: `Update failed: ${err}` }, { status: 500 });
+      }
+
+      const patchedRows = await patchRes.json();
+      const saved = Array.isArray(patchedRows) && patchedRows[0] ? patchedRows[0] : { id: existingRow.id, org_id: orgId, ...patchPayload };
+
+      writeActivityLog({
+        org_id: orgId,
+        actor_email: user?.email || staff?.name || "unknown",
+        actor_name: user?.name || staff?.name || updatedBy,
+        action: "updated",
+        resource_type: "maintenance",
+        resource_name: property,
+        resource_id: existingRow.id,
+        metadata: { last_changed: patchPayload.last_changed },
+      });
+
+      return NextResponse.json({ success: true, record: saved });
+    }
+
     const record = {
       org_id: orgId,
       id: `filt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      property: body.property?.trim() || "",
+      property,
       last_changed: body.lastChanged || null,
       next_due: body.nextDue || null,
       notes: body.notes?.trim() || "",
-      updated_by: body.updatedBy?.trim() || user?.name || staff?.name || "Staff",
-      updated_at: new Date().toISOString(),
+      updated_by: updatedBy,
+      updated_at: nowIso,
     };
 
     const res = await fetch(`${SUPABASE_URL}/rest/v1/filter_changes?on_conflict=org_id,property`, {
@@ -75,6 +134,9 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const g = await requireOrg(req, { allowStaff: true, requireFeature: "filter_changes" });
   if (!g.ok) return g.res;
+  if (g.ctx.kind === "staff" && g.ctx.staff?.role !== "maintenance") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const { orgId, user, staff } = g.ctx;
 
   try {

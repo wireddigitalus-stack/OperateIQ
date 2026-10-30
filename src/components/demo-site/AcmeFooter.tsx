@@ -154,20 +154,12 @@ export default function AcmeFooter({
             </h4>
             <ul className="text-xs space-y-1.5">
               {isMember && (
-                <>
-                  <li>
-                    <Link href="/admin" className="text-sky-400 hover:underline flex items-center gap-1">
-                      <span>Owner Admin Dashboard</span>
-                      <ArrowUpRight size={11} />
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/platform" className="text-sky-400 hover:underline flex items-center gap-1">
-                      <span>Platform Master Console</span>
-                      <ArrowUpRight size={11} />
-                    </Link>
-                  </li>
-                </>
+                <li>
+                  <Link href="/admin" className="text-sky-400 hover:underline flex items-center gap-1">
+                    <span>Owner Admin Dashboard</span>
+                    <ArrowUpRight size={11} />
+                  </Link>
+                </li>
               )}
               <li>
                 <Link href="/" className="text-gray-400 hover:text-white flex items-center gap-1">

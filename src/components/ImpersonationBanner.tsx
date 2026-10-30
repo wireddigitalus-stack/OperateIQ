@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldAlert, LogOut, ArrowLeft } from "lucide-react";
+import { getCustomerCode } from "@/lib/platform";
 
 interface ImpersonatingOrg {
   id: string;
   name: string;
   slug: string;
   tier: string;
+  customer_code?: string;
 }
 
 export default function ImpersonationBanner() {
@@ -66,8 +68,11 @@ export default function ImpersonationBanner() {
         <div className="flex items-center gap-1.5 text-indigo-200 truncate min-w-0">
           <ShieldAlert size={14} className="text-cyan-400 flex-shrink-0" />
           <span className="font-semibold text-white whitespace-nowrap">SUPPORT MODE:</span>
-          <span className="hidden sm:inline text-gray-400">Managing</span>
+          <span className="hidden sm:inline text-gray-400">Viewing as</span>
           <strong className="text-white font-bold truncate max-w-[110px] sm:max-w-[260px]">{org.name}</strong>
+          <span className="text-cyan-300 font-mono font-bold whitespace-nowrap">
+            · {org.customer_code || getCustomerCode(org.id)}
+          </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 whitespace-nowrap hidden md:inline-block">
             {org.tier} Plan
           </span>

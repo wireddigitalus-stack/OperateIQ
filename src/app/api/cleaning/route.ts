@@ -190,7 +190,7 @@ export async function DELETE(req: NextRequest) {
   if (!res.ok) {
     const err = await res.text();
     console.error("[cleaning DELETE] Supabase delete failed:", err);
-    // Still try to log even if delete had issues
+    return NextResponse.json({ error: "Delete failed", detail: err }, { status: 500 });
   }
 
   await writeActivityLog({

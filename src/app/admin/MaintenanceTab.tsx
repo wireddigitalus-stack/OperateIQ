@@ -117,28 +117,6 @@ const BLANK_TICKET = (): Partial<Ticket> => ({
   billable: false, materialAmount: 0,
 });
 
-// ─── DEMO DATA — remove before go-live ───────────────────────────────────────
-// To remove: delete the DEMO_TICKETS array and the `if (data.tickets.length === 0)` block in fetch_
-
-function demoDates() {
-  const t = (n: number) => new Date(Date.now() + n * 86400000).toISOString().split("T")[0];
-  return { yesterday: t(-1), today: t(0), tomorrow: t(1), nextWeek: t(7), twoWks: t(14) };
-}
-
-function getDemoTickets(): Ticket[] {
-  const d = demoDates();
-  return [
-    { id: "demo_1", title: "HVAC not cooling — Suite 301", description: "Tenant reports unit blowing warm air. Thermostat set to 68°F but room holds at 78°F.", building: "Main Street Plaza", unit: "Suite 301", tenant: "Executive Suites", category: "HVAC", priority: 1, status: "in_progress", assignedTo: "Mike D.", reportedBy: "Property Manager", estimatedCost: 650, actualCost: 0, estimatedHours: 4, scheduledDate: d.today, completedDate: null, notes: "[Apr 17 — Mike D.] Compressor cycling on and off. Ordered capacitor. Parts arrive tomorrow.", source: "admin", createdAt: new Date(Date.now() - 3600000 * 6).toISOString() },
-    { id: "demo_2", title: "Water leak under sink — Unit 112", description: "Tenant reported active drip pooling under kitchen sink cabinet. Possible P-trap failure.", building: "Sample Office Building", unit: "Unit 112", tenant: "Jane Doe", category: "Plumbing", priority: 1, status: "open", assignedTo: "Carlos M.", reportedBy: "Tenant", estimatedCost: 180, actualCost: 0, estimatedHours: 2, scheduledDate: d.today, completedDate: null, notes: "", source: "staff", createdAt: new Date(Date.now() - 3600000 * 2).toISOString() },
-    { id: "demo_3", title: "Electrical outlet sparking — Boardroom", description: "Receptionist noticed sparking from outlet near window. Outlet taken offline. Licensed electrician needed.", building: "Sample Retail Center", unit: "Boardroom", tenant: "OperateIQ", category: "Electrical", priority: 2, status: "scheduled", assignedTo: "James R.", reportedBy: "Property Manager", estimatedCost: 320, actualCost: 0, estimatedHours: 3, scheduledDate: d.tomorrow, completedDate: null, notes: "[Apr 17 — Property Manager] Contacted the electrician. Coming tomorrow 9am.", source: "admin", createdAt: new Date(Date.now() - 3600000 * 14).toISOString() },
-    { id: "demo_4", title: "Lobby door lock not responding", description: "Main entrance keypad intermittently fails. Tenants having to use side entrance.", building: "Main Street Plaza", unit: "Main Lobby", tenant: "Common Area", category: "Door/Lock", priority: 2, status: "in_progress", assignedTo: "Mike D.", reportedBy: "Front Desk", estimatedCost: 220, actualCost: 0, estimatedHours: 1.5, scheduledDate: d.today, completedDate: null, notes: "", source: "admin", createdAt: new Date(Date.now() - 3600000 * 28).toISOString() },
-    { id: "demo_5", title: "Parking lot light out — Section B", description: "Three LED fixtures in Section B are dark. Likely a tripped breaker or ballast issue.", building: "Sample Office Building", unit: "Parking Lot", tenant: "Common Area", category: "Electrical", priority: 3, status: "scheduled", assignedTo: "Carlos M.", reportedBy: "Property Manager", estimatedCost: 140, actualCost: 0, estimatedHours: 2, scheduledDate: d.nextWeek, completedDate: null, notes: "", source: "admin", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
-    { id: "demo_6", title: "Refrigerator not cooling — Break Room", description: "Staff fridge holding at 52°F. Contents may be unsafe. Needs service call or replacement.", building: "Sample Retail Center", unit: "Break Room", tenant: "Common Area", category: "Appliance", priority: 3, status: "open", assignedTo: "", reportedBy: "Staff", estimatedCost: 280, actualCost: 0, estimatedHours: 2, scheduledDate: d.nextWeek, completedDate: null, notes: "", source: "staff", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
-    { id: "demo_7", title: "Paint scuff in hallway — 2nd floor", description: "5-ft scuff along north wall. Low priority. Touch-up paint on hand in maintenance closet.", building: "Main Street Plaza", unit: "2nd Floor Hallway", tenant: "Common Area", category: "Damage", priority: 4, status: "open", assignedTo: "James R.", reportedBy: "Cleaning Staff", estimatedCost: 40, actualCost: 0, estimatedHours: 1, scheduledDate: d.twoWks, completedDate: null, notes: "", source: "cleaning", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
-    { id: "demo_8", title: "HVAC filter replacement — Suite 105", description: "Quarterly filter swap completed. New MERV-11 filters installed. Next due in 90 days.", building: "Sample Office Building", unit: "Suite 105", tenant: "OperateIQ", category: "HVAC", priority: 4, status: "complete", assignedTo: "Mike D.", reportedBy: "Property Manager", estimatedCost: 60, actualCost: 55, estimatedHours: 0.5, scheduledDate: d.yesterday, completedDate: d.yesterday, notes: "[Apr 16 — Mike D.] Done. Used two 16x20x1 MERV-11s. Disposed of old filters.", source: "admin", createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
-  ];
-}
-
 // ─── Summary Banner ───────────────────────────────────────────────────────────
 
 function SummaryBanner({ tickets, onSelectTicket }: { tickets: Ticket[]; onSelectTicket?: (ticket: Ticket) => void }) {
@@ -1430,34 +1408,17 @@ export default function MaintenanceTab({ currentUserName, currentUserEmail }: { 
 
       {/* Setup error */}
       {setupError && !loading && (
-        <div className="mb-6 p-4 rounded-xl border border-[rgba(250,204,21,0.3)] bg-[rgba(250,204,21,0.05)]">
-          <p className="text-xs font-bold text-[#FACC15] mb-2 flex items-center gap-1.5"><AlertTriangle size={12} />Database table not found — one-time setup required</p>
-          <p className="text-xs text-gray-400 mb-2">Run this SQL in your <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-[#4ADE80] underline">Supabase SQL Editor</a>, then click Refresh:</p>
-          <pre className="text-[10px] text-gray-300 bg-[rgba(0,0,0,0.4)] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">{`CREATE TABLE IF NOT EXISTS maintenance_tickets (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT DEFAULT '',
-  building TEXT DEFAULT '',
-  unit TEXT DEFAULT '',
-  tenant TEXT DEFAULT '',
-  category TEXT DEFAULT 'Other',
-  priority INTEGER DEFAULT 3,
-  status TEXT DEFAULT 'open',
-  assigned_to TEXT DEFAULT '',
-  reported_by TEXT DEFAULT '',
-  estimated_cost NUMERIC DEFAULT 0,
-  actual_cost NUMERIC DEFAULT 0,
-  estimated_hours NUMERIC DEFAULT 0,
-  scheduled_date DATE,
-  completed_date DATE,
-  notes TEXT DEFAULT '',
-  parts_needed BOOLEAN DEFAULT false,
-  source TEXT DEFAULT 'admin',
-  first_response_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE maintenance_tickets ENABLE ROW LEVEL SECURITY;`}</pre>
+        <div className="mb-6 p-4 rounded-xl border border-[rgba(250,204,21,0.3)] bg-[rgba(250,204,21,0.05)] flex items-center justify-between gap-3">
+          <p className="text-xs font-bold text-[#FACC15] flex items-center gap-1.5">
+            <AlertTriangle size={12} /> Unable to load records — click Refresh to retry
+          </p>
+          <button
+            type="button"
+            onClick={() => fetch_()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(250,204,21,0.3)] text-xs font-bold text-[#FACC15] hover:bg-[rgba(250,204,21,0.1)] transition-colors"
+          >
+            <RefreshCw size={12} /> Refresh
+          </button>
         </div>
       )}
 

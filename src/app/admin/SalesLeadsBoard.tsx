@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   TrendingUp, Search, RefreshCw, Loader2, Plus, Trash2,
   Building2, AlertTriangle, FileSpreadsheet, Sparkles, MessageSquare, ChevronDown, ChevronUp,
@@ -180,26 +180,29 @@ export default function SalesLeadsBoard({
     }
   };
 
-  const updateField = async (id: string, field: keyof SalesLead, value: any) => {
+  const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const leadsRef = useRef<SalesLead[]>([]);
+  useEffect(() => {
+    leadsRef.current = leads;
+  }, [leads]);
+
+  const flushLeadUpdate = async (id: string) => {
+    const latest = leadsRef.current.find(l => l.id === id);
+    if (!latest) return;
     setSavingId(id);
-    const existing = leads.find(l => l.id === id);
-    if (!existing) return;
-
     const payload: Record<string, any> = {
-      pocName: existing.pocName,
-      pocPhone: existing.pocPhone,
-      pocEmail: existing.pocEmail,
-      buildingInterested: existing.buildingInterested,
-      progress: existing.progress,
-      dealProgress: existing.dealProgress,
-      listingPrice: existing.listingPrice,
-      quotedPrice: existing.quotedPrice,
-      counterOffer: existing.counterOffer,
-      offerPrice: existing.offerPrice,
-      notes: existing.notes,
-      [field]: value,
+      pocName: latest.pocName,
+      pocPhone: latest.pocPhone,
+      pocEmail: latest.pocEmail,
+      buildingInterested: latest.buildingInterested,
+      progress: latest.progress,
+      dealProgress: latest.dealProgress,
+      listingPrice: latest.listingPrice,
+      quotedPrice: latest.quotedPrice,
+      counterOffer: latest.counterOffer,
+      offerPrice: latest.offerPrice,
+      notes: latest.notes,
     };
-
     try {
       const res = await fetch(`/api/sales-leads?id=${id}`, {
         method: "PATCH",
@@ -207,13 +210,39 @@ export default function SalesLeadsBoard({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to update sales lead");
-      setLeads(prev =>
-        prev.map(l => (l.id === id ? { ...l, [field]: value } : l))
-      );
     } catch (err: any) {
-      alert("Error saving: " + err.message);
+      console.error("Error saving sales lead:", err);
     } finally {
-      setSavingId(null);
+      setSavingId(prev => (prev === id ? null : prev));
+    }
+  };
+
+  const updateField = (id: string, field: keyof SalesLead, value: any) => {
+    // 1. Update local state and ref immediately (optimistic update)
+    leadsRef.current = leadsRef.current.map(l => (l.id === id ? { ...l, [field]: value } : l));
+    setLeads(prev =>
+      prev.map(l => (l.id === id ? { ...l, [field]: value } : l))
+    );
+
+    // 2. Debounce network PATCH (450ms for text/number fields, immediate for status/progress dropdowns)
+    const timerKey = `${id}:${String(field)}`;
+    if (timersRef.current[timerKey]) {
+      clearTimeout(timersRef.current[timerKey]);
+      delete timersRef.current[timerKey];
+    }
+
+    const isImmediateField =
+      field === "progress" ||
+      field === "dealProgress" ||
+      field === "buildingInterested";
+
+    if (isImmediateField) {
+      void flushLeadUpdate(id);
+    } else {
+      timersRef.current[timerKey] = setTimeout(() => {
+        delete timersRef.current[timerKey];
+        void flushLeadUpdate(id);
+      }, 450);
     }
   };
 

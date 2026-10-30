@@ -79,17 +79,17 @@ export async function POST(req: NextRequest) {
     ] = await Promise.all([
       supabaseAdmin
         .from("properties")
-        .select("name, address, city, state, type, sqft, price, lease_status")
+        .select("name, address, city, type, sqft, lease_status, badge")
         .eq("org_id", orgId)
         .limit(40),
       supabaseAdmin
         .from("tenants")
-        .select("name, company, building, unit, monthly_rent, lease_end, status, email, phone")
+        .select("name, contact_name, building, unit, monthly_rent, lease_end, status, email, phone")
         .eq("org_id", orgId)
         .limit(60),
       supabaseAdmin
         .from("rent_payments")
-        .select("tenant_name, building, month, amount_due, amount_paid, status")
+        .select("tenant_name, building, month, rent_due, nn_fee, nnn_fee, utility_fee, cleaning_fee, cam_fee, late_fee, amount_paid, paid")
         .eq("org_id", orgId)
         .eq("month", currentMonth)
         .limit(60),
@@ -102,22 +102,22 @@ export async function POST(req: NextRequest) {
         .limit(30),
       supabaseAdmin
         .from("cleaning_assignments")
-        .select("property, assigned_to, date, status")
+        .select("property, area, worker_name, scheduled_date, status")
         .eq("org_id", orgId)
-        .order("date", { ascending: false })
-        .limit(20),
+        .order("scheduled_date", { ascending: false })
+        .limit(30),
       supabaseAdmin
         .from("leads")
-        .select("name, space_type, budget, score, score_label, timeline, team_size, created_at, phone, is_whale, archived")
+        .select("name, space_type, budget, score, score_label, timeline, team_size, timestamp, phone, is_whale, progress, archived_at")
         .eq("org_id", orgId)
-        .order("created_at", { ascending: false })
+        .order("timestamp", { ascending: false })
         .limit(30),
       supabaseAdmin
         .from("todos")
-        .select("text, category, completed, is_private, created_by")
+        .select("task, description, priority, status, assigned_to, is_private, created_by")
         .eq("org_id", orgId)
-        .eq("completed", false)
-        .limit(20),
+        .neq("status", "done")
+        .limit(30),
     ]);
 
     const propertiesList = dbProperties || [];
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     const rentList = dbRentPayments || [];
     const openTickets = dbMaintenance || [];
     const cleaningList = dbCleaning || [];
-    const activeDbLeads = (dbLeads || []).filter((l: { archived?: boolean }) => !l.archived);
+    const activeDbLeads = (dbLeads || []).filter((l: { archived_at?: string | null }) => !l.archived_at);
 
     // Format Properties
     const propertiesContext =
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
         ? propertiesList
             .map(
               (p: Record<string, unknown>, i: number) =>
-                `${i + 1}. ${p.name} (${p.type || "Commercial"}) — ${p.address || ""} ${p.city || ""} | ${p.sqft || "N/A"} | ${p.price || "Contact"} | Status: ${p.lease_status || "available"}`
+                `${i + 1}. ${p.name} (${p.type || "Commercial"}) — ${p.address || ""} ${p.city || ""} | ${p.sqft || "N/A"} | Status: ${p.lease_status || "available"}${p.badge ? ` (${p.badge})` : ""}`
             )
             .join("\n")
         : "No properties added to this workspace yet.";
@@ -149,14 +149,14 @@ export async function POST(req: NextRequest) {
             .slice(0, 25)
             .map(
               (t: Record<string, unknown>, i: number) =>
-                `${i + 1}. ${t.company || t.name} (${t.name || "Contact"}) @ ${t.building || "Unassigned"}${t.unit ? ` #${t.unit}` : ""} | Rent: $${Number(t.monthly_rent || 0).toLocaleString()}/mo | Lease Ends: ${t.lease_end || "N/A"} | Status: ${t.status || "active"}`
+                `${i + 1}. ${t.name}${t.contact_name ? ` (${t.contact_name})` : ""} @ ${t.building || "Unassigned"}${t.unit ? ` #${t.unit}` : ""} | Rent: $${Number(t.monthly_rent || 0).toLocaleString()}/mo | Lease Ends: ${t.lease_end || "N/A"} | Status: ${t.status || "active"}`
             )
             .join("\n")
         : "No active tenants recorded yet.";
 
     // Format Current Month Rent Ledger
     const unpaidRent = rentList.filter(
-      (r: Record<string, unknown>) => r.status !== "paid"
+      (r: Record<string, unknown>) => !r.paid
     );
     const rentLedgerContext =
       rentList.length > 0
@@ -164,10 +164,18 @@ export async function POST(req: NextRequest) {
             unpaidRent.length > 0
               ? unpaidRent
                   .slice(0, 15)
-                  .map(
-                    (r: Record<string, unknown>) =>
-                      `${r.tenant_name} (${r.building || "Building"}): $${Number(r.amount_due || 0).toLocaleString()} [${r.status}]`
-                  )
+                  .map((r: Record<string, unknown>) => {
+                    const totalDue =
+                      (Number(r.rent_due) || 0) +
+                      (Number(r.nn_fee) || 0) +
+                      (Number(r.nnn_fee) || 0) +
+                      (Number(r.utility_fee) || 0) +
+                      (Number(r.cleaning_fee) || 0) +
+                      (Number(r.cam_fee) || 0) +
+                      (Number(r.late_fee) || 0);
+                    const paidAmt = Number(r.amount_paid) || 0;
+                    return `${r.tenant_name} (${r.building || "Building"}): $${totalDue.toLocaleString()}${paidAmt > 0 ? ` ($${paidAmt.toLocaleString()} paid)` : ""} [unpaid]`;
+                  })
                   .join("; ")
               : "None — 100% collected!"
           }`
@@ -187,14 +195,14 @@ export async function POST(req: NextRequest) {
 
     // Format Cleaning Assignments
     const pendingCleaning = cleaningList.filter(
-      (c: Record<string, unknown>) => c.status !== "complete" && c.status !== "completed"
+      (c: Record<string, unknown>) => c.status !== "done"
     );
     const cleaningContext =
       cleaningList.length > 0
         ? `${pendingCleaning.length} pending / ${cleaningList.length} recent assignments. Pending: ${
             pendingCleaning
               .slice(0, 10)
-              .map((c: Record<string, unknown>) => `${c.property} (${c.assigned_to || "Unassigned"}, ${c.date || ""})`)
+              .map((c: Record<string, unknown>) => `${c.property}${c.area ? ` - ${c.area}` : ""} (${c.worker_name || "Unassigned"}, ${c.scheduled_date || ""})`)
               .join("; ") || "All complete!"
           }`
         : "No cleaning assignments scheduled.";
@@ -214,7 +222,7 @@ export async function POST(req: NextRequest) {
             .slice(0, 15)
             .map(
               (l: Record<string, unknown>, i: number) =>
-                `${i + 1}. ${l.name} | ${l.space_type || "Commercial"} | $${Number(l.budget || 0).toLocaleString()}/mo | Score: ${l.score || 50} (${l.score_label || "Lead"}) | Timeline: ${l.timeline || "Flexible"} | ${timeAgo(String(l.created_at || ""))}${l.is_whale ? " | ⭐ WHALE" : ""}`
+                `${i + 1}. ${l.name} | ${l.space_type || "Commercial"} | $${Number(l.budget || 0).toLocaleString()}/mo | Score: ${l.score || 50} (${l.score_label || "Lead"}) | Timeline: ${l.timeline || "Flexible"} | ${timeAgo(String(l.timestamp || ""))}${l.is_whale ? " | ⭐ WHALE" : ""}`
             )
             .join("\n")
         : "No leads in pipeline yet.";
@@ -225,14 +233,23 @@ export async function POST(req: NextRequest) {
     const visibleTodos = (dbTodos || []).filter(
       (t: Record<string, unknown>) =>
         !t.is_private ||
-        String(t.created_by || "").toLowerCase() === callerEmail ||
-        String(t.created_by || "").toLowerCase() === callerName
+        g.ctx.role === "owner" ||
+        g.ctx.isSuperAdmin ||
+        (Boolean(callerEmail) &&
+          (String(t.created_by || "").toLowerCase() === callerEmail ||
+            String(t.assigned_to || "").toLowerCase() === callerEmail)) ||
+        (Boolean(callerName) &&
+          (String(t.created_by || "").toLowerCase() === callerName ||
+            String(t.assigned_to || "").toLowerCase() === callerName))
     );
     const todosContext =
       visibleTodos.length > 0
         ? visibleTodos
             .slice(0, 10)
-            .map((t: Record<string, unknown>) => `- [${t.category || "Task"}] ${t.text}`)
+            .map(
+              (t: Record<string, unknown>) =>
+                `- [${String(t.priority || "medium").toUpperCase()}] ${t.task}${t.assigned_to ? ` (Assigned: ${t.assigned_to})` : ""}${t.description ? ` — ${t.description}` : ""}`
+            )
             .join("\n")
         : "No open team tasks.";
 
@@ -250,6 +267,7 @@ SECURITY & ISOLATION MANDATE: You are strictly isolated to ${org.name}'s workspa
 
 Today: ${today}
 Current Plan Tier: ${g.ctx.org.tier.toUpperCase()}
+Customer Support Code (Account ID): ${g.ctx.org.customer_code}
 
 === LIVE PORTFOLIO SNAPSHOT FOR ${org.name.toUpperCase()} ===
 • Properties (${propertiesList.length}):

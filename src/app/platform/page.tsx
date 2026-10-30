@@ -21,17 +21,21 @@ import {
   Lock,
   Mail,
   Phone,
+  Copy,
+  Check,
 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { isSuperAdmin } from "@/lib/platform";
+import { isSuperAdmin, getCustomerCode } from "@/lib/platform";
 import { PLANS, type Tier } from "@/lib/plans";
 
 interface Org {
   id: string;
+  customer_code?: string;
   name: string;
   slug: string;
   tier: Tier;
   subscription_status: string;
+  trial_ends_at?: string | null;
   contact_email?: string;
   contact_phone?: string;
   custom_domain?: string;
@@ -52,6 +56,7 @@ interface PlatformSignup {
   city: string;
   message: string;
   org_id?: string | null;
+  customer_code?: string;
 }
 
 interface Stats {
@@ -90,6 +95,18 @@ export default function PlatformDashboardPage() {
   const [editStatus, setEditStatus] = useState("active");
   const [editDomain, setEditDomain] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [extendingTrial, setExtendingTrial] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  function handleCopyCode(code: string, key = code) {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(code).catch(() => {});
+    }
+    setCopiedCode(key);
+    setTimeout(() => {
+      setCopiedCode((prev) => (prev === key ? null : prev));
+    }, 2000);
+  }
 
   // 1. Verify Platform Super-Admin access
   useEffect(() => {
@@ -216,6 +233,41 @@ export default function PlatformDashboardPage() {
     }
   }
 
+  async function handleExtendTrial() {
+    if (!editOrg) return;
+    setExtendingTrial(true);
+    try {
+      const res = await fetch("/api/platform/organizations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editOrg.id,
+          extend_trial_days: 14,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to extend trial");
+      if (data.organization) {
+        setEditOrg((prev) =>
+          prev
+            ? {
+                ...prev,
+                subscription_status: "trialing",
+                trial_ends_at: data.organization.trial_ends_at,
+              }
+            : null
+        );
+        setEditStatus("trialing");
+      }
+      loadPlatformData();
+    } catch (err) {
+      console.error(err);
+      alert("Could not extend trial");
+    } finally {
+      setExtendingTrial(false);
+    }
+  }
+
   async function handleGoogleMasterLogin() {
     try {
       if (typeof window !== "undefined") {
@@ -313,18 +365,30 @@ export default function PlatformDashboardPage() {
   }
 
   const filteredOrgs = orgs.filter((o) => {
+    const term = search.trim().toLowerCase();
+    const code = (o.customer_code || getCustomerCode(o.id)).toLowerCase();
+    const codeSuffix = code.replace(/^oiq-/, "");
     const matchSearch =
-      o.name.toLowerCase().includes(search.toLowerCase()) ||
-      o.slug.toLowerCase().includes(search.toLowerCase()) ||
-      (o.contact_email && o.contact_email.toLowerCase().includes(search.toLowerCase()));
+      !term ||
+      code.includes(term) ||
+      codeSuffix.includes(term) ||
+      o.id.toLowerCase().includes(term) ||
+      o.name.toLowerCase().includes(term) ||
+      o.slug.toLowerCase().includes(term) ||
+      (o.custom_domain && o.custom_domain.toLowerCase().includes(term)) ||
+      (o.contact_email && o.contact_email.toLowerCase().includes(term));
     const matchTier = filterTier === "all" || o.tier === filterTier;
     return matchSearch && matchTier;
   });
 
   const filteredSignups = signups.filter((s) => {
     if (!search.trim()) return true;
-    const term = search.toLowerCase();
+    const term = search.trim().toLowerCase();
+    const code = (s.customer_code || (s.org_id ? getCustomerCode(s.org_id) : "")).toLowerCase();
+    const codeSuffix = code.replace(/^oiq-/, "");
     return (
+      (code && (code.includes(term) || codeSuffix.includes(term))) ||
+      (s.org_id && s.org_id.toLowerCase().includes(term)) ||
       s.name?.toLowerCase().includes(term) ||
       s.email?.toLowerCase().includes(term) ||
       s.company?.toLowerCase().includes(term) ||
@@ -365,6 +429,12 @@ export default function PlatformDashboardPage() {
           <span className="text-xs text-slate-400 hidden sm:inline">
             Master Admin: <strong className="text-white">{currentUserEmail}</strong>
           </span>
+          <Link
+            href="/help"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-sky-200 bg-sky-500/15 border border-sky-400/35 hover:bg-sky-500/25 hover:text-white transition-all"
+          >
+            <span>Help &amp; Support</span>
+          </Link>
           <a
             href="/demo-site"
             target="_blank"
@@ -490,11 +560,11 @@ export default function PlatformDashboardPage() {
 
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <div className="relative w-full sm:w-80">
+          <div className="relative w-full sm:w-96">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder={activeTab === "organizations" ? "Search organizations or emails…" : "Search signups, companies, emails…"}
+              placeholder="Search by Customer Code (e.g. OIQ-7F4K), company name, slug, domain, or email…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
@@ -552,11 +622,27 @@ export default function PlatformDashboardPage() {
                   ) : (
                     filteredSignups.map((s) => {
                       const isTrial = (s.interest || "").toLowerCase().includes("trial");
+                      const code = s.customer_code || (s.org_id ? getCustomerCode(s.org_id) : null);
                       return (
                         <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-4 px-5">
-                            <div className="font-bold text-white flex items-center gap-2">
+                            <div className="font-bold text-white flex flex-wrap items-center gap-2">
                               <span>{s.company || s.name}</span>
+                              {code && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyCode(code, `signup-${s.id}`)}
+                                  title="Click to copy Customer Support Code"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-500/40 text-cyan-300 font-mono text-[11px] font-bold tracking-wider transition-all cursor-pointer"
+                                >
+                                  <span>{copiedCode === `signup-${s.id}` ? "Copied!" : code}</span>
+                                  {copiedCode === `signup-${s.id}` ? (
+                                    <Check size={11} className="text-emerald-400" />
+                                  ) : (
+                                    <Copy size={11} className="text-cyan-400/80" />
+                                  )}
+                                </button>
+                              )}
                               {isTrial && (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                                   Trial Intake
@@ -682,11 +768,26 @@ export default function PlatformDashboardPage() {
                           ? "text-amber-400 bg-amber-950/40 border-amber-500/30"
                           : "text-rose-400 bg-rose-950/40 border-rose-500/30";
 
+                      const code = org.customer_code || getCustomerCode(org.id);
+
                       return (
                         <tr key={org.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-4 px-5">
-                            <div className="font-bold text-white flex items-center gap-2">
+                            <div className="font-bold text-white flex flex-wrap items-center gap-2">
                               <span>{org.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyCode(code, `org-${org.id}`)}
+                                title="Click to copy Customer Support Code"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-500/40 text-cyan-300 font-mono text-[11px] font-bold tracking-wider transition-all cursor-pointer"
+                              >
+                                <span>{copiedCode === `org-${org.id}` ? "Copied!" : code}</span>
+                                {copiedCode === `org-${org.id}` ? (
+                                  <Check size={11} className="text-emerald-400" />
+                                ) : (
+                                  <Copy size={11} className="text-cyan-400/80" />
+                                )}
+                              </button>
                             </div>
                             <p className="text-xs text-slate-500 font-mono mt-0.5">/{org.slug}</p>
                             {org.contact_email && (
@@ -869,8 +970,28 @@ export default function PlatformDashboardPage() {
               <X size={20} />
             </button>
 
-            <h2 className="text-xl font-bold text-white mb-1">Edit {editOrg.name}</h2>
-            <p className="text-xs text-slate-400 mb-5">Adjust service tier and subscription status.</p>
+            <div className="flex flex-wrap items-center gap-2 mb-1 pr-6">
+              <h2 className="text-xl font-bold text-white">Edit {editOrg.name}</h2>
+              {(() => {
+                const editCode = editOrg.customer_code || getCustomerCode(editOrg.id);
+                return (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCode(editCode, `modal-${editOrg.id}`)}
+                    title="Click to copy Customer Support Code"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold tracking-wider transition-all cursor-pointer"
+                  >
+                    <span>{copiedCode === `modal-${editOrg.id}` ? "Copied!" : editCode}</span>
+                    {copiedCode === `modal-${editOrg.id}` ? (
+                      <Check size={11} className="text-emerald-400" />
+                    ) : (
+                      <Copy size={11} className="text-cyan-400/80" />
+                    )}
+                  </button>
+                );
+              })()}
+            </div>
+            <p className="text-xs text-slate-400 mb-5">Adjust service tier, trial duration, and subscription status.</p>
 
             <form onSubmit={handleUpdateOrg} className="space-y-4">
               <div>
@@ -901,6 +1022,29 @@ export default function PlatformDashboardPage() {
                   <option value="paused">Paused</option>
                   <option value="canceled">Canceled</option>
                 </select>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3">
+                <div className="text-xs">
+                  <span className="text-slate-400 block">Trial Expiration</span>
+                  <span className="text-white font-semibold">
+                    {editOrg.trial_ends_at
+                      ? new Date(editOrg.trial_ends_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "No active trial date"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleExtendTrial}
+                  disabled={extendingTrial}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {extendingTrial ? "Extending…" : "+14 Days Trial"}
+                </button>
               </div>
 
               <div>

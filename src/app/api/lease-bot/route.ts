@@ -512,11 +512,11 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const g = await requireOrgAdmin(req);
   if (!g.ok) return g.res;
-  const { orgId } = g.ctx;
+  const { orgId, user } = g.ctx;
 
   try {
     const body = await req.json();
-    const { id, all } = body as { id?: string; all?: boolean };
+    const { id, all, name } = body as { id?: string; all?: boolean; name?: string };
 
     const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -537,6 +537,15 @@ export async function DELETE(req: NextRequest) {
         console.error("Supabase bulk delete failed:", res.status, errText);
         return NextResponse.json({ error: "Bulk delete failed" }, { status: 500 });
       }
+      await writeActivityLog({
+        org_id: orgId,
+        actor_email: user?.email || "unknown",
+        actor_name: user?.name || user?.email?.split("@")[0] || "Admin",
+        action: "deleted",
+        resource_type: "lead",
+        resource_name: "All leads (Bulk Delete)",
+        resource_id: "all",
+      });
       return NextResponse.json({ success: true, deleted: "all" });
     }
 
@@ -554,6 +563,16 @@ export async function DELETE(req: NextRequest) {
       console.error("Supabase delete failed:", res.status, errText);
       return NextResponse.json({ error: "Delete failed" }, { status: 500 });
     }
+
+    await writeActivityLog({
+      org_id: orgId,
+      actor_email: user?.email || "unknown",
+      actor_name: user?.name || user?.email?.split("@")[0] || "Admin",
+      action: "deleted",
+      resource_type: "lead",
+      resource_name: name || id,
+      resource_id: id,
+    });
 
     return NextResponse.json({ success: true, deleted: id });
   } catch (err) {

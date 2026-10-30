@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import Link from "next/link";
 import {
   X,
   HelpCircle,
@@ -9,682 +10,25 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronUp,
-  Flame,
-  Printer,
-  PlusCircle,
-  Sparkles,
-  PhoneCall,
-  UserCheck,
-  Filter,
-  Archive,
-  Send,
-  Snowflake,
-  Edit3,
-  StickyNote,
-  Bell,
-  Users,
-  CalendarClock,
-  DollarSign,
-  ShieldCheck,
-  Building2,
-  Layers,
-  Car,
-  Wind,
-  ClipboardCheck,
-  TrendingUp,
-  FileSpreadsheet,
-  Wrench,
-  HardHat,
-  QrCode,
-  Camera,
   CheckCircle2,
-  AlertTriangle,
-  SprayCan,
-  Calendar,
-  BarChart3,
-  PieChart,
-  Brain,
-  FileText,
-  Newspaper,
-  Image as ImageIcon,
-  LayoutTemplate,
-  Share2,
-  Compass,
-  FileBadge,
-  Globe,
-  MapPin,
-  Settings,
-  CreditCard,
-  KeyRound,
-  Palette,
-  MessageSquare,
-  ListChecks,
-  RotateCcw,
-  Trash2,
   ExternalLink,
-  Megaphone,
-  type LucideIcon,
+  LifeBuoy,
 } from "lucide-react";
+import {
+  SECTION_CATEGORIES,
+  TAB_LABELS,
+  ACCENT_STYLES,
+  getTipsForCategory,
+  type TabKey,
+} from "@/lib/help-data";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type TabKey =
-  | "leads"
-  | "tenants"
-  | "propdetails"
-  | "analytics"
-  | "maintenance"
-  | "cleaning"
-  | "marketing"
-  | "marketing-press"
-  | "marketing-blog"
-  | "marketing-photos"
-  | "marketing-banner"
-  | "marketing-properties"
-  | "marketing-social"
-  | "marketing-intel"
-  | "marketing-one-sheet"
-  | "archived"
-  | "content"
-  | "content-homepage"
-  | "content-markets"
-  | "content-pages"
-  | "content-properties"
-  | "settings"
-  | "teamboard"
-  | "global";
-
-type Tip = {
-  title: string;
-  body: string;
-  highlights?: string[];
-  icon: LucideIcon;
-  accent?: "blue" | "emerald" | "amber" | "purple" | "cyan" | "rose";
-};
-
-const ACCENT_STYLES: Record<
-  NonNullable<Tip["accent"]>,
-  { badgeBg: string; badgeBorder: string; iconText: string; pillBg: string; pillText: string }
-> = {
-  blue: {
-    badgeBg: "bg-sky-500/15",
-    badgeBorder: "border-sky-400/30",
-    iconText: "text-sky-400",
-    pillBg: "bg-sky-500/10 border-sky-400/25",
-    pillText: "text-sky-300",
-  },
-  emerald: {
-    badgeBg: "bg-emerald-500/15",
-    badgeBorder: "border-emerald-400/30",
-    iconText: "text-emerald-400",
-    pillBg: "bg-emerald-500/10 border-emerald-400/25",
-    pillText: "text-emerald-300",
-  },
-  amber: {
-    badgeBg: "bg-amber-500/15",
-    badgeBorder: "border-amber-400/30",
-    iconText: "text-amber-400",
-    pillBg: "bg-amber-500/10 border-amber-400/25",
-    pillText: "text-amber-300",
-  },
-  purple: {
-    badgeBg: "bg-purple-500/15",
-    badgeBorder: "border-purple-400/30",
-    iconText: "text-purple-400",
-    pillBg: "bg-purple-500/10 border-purple-400/25",
-    pillText: "text-purple-300",
-  },
-  cyan: {
-    badgeBg: "bg-cyan-500/15",
-    badgeBorder: "border-cyan-400/30",
-    iconText: "text-cyan-400",
-    pillBg: "bg-cyan-500/10 border-cyan-400/25",
-    pillText: "text-cyan-300",
-  },
-  rose: {
-    badgeBg: "bg-rose-500/15",
-    badgeBorder: "border-rose-400/30",
-    iconText: "text-rose-400",
-    pillBg: "bg-rose-500/10 border-rose-400/25",
-    pillText: "text-rose-300",
-  },
-};
-
-// ─── Guide Content ────────────────────────────────────────────────────────────
-
-const TIPS: Record<TabKey, Tip[]> = {
-  global: [
-    {
-      icon: Sparkles,
-      accent: "cyan",
-      title: "AI Document, Excel & Photo Intake",
-      body: "Use the 'Import Docs / Excel' button in the top navigation bar from anywhere in the dashboard. Upload a rent roll spreadsheet (.xlsx / .csv), a lease PDF, or even a photo of a handwritten property sheet — Gemini AI extracts your buildings, units, and tenant records and imports them in one click.",
-      highlights: [
-        "Supports Excel (.xlsx, .xls, .csv), PDFs, Word docs, and photos",
-        "Preview and edit every extracted building or tenant before saving",
-        "Automatically links tenants to their matching building",
-      ],
-    },
-    {
-      icon: Brain,
-      accent: "purple",
-      title: "Ask OpsIQ Portfolio Assistant",
-      body: "Click 'Ask OpsIQ' in the top bar anytime to ask natural-language questions about your portfolio — such as expiring leases, overdue rent, open maintenance tickets, or top-scoring leads.",
-      highlights: [
-        "Reads live data across your organization's buildings, tenants, and tickets",
-        "Available to both Admin users and mobile Crew Portal staff",
-      ],
-    },
-  ],
-
-  teamboard: [
-    {
-      icon: MessageSquare,
-      accent: "blue",
-      title: "Team Comm Board & @Mentions",
-      body: "Use the Comm Board sub-tab to post operational updates, log building notes, and coordinate with your team in real time. Type @Name to notify a specific team member with an instant audio chime and banner alert.",
-      highlights: [
-        "Messages refresh automatically across all signed-in team members",
-        "Use @mentions to alert specific managers or staff immediately",
-      ],
-    },
-    {
-      icon: ListChecks,
-      accent: "emerald",
-      title: "Shared & Private Task Board",
-      body: "Switch to the Task List sub-tab to manage operational to-dos. Assign tasks to specific team members, set priority levels and due dates, or toggle a task to 'Private' so only you can see it.",
-      highlights: [
-        "Filter tasks by assignee, status, or priority",
-        "Private tasks are strictly visible only to their creator",
-      ],
-    },
-  ],
-
-  leads: [
-    {
-      icon: Flame,
-      accent: "amber",
-      title: "AI Lead Scoring & Temperature",
-      body: "Every incoming lead receives an AI qualification score from 0 to 100 based on budget, timeline, space requirements, and fit. Hot Leads score 75+, Warm Leads score 50–74, and Nurture leads score below 50.",
-      highlights: [
-        "75–100 (Hot Lead): Immediate follow-up recommended",
-        "50–74 (Warm Lead): Good fit, schedule a tour or discovery call",
-        "Below 50 (Nurture): Longer timeline or smaller budget",
-      ],
-    },
-    {
-      icon: PlusCircle,
-      accent: "blue",
-      title: "Adding a Walk-In or Phone Lead",
-      body: "Click '+ Add Lead' to log a prospect who called or walked in. Choose 'AI Score It' to have Gemini evaluate the lead and draft a personalized follow-up email, or choose 'Set Manually' to assign your own score with the slider.",
-      highlights: [
-        "Drafts auto-save locally while you type so you never lose a phone intake",
-        "Automatically stamps your name as the team member who entered the lead",
-      ],
-    },
-    {
-      icon: Sparkles,
-      accent: "purple",
-      title: "AI Priority Call List",
-      body: "The Priority Call List card at the top of the Leads tab ranks your top prospects to call today. Click 'Refresh Brief' to have Ask OpsIQ generate a 2-sentence executive summary of who to call first and why.",
-      highlights: [
-        "Click any prospect's name in the priority list to jump straight to their lead card",
-        "Shows your personal overdue follow-up checklist right below the AI brief",
-      ],
-    },
-    {
-      icon: PhoneCall,
-      accent: "emerald",
-      title: "Logging Calls & Follow-Up Dates",
-      body: "Click 'Log Call' on any lead card to record the call outcome (Connected, Voicemail, No Answer) and notes. Every logged call builds a permanent activity timeline on that lead card.",
-      highlights: [
-        "Set a Follow-Up Date on any lead to add it to your daily follow-up reminders",
-        "Overdue follow-ups highlight automatically in red until completed",
-      ],
-    },
-    {
-      icon: Send,
-      accent: "cyan",
-      title: "Sending AI Follow-Up Emails",
-      body: "Expand any lead card to review the AI-drafted response email. You can edit the subject or message body directly, then click 'Send Email' to deliver it to the prospect and log the outreach.",
-    },
-    {
-      icon: Snowflake,
-      accent: "blue",
-      title: "Cold Pipeline CRM",
-      body: "Click 'Cold Pipeline' in the Leads toolbar to track outbound prospects and businesses you are actively recruiting before they become inbound leads. When a prospect warms up, promote them with one click.",
-    },
-    {
-      icon: Printer,
-      accent: "emerald",
-      title: "Printing the Call Sheet",
-      body: "Use the 'Print Call Sheet' button near the top right of the Leads tab to open a clean, print-ready table of your active leads — ideal for walking properties or weekly leasing meetings.",
-    },
-    {
-      icon: UserCheck,
-      accent: "purple",
-      title: "Assigning Leads & Filtering",
-      body: "Use the 'Assign To' dropdown inside any lead card to assign ownership to a team member. Filter your pipeline anytime using the pill buttons (Verified Lead, MQL, Prospect, Whale $2.5k+/mo, or New Today).",
-    },
-    {
-      icon: Archive,
-      accent: "rose",
-      title: "Archiving vs. Deleting Leads",
-      body: "Click 'Archive' on a lead card to move inactive prospects out of your main pipeline while keeping their history in the Archive tab. Use 'Delete' only when you want to permanently remove spam or test entries.",
-    },
-  ],
-
-  tenants: [
-    {
-      icon: Users,
-      accent: "blue",
-      title: "Managing Your Tenant Directory",
-      body: "Click '+ Add Tenant' to create a tenant record with lease dates, monthly rent, security deposit, square footage, and contact info — or use 'Import Docs / Excel' in the top bar to bulk-import an entire rent roll.",
-      highlights: [
-        "Filter tenants by building or search by business name, contact, or unit",
-        "Click any tenant row to expand full lease details, documents, and payment history",
-      ],
-    },
-    {
-      icon: CalendarClock,
-      accent: "amber",
-      title: "Automated Lease Expiry Alerts",
-      body: "OperateIQ automatically monitors every tenant's lease end date and renewal date. Color-coded badges warn you at 90 days (Watch), 60 days (Soon), 30 days (Urgent), and Expired so you never miss a renewal window.",
-      highlights: [
-        "Customize the alert threshold per tenant (e.g., 90, 120, or 180 days)",
-        "Expiring leases also surface in the top-of-dashboard Lease Renewal Alert banner",
-      ],
-    },
-    {
-      icon: DollarSign,
-      accent: "emerald",
-      title: "Monthly Rent Ledger",
-      body: "Click 'Rent Ledger' at the top of the Tenants tab to open the full 12-month payment matrix. Click any month cell for a tenant to mark rent Paid, Partial, Late, or Unpaid, and record check numbers or payment notes.",
-      highlights: [
-        "Tracks total collected vs. expected rent for every month of the year",
-        "Export or print the rent ledger for accounting and ownership reporting",
-      ],
-    },
-    {
-      icon: ShieldCheck,
-      accent: "cyan",
-      title: "Security Deposit & Document Vault",
-      body: "Open the 'Security Deposits' ledger to track deposit amounts held, bank/escrow locations, and refund status. Inside each tenant card, you can also upload signed lease PDFs and addenda to their secure document vault.",
-    },
-  ],
-
-  propdetails: [
-    {
-      icon: Building2,
-      accent: "blue",
-      title: "Adding & Managing Properties",
-      body: "Click '+ Add Property' to add a building to your portfolio, or use 'Import Docs / Excel' in the top bar to let AI import buildings and units from a spreadsheet or document. Select any building pill at the top to view its full operational profile.",
-      highlights: [
-        "New workspaces start 100% clean — or you can load editable sample properties in 1 click",
-        "Delete or archive any property directly from its property detail header",
-      ],
-    },
-    {
-      icon: Layers,
-      accent: "emerald",
-      title: "Units, Suites & Rent Roll Sync",
-      body: "Inside each property's 'Units / Spaces' sub-tab, add individual suites with square footage, asking rent, and occupancy status. Occupied units link directly to your Tenants directory so occupancy and revenue stay in sync.",
-      highlights: [
-        "Track Available, Occupied, and Offline/Renovation units per building",
-        "Portfolio occupancy rate and revenue KPIs update automatically",
-      ],
-    },
-    {
-      icon: TrendingUp,
-      accent: "purple",
-      title: "Financials, Valuations & Taxes",
-      body: "Record purchase price, estimated market value, mortgage debt, annual property taxes, and insurance costs on each building. OperateIQ calculates your portfolio equity, cap rate, and net operating metrics automatically.",
-    },
-    {
-      icon: Car,
-      accent: "amber",
-      title: "Parking Lots & Standalone Assets",
-      body: "Switch to the 'Parking Lots' view to track surface lots or auxiliary parcels, including associated buildings, lease renewal dates, and annual city/county tax obligations.",
-    },
-    {
-      icon: Wind,
-      accent: "cyan",
-      title: "HVAC Filter Change Tracker",
-      body: "Open the 'Filter Changes' view to track HVAC filter sizes, quantities, last replacement dates, and next due dates across every building. Your maintenance crew can also log filter changes straight from their mobile portal.",
-    },
-    {
-      icon: ClipboardCheck,
-      accent: "emerald",
-      title: "Building Inspections & Compliance",
-      body: "Use the 'Inspections' view to log fire extinguisher, sprinkler, elevator, backflow, and roof inspections with pass/fail status, inspector names, and next due dates.",
-    },
-  ],
-
-  maintenance: [
-    {
-      icon: Wrench,
-      accent: "amber",
-      title: "Creating & Dispatching Work Orders",
-      body: "Click '+ New Ticket' to log a maintenance issue for any building and unit. Set the priority (Low, Medium, High, Urgent/Emergency), category (Plumbing, HVAC, Electrical, General), and assign a maintenance technician.",
-      highlights: [
-        "Assigned tickets appear immediately on the crew member's mobile portal",
-        "Filter tickets by Open, In Progress, Completed, Priority, or Building",
-      ],
-    },
-    {
-      icon: QrCode,
-      accent: "blue",
-      title: "Mobile Maintenance Crew Portal",
-      body: "Your field technicians don't need admin accounts. Share the Maintenance Portal link (/staff/maintenance) or print the QR code — crew members sign in with their 6-digit PIN from any phone.",
-      highlights: [
-        "Manage crew PINs in Settings → Team & Access",
-        "Field staff see only operational ticket details, never private financial or cost fields",
-      ],
-    },
-    {
-      icon: Camera,
-      accent: "emerald",
-      title: "Before & After Completion Photos",
-      body: "Technicians can snap and upload photos directly from their phone when reporting an issue or marking a work order complete. All photos attach to the ticket card for admin verification.",
-    },
-    {
-      icon: HardHat,
-      accent: "purple",
-      title: "Subcontractor & Vendor Directory",
-      body: "Switch to the 'Subcontractors' sub-tab to keep a searchable directory of licensed plumbers, electricians, HVAC vendors, and roofers with their phone numbers, specialties, and notes.",
-    },
-  ],
-
-  cleaning: [
-    {
-      icon: SprayCan,
-      accent: "cyan",
-      title: "Scheduling Cleaning Assignments",
-      body: "Create recurring or one-off cleaning assignments by building, floor, or suite. Use Quick Mode for fast dispatch or Full Mode to attach room-by-room checklists and special instructions.",
-      highlights: [
-        "Track status across Scheduled, In Progress, and Completed assignments",
-        "View daily and weekly workload across your cleaning crew",
-      ],
-    },
-    {
-      icon: QrCode,
-      accent: "emerald",
-      title: "Mobile Cleaning Crew Portal",
-      body: "Cleaning staff log in at /staff/cleaning on their smartphone using their 6-digit PIN. They can view today's assigned buildings, check off tasks, upload completion photos, and ask OpsIQ questions.",
-    },
-    {
-      icon: Camera,
-      accent: "blue",
-      title: "Photo Verification & Quality Control",
-      body: "When a cleaner marks an assignment complete and uploads a photo from their phone, it appears directly inside the admin Cleaning tab with a timestamp so managers can verify quality remotely.",
-    },
-  ],
-
-  analytics: [
-    {
-      icon: BarChart3,
-      accent: "blue",
-      title: "Executive Portfolio Analytics",
-      body: "The Analytics & Reports tab gives you a real-time pulse on lead conversion, occupancy rates, monthly rent collection, maintenance resolution times, and portfolio valuation.",
-      highlights: [
-        "Switch between Overview, Weekly Ops Report (QBR), and Portfolio Snapshots",
-        "Compare historical occupancy and revenue trends over time",
-      ],
-    },
-    {
-      icon: Sparkles,
-      accent: "purple",
-      title: "AI Weekly Executive Brief & QBR",
-      body: "Generate an AI-written Weekly Operations Report or Quarterly Business Review (QBR) summarizing leasing velocity, completed maintenance, upcoming lease renewals, and action items for ownership.",
-    },
-    {
-      icon: PieChart,
-      accent: "emerald",
-      title: "Historical Portfolio Snapshots",
-      body: "Record point-in-time snapshots of your portfolio's occupancy, unit counts, and monthly revenue so you can track growth month over month.",
-    },
-  ],
-
-  marketing: [
-    {
-      icon: Megaphone,
-      accent: "purple",
-      title: "AI Marketing & Leasing Studio",
-      body: "Use the Marketing Studio sub-tabs to generate SEO blog articles, press releases, social media posts, property one-sheets, and market intelligence briefs powered by Gemini AI and tailored to your portfolio.",
-      highlights: [
-        "Blog Articles & Press Releases for local SEO and announcements",
-        "One-Sheet PDF generator for printable property flyers",
-        "Social Studio for LinkedIn, Facebook, and Instagram leasing posts",
-      ],
-    },
-  ],
-
-  "marketing-press": [
-    {
-      icon: Newspaper,
-      accent: "blue",
-      title: "AI Press Release Generator",
-      body: "Announce new tenant signings, building acquisitions, or renovations. Enter a few key facts, choose a tone, and Gemini drafts a publication-ready press release formatted for local media.",
-    },
-  ],
-
-  "marketing-blog": [
-    {
-      icon: FileText,
-      accent: "emerald",
-      title: "SEO Blog Article Generator & Editor",
-      body: "Generate local commercial real estate articles optimized for search engines, then publish them directly to your public website's /blog with featured images and AI SEO enhancements.",
-      highlights: [
-        "Draft new posts with AI or edit existing articles in the Blog Editor",
-        "Published articles automatically appear on your tenant website and sitemap",
-      ],
-    },
-  ],
-
-  "marketing-photos": [
-    {
-      icon: ImageIcon,
-      accent: "cyan",
-      title: "Property Photo & Media Library",
-      body: "Upload high-resolution exterior and interior photos for each building in your portfolio. Choose a Hero Image for each property and reorder gallery photos that appear on your public website and flyers.",
-    },
-  ],
-
-  "marketing-banner": [
-    {
-      icon: LayoutTemplate,
-      accent: "amber",
-      title: "Homepage Hero Banner Manager",
-      body: "Customize the rotating hero slides on your public website. Upload custom banner photography, edit headlines and call-to-action buttons, or link slides directly to featured properties.",
-    },
-  ],
-
-  "marketing-properties": [
-    {
-      icon: Building2,
-      accent: "blue",
-      title: "Public Property Listing Creator",
-      body: "Create and publish new property listings to your public website with rich descriptions, amenity tags, square footage ranges, and photo galleries.",
-    },
-  ],
-
-  "marketing-social": [
-    {
-      icon: Share2,
-      accent: "purple",
-      title: "Social Media Copy Studio",
-      body: "Select any property in your portfolio and generate platform-ready leasing posts for LinkedIn, Facebook, and Instagram — complete with hooks, amenity highlights, and hashtags.",
-    },
-  ],
-
-  "marketing-intel": [
-    {
-      icon: Compass,
-      accent: "cyan",
-      title: "Local Market Intelligence",
-      body: "Track regional commercial real estate trends, comparable lease rates, and economic news, and generate AI Market Briefs for your team or investors.",
-    },
-  ],
-
-  "marketing-one-sheet": [
-    {
-      icon: FileBadge,
-      accent: "emerald",
-      title: "Printable Property One-Sheets",
-      body: "Select any building to generate a polished, branded 1-page leasing flyer featuring your organization's logo, contact details, property photos, specs, and QR code — ready to print or save as PDF.",
-    },
-  ],
-
-  archived: [
-    {
-      icon: RotateCcw,
-      accent: "blue",
-      title: "Restoring Archived Leads",
-      body: "The Archive tab holds leads you've removed from your active pipeline. Click 'Restore' on any archived lead to return it immediately to your active Leads board with all notes and call logs intact.",
-    },
-    {
-      icon: Trash2,
-      accent: "rose",
-      title: "Permanent Deletion",
-      body: "Clicking 'Delete Permanently' inside the Archive tab removes the lead record from your database forever. Only delete leads you are certain you no longer need.",
-    },
-  ],
-
-  content: [
-    {
-      icon: Globe,
-      accent: "blue",
-      title: "Public Website & Content Builder",
-      body: "Control everything prospects see on your public leasing website (/site/your-slug or your custom domain). Edit property listings, homepage hero banners, market pages, and company branding.",
-    },
-  ],
-
-  "content-homepage": [
-    {
-      icon: LayoutTemplate,
-      accent: "blue",
-      title: "Homepage Content Editor",
-      body: "Customize your public website's headline, subheadline, value propositions, and call-to-action sections. Changes save directly to your organization's live site.",
-    },
-  ],
-
-  "content-markets": [
-    {
-      icon: MapPin,
-      accent: "emerald",
-      title: "Local Market & Area Pages",
-      body: "Manage regional market highlights and neighborhood descriptions to boost local search visibility and showcase your market expertise to prospective tenants.",
-    },
-  ],
-
-  "content-pages": [
-    {
-      icon: Layers,
-      accent: "purple",
-      title: "Space Use-Case Pages",
-      body: "Configure dedicated landing sections for Office, Retail, Medical, Flex, and Warehouse spaces so prospective tenants can filter by their exact business need.",
-    },
-  ],
-
-  "content-properties": [
-    {
-      icon: Building2,
-      accent: "cyan",
-      title: "Published Property Listings",
-      body: "Choose which properties are published on your public website, edit their marketing descriptions, update availability badges (Available, Leased, Coming Soon), and manage listing photos.",
-    },
-  ],
-
-  settings: [
-    {
-      icon: CreditCard,
-      accent: "emerald",
-      title: "Subscription, 14-Day Trial & Stripe Billing",
-      body: "View your current plan tier (Starter $99/mo, Growth $249/mo, or Pro $499/mo) and trial countdown at the top of Settings. Click any plan to upgrade via Stripe Checkout in one click, or click 'Manage Billing & Invoices' to update payment methods and download receipts.",
-      highlights: [
-        "Starter ($99/mo): Up to 5 properties, 5 team members, core CRM & Maintenance",
-        "Growth ($249/mo): Up to 25 properties, 15 team members, Cleaning, Marketing Studio & Site Builder",
-        "Pro ($499/mo): Unlimited properties & users, Custom Domain, Executive QBR & full AI suite",
-      ],
-    },
-    {
-      icon: Palette,
-      accent: "blue",
-      title: "Organization Profile & Branding",
-      body: "Set your company's display name, primary contact email, phone number, city/state, logo URL, and brand colors. These details power your public website, printable property one-sheets, and AI email signatures.",
-    },
-    {
-      icon: Users,
-      accent: "purple",
-      title: "Team Members, Roles & Crew PINs",
-      body: "Invite Admin/Manager users by work email, or create Maintenance and Cleaning crew profiles. Crew members automatically receive a unique 6-digit PIN for logging into the mobile field portals (/staff/maintenance and /staff/cleaning).",
-      highlights: [
-        "Admins can sign in with Password, Magic Link, or Google",
-        "Field crew sign in at /staff/maintenance or /staff/cleaning using their 6-digit PIN",
-        "Workspace owners are protected and cannot be deactivated by invited admins",
-      ],
-    },
-    {
-      icon: Globe,
-      accent: "cyan",
-      title: "Custom Domain Manager (GoDaddy / IONOS / Cloudflare)",
-      body: "On the Pro plan, connect your own custom domain (e.g., properties.yourcompany.com) to your public OperateIQ website. Enter your domain, add the displayed DNS records at your registrar, and click 'Verify DNS Connection'.",
-    },
-    {
-      icon: KeyRound,
-      accent: "amber",
-      title: "Password & Account Security",
-      body: "Use the Password & Security card in Settings anytime to set or update your account password — even if you originally signed in via Magic Link or Google.",
-    },
-  ],
-};
-
-const SECTION_CATEGORIES: { key: TabKey; label: string; icon: LucideIcon }[] = [
-  { key: "leads", label: "Leads & CRM", icon: Flame },
-  { key: "tenants", label: "Tenants & Rent", icon: Users },
-  { key: "propdetails", label: "Properties & Assets", icon: Building2 },
-  { key: "maintenance", label: "Maintenance", icon: Wrench },
-  { key: "cleaning", label: "Cleaning", icon: SprayCan },
-  { key: "teamboard", label: "Team & Tasks", icon: MessageSquare },
-  { key: "analytics", label: "Analytics & QBR", icon: BarChart3 },
-  { key: "marketing-blog", label: "Marketing & AI", icon: Sparkles },
-  { key: "content-properties", label: "Website Builder", icon: Globe },
-  { key: "settings", label: "Settings & Billing", icon: Settings },
-  { key: "archived", label: "Archived Leads", icon: Archive },
-  { key: "global", label: "Platform AI Tools", icon: Brain },
-];
-
-const TAB_LABELS: Record<TabKey, string> = {
-  leads: "Leads & CRM",
-  tenants: "Tenants & Rent Ledger",
-  propdetails: "Properties & Asset Details",
-  maintenance: "Maintenance & Work Orders",
-  cleaning: "Cleaning Operations",
-  analytics: "Analytics & Executive Reports",
-  marketing: "Marketing Studio",
-  "marketing-press": "Press Releases",
-  "marketing-blog": "Blog & SEO Articles",
-  "marketing-photos": "Property Photo Library",
-  "marketing-banner": "Homepage Hero Banner",
-  "marketing-properties": "Property Listings",
-  "marketing-social": "Social Media Studio",
-  "marketing-intel": "Market Intelligence",
-  "marketing-one-sheet": "Property One-Sheets",
-  archived: "Archived Leads",
-  content: "Website & Content Builder",
-  "content-homepage": "Homepage Editor",
-  "content-markets": "Local Market Pages",
-  "content-pages": "Space Use-Case Pages",
-  "content-properties": "Published Website Properties",
-  settings: "Settings, Billing & Team",
-  teamboard: "Team Comm & Task Board",
-  global: "Platform AI Tools",
-};
+export type { TabKey };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ProTips({ activeTab }: { activeTab: TabKey }) {
+export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey; customerCode?: string }) {
   const [open, setOpen] = useState(false);
+  const [copiedSupportId, setCopiedSupportId] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<TabKey>(activeTab);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -760,75 +104,10 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
   }, [open]);
 
   // Build list of tips for selected category (plus global AI tips), or search across all categories
-  const displayedTips = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
-      const results: (Tip & { categoryLabel: string })[] = [];
-      const seenTitles = new Set<string>();
-      (Object.keys(TIPS) as TabKey[]).forEach((k) => {
-        for (const tip of TIPS[k] || []) {
-          if (seenTitles.has(tip.title)) continue;
-          if (
-            tip.title.toLowerCase().includes(q) ||
-            tip.body.toLowerCase().includes(q) ||
-            tip.highlights?.some((h) => h.toLowerCase().includes(q)) ||
-            TAB_LABELS[k]?.toLowerCase().includes(q)
-          ) {
-            seenTitles.add(tip.title);
-            results.push({ ...tip, categoryLabel: TAB_LABELS[k] || "Guide" });
-          }
-        }
-      });
-      return results;
-    }
-
-    const primary = TIPS[selectedCategory] ?? [];
-    // If a marketing-* or content-* sub-tab has only 1 tip, also append the other related marketing/content tips for convenience
-    const combined: (Tip & { categoryLabel: string })[] = primary.map((t) => ({
-      ...t,
-      categoryLabel: TAB_LABELS[selectedCategory] || "Current Section",
-    }));
-
-    if (selectedCategory.startsWith("marketing-") && combined.length <= 2) {
-      const extraKeys: TabKey[] = [
-        "marketing-blog",
-        "marketing-press",
-        "marketing-photos",
-        "marketing-banner",
-        "marketing-social",
-        "marketing-one-sheet",
-        "marketing-intel",
-      ];
-      for (const k of extraKeys) {
-        if (k === selectedCategory) continue;
-        for (const t of TIPS[k] || []) {
-          combined.push({ ...t, categoryLabel: TAB_LABELS[k] });
-        }
-      }
-    } else if (selectedCategory.startsWith("content-") && combined.length <= 2) {
-      const extraKeys: TabKey[] = [
-        "content-properties",
-        "content-homepage",
-        "content-markets",
-        "content-pages",
-      ];
-      for (const k of extraKeys) {
-        if (k === selectedCategory) continue;
-        for (const t of TIPS[k] || []) {
-          combined.push({ ...t, categoryLabel: TAB_LABELS[k] });
-        }
-      }
-    }
-
-    // Always append Global Platform AI tips at the bottom if not already on 'global'
-    if (selectedCategory !== "global") {
-      for (const t of TIPS.global) {
-        combined.push({ ...t, categoryLabel: "Platform AI Tools" });
-      }
-    }
-
-    return combined;
-  }, [selectedCategory, searchQuery]);
+  const displayedTips = useMemo(
+    () => getTipsForCategory(selectedCategory, searchQuery, "all"),
+    [selectedCategory, searchQuery]
+  );
 
   const safeIdx = Math.min(selectedIdx, Math.max(0, displayedTips.length - 1));
   const current = displayedTips[safeIdx] ?? null;
@@ -931,6 +210,20 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                     <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-sky-500/15 border border-sky-400/30 text-sky-300">
                       {TAB_LABELS[selectedCategory] || "Platform Guide"}
                     </span>
+                    {customerCode && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(customerCode).catch(() => {});
+                          setCopiedSupportId(true);
+                          setTimeout(() => setCopiedSupportId(false), 2000);
+                        }}
+                        title="Click to copy your Support ID"
+                        className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-slate-300 hover:text-white transition-all cursor-pointer"
+                      >
+                        {copiedSupportId ? "Copied!" : `Support ID: ${customerCode}`}
+                      </button>
+                    )}
                   </div>
                   <p className="text-xs sm:text-base text-slate-300 mt-0.5 sm:mt-1 hidden sm:block">
                     Step-by-step guides and best practices for your workspace
@@ -938,9 +231,9 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                 </div>
               </div>
 
-              {/* Search + Close */}
+              {/* Search + Full Tech Support Link + Close */}
               <div className="flex items-center gap-2.5 sm:gap-3">
-                <div className="relative flex-1 sm:w-72">
+                <div className="relative flex-1 sm:w-64">
                   <Search
                     size={16}
                     className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
@@ -970,6 +263,17 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                     </button>
                   )}
                 </div>
+
+                <Link
+                  href={`/help?category=${selectedCategory}`}
+                  target="_blank"
+                  className="hidden lg:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/35 text-xs font-bold text-sky-200 hover:text-white transition-all shrink-0"
+                  title="Open full Help & Tech Support Page in a new tab"
+                >
+                  <LifeBuoy size={15} className="text-sky-400" />
+                  <span>Full Support Page</span>
+                  <ExternalLink size={12} />
+                </Link>
 
                 <button
                   onClick={() => setOpen(false)}
@@ -1079,13 +383,13 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p
-                              className={`text-sm sm:text-[15px] font-bold leading-snug ${
-                                isSelected ? "text-white" : "text-slate-200"
+                              className={`text-sm sm:text-base font-bold leading-snug ${
+                                isSelected ? "text-white" : "text-slate-100"
                               }`}
                             >
                               {tip.title}
                             </p>
-                            <p className="text-xs text-slate-400 mt-1 truncate">
+                            <p className="text-xs text-slate-300 mt-1 truncate">
                               {tip.categoryLabel}
                             </p>
                           </div>
@@ -1108,7 +412,6 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                       onClick={scrollSidebarStep}
                       className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/35 text-xs font-bold text-sky-200 hover:text-white shadow-[0_4px_20px_rgba(0,0,0,0.6),0_0_15px_rgba(56,189,248,0.25)] backdrop-blur-md transition-all cursor-pointer group"
                     >
-                      {/* Animated Mouse / Scroll Wheel Graphic */}
                       <span className="w-3.5 h-5 rounded-full border-2 border-sky-400/80 flex items-start justify-center p-0.5">
                         <span className="w-1 h-1.5 rounded-full bg-sky-300 animate-bounce" />
                       </span>
@@ -1142,7 +445,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                     {/* Interactive Segmented Topic Stepper Graphic */}
                     {displayedTips.length > 1 && (
                       <div className="mb-6">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-300 mb-2">
                           <span className="uppercase tracking-wider text-sky-400">
                             Guide {safeIdx + 1} of {displayedTips.length}
                           </span>
@@ -1198,15 +501,15 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                     })()}
 
                     {/* Main Legible Body Text */}
-                    <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 sm:p-6 mb-6">
-                      <p className="text-base sm:text-lg text-slate-100 leading-relaxed">
+                    <div className="bg-white/[0.04] border border-white/15 rounded-2xl p-5 sm:p-6 mb-6">
+                      <p className="text-base sm:text-lg text-white leading-relaxed">
                         {current.body}
                       </p>
                     </div>
 
                     {/* Key Takeaways / Highlights Box */}
                     {current.highlights && current.highlights.length > 0 && (
-                      <div className="bg-sky-500/[0.06] border border-sky-400/20 rounded-2xl p-5 sm:p-6">
+                      <div className="bg-sky-500/[0.06] border border-sky-400/25 rounded-2xl p-5 sm:p-6">
                         <p className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-sky-300 mb-3.5 flex items-center gap-2">
                           <CheckCircle2 size={16} className="text-sky-400" />
                           Key Takeaways &amp; Quick Tips
@@ -1215,7 +518,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                           {current.highlights.map((item, idx) => (
                             <li
                               key={idx}
-                              className="flex items-start gap-3 text-sm sm:text-base text-slate-200 leading-relaxed"
+                              className="flex items-start gap-3 text-sm sm:text-base text-slate-100 leading-relaxed"
                             >
                               <span className="w-2 h-2 rounded-full bg-sky-400 mt-2 flex-shrink-0" />
                               <span>{item}</span>
@@ -1238,7 +541,7 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
                     Previous Topic
                   </button>
 
-                  <span className="text-sm font-bold text-slate-400">
+                  <span className="text-sm font-bold text-slate-300">
                     Topic {displayedTips.length > 0 ? safeIdx + 1 : 0} of {displayedTips.length}
                   </span>
 
@@ -1258,9 +561,20 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
 
             {/* ── Modal Footer ── */}
             <div className="px-6 sm:px-8 py-4 bg-[#070B14] border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
-              <p className="text-xs sm:text-sm text-slate-400">
-                Tip: Press <kbd className="px-2 py-0.5 rounded bg-white/10 text-slate-200 font-mono text-xs">Esc</kbd> anytime to close this window, or use <strong className="text-slate-200">Ask OpsIQ</strong> in the top bar for live portfolio questions.
-              </p>
+              <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-300">
+                <span>
+                  Press <kbd className="px-2 py-0.5 rounded bg-white/10 text-white font-mono text-xs">Esc</kbd> to close
+                </span>
+                <span className="hidden sm:inline text-slate-600">·</span>
+                <Link
+                  href={`/help?category=${selectedCategory}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1.5 font-bold text-sky-300 hover:text-white underline underline-offset-4"
+                >
+                  <span>Open Full Help &amp; Tech Support Center</span>
+                  <ExternalLink size={13} />
+                </Link>
+              </div>
               <button
                 onClick={() => setOpen(false)}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-bold hover:opacity-95 transition-opacity shadow-[0_0_20px_rgba(16,185,129,0.3)] cursor-pointer"
@@ -1274,4 +588,3 @@ export default function ProTips({ activeTab }: { activeTab: TabKey }) {
     </>
   );
 }
-

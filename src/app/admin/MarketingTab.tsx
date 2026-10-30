@@ -38,14 +38,22 @@ const STATUS_STYLES: Record<PRStatus, string> = {
   published: "bg-[rgba(96,165,250,0.1)] border-[rgba(96,165,250,0.3)] text-[#60A5FA]",
 };
 
+function getPressReleasesStorageKey(): string {
+  if (typeof document === "undefined") return "oiq_press_releases_default";
+  const matchImp = document.cookie.match(/(?:^|;\s*)oiq_impersonate_org_id=([^;]*)/);
+  const matchAct = document.cookie.match(/(?:^|;\s*)oiq_active_org_id=([^;]*)/);
+  const orgId = decodeURIComponent(matchImp?.[1] || matchAct?.[1] || "").trim() || "default";
+  return `oiq_press_releases_${orgId}`;
+}
+
 function loadQueue(): PressRelease[] {
   if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem("oiq_press_releases") || "[]"); }
+  try { return JSON.parse(localStorage.getItem(getPressReleasesStorageKey()) || "[]"); }
   catch { return []; }
 }
 
 function saveQueue(q: PressRelease[]) {
-  localStorage.setItem("oiq_press_releases", JSON.stringify(q));
+  localStorage.setItem(getPressReleasesStorageKey(), JSON.stringify(q));
 }
 
 // ─── Blog Section (Editor + AI Generator tabs) ────────────────────────────────

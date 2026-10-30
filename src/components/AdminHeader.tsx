@@ -2,26 +2,38 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
-import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle } from "lucide-react";
+import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle, LifeBuoy, Copy, Check } from "lucide-react";
+import { getCustomerCode } from "@/lib/platform";
+
+interface OrgOption {
+  id: string;
+  name: string;
+  slug: string;
+  tier: string;
+  role?: string;
+  custom_domain?: string | null;
+  customer_code?: string;
+}
 
 export default function AdminHeader() {
   const router = useRouter();
-  const [activeOrg, setActiveOrg] = useState<{
-    id: string;
-    name: string;
-    slug: string;
-    tier: string;
-    custom_domain?: string | null;
-  } | null>(null);
-  const [memberships, setMemberships] = useState<Array<{
-    id: string;
-    name: string;
-    slug: string;
-    tier: string;
-    role: string;
-  }>>([]);
+  const [activeOrg, setActiveOrg] = useState<OrgOption | null>(null);
+  const [memberships, setMemberships] = useState<OrgOption[]>([]);
   const [switchingOrg, setSwitchingOrg] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+
+  const customerCode = activeOrg ? getCustomerCode(activeOrg.id, activeOrg.customer_code) : null;
+
+  function handleCopySupportId() {
+    if (!customerCode) return;
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(customerCode).catch(() => {});
+    }
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  }
 
   useEffect(() => {
     const loadSession = () => {
@@ -90,7 +102,10 @@ export default function AdminHeader() {
             Operate<span className="oiq-grad-text">IQ</span>
           </span>
           {activeOrg && memberships.length <= 1 ? (
-            <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)]">
+            <span
+              title={customerCode ? `${activeOrg.name} — Support ID: ${customerCode}` : activeOrg.name}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)]"
+            >
               <Building2 size={11} className="text-cyan-400" />
               <span>{activeOrg.name}</span>
             </span>
@@ -103,7 +118,10 @@ export default function AdminHeader() {
         </button>
 
         {activeOrg && memberships.length > 1 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)] min-w-0">
+          <div
+            title={customerCode ? `${activeOrg.name} — Support ID: ${customerCode}` : activeOrg.name}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-sky-500/30 bg-sky-950/50 text-[11px] font-bold text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.15)] min-w-0"
+          >
             <Building2 size={11} className="text-cyan-400 flex-shrink-0" />
             <select
               value={activeOrg.id}
@@ -124,7 +142,7 @@ export default function AdminHeader() {
       </div>
 
       {/* ── Right: View Public Site, Help & Workspace Plan ── */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         {(() => {
           const siteUrl = activeOrg?.custom_domain
             ? `https://${activeOrg.custom_domain}`
@@ -152,11 +170,37 @@ export default function AdminHeader() {
         <button
           onClick={() => window.dispatchEvent(new CustomEvent("open-help-center"))}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white/[0.05] border border-white/15 text-slate-200 hover:bg-sky-500/15 hover:border-sky-400/40 hover:text-white transition-all cursor-pointer"
-          title="Open Help & Guide Center"
+          title="Open Quick ProTips Guide Modal"
         >
           <HelpCircle size={14} className="text-sky-400" />
-          <span>Help</span>
+          <span className="hidden sm:inline">Quick Guide</span>
+          <span className="sm:hidden">Guide</span>
         </button>
+
+        <Link
+          href="/help"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/15 border border-sky-400/35 text-sky-200 hover:bg-sky-500/25 hover:text-white transition-all"
+          title="Open Full Help & Tech Support Center"
+        >
+          <LifeBuoy size={14} className="text-sky-400" />
+          <span>Help Center</span>
+        </Link>
+
+        {activeOrg && customerCode && (
+          <button
+            type="button"
+            onClick={handleCopySupportId}
+            title="Click to copy your OperateIQ Support ID"
+            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-cyan-950/60 hover:bg-cyan-900/70 border border-cyan-500/35 text-cyan-300 transition-all cursor-pointer"
+          >
+            <span>{copiedId ? "Copied ID!" : `ID: ${customerCode}`}</span>
+            {copiedId ? (
+              <Check size={12} className="text-emerald-400" />
+            ) : (
+              <Copy size={12} className="text-cyan-400/80" />
+            )}
+          </button>
+        )}
 
         {activeOrg && (
           <span className="hidden md:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/[0.04] border border-white/10 text-gray-400">

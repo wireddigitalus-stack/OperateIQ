@@ -2,9 +2,10 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { Loader2, Shield, Mail, KeyRound, ArrowRight, CheckCircle2, Zap } from "lucide-react";
+import { Loader2, Shield, Mail, KeyRound, ArrowRight, CheckCircle2, Zap, HelpCircle } from "lucide-react";
 
 function AdminLoginForm() {
   const searchParams = useSearchParams();
@@ -352,11 +353,24 @@ function AdminLoginForm() {
           )}
 
           {/* Security note */}
-          <div className="mt-6 pt-4 border-t border-white/[0.08]">
+          <div className="mt-6 pt-4 border-t border-white/[0.08] space-y-3">
             <p className="text-[11px] text-gray-400 text-center leading-relaxed flex items-center justify-center gap-1.5">
               <Shield size={12} className="text-emerald-400" />
               <span>Authorized personnel only. Sessions are encrypted and logged.</span>
             </p>
+            <div className="flex items-center justify-center gap-4 text-xs font-semibold">
+              <Link href="/" className="text-gray-400 hover:text-white transition-colors">
+                ← Home
+              </Link>
+              <span className="text-gray-700">·</span>
+              <Link
+                href="/help?view=techsupport"
+                className="inline-flex items-center gap-1.5 text-sky-400 hover:text-sky-300 transition-colors"
+              >
+                <HelpCircle size={13} />
+                <span>Help &amp; Tech Support</span>
+              </Link>
+            </div>
           </div>
         </div>
 

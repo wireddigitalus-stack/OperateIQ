@@ -21,9 +21,16 @@ export default function ContactPage() {
   const formOpenedAt = useRef<number>(Date.now());
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Record the exact moment the form mounts (used for bot timing check)
+  // Record the exact moment the form mounts (used for bot timing check) and pre-fill interest from URL if provided
   useEffect(() => {
     formOpenedAt.current = Date.now();
+    if (typeof window !== "undefined") {
+      const interestParam = new URLSearchParams(window.location.search).get("interest");
+      if (interestParam && formRef.current) {
+        const selectEl = formRef.current.elements.namedItem("interest") as HTMLSelectElement | null;
+        if (selectEl) selectEl.value = interestParam;
+      }
+    }
   }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -282,6 +289,23 @@ export default function ContactPage() {
                 </div>
               </div>
             ))}
+
+            <div className="glass rounded-xl p-5 border border-sky-400/30 bg-sky-500/[0.06]">
+              <div className="flex items-center gap-2.5 mb-2">
+                <Globe size={18} className="text-sky-400" />
+                <span className="text-base font-extrabold text-white">Help &amp; Tech Support Center</span>
+              </div>
+              <p className="text-sm text-slate-200 leading-relaxed mb-4">
+                Browse 40+ step-by-step ProTips guides, interactive troubleshooting fixes, and instant AI tech support.
+              </p>
+              <Link
+                href="/help"
+                className="oiq-btn w-full !py-2.5 text-sm justify-center"
+              >
+                <span>Open Help &amp; Support Center</span>
+                <ArrowRight size={15} />
+              </Link>
+            </div>
 
             <div className="glass rounded-xl p-5 border border-[rgba(99,102,241,0.2)] bg-[rgba(99,102,241,0.04)]">
               <div className="flex items-center gap-3 mb-3">
