@@ -5,9 +5,28 @@ import {
   Printer, ChevronDown, ChevronUp, Loader2, Send, Clock,
   FileSpreadsheet, History, ArrowLeft, Building2, AlertTriangle,
   CreditCard, Banknote, Landmark, StickyNote, RefreshCw, Trash2,
+  Bell, Receipt, Mail, Phone, Settings, Check, Copy,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+
+export interface PaymentInstructions {
+  zelle: string;
+  venmo: string;
+  cashApp: string;
+  checkPayableTo: string;
+  checkAddress: string;
+  customNote: string;
+}
+
+const DEFAULT_INSTRUCTIONS: PaymentInstructions = {
+  zelle: "",
+  venmo: "",
+  cashApp: "",
+  checkPayableTo: "",
+  checkAddress: "",
+  customNote: "",
+};
 
 interface RentPayment {
   id: string;
@@ -19,7 +38,7 @@ interface RentPayment {
   rentDue: number;
   amountPaid: number;
   paid: boolean;
-  paymentType: string;      // "ACH" | "Cash" | "Check" | ""
+  paymentType: string;      // "Check" | "Zelle" | "Venmo" | "Cash" | "ACH" | "Cash App" | "Wire" | "Money Order" | "Card" | ""
   paymentDate: string | null;
   lateFee: number;
   nnFee: number;
@@ -47,6 +66,8 @@ interface MonthSummary {
 interface TenantInfo {
   id: string;
   name: string;
+  email: string;
+  phone: string;
   building: string;
   unit: string;
   monthlyRent: number;
@@ -126,7 +147,94 @@ function getMonthOptions(): { value: string; label: string }[] {
   return options;
 }
 
-const PAYMENT_TYPES = ["ACH", "Cash", "Check"] as const;
+export const PAYMENT_TYPES = [
+  "Check",
+  "Zelle",
+  "Venmo",
+  "Cash",
+  "ACH",
+  "Cash App",
+  "Wire",
+  "Money Order",
+  "Card",
+] as const;
+
+function getTodayISO(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+export function formatInstructionsText(inst: PaymentInstructions): string {
+  const parts: string[] = [];
+  if (inst.zelle.trim()) parts.push(`Zelle: ${inst.zelle.trim()}`);
+  if (inst.venmo.trim()) parts.push(`Venmo: ${inst.venmo.trim()}`);
+  if (inst.cashApp.trim()) parts.push(`Cash App: ${inst.cashApp.trim()}`);
+  if (inst.checkPayableTo.trim() || inst.checkAddress.trim()) {
+    const checkStr = [
+      inst.checkPayableTo.trim() ? `Checks payable to ${inst.checkPayableTo.trim()}` : "Check",
+      inst.checkAddress.trim() ? `(${inst.checkAddress.trim()})` : "",
+    ].filter(Boolean).join(" ");
+    parts.push(checkStr);
+  }
+  if (inst.customNote.trim()) parts.push(inst.customNote.trim());
+  return parts.length > 0 ? `Payment options — ${parts.join(" · ")}` : "";
+}
+
+export function printRentReceipt(params: {
+  tenantName: string;
+  building: string;
+  unit: string;
+  monthLabel: string;
+  amountPaid: number;
+  paymentType: string;
+  paymentDate: string | null;
+  notes?: string;
+}) {
+  const dateFormatted = params.paymentDate
+    ? new Date(params.paymentDate + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const win = window.open("", "_blank", "width=680,height=640");
+  if (!win) return;
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Rent Receipt — ${params.tenantName} (${params.monthLabel})</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; padding: 40px; max-width: 580px; margin: 0 auto; }
+    .card { border: 2px solid #e2e8f0; border-radius: 16px; padding: 32px; }
+    .badge { display: inline-block; background: #dcfce7; color: #166534; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; }
+    h1 { margin: 0 0 4px 0; font-size: 22px; font-weight: 900; }
+    .sub { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+    .amount-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .amount-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; font-weight: 700; }
+    .amount-val { font-size: 28px; font-weight: 900; color: #059669; }
+    .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    .row strong { color: #0f172a; }
+    .row span { color: #64748b; }
+    .footer { margin-top: 28px; font-size: 12px; color: #94a3b8; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">✓ Paid in Full</div>
+    <h1>Official Rent Receipt</h1>
+    <div class="sub">Billing Period: ${params.monthLabel}</div>
+    <div class="amount-box">
+      <div class="amount-label">Amount Received</div>
+      <div class="amount-val">${fmtMoney(params.amountPaid)}</div>
+    </div>
+    <div class="row"><span>Tenant</span><strong>${params.tenantName}</strong></div>
+    <div class="row"><span>Property / Unit</span><strong>${params.building}${params.unit ? " · Unit " + params.unit : ""}</strong></div>
+    <div class="row"><span>Payment Method</span><strong>${params.paymentType || "Recorded Payment"}</strong></div>
+    <div class="row"><span>Date Received</span><strong>${dateFormatted}</strong></div>
+    ${params.notes ? `<div class="row"><span>Reference / Memo</span><strong>${params.notes}</strong></div>` : ""}
+    <div class="row"><span>Remaining Balance (${params.monthLabel})</span><strong style="color:#059669">$0.00</strong></div>
+    <div class="footer">Generated via PropOpsIQ Property Operations Platform · ${new Date().toLocaleDateString()}</div>
+  </div>
+  <script>window.onload = () => { window.print(); };</script>
+</body>
+</html>`);
+  win.document.close();
+}
 
 // ─── Style constants (consistent with TenantsTab) ───────────────────────────
 const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-600 transition-all";
@@ -174,6 +282,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
   // ─── State ──────────────────────────────────────────────────────────────
   const [view, setView] = useState<"entry" | "history">("entry");
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "paid">("all");
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const [payments, setPayments] = useState<RentPayment[]>([]);
   const [tenants, setTenants] = useState<TenantInfo[]>([]);
@@ -188,9 +297,63 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
   const [migrationSql, setMigrationSql] = useState<string | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
 
+  // Payment instructions (Zelle / Venmo / Cash App / Check drop-off)
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [instructions, setInstructions] = useState<PaymentInstructions>(DEFAULT_INSTRUCTIONS);
+  const [savingInstructions, setSavingInstructions] = useState(false);
+  const [instructionsSaved, setInstructionsSaved] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3000);
+  }, []);
+
   // Track pending saves to avoid racing
   const saveTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
   const savePatches = useRef<Record<string, Record<string, unknown>>>({});
+
+  // ─── Load saved payment instructions ───────────────────────────────────
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("oiq_payment_instructions");
+      if (cached) setInstructions({ ...DEFAULT_INSTRUCTIONS, ...JSON.parse(cached) });
+    } catch { /* ignore */ }
+    fetch("/api/site-content")
+      .then(r => r.json())
+      .then(data => {
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const match = items.find((it: { section: string; key: string; value: string }) => it.section === "rent_ledger" && it.key === "payment_instructions");
+        if (match?.value) {
+          const parsed = typeof match.value === "string" ? JSON.parse(match.value) : match.value;
+          setInstructions({ ...DEFAULT_INSTRUCTIONS, ...parsed });
+          try { localStorage.setItem("oiq_payment_instructions", JSON.stringify(parsed)); } catch { /* ignore */ }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const savePaymentInstructions = async () => {
+    setSavingInstructions(true);
+    try {
+      try { localStorage.setItem("oiq_payment_instructions", JSON.stringify(instructions)); } catch { /* ignore */ }
+      await fetch("/api/site-content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "rent_ledger",
+          key: "payment_instructions",
+          value: JSON.stringify(instructions),
+        }),
+      });
+      setInstructionsSaved(true);
+      setTimeout(() => setInstructionsSaved(false), 2500);
+    } catch {
+      /* ignore */
+    } finally {
+      setSavingInstructions(false);
+    }
+  };
 
   // ─── Fetch tenants for auto-population ──────────────────────────────────
   const fetchTenants = useCallback(async () => {
@@ -201,6 +364,8 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
         setTenants(data.tenants.filter((t: Record<string, unknown>) => t.status === "active").map((t: Record<string, unknown>) => ({
           id: t.id as string,
           name: (t.name as string) || "",
+          email: (t.email as string) || "",
+          phone: (t.phone as string) || "",
           building: (t.building as string) || "",
           unit: (t.unit as string) || "",
           monthlyRent: Number(t.monthly_rent) || 0,
@@ -254,6 +419,19 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
   useEffect(() => { fetchTenants(); }, [fetchTenants]);
   useEffect(() => { if (view === "entry") fetchPayments(selectedMonth); }, [selectedMonth, view, fetchPayments]);
   useEffect(() => { if (view === "history") fetchHistory(); }, [view, fetchHistory]);
+
+  // Refresh ledger immediately when a payment is logged from a TenantCard's "$ Log Rent" button
+  useEffect(() => {
+    const onPaymentLogged = (e: Event) => {
+      const detail = (e as CustomEvent<{ month?: string }>).detail;
+      const targetMonth = detail?.month || selectedMonth;
+      if (targetMonth === selectedMonth) {
+        fetchPayments(selectedMonth);
+      }
+    };
+    window.addEventListener("oiq-rent-payment-logged", onPaymentLogged);
+    return () => window.removeEventListener("oiq-rent-payment-logged", onPaymentLogged);
+  }, [selectedMonth, fetchPayments]);
 
   // Auto-sync fees from tenant cards when payments load (fixes stale fee data)
   useEffect(() => {
@@ -365,10 +543,12 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
   const updatePayment = useCallback((id: string, field: keyof RentPayment, value: unknown) => {
     let updatedPaidVal: boolean | null = null;
     let updatedAmtPaidVal: number | null = null;
+    let updatedDateVal: string | null = null;
 
     setPayments(prev => prev.map(p => {
       if (p.id !== id) return p;
       const updated = { ...p, [field]: value };
+      const fullObligation = (updated.rentDue || 0) + (updated.nnFee || 0) + (updated.nnnFee || 0) + (updated.utilityFee || 0) + (updated.cleaningFee || 0) + (updated.camFee || 0) + (updated.lateFee || 0);
       
       // Auto-calculate amountPaid if any fee or rentDue changed
       if (["rentDue", "nnFee", "nnnFee", "utilityFee", "cleaningFee", "camFee"].includes(field as string)) {
@@ -379,14 +559,33 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
       // Auto-mark paid if amountPaid >= rentDue
       if (field === "amountPaid") {
         updated.paid = Number(value) >= p.rentDue && p.rentDue > 0;
+        if (updated.paid && !p.paymentDate) {
+          updated.paymentDate = getTodayISO();
+        }
       }
-      // If checking paid and amountPaid is 0, auto-fill to total due (rent + fees)
-      if (field === "paid" && value === true && p.amountPaid === 0) {
-        updated.amountPaid = (p.rentDue || 0) + (p.nnFee || 0) + (p.nnnFee || 0) + (p.utilityFee || 0) + (p.cleaningFee || 0) + (p.camFee || 0);
+      // 1-Click Mark Paid: auto-fill amountPaid to total due (rent + fees) and paymentDate to Today
+      if (field === "paid" && value === true) {
+        if (p.amountPaid === 0) {
+          updated.amountPaid = fullObligation;
+        }
+        if (!p.paymentDate) {
+          updated.paymentDate = getTodayISO();
+        }
+      }
+      // 1-Click Method Selection: picking Check, Zelle, Venmo, Cash, etc. on an unpaid row auto-marks Paid + fills amount & Today's date
+      if (field === "paymentType" && typeof value === "string" && value !== "" && !p.paid) {
+        updated.paid = true;
+        if (p.amountPaid === 0) {
+          updated.amountPaid = fullObligation;
+        }
+        if (!p.paymentDate) {
+          updated.paymentDate = getTodayISO();
+        }
       }
       
       updatedPaidVal = updated.paid;
       updatedAmtPaidVal = updated.amountPaid;
+      updatedDateVal = updated.paymentDate;
       return updated;
     }));
 
@@ -418,6 +617,9 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
       }
       if (updatedAmtPaidVal !== null && updatedAmtPaidVal !== p.amountPaid) {
         saveField(id, "amountPaid", updatedAmtPaidVal);
+      }
+      if (updatedDateVal !== null && updatedDateVal !== p.paymentDate) {
+        saveField(id, "paymentDate", updatedDateVal);
       }
     }
   }, [payments, saveField]);
@@ -612,6 +814,72 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
 
   const monthOptions = getMonthOptions();
 
+  const filteredPayments = useMemo(() => {
+    if (statusFilter === "unpaid") return payments.filter(p => !p.paid);
+    if (statusFilter === "paid") return payments.filter(p => p.paid);
+    return payments;
+  }, [payments, statusFilter]);
+
+  const buildReminderMessage = useCallback((p: RentPayment) => {
+    const totalObligation = (p.rentDue || 0) + (p.nnFee || 0) + (p.nnnFee || 0) + (p.utilityFee || 0) + (p.cleaningFee || 0) + (p.camFee || 0) + (p.lateFee || 0);
+    const instStr = formatInstructionsText(instructions);
+    const unitLabel = p.building ? `${p.building}${p.unit ? ` (Unit ${p.unit})` : ""}` : "your unit";
+    return `Hi ${p.tenantName}, friendly reminder that ${fmtMonthFull(selectedMonth)} rent for ${unitLabel} (${fmtMoney(totalObligation)}) is due.${instStr ? ` ${instStr}.` : ""} Thank you!`;
+  }, [instructions, selectedMonth]);
+
+  const buildReceiptMessage = useCallback((p: RentPayment) => {
+    const unitLabel = p.building ? `${p.building}${p.unit ? ` (Unit ${p.unit})` : ""}` : "your unit";
+    const dateStr = p.paymentDate
+      ? new Date(p.paymentDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      : new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return `RENT RECEIPT (${fmtMonthFull(selectedMonth)}): Received ${fmtMoney(p.amountPaid)} via ${p.paymentType || "Payment"} on ${dateStr} for ${unitLabel}.${p.notes ? ` Ref: ${p.notes}.` : ""} Balance due: $0.00. Thank you!`;
+  }, [selectedMonth]);
+
+  const handleRemindTenant = useCallback((p: RentPayment) => {
+    const t = tenants.find(tx => tx.id === p.tenantId);
+    const msg = buildReminderMessage(p);
+    if (t?.phone) {
+      window.location.href = `sms:${t.phone}?body=${encodeURIComponent(msg)}`;
+      return;
+    }
+    if (t?.email) {
+      const subj = `Rent Reminder — ${fmtMonthFull(selectedMonth)} (${p.building}${p.unit ? ` Unit ${p.unit}` : ""})`;
+      window.location.href = `mailto:${t.email}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(msg)}`;
+      return;
+    }
+    navigator.clipboard.writeText(msg).catch(() => {});
+    showToast(`Copied rent reminder for ${p.tenantName}!`);
+  }, [tenants, buildReminderMessage, selectedMonth, showToast]);
+
+  const handleReceiptAction = useCallback((p: RentPayment, mode: "sms" | "email" | "print") => {
+    if (mode === "print") {
+      printRentReceipt({
+        tenantName: p.tenantName,
+        building: p.building,
+        unit: p.unit,
+        monthLabel: fmtMonthFull(selectedMonth),
+        amountPaid: p.amountPaid,
+        paymentType: p.paymentType,
+        paymentDate: p.paymentDate,
+        notes: p.notes,
+      });
+      return;
+    }
+    const t = tenants.find(tx => tx.id === p.tenantId);
+    const msg = buildReceiptMessage(p);
+    if (mode === "sms" && t?.phone) {
+      window.location.href = `sms:${t.phone}?body=${encodeURIComponent(msg)}`;
+      return;
+    }
+    if (mode === "email" && t?.email) {
+      const subj = `Paid Rent Receipt — ${fmtMonthFull(selectedMonth)} (${p.building}${p.unit ? ` Unit ${p.unit}` : ""})`;
+      window.location.href = `mailto:${t.email}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(msg)}`;
+      return;
+    }
+    navigator.clipboard.writeText(msg).catch(() => {});
+    showToast(`Copied rent receipt for ${p.tenantName}!`);
+  }, [tenants, buildReceiptMessage, selectedMonth, showToast]);
+
   // ═══════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════
@@ -686,6 +954,18 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
             {payments.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 <button
+                  type="button"
+                  onClick={() => setShowInstructions(prev => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    showInstructions
+                      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
+                      : "text-emerald-400 hover:text-white border-emerald-500/20 hover:border-emerald-500/40 bg-emerald-500/[0.05]"
+                  }`}
+                >
+                  <Settings size={12} />
+                  <span>Payment Instructions (Zelle / Venmo / Check)</span>
+                </button>
+                <button
                   onClick={syncAllFees}
                   disabled={syncingAll || isMonthSubmitted}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-[#60A5FA] hover:text-white border border-[rgba(96,165,250,0.1)] hover:border-[rgba(96,165,250,0.3)] transition-all disabled:opacity-30"
@@ -714,6 +994,88 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
               </div>
             )}
           </div>
+
+          {/* Collapsible Payment Instructions Setup (Zelle / Venmo / Cash App / Check) */}
+          {showInstructions && (
+            <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.07] via-sky-500/[0.04] to-transparent p-4 sm:p-5 space-y-3.5 animate-in fade-in">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-black text-white flex items-center gap-2">
+                    <span>💳 Your Rent Payment Instructions (Zero-Fee Direct P2P &amp; Check)</span>
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Save your Zelle, Venmo, Cash App, or Check drop-off details once — they are automatically included whenever you send a 1-tap Rent Reminder to an unpaid tenant.
+                  </p>
+                </div>
+                <button onClick={() => setShowInstructions(false)} className="text-gray-500 hover:text-white p-1">
+                  <XCircle size={16} />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Zelle (Email or Phone)</label>
+                  <input
+                    value={instructions.zelle}
+                    onChange={e => setInstructions(prev => ({ ...prev, zelle: e.target.value }))}
+                    placeholder="e.g. rent@yourcompany.com"
+                    className={FIELD_SM}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Venmo Handle</label>
+                  <input
+                    value={instructions.venmo}
+                    onChange={e => setInstructions(prev => ({ ...prev, venmo: e.target.value }))}
+                    placeholder="e.g. @YourPropertyCo"
+                    className={FIELD_SM}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Cash App / PayPal</label>
+                  <input
+                    value={instructions.cashApp}
+                    onChange={e => setInstructions(prev => ({ ...prev, cashApp: e.target.value }))}
+                    placeholder="e.g. $YourCashTag"
+                    className={FIELD_SM}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Checks Payable To</label>
+                  <input
+                    value={instructions.checkPayableTo}
+                    onChange={e => setInstructions(prev => ({ ...prev, checkPayableTo: e.target.value }))}
+                    placeholder="e.g. Acme Properties LLC"
+                    className={FIELD_SM}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Check Drop-Off / Mailing Address</label>
+                  <input
+                    value={instructions.checkAddress}
+                    onChange={e => setInstructions(prev => ({ ...prev, checkAddress: e.target.value }))}
+                    placeholder="e.g. Drop box at Suite 100 or PO Box 412"
+                    className={FIELD_SM}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <p className="text-[11px] text-gray-400 truncate">
+                  {formatInstructionsText(instructions) || "Fill in any methods you accept above."}
+                </p>
+                <button
+                  type="button"
+                  onClick={savePaymentInstructions}
+                  disabled={savingInstructions}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black transition-all cursor-pointer flex-shrink-0"
+                >
+                  {savingInstructions ? <Loader2 size={13} className="animate-spin" /> : instructionsSaved ? <Check size={13} /> : <DollarSign size={13} />}
+                  <span>{instructionsSaved ? "Saved!" : "Save Instructions"}</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Summary Cards */}
           {payments.length > 0 && (
@@ -804,6 +1166,39 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
             </div>
           )}
 
+          {/* Quick Filter Pills + 1-Click Tip */}
+          {payments.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {([
+                  { key: "all" as const, label: `All (${payments.length})` },
+                  { key: "unpaid" as const, label: `Unpaid (${payments.length - totals.paidCount})` },
+                  { key: "paid" as const, label: `Paid (${totals.paidCount})` },
+                ]).map(f => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setStatusFilter(f.key)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      statusFilter === f.key
+                        ? f.key === "unpaid"
+                          ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                          : f.key === "paid"
+                          ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                          : "bg-white/[0.08] border-white/25 text-white"
+                        : "border-white/[0.07] text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-500">
+                ⚡ <strong className="text-gray-300">1-Click Tip:</strong> Selecting a payment method (Zelle, Venmo, Check, Cash) automatically marks Paid, fills the Total Due, and sets Today&apos;s Date.
+              </p>
+            </div>
+          )}
+
           {/* ─── Payment Table ───────────────────────────────────────────── */}
           {payments.length > 0 && (
             <div className="bg-[rgba(0,0,0,0.3)] border border-[rgba(255,255,255,0.06)] rounded-2xl overflow-hidden">
@@ -813,13 +1208,13 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                   <thead>
                     <tr className="border-b border-[rgba(255,255,255,0.06)] bg-[rgba(0,0,0,0.2)]">
                       <th className={TH_CLASS + " sticky left-0 z-20 bg-[#0A0F1A] border-r border-[rgba(255,255,255,0.06)] shadow-[2px_0_10px_rgba(0,0,0,0.5)] min-w-[140px]"}>Tenant</th>
-                      {["Unit", "Total Due", "NN", "NNN", "Util", "Clean", "CAM", "Pd", "Amt", "Type", "Late", "Date", "Notes"].map(h => (
+                      {["Unit", "Total Due", "NN", "NNN", "Util", "Clean", "CAM", "Pd", "Amt", "Type", "Late", "Date", "Notes", "Remind / Receipt"].map(h => (
                         <th key={h} className={TH_CLASS}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {payments.map((p, i) => (
+                    {filteredPayments.map((p, i) => (
                       <tr
                         key={p.id}
                         className={`border-b border-[rgba(255,255,255,0.04)] transition-colors duration-150 ${
@@ -875,6 +1270,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                           <button
                             onClick={() => updatePayment(p.id, "paid", !p.paid)}
                             disabled={isMonthSubmitted}
+                            title={p.paid ? "Mark unpaid" : "1-Click Mark Paid (auto-fills total & today's date)"}
                             className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all duration-200 ${
                               p.paid
                                 ? "bg-[#10B981] border-[#10B981] text-white"
@@ -890,9 +1286,9 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                         </td>
                         {/* Payment Type */}
                         <td className={TD_CLASS}>
-                          <select value={p.paymentType} onChange={e => updatePayment(p.id, "paymentType", e.target.value)} disabled={isMonthSubmitted} className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-lg px-1 py-1 text-[10px] text-white outline-none w-14">
-                            <option value="">-</option>
-                            {["ACH", "Cash", "Check"].map(t => <option key={t} value={t} className="bg-[#0A0F1A]">{t}</option>)}
+                          <select value={p.paymentType} onChange={e => updatePayment(p.id, "paymentType", e.target.value)} disabled={isMonthSubmitted} className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-lg px-1.5 py-1 text-[10px] text-white outline-none w-24">
+                            <option value="">Method…</option>
+                            {PAYMENT_TYPES.map(t => <option key={t} value={t} className="bg-[#0A0F1A]">{t}</option>)}
                           </select>
                         </td>
                         {/* Late Fee */}
@@ -915,7 +1311,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                                 onChange={e => updatePayment(p.id, "notes", e.target.value)} 
                                 disabled={isMonthSubmitted} 
                                 className="bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] rounded-lg px-2 py-1 text-xs text-white outline-none w-48 shadow-2xl" 
-                                placeholder="Note..." 
+                                placeholder="Check #, Venmo @..." 
                               />
                             ) : (
                               <button
@@ -931,6 +1327,40 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                               </button>
                             )}
                           </div>
+                        </td>
+                        {/* 1-Tap Remind / Receipt */}
+                        <td className={TD_CLASS + " whitespace-nowrap"}>
+                          {p.paid ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleReceiptAction(p, "print")}
+                                title="Print or Save Official Rent Receipt PDF"
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 text-[10px] font-bold transition-all cursor-pointer"
+                              >
+                                <Receipt size={11} />
+                                <span>Receipt</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleReceiptAction(p, "sms")}
+                                title="Text/Email Paid Receipt to Tenant"
+                                className="p-1 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                              >
+                                <Send size={10} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRemindTenant(p)}
+                              title="Send 1-Tap Rent Reminder (with your Zelle/Venmo/Check instructions)"
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-[10px] font-bold transition-all cursor-pointer"
+                            >
+                              <Bell size={11} />
+                              <span>Remind</span>
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -958,6 +1388,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                       </td>
                       <td className={TD_CLASS}>-</td>
                       <td className={TD_CLASS}>-</td>
+                      <td className={TD_CLASS}>-</td>
                     </tr>
                   </tbody>
                 </table>
@@ -965,13 +1396,15 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
 
               {/* Mobile Cards */}
               <div className="lg:hidden divide-y divide-[rgba(255,255,255,0.04)]">
-                {payments.map(p => (
+                {filteredPayments.map(p => (
                   <MobilePaymentCard
                     key={p.id}
                     payment={p}
                     isSubmitted={isMonthSubmitted}
                     onUpdate={updatePayment}
                     onSync={syncFees}
+                    onRemind={() => handleRemindTenant(p)}
+                    onReceipt={(mode) => handleReceiptAction(p, mode)}
                   />
                 ))}
                 {/* Mobile Totals */}
@@ -985,6 +1418,14 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Toast for copied reminder/receipt */}
+          {toastMsg && (
+            <div className="fixed bottom-6 right-6 flex items-center gap-2 px-5 py-3 rounded-xl bg-sky-500 text-black font-black text-xs sm:text-sm shadow-xl animate-in fade-in slide-in-from-bottom-2 z-50">
+              <Check size={15} />
+              <span>{toastMsg}</span>
             </div>
           )}
 
@@ -1176,11 +1617,13 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
 
 // ─── Mobile Payment Card ────────────────────────────────────────────────────
 
-function MobilePaymentCard({ payment: p, isSubmitted, onUpdate, onSync }: {
+function MobilePaymentCard({ payment: p, isSubmitted, onUpdate, onSync, onRemind, onReceipt }: {
   payment: RentPayment;
   isSubmitted: boolean;
   onUpdate: (id: string, field: keyof RentPayment, value: unknown) => void;
   onSync: (id: string, tenantId: string) => void;
+  onRemind: () => void;
+  onReceipt: (mode: "sms" | "email" | "print") => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [feesOpen, setFeesOpen] = useState(false);
@@ -1316,7 +1759,36 @@ function MobilePaymentCard({ payment: p, isSubmitted, onUpdate, onSync }: {
           {/* Notes */}
           <div>
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Notes</label>
-            <input type="text" value={p.notes} onChange={e => onUpdate(p.id, "notes", e.target.value)} disabled={isSubmitted} placeholder="Check #, memo…" className={FIELD_SM} />
+            <input type="text" value={p.notes} onChange={e => onUpdate(p.id, "notes", e.target.value)} disabled={isSubmitted} placeholder="Check #, Venmo @, memo…" className={FIELD_SM} />
+          </div>
+          {/* 1-Tap Remind / Receipt Actions */}
+          <div className="pt-2 border-t border-white/[0.06] flex flex-wrap gap-2">
+            {p.paid ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onReceipt("print")}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 text-xs font-bold"
+                >
+                  <Receipt size={13} /> Print / PDF Receipt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onReceipt("sms")}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/[0.05] border border-white/15 text-gray-200 text-xs font-bold"
+                >
+                  <Send size={13} /> Text / Email Receipt
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={onRemind}
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-300 text-xs font-bold"
+              >
+                <Bell size={13} /> Send 1-Tap Rent Reminder (Zelle / Venmo / Check)
+              </button>
+            )}
           </div>
         </div>
       )}

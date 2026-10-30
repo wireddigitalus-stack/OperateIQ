@@ -5,11 +5,12 @@ import {
   AlertTriangle, ChevronDown, ChevronUp, Edit2, Trash2, Save, X, Search,
   Clock, RefreshCw, CheckCircle2, User, Home, BadgePercent, Loader2,
   MessageSquare, FileSpreadsheet, Camera, FileText, Paperclip,
-  Bell, RotateCcw, Sparkles,
+  Bell, RotateCcw, Sparkles, Receipt, Send,
 } from "lucide-react";
 import TenantImporter from "./TenantImporter";
 import IntakeStagingModal from "./IntakeStagingModal";
 import PrintButton from "./PrintButton";
+import { PAYMENT_TYPES, printRentReceipt } from "./RentLedgerTab";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { compressImageFile } from "@/lib/image-compression";
@@ -498,6 +499,120 @@ function TenantCard({
   const [renewAlertDays, setRenewAlertDays] = useState<number | null>(90);
   const [renewing, setRenewing] = useState(false);
 
+  // Quick "$ Log Rent" modal state
+  const currentMonthISO = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const totalMonthlyObligation =
+    (localMonthlyRent || 0) +
+    (tenant.utilitiesFee || 0) +
+    (tenant.nnnFee || 0) +
+    (tenant.cleaningFee || 0) +
+    (tenant.camFee || 0) +
+    (tenant.nnFee || 0);
+
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [payMonth, setPayMonth] = useState(currentMonthISO);
+  const [payAmount, setPayAmount] = useState(String(totalMonthlyObligation));
+  const [payMethod, setPayMethod] = useState<string>("Check");
+  const [payDate, setPayDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [payLateFee, setPayLateFee] = useState("0");
+  const [payMemo, setPayMemo] = useState("");
+  const [loggingPay, setLoggingPay] = useState(false);
+  const [payLoggedSuccess, setPayLoggedSuccess] = useState(false);
+
+  const openPayModal = () => {
+    const oblig =
+      (localMonthlyRent || 0) +
+      (tenant.utilitiesFee || 0) +
+      (tenant.nnnFee || 0) +
+      (tenant.cleaningFee || 0) +
+      (tenant.camFee || 0) +
+      (tenant.nnFee || 0);
+    setPayMonth(currentMonthISO());
+    setPayAmount(String(oblig));
+    setPayDate(new Date().toISOString().split("T")[0]);
+    setPayLateFee("0");
+    setPayMemo("");
+    setPayLoggedSuccess(false);
+    setShowPayModal(true);
+  };
+
+  const handleConfirmLogPayment = async () => {
+    setLoggingPay(true);
+    try {
+      // 1. Ensure draft row exists for this tenant + month in rent_payments
+      await fetch("/api/rent-payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          month: payMonth,
+          tenants: [
+            {
+              id: tenant.id,
+              name: tenant.name,
+              building: tenant.building || "",
+              unit: tenant.unit || "",
+              monthlyRent: localMonthlyRent || 0,
+              nnFee: tenant.nnFee || 0,
+              nnnFee: tenant.nnnFee || 0,
+              utilityFee: tenant.utilitiesFee || 0,
+              cleaningFee: tenant.cleaningFee || 0,
+              camFee: tenant.camFee || 0,
+            },
+          ],
+          actorEmail: currentUserEmail,
+          actorName: currentUserName,
+        }),
+      });
+
+      // 2. Patch the deterministic row ID rp_${tenant.id}_${payMonth} as PAID
+      const rowId = `rp_${tenant.id}_${payMonth}`;
+      const amtNum = Number(payAmount) || 0;
+      const lateNum = Number(payLateFee) || 0;
+      const patchRes = await fetch(`/api/rent-payments?id=${encodeURIComponent(rowId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paid: true,
+          amountPaid: amtNum,
+          paymentType: payMethod,
+          paymentDate: payDate || new Date().toISOString().split("T")[0],
+          lateFee: lateNum,
+          notes: payMemo.trim(),
+        }),
+      });
+
+      if (patchRes.ok) {
+        // 3. Log activity note on tenant card
+        const timestamp = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+        const author = currentUserName || "Staff";
+        const payNote = `[${timestamp} — ${author}] 💰 Rent Paid: ${fmtMoney(amtNum)} via ${payMethod} (${payMonth})${payMemo.trim() ? ` · ${payMemo.trim()}` : ""}`;
+        const updatedNotes = localNotes ? `${localNotes}\n${payNote}` : payNote;
+        setLocalNotes(updatedNotes);
+        fetch(`/api/tenants?id=${tenant.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            notes: updatedNotes,
+            actorName: author,
+            actorEmail: currentUserEmail || "",
+            name: tenant.name,
+          }),
+        }).catch(() => {});
+
+        // 4. Notify RentLedgerTab so it refreshes immediately
+        window.dispatchEvent(new CustomEvent("oiq-rent-payment-logged", { detail: { month: payMonth } }));
+        setPayLoggedSuccess(true);
+      }
+    } catch (err) {
+      console.error("Failed to log rent payment:", err);
+    } finally {
+      setLoggingPay(false);
+    }
+  };
+
   // Synchronize when tenant prop changes
   useEffect(() => {
     setLocalAlertDays(tenant.leaseAlertDays !== undefined && tenant.leaseAlertDays !== null ? Number(tenant.leaseAlertDays) : 90);
@@ -894,6 +1009,17 @@ function TenantCard({
               Off
             </button>
           </div>
+
+          {/* Quick Log Rent Button */}
+          <button
+            type="button"
+            onClick={openPayModal}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/25 hover:text-white shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-all cursor-pointer"
+            title="Log rent payment (Check, Zelle, Venmo, Cash, ACH) & issue receipt"
+          >
+            <DollarSign size={12} className="text-emerald-400" />
+            <span>Log Rent</span>
+          </button>
 
           {/* Quick Renew Lease Button */}
           <button
@@ -1336,6 +1462,232 @@ function TenantCard({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Log Rent Payment Modal */}
+      {showPayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-[#0B1120] border border-emerald-500/30 rounded-2xl p-5 shadow-[0_24px_80px_rgba(0,0,0,0.85),0_0_35px_rgba(16,185,129,0.18)] relative">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-[0_0_14px_rgba(16,185,129,0.4)] text-black">
+                  <DollarSign size={18} />
+                </div>
+                <div>
+                  <h4 className="text-white font-black text-sm">Log Rent Payment</h4>
+                  <p className="text-[11px] text-gray-400">{tenant.name}{tenant.building ? ` · ${tenant.building}` : ""}{tenant.unit ? ` (${tenant.unit})` : ""}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPayModal(false)}
+                className="p-1 rounded-lg text-gray-500 hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {!payLoggedSuccess ? (
+              <div className="space-y-3.5">
+                {/* Summary of Monthly Rent + Fees */}
+                <div className="p-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-gray-400 text-[10px] uppercase font-bold block mb-0.5">Base Rent + Fees</span>
+                    <span className="text-gray-300 font-semibold">
+                      {fmtMoney(localMonthlyRent)} base
+                      {totalMonthlyObligation > localMonthlyRent ? ` + ${fmtMoney(totalMonthlyObligation - localMonthlyRent)} fees` : ""}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-gray-400 text-[10px] uppercase font-bold block mb-0.5">Total Monthly Due</span>
+                    <span className="font-black text-base text-[#4ADE80]">{fmtMoney(totalMonthlyObligation)}</span>
+                  </div>
+                </div>
+
+                {/* Billing Month & Payment Date */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                      Billing Month
+                    </label>
+                    <input
+                      type="month"
+                      value={payMonth}
+                      onChange={e => setPayMonth(e.target.value)}
+                      className={FIELD_SM}
+                      style={{ colorScheme: "dark" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                      Date Received
+                    </label>
+                    <input
+                      type="date"
+                      value={payDate}
+                      onChange={e => setPayDate(e.target.value)}
+                      className={FIELD_SM}
+                      style={{ colorScheme: "dark" }}
+                    />
+                  </div>
+                </div>
+
+                {/* 1-Tap Payment Method Pills */}
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                    Payment Method (Check, Zelle, Venmo, Cash, ACH)
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {PAYMENT_TYPES.map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setPayMethod(m)}
+                        className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          payMethod === m
+                            ? "bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+                            : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Amount Paid & Optional Late Fee */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                      Amount Received ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={payAmount}
+                      onChange={e => setPayAmount(e.target.value)}
+                      className={FIELD}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                      Late Fee ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={payLateFee}
+                      onChange={e => setPayLateFee(e.target.value)}
+                      className={FIELD}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                {/* Reference / Check # / Venmo Note */}
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                    Check # / Venmo Handle / Reference Note
+                  </label>
+                  <input
+                    type="text"
+                    value={payMemo}
+                    onChange={e => setPayMemo(e.target.value)}
+                    placeholder="e.g. Check #1042 or Venmo @john-smith"
+                    className={FIELD_SM}
+                  />
+                </div>
+
+                {/* Save Button */}
+                <div className="flex gap-2 pt-2 border-t border-white/[0.08]">
+                  <button
+                    type="button"
+                    disabled={loggingPay || !payMonth}
+                    onClick={handleConfirmLogPayment}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-emerald-600 text-black font-black text-xs hover:opacity-95 transition-opacity flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-[0_0_18px_rgba(16,185,129,0.4)] cursor-pointer"
+                  >
+                    {loggingPay ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                    <span>Mark Paid in Rent Ledger</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPayModal(false)}
+                    className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-gray-400 text-xs hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 py-2 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto text-emerald-400">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <h5 className="text-base font-black text-white">Payment Logged in Rent Ledger!</h5>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Recorded <strong className="text-emerald-300">{fmtMoney(Number(payAmount) || 0)}</strong> via <strong className="text-white">{payMethod}</strong> for <strong className="text-white">{payMonth}</strong>.
+                  </p>
+                </div>
+
+                {/* 1-Tap Receipt Actions */}
+                <div className="space-y-2 pt-2">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Send Official Receipt to Tenant (Optional)</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        printRentReceipt({
+                          tenantName: tenant.name,
+                          building: tenant.building,
+                          unit: tenant.unit,
+                          monthLabel: payMonth,
+                          amountPaid: Number(payAmount) || 0,
+                          paymentType: payMethod,
+                          paymentDate: payDate,
+                          notes: payMemo,
+                        })
+                      }
+                      className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/25 text-xs font-bold cursor-pointer"
+                    >
+                      <Receipt size={13} /> Print / PDF
+                    </button>
+                    {tenant.phone && (
+                      <a
+                        href={`sms:${tenant.phone}?body=${encodeURIComponent(
+                          `RENT RECEIPT (${payMonth}): Received ${fmtMoney(Number(payAmount) || 0)} via ${payMethod} on ${payDate} for ${tenant.building || "your unit"}${tenant.unit ? ` (Unit ${tenant.unit})` : ""}. Balance due: $0.00. Thank you!`
+                        )}`}
+                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.06] border border-white/15 text-white hover:bg-white/10 text-xs font-bold"
+                      >
+                        <Phone size={13} className="text-emerald-400" /> Text Receipt
+                      </a>
+                    )}
+                    {tenant.email && (
+                      <a
+                        href={`mailto:${tenant.email}?subject=${encodeURIComponent(
+                          `Paid Rent Receipt — ${payMonth} (${tenant.building || ""}${tenant.unit ? ` Unit ${tenant.unit}` : ""})`
+                        )}&body=${encodeURIComponent(
+                          `RENT RECEIPT (${payMonth})\n\nReceived: ${fmtMoney(Number(payAmount) || 0)}\nMethod: ${payMethod}\nDate: ${payDate}\nProperty: ${tenant.building || ""}${tenant.unit ? ` Unit ${tenant.unit}` : ""}${payMemo ? `\nReference: ${payMemo}` : ""}\nRemaining Balance: $0.00\n\nThank you!`
+                        )}`}
+                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.06] border border-white/15 text-white hover:bg-white/10 text-xs font-bold"
+                      >
+                        <Mail size={13} className="text-sky-400" /> Email Receipt
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPayModal(false)}
+                  className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
