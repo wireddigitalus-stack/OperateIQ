@@ -2623,6 +2623,11 @@ export default function AdminPage() {
             day: "numeric",
             year: "numeric",
           });
+          const isTrialExpired =
+            !isPaidActive &&
+            (msRemaining <= 0 ||
+              activeOrg.subscription_status === "past_due" ||
+              activeOrg.subscription_status === "canceled");
           const isUrgent = daysLeft <= 3;
           const isWarning = daysLeft > 3 && daysLeft <= 7;
 
@@ -2640,6 +2645,15 @@ export default function AdminPage() {
                         <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 flex items-center gap-1">
                           <CheckCircle2 size={12} /> Active Subscription
                         </span>
+                      ) : isTrialExpired ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowBillingModal(true)}
+                          className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/25 hover:bg-rose-500/35 text-rose-200 border border-rose-400/60 flex items-center gap-1.5 animate-pulse shadow-[0_0_14px_rgba(244,63,94,0.45)] cursor-pointer transition-all"
+                        >
+                          <AlertTriangle size={12} className="text-rose-400" />
+                          <span>14-Day Free Evaluation Expired · Sign Up for a Plan →</span>
+                        </button>
                       ) : (
                         <span className="text-xs text-slate-400 font-medium">14-Day Free Evaluation Period</span>
                       )}
@@ -2736,6 +2750,68 @@ export default function AdminPage() {
                     >
                       <span>Manage Plan &amp; Billing</span>
                       <ArrowRight size={15} className="text-emerald-300" />
+                    </button>
+                  </div>
+                ) : isTrialExpired ? (
+                  <div className="relative xl:w-80 shrink-0 rounded-2xl p-5 border-2 border-rose-500/80 bg-gradient-to-br from-rose-950/85 via-red-950/75 to-rose-900/65 backdrop-blur-md flex flex-col justify-between gap-4 shadow-[0_0_38px_rgba(244,63,94,0.45)] overflow-hidden">
+                    {/* Animated pulsing crimson border/glow ring */}
+                    <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-rose-400/60 animate-pulse" />
+                    <div className="pointer-events-none absolute -top-12 -right-12 w-32 h-32 rounded-full bg-rose-500/25 blur-2xl animate-pulse" />
+
+                    <div className="relative flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500" />
+                        </span>
+                        <span className="text-[11px] font-black uppercase tracking-widest text-rose-200">
+                          Evaluation Expired
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border bg-rose-500/30 text-rose-100 border-rose-400/60 animate-pulse">
+                        Action Required
+                      </span>
+                    </div>
+
+                    {/* Expired Trial Prompt */}
+                    <div className="relative space-y-1.5">
+                      <div className="flex items-center gap-2 text-lg sm:text-xl font-black text-white tracking-tight">
+                        <AlertTriangle size={20} className="text-rose-400 shrink-0 animate-bounce" />
+                        <span>Sign Up for a Plan</span>
+                      </div>
+                      <p className="text-xs text-rose-100/90 leading-relaxed">
+                        Your 14-day free evaluation period has ended. Choose a plan now to keep your properties, tenant portal, and team tools active without interruption.
+                      </p>
+                    </div>
+
+                    {/* 14-Segment Expired Runway */}
+                    <div className="relative space-y-1.5">
+                      <div className="grid grid-cols-14 gap-1" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}>
+                        {Array.from({ length: totalTrialDays }).map((_, idx) => (
+                          <div
+                            key={idx}
+                            className="h-2 rounded-sm bg-rose-500/60 shadow-[0_0_8px_rgba(244,63,94,0.65)] animate-pulse"
+                            style={{ animationDelay: `${idx * 80}ms` }}
+                            title={`Day ${idx + 1} of 14 (Completed)`}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-rose-200 font-semibold">
+                        <span>0 days remaining</span>
+                        <span className="text-rose-300/80">Ended {trialEndDateLabel}</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowBillingModal(true)}
+                      className="relative w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 border border-rose-300/70 text-xs sm:text-sm font-black text-white flex items-center justify-between transition-all shadow-[0_0_24px_rgba(244,63,94,0.6)] hover:shadow-[0_0_32px_rgba(244,63,94,0.85)] hover:scale-[1.02] cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Sparkles size={15} className="text-amber-200 animate-pulse" />
+                        <span>Choose a Plan &amp; Subscribe</span>
+                      </span>
+                      <ArrowRight size={16} className="text-white animate-bounce" />
                     </button>
                   </div>
                 ) : (
