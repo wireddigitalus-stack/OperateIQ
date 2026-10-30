@@ -116,12 +116,12 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
     <div className="space-y-6">
       {/* Top Hero Action Bar: Create & Assign Team Tasks */}
       <div className="rounded-2xl border border-[#4ADE80]/30 bg-gradient-to-br from-[#4ADE80]/[0.09] via-sky-500/[0.05] to-transparent p-4 sm:p-5 relative overflow-hidden shadow-[0_0_28px_rgba(74,222,128,0.12)]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-start gap-3.5 max-w-2xl">
+        <div className="flex flex-col gap-4 relative z-10">
+          <div className="flex items-start gap-3.5 w-full">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#4ADE80] to-emerald-600 flex items-center justify-center text-black flex-shrink-0 shadow-[0_0_18px_rgba(74,222,128,0.35)]">
               <CheckCircle2 size={20} />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
                   Create &amp; Assign Team Tasks
@@ -130,13 +130,13 @@ export default function TasksTab({ currentUserName, currentUserEmail }: { curren
                   Activity Board
                 </span>
               </div>
-              <p className="text-xs text-gray-300 mt-1">
+              <p className="text-xs text-gray-300 mt-1 max-w-3xl">
                 Assign deadlines, priorities, and follow-ups across your team — or create private reminders only you can see.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-white/10">
             <button
               onClick={() => setShowAdd(true)}
               className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs sm:text-sm font-black hover:opacity-95 shadow-[0_0_16px_rgba(59,130,246,0.4)] transition-all cursor-pointer"

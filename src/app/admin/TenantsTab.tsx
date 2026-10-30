@@ -1618,12 +1618,12 @@ export default function TenantsTab({
       {/* ═══ TOP HERO CARD: Add a New Tenant or Import Tenants ═══ */}
       <div className="mb-6 rounded-2xl border border-sky-400/30 bg-gradient-to-br from-sky-500/[0.09] via-blue-600/[0.06] to-indigo-600/[0.04] p-4 sm:p-6 relative overflow-hidden shadow-[0_0_32px_rgba(56,189,248,0.12)]">
         <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-sky-400 opacity-[0.08] blur-3xl pointer-events-none" />
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-start gap-3.5 max-w-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_20px_rgba(56,189,248,0.35)]">
-              <Building2 size={22} />
+        <div className="flex flex-col gap-4 relative z-10">
+          <div className="flex items-start gap-3.5 w-full">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_20px_rgba(56,189,248,0.35)]">
+              <Building2 size={20} />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-white text-base sm:text-lg font-black tracking-tight">
                   Add a New Tenant or Import Tenants
@@ -1638,17 +1638,17 @@ export default function TenantsTab({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+          <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => { setEditingTenant(null); setShowForm(true); }}
-              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-95 text-white text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(59,130,246,0.4)] transition-all cursor-pointer"
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-95 text-white text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(59,130,246,0.4)] transition-all cursor-pointer"
             >
               <Plus size={16} />
               <span>Add Single Tenant</span>
             </button>
             <button
               onClick={() => setShowIntakeStaging(true)}
-              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-sky-500/25 via-blue-500/25 to-indigo-500/25 hover:from-sky-500/35 hover:to-indigo-500/35 border border-sky-400/45 text-sky-200 text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(56,189,248,0.22)] hover:shadow-[0_0_24px_rgba(56,189,248,0.38)] transition-all cursor-pointer"
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500/25 via-blue-500/25 to-indigo-500/25 hover:from-sky-500/35 hover:to-indigo-500/35 border border-sky-400/45 text-sky-200 text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(56,189,248,0.22)] hover:shadow-[0_0_24px_rgba(56,189,248,0.38)] transition-all cursor-pointer"
               title="Fast intake from Excel, photos of legal pads, or lease documents"
             >
               <Sparkles size={15} className="text-sky-300 animate-pulse" />
@@ -1656,7 +1656,7 @@ export default function TenantsTab({
             </button>
             <button
               onClick={() => setShowImporter(true)}
-              className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-gray-200 hover:text-white text-xs sm:text-sm font-bold transition-all cursor-pointer"
+              className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-gray-200 hover:text-white text-xs sm:text-sm font-bold transition-all cursor-pointer"
             >
               <FileSpreadsheet size={15} className="text-emerald-400" />
               <span>Import Excel / CSV</span>

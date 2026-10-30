@@ -1247,12 +1247,12 @@ export default function MaintenanceTab({ currentUserName, currentUserEmail }: { 
       {/* ═══ TOP HERO ACTION BAR: Dispatch Work Order & Maintenance Hub ═══ */}
       <div className="mb-6 rounded-2xl border border-[#FACC15]/30 bg-gradient-to-br from-[#FACC15]/[0.09] via-[#F97316]/[0.06] to-transparent p-4 sm:p-6 relative overflow-hidden shadow-[0_0_32px_rgba(250,204,21,0.12)]">
         <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-[#FACC15] opacity-[0.07] blur-3xl pointer-events-none" />
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-start gap-3.5 max-w-2xl">
+        <div className="flex flex-col gap-4 relative z-10">
+          <div className="flex items-start gap-3.5 w-full">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FACC15] to-[#F97316] flex items-center justify-center text-black flex-shrink-0 shadow-[0_0_20px_rgba(250,204,21,0.35)]">
               <Wrench size={22} />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-white text-base sm:text-lg font-black tracking-tight">
                   Create a Work Order or Dispatch Maintenance
@@ -1261,13 +1261,13 @@ export default function MaintenanceTab({ currentUserName, currentUserEmail }: { 
                   Work Order Hub
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed max-w-3xl">
                 Dispatch a new maintenance ticket, assign a technician (auto-generates a mobile Crew Portal PIN), or open your HVAC Filter, Building Inspection, and Subcontractor ledgers.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-white/10">
             <button
               onClick={() => { setEditingTicket(null); setShowForm(true); }}
               className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#F97316] hover:opacity-95 text-black text-xs sm:text-sm font-black shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all cursor-pointer"
