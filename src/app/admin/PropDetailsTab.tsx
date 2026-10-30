@@ -1238,36 +1238,97 @@ export default function PropDetailsTab() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 mt-1">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 glass rounded-2xl border border-[rgba(255,255,255,0.06)]">
-        <div>
-          <h2 className="text-lg font-black text-white flex items-center gap-2">
-            <Building2 size={20} className="text-[#A78BFA]" />
-            Property Details
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">Occupancy, P&amp;L, and financials per property — live from Tenant data.</p>
+      {/* ═══ TOP HERO ACTION BAR: Add a Property, Import Portfolio, or Log Vacancy ═══ */}
+      <div className="rounded-2xl border border-[#A78BFA]/30 bg-gradient-to-br from-[#A78BFA]/[0.09] via-indigo-600/[0.06] to-sky-500/[0.04] p-4 sm:p-6 relative overflow-hidden shadow-[0_0_32px_rgba(167,139,250,0.12)]">
+        <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-[#A78BFA] opacity-[0.08] blur-3xl pointer-events-none" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-start gap-3.5 max-w-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#A78BFA] to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_20px_rgba(167,139,250,0.35)]">
+              <Building2 size={22} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-white text-base sm:text-lg font-black tracking-tight">
+                  Add a Property, Import Portfolio, or Log Vacancy
+                </h2>
+                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-[#A78BFA]/15 border border-[#A78BFA]/35 text-[#A78BFA]">
+                  Portfolio Hub
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+                Add a new building to track P&amp;L and expenses, bulk-import buildings and tenants with AI, or log unleased spaces and parking lots.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-95 text-white text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(59,130,246,0.4)] transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Add Property</span>
+            </button>
+            <button
+              onClick={() => setShowIntakeModal(true)}
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-cyan-600/30 to-sky-600/30 hover:from-cyan-500/40 hover:to-sky-500/40 border border-cyan-400/45 text-cyan-200 text-xs sm:text-sm font-black shadow-[0_0_16px_rgba(6,182,212,0.22)] transition-all cursor-pointer"
+            >
+              <Sparkles size={15} className="text-cyan-300 animate-pulse" />
+              <span>⚡ Import Buildings &amp; Tenants</span>
+            </button>
+            <button
+              onClick={() => setShowAddSpace(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#A78BFA]/35 bg-[#A78BFA]/10 hover:bg-[#A78BFA]/20 text-[#C4B5FD] text-xs font-bold transition-all cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>Add Unleased Space</span>
+            </button>
+            <button
+              onClick={() => setShowAddParkingLot(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.09] text-gray-200 hover:text-white text-xs font-bold transition-all cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>Add Parking Lot</span>
+            </button>
+            <button
+              onClick={() => setShowPrint(true)}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-white/12 bg-white/[0.03] hover:bg-white/[0.07] text-gray-300 hover:text-white text-xs font-bold transition-all cursor-pointer"
+            >
+              <Printer size={13} />
+              <span>Print Report</span>
+            </button>
+            <button
+              onClick={() => setTick(t => t + 1)}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-gray-400 hover:text-white text-xs transition-all cursor-pointer"
+              title="Refresh property data"
+            >
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-          <button onClick={() => setShowIntakeModal(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-white px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 shadow-[0_0_16px_rgba(6,182,212,0.35)] transition-all cursor-pointer">
-            <Sparkles size={12} className="text-cyan-200" /> Import Buildings &amp; Tenants
-          </button>
-          <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-white px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-[0_0_16px_rgba(59,130,246,0.35)] transition-all cursor-pointer">
-            <Plus size={12} /> Add Property
-          </button>
-          <button onClick={() => setTick(t => t + 1)}
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white px-3 py-2 rounded-lg border border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.2)] transition-all">
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
-          </button>
-          <button onClick={() => setShowPrint(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#A78BFA] px-3 py-2 rounded-lg border border-[rgba(167,139,250,0.25)] hover:bg-[rgba(167,139,250,0.1)] transition-all">
-            <Printer size={12} /> Print Report
-          </button>
-        </div>
+
+        {/* Zero-Property Quick Demo Loader right inside the top card */}
+        {!loading && allProperties.length === 0 && (
+          <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+            <p className="text-xs text-sky-200/90">
+              👋 <strong>New portfolio?</strong> Click <strong>+ Add Property</strong> above to create your first building, or load editable sample properties to explore the dashboard first.
+            </p>
+            <button
+              onClick={handleSeedDemo}
+              disabled={seedingDemo}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-400/40 bg-sky-500/15 text-sky-200 text-xs font-bold hover:bg-sky-500/25 transition-all disabled:opacity-50 flex-shrink-0 cursor-pointer"
+            >
+              {seedingDemo ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {seedingDemo ? "Loading Sample Properties…" : "Load Sample Demo Properties (Editable)"}
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Add Property Form — opens right at the top below the hero bar */}
+      {showAdd && <AddPropertyForm onAdd={handleAddProperty} onClose={() => setShowAdd(false)} />}
 
       {/* Migration banner */}
       {migrationSql && (
@@ -1277,99 +1338,13 @@ export default function PropDetailsTab() {
         </div>
       )}
 
-      {/* CEO Overview Card */}
-      {!loading && (
-        <PortfolioOverviewCard properties={overviewProperties} tenants={tenants} details={details} availableSpaces={availableSpaces} />
-      )}
-
-      {/* Portfolio KPI bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { icon: Building2,     label: "Properties",  value: allProperties.length,                                    color: "#A78BFA" },
-          { icon: Users,         label: "Tenants",     value: `${activeTenants.length} active`,                      color: "#60A5FA" },
-          { icon: DollarSign,    label: "Revenue",     value: `$${totalRevenue.toLocaleString()}/mo`,               color: "#4ADE80" },
-          { icon: TrendingUp,    label: "Net P&L",     value: totalExpenses ? `$${Math.round(totalRevenue - totalExpenses).toLocaleString()}/mo` : "—", color: totalRevenue > totalExpenses ? "#4ADE80" : "#EF4444" },
-        ].map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="glass rounded-xl p-4 border border-[rgba(255,255,255,0.06)] flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
-              <Icon size={16} style={{ color }} />
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 font-semibold">{label}</p>
-              <p className="text-base font-black text-white">{value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {alerts > 0 && (
-        <a href="/admin?tab=tenants"
-          className="flex items-center gap-3 px-5 py-4 rounded-xl border border-yellow-900/40 bg-yellow-950/20 text-yellow-400 text-xs hover:bg-yellow-950/40 hover:border-yellow-800/60 transition-all cursor-pointer group">
-          <AlertTriangle size={14} /> <span><strong>{alerts} lease{alerts > 1 ? "s" : ""}</strong> expiring within 90 days — <span className="underline underline-offset-2 group-hover:text-yellow-300">go to Tenants tab →</span></span>
-        </a>
-      )}
-
-      {/* Unassigned tenants warning */}
-      {!loading && (() => {
-        const assignedIds = new Set(
-          allProperties.flatMap(p => {
-            const dn = detailMap[p.id]?.display_name || p.name;
-            return tenants.filter(t => exactBuildingMatch(t.building || "", p.id, dn, p.name)).map(t => t.id);
-          })
-        );
-        const unassigned = tenants.filter(t => !assignedIds.has(t.id));
-        if (unassigned.length === 0) return null;
-        return (
-          <a href="/admin?tab=tenants"
-            className="flex items-center gap-3 px-5 py-4 rounded-xl border border-orange-900/40 bg-orange-950/20 text-orange-400 text-xs hover:bg-orange-950/40 hover:border-orange-800/60 transition-all cursor-pointer group">
-            <AlertTriangle size={14} />
-            <span>
-              <strong>{unassigned.length} tenant{unassigned.length > 1 ? "s" : ""}</strong> not assigned to a property
-              ({unassigned.slice(0, 3).map(t => t.name).join(", ")}{unassigned.length > 3 ? ` +${unassigned.length - 3} more` : ""})
-              — <span className="underline underline-offset-2 group-hover:text-orange-300">fix in Tenants tab →</span>
-            </span>
-          </a>
-        );
-      })()}
-
-      {/* P&L History Chart */}
-      {!loading && (
-        <PortfolioHistoryChart />
-      )}
-
-      {/* Cards */}
+      {/* Property Directory & Cards — positioned near the top */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 size={22} className="animate-spin text-[#A78BFA]" />
           <span className="ml-3 text-sm text-gray-500">Loading…</span>
         </div>
-      ) : allProperties.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-[rgba(167,139,250,0.3)] bg-gradient-to-br from-[rgba(167,139,250,0.06)] via-[rgba(56,189,248,0.03)] to-transparent p-8 sm:p-12 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-[rgba(167,139,250,0.12)] border border-[rgba(167,139,250,0.3)] flex items-center justify-center mx-auto mb-4 shadow-[0_0_24px_rgba(167,139,250,0.15)]">
-            <Building2 size={26} className="text-[#A78BFA]" />
-          </div>
-          <h3 className="text-lg sm:text-xl font-black text-white mb-2">Welcome to Your Property Portfolio</h3>
-          <p className="text-xs sm:text-sm text-gray-400 max-w-lg mx-auto leading-relaxed mb-6">
-            Your workspace currently has 0 properties. Add your first building to start tracking tenants, P&amp;L, expenses, and maintenance — or load editable sample properties to explore the dashboard first.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#A78BFA] to-[#7C3AED] text-white text-xs sm:text-sm font-black hover:opacity-90 transition-all shadow-lg shadow-[rgba(167,139,250,0.25)]"
-            >
-              <Plus size={15} /> + Add Your First Property
-            </button>
-            <button
-              onClick={handleSeedDemo}
-              disabled={seedingDemo}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl border border-sky-400/35 bg-sky-500/10 text-sky-300 text-xs sm:text-sm font-bold hover:bg-sky-500/20 transition-all disabled:opacity-50"
-            >
-              {seedingDemo ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-              {seedingDemo ? "Loading Sample Properties…" : "Load Sample Demo Properties (Editable)"}
-            </button>
-          </div>
-        </div>
-      ) : (
+      ) : allProperties.length > 0 && (
         <>
           {/* Horizontal Scrolling Property Tab Bar */}
           <div className="bg-[rgba(0,0,0,0.25)] border border-[rgba(255,255,255,0.06)] rounded-2xl p-3 sm:p-4">
@@ -1456,6 +1431,66 @@ export default function PropDetailsTab() {
             ))}
           </div>
         </>
+      )}
+
+      {/* CEO Overview Card */}
+      {!loading && (
+        <PortfolioOverviewCard properties={overviewProperties} tenants={tenants} details={details} availableSpaces={availableSpaces} />
+      )}
+
+      {/* Portfolio KPI bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { icon: Building2,     label: "Properties",  value: allProperties.length,                                    color: "#A78BFA" },
+          { icon: Users,         label: "Tenants",     value: `${activeTenants.length} active`,                      color: "#60A5FA" },
+          { icon: DollarSign,    label: "Revenue",     value: `$${totalRevenue.toLocaleString()}/mo`,               color: "#4ADE80" },
+          { icon: TrendingUp,    label: "Net P&L",     value: totalExpenses ? `$${Math.round(totalRevenue - totalExpenses).toLocaleString()}/mo` : "—", color: totalRevenue > totalExpenses ? "#4ADE80" : "#EF4444" },
+        ].map(({ icon: Icon, label, value, color }) => (
+          <div key={label} className="glass rounded-xl p-4 border border-[rgba(255,255,255,0.06)] flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+              <Icon size={16} style={{ color }} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-semibold">{label}</p>
+              <p className="text-base font-black text-white">{value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {alerts > 0 && (
+        <a href="/admin?tab=tenants"
+          className="flex items-center gap-3 px-5 py-4 rounded-xl border border-yellow-900/40 bg-yellow-950/20 text-yellow-400 text-xs hover:bg-yellow-950/40 hover:border-yellow-800/60 transition-all cursor-pointer group">
+          <AlertTriangle size={14} /> <span><strong>{alerts} lease{alerts > 1 ? "s" : ""}</strong> expiring within 90 days — <span className="underline underline-offset-2 group-hover:text-yellow-300">go to Tenants tab →</span></span>
+        </a>
+      )}
+
+      {/* Unassigned tenants warning */}
+      {!loading && (() => {
+        const assignedIds = new Set(
+          allProperties.flatMap(p => {
+            const dn = detailMap[p.id]?.display_name || p.name;
+            return tenants.filter(t => exactBuildingMatch(t.building || "", p.id, dn, p.name)).map(t => t.id);
+          })
+        );
+        const unassigned = tenants.filter(t => !assignedIds.has(t.id));
+        if (unassigned.length === 0) return null;
+        return (
+          <a href="/admin?tab=tenants"
+            className="flex items-center gap-3 px-5 py-4 rounded-xl border border-orange-900/40 bg-orange-950/20 text-orange-400 text-xs hover:bg-orange-950/40 hover:border-orange-800/60 transition-all cursor-pointer group">
+            <AlertTriangle size={14} />
+            <span>
+              <strong>{unassigned.length} tenant{unassigned.length > 1 ? "s" : ""}</strong> not assigned to a property
+              ({unassigned.slice(0, 3).map(t => t.name).join(", ")}{unassigned.length > 3 ? ` +${unassigned.length - 3} more` : ""})
+              — <span className="underline underline-offset-2 group-hover:text-orange-300">fix in Tenants tab →</span>
+            </span>
+          </a>
+        );
+      })()}
+
+      {/* P&L History Chart */}
+      {!loading && (
+        <PortfolioHistoryChart />
       )}
 
       {/* Available Spaces Migration Banner */}
@@ -1664,7 +1699,6 @@ export default function PropDetailsTab() {
       })()}
 
       {showPrint && <PrintReport data={printData} onClose={() => setShowPrint(false)} />}
-      {showAdd && <AddPropertyForm onAdd={handleAddProperty} onClose={() => setShowAdd(false)} />}
       {showAddSpace && <AddSpaceModal properties={allProperties} onAdd={handleAddSpace} onClose={() => setShowAddSpace(false)} />}
       {showIntakeModal && (
         <IntakeStagingModal

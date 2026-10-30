@@ -1243,7 +1243,95 @@ export default function MaintenanceTab({ currentUserName, currentUserEmail }: { 
     });
 
   return (
-    <div className="mt-6">
+    <div className="mt-1">
+      {/* ═══ TOP HERO ACTION BAR: Dispatch Work Order & Maintenance Hub ═══ */}
+      <div className="mb-6 rounded-2xl border border-[#FACC15]/30 bg-gradient-to-br from-[#FACC15]/[0.09] via-[#F97316]/[0.06] to-transparent p-4 sm:p-6 relative overflow-hidden shadow-[0_0_32px_rgba(250,204,21,0.12)]">
+        <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-[#FACC15] opacity-[0.07] blur-3xl pointer-events-none" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-start gap-3.5 max-w-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FACC15] to-[#F97316] flex items-center justify-center text-black flex-shrink-0 shadow-[0_0_20px_rgba(250,204,21,0.35)]">
+              <Wrench size={22} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-white text-base sm:text-lg font-black tracking-tight">
+                  Create a Work Order or Dispatch Maintenance
+                </h2>
+                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-[#FACC15]/15 border border-[#FACC15]/35 text-[#FACC15]">
+                  Work Order Hub
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+                Dispatch a new maintenance ticket, assign a technician (auto-generates a mobile Crew Portal PIN), or open your HVAC Filter, Building Inspection, and Subcontractor ledgers.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+            <button
+              onClick={() => { setEditingTicket(null); setShowForm(true); }}
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#F97316] hover:opacity-95 text-black text-xs sm:text-sm font-black shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Create Work Order</span>
+            </button>
+            <button
+              onClick={() => setFilterChangesOpen(prev => !prev)}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                filterChangesOpen
+                  ? "bg-[#FACC15]/20 border-[#FACC15]/50 text-[#FACC15]"
+                  : "border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-gray-200 hover:text-white"
+              }`}
+            >
+              <Sparkles size={13} className="text-[#FACC15]" />
+              <span>HVAC Filters</span>
+            </button>
+            <button
+              onClick={() => setBuildingInspectionsOpen(prev => !prev)}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                buildingInspectionsOpen
+                  ? "bg-blue-500/20 border-blue-400/50 text-sky-300"
+                  : "border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-gray-200 hover:text-white"
+              }`}
+            >
+              <ShieldAlert size={13} className="text-[#60A5FA]" />
+              <span>Inspections</span>
+            </button>
+            <button
+              onClick={() => setSubcontractorContactsOpen(prev => !prev)}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                subcontractorContactsOpen
+                  ? "bg-purple-500/20 border-purple-400/50 text-purple-300"
+                  : "border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-gray-200 hover:text-white"
+              }`}
+            >
+              <Users size={13} className="text-[#C084FC]" />
+              <span>Subcontractors</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {newPinInfo && (
+        <div className="flex items-start gap-3 mb-6 p-3.5 rounded-xl bg-[rgba(250,204,21,0.08)] border border-[rgba(250,204,21,0.3)]">
+          <span className="text-lg leading-none">🔐</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-black text-[#FACC15]">New staff portal access created for {newPinInfo.name}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              PIN: <span className="font-mono font-black text-white tracking-widest">{newPinInfo.pin}</span>
+              <span className="text-gray-600 ml-2">— share this with them to log into the staff portal</span>
+            </p>
+          </div>
+          <button onClick={() => setNewPinInfo(null)} className="text-gray-600 hover:text-white transition-colors flex-shrink-0">
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* Inline Ticket Form — opens right at the top below the hero bar */}
+      {showForm && !editingTicket && <TicketForm initial={BLANK_TICKET()} onSave={handleSaveNew} onSaveDraft={handleSaveDraftNew} onCancel={() => setShowForm(false)} currentUserName={currentUserName} buildings={uniqueBuildings} />}
+      {editingTicket && <TicketForm initial={editingTicket} onSave={handleSaveEdit} onSaveDraft={handleSaveDraftEdit} onCancel={() => setEditingTicket(null)} currentUserName={currentUserName} buildings={uniqueBuildings} />}
+
       <SummaryBanner tickets={tickets} onSelectTicket={handleSelectTicket} />
 
       {/* ═══ Filter Changes — collapsible panel ═══ */}
@@ -1390,22 +1478,6 @@ export default function MaintenanceTab({ currentUserName, currentUserEmail }: { 
         )}
       </div>
 
-      {newPinInfo && (
-        <div className="flex items-start gap-3 mb-4 p-3 rounded-xl bg-[rgba(250,204,21,0.08)] border border-[rgba(250,204,21,0.3)]">
-          <span className="text-lg leading-none">🔐</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-black text-[#FACC15]">New staff portal access created for {newPinInfo.name}</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">
-              PIN: <span className="font-mono font-black text-white tracking-widest">{newPinInfo.pin}</span>
-              <span className="text-gray-600 ml-2">— share this with them to log into the staff portal</span>
-            </p>
-          </div>
-          <button onClick={() => setNewPinInfo(null)} className="text-gray-600 hover:text-white transition-colors flex-shrink-0">
-            <X size={12} />
-          </button>
-        </div>
-      )}
-
       {/* Setup error */}
       {setupError && !loading && (
         <div className="mb-6 p-4 rounded-xl border border-[rgba(250,204,21,0.3)] bg-[rgba(250,204,21,0.05)] flex items-center justify-between gap-3">
@@ -1527,16 +1599,8 @@ export default function MaintenanceTab({ currentUserName, currentUserEmail }: { 
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
           </button>
           <PrintButton zoneId="print-maintenance" label="Print / PDF" title="Maintenance Work Orders" />
-          <button onClick={() => { setEditingTicket(null); setShowForm(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#F97316] text-black text-xs font-black hover:opacity-90 transition-opacity">
-            <Plus size={13} /> New Ticket
-          </button>
         </div>
       </div>
-
-      {/* Forms */}
-      {showForm && !editingTicket && <TicketForm initial={BLANK_TICKET()} onSave={handleSaveNew} onSaveDraft={handleSaveDraftNew} onCancel={() => setShowForm(false)} currentUserName={currentUserName} buildings={uniqueBuildings} />}
-      {editingTicket && <TicketForm initial={editingTicket} onSave={handleSaveEdit} onSaveDraft={handleSaveDraftEdit} onCancel={() => setEditingTicket(null)} currentUserName={currentUserName} buildings={uniqueBuildings} />}
 
       {/* Loading */}
       {loading && (
@@ -1548,15 +1612,14 @@ export default function MaintenanceTab({ currentUserName, currentUserEmail }: { 
 
       {/* Empty state */}
       {!loading && !setupError && displayed.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Wrench size={36} className="text-gray-700 mb-3" />
-          <p className="text-gray-500 font-bold">{tickets.length === 0 ? "No tickets yet" : "No tickets match your filters"}</p>
-          <p className="text-xs text-gray-600 mt-1 mb-4">{tickets.length === 0 ? "Create your first work order to start tracking maintenance." : "Try clearing the filters."}</p>
-          {tickets.length === 0 && (
-            <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#F97316] text-black text-sm font-black hover:opacity-90 transition-opacity">
-              <Plus size={14} /> Create First Ticket
-            </button>
-          )}
+        <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-white/[0.06] bg-white/[0.01] px-4">
+          <Wrench size={32} className="text-gray-600 mb-2" />
+          <p className="text-gray-300 font-bold text-sm">{tickets.length === 0 ? "No work orders yet" : "No tickets match your filters"}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {tickets.length === 0
+              ? "Click \"Create Work Order\" at the top of the page to dispatch your first maintenance ticket."
+              : "Try clearing the filters above."}
+          </p>
         </div>
       )}
 

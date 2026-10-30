@@ -970,7 +970,66 @@ export default function CleaningTab({ currentUserName, currentUserEmail }: { cur
   const isThisWeek = toISO(weekStart) === toISO(getMonday(new Date()));
 
   return (
-    <div className="mt-6">
+    <div className="mt-1">
+      {/* ═══ TOP HERO ACTION BAR: Schedule Cleaning & Crew Dispatch ═══ */}
+      <div className="mb-6 rounded-2xl border border-[#4ADE80]/30 bg-gradient-to-br from-[#4ADE80]/[0.09] via-emerald-600/[0.05] to-transparent p-4 sm:p-6 relative overflow-hidden shadow-[0_0_32px_rgba(74,222,128,0.12)]">
+        <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-[#4ADE80] opacity-[0.07] blur-3xl pointer-events-none" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-start gap-3.5 max-w-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4ADE80] to-emerald-600 flex items-center justify-center text-black flex-shrink-0 shadow-[0_0_20px_rgba(74,222,128,0.35)]">
+              <Sparkles size={22} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-white text-base sm:text-lg font-black tracking-tight">
+                  Schedule Cleaning &amp; Crew Dispatch
+                </h2>
+                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-[#4ADE80]/15 border border-[#4ADE80]/35 text-[#4ADE80]">
+                  Crew Schedule
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+                Assign single or recurring cleaning shifts across your buildings, auto-generate mobile Crew Portal PINs, and track live photo completion proofs.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-95 text-white text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(59,130,246,0.4)] transition-all cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>New Cleaning Assignment</span>
+            </button>
+            <div className="flex rounded-xl overflow-hidden border border-white/15 bg-white/[0.03]">
+              {(["today", "week"] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setViewMode(v)}
+                  className={`px-3.5 py-2.5 text-xs font-bold capitalize transition-all cursor-pointer ${
+                    viewMode === v ? "bg-[rgba(74,222,128,0.2)] text-[#4ADE80]" : "text-gray-300 hover:text-white"
+                  }`}
+                >
+                  {v === "today" ? "Today View" : "Week Grid"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Inline Assignment Form — opens right at the top below the hero bar */}
+      {showForm && (
+        <AssignmentForm
+          onSave={() => { setShowForm(false); fetchAssignments(); }}
+          onCancel={() => setShowForm(false)}
+          currentUserName={currentUserName}
+          currentUserEmail={currentUserEmail}
+          properties={allProperties}
+        />
+      )}
+
       <SummaryBanner assignments={assignments} today={today} />
 
       {/* Setup error */}
@@ -1027,26 +1086,11 @@ export default function CleaningTab({ currentUserName, currentUserEmail }: { cur
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
           </button>
           <PrintButton zoneId="print-cleaning" label="Print Schedule" title={`Cleaning Schedule — ${viewMode === "today" ? "Today" : weekLabel}`} />
-          <button onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 shadow-[0_0_14px_rgba(59,130,246,0.35)] transition-all">
-            <Plus size={13} /> New Assignment
-          </button>
         </div>
       </div>
 
       {/* Worker legend */}
       <WorkerLegend assignments={assignments} workerIndex={workerIndex} />
-
-      {/* Assignment form */}
-      {showForm && (
-        <AssignmentForm
-          onSave={() => { setShowForm(false); fetchAssignments(); }}
-          onCancel={() => setShowForm(false)}
-          currentUserName={currentUserName}
-          currentUserEmail={currentUserEmail}
-          properties={allProperties}
-        />
-      )}
 
       {/* Loading */}
       {loading && (

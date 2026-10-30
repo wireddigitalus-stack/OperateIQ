@@ -114,7 +114,36 @@ export default function ConversationTab({
           <h2 className="text-base font-black text-white flex items-center gap-2">
             <MessageSquare size={17} className="text-sky-400" /> Communication Board
           </h2>
-          <p className="text-xs text-gray-400 mt-1">Internal team logs & chat</p>
+          <p className="text-xs text-gray-400 mt-1">Post team updates, shift handoffs, and @mentions right at the top</p>
+        </div>
+      </div>
+
+      {/* Top Composer Bar */}
+      <div className="p-4 bg-[#0A0F1A] border-b border-[rgba(255,255,255,0.08)]">
+        <div className="flex items-end gap-2 max-w-4xl mx-auto">
+          <div className="flex-1 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 focus-within:border-blue-400/60 focus-within:shadow-[0_0_12px_rgba(56,189,248,0.2)] transition-colors">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              placeholder="Post an update or @mention a teammate... (Press Enter to send)"
+              rows={2}
+              className="w-full bg-transparent text-sm text-white placeholder-gray-500 outline-none resize-none"
+            />
+          </div>
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim() || sending}
+            className="px-5 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center gap-2 text-white text-xs sm:text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all flex-shrink-0 shadow-[0_0_16px_rgba(59,130,246,0.35)] cursor-pointer"
+          >
+            {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={15} />}
+            <span>Post Update</span>
+          </button>
         </div>
       </div>
 
@@ -126,7 +155,7 @@ export default function ConversationTab({
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <MessageSquare size={48} className="opacity-10 mb-4" />
-            <p className="text-sm">No messages yet. Start the conversation!</p>
+            <p className="text-sm">No messages yet. Post the first team update above!</p>
           </div>
         ) : (
           messages.map((m) => {
@@ -151,33 +180,6 @@ export default function ConversationTab({
           })
         )}
         <div ref={endRef} />
-      </div>
-
-      <div className="p-4 bg-[#0A0F1A] border-t border-[rgba(255,255,255,0.06)]">
-        <div className="flex items-end gap-2 max-w-4xl mx-auto">
-          <div className="flex-1 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3 focus-within:border-blue-400/60 focus-within:shadow-[0_0_12px_rgba(56,189,248,0.2)] transition-colors">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              placeholder="Post an update or message..."
-              rows={1}
-              className="w-full bg-transparent text-sm text-white placeholder-gray-600 outline-none resize-none"
-            />
-          </div>
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || sending}
-            className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white hover:opacity-90 disabled:opacity-40 transition-all flex-shrink-0 shadow-[0_0_16px_rgba(59,130,246,0.35)]"
-          >
-            {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-          </button>
-        </div>
       </div>
     </div>
   );

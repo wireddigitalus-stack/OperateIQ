@@ -1012,20 +1012,43 @@ function AddLeadPanel({ onLeadAdded, currentUserName, currentUserEmail, orgId }:
 
   return (
     <div className="mb-6">
-      {/* Toggle button */}
-      <button
-        onClick={() => { setOpen(o => !o); if (!open) reset(); }}
-        id="add-lead-toggle"
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${
-          open
-            ? "bg-white/[0.08] border-white/30 text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.25)]"
-            : "bg-white/[0.03] border-white/10 text-gray-300 hover:text-white hover:border-white/25 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)]"
-        }`}
-      >
-        <Plus size={15} />
-        Add Lead
-        <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-      </button>
+      {/* Top Hero Action Bar for Leads */}
+      <div className="rounded-2xl border border-sky-400/30 bg-gradient-to-br from-sky-500/[0.09] via-blue-600/[0.05] to-transparent p-4 sm:p-5 relative overflow-hidden shadow-[0_0_28px_rgba(56,189,248,0.12)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-start gap-3.5 max-w-2xl">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_18px_rgba(56,189,248,0.35)]">
+              <Zap size={20} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-white text-sm sm:text-base font-black tracking-tight">
+                  Add a New Prospect Lead or Log Inquiry
+                </h2>
+                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-400/30 text-sky-300">
+                  AI Lead Scoring
+                </span>
+              </div>
+              <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                Log a phone inquiry, walk-in tour, or referral and auto-score it with OpsIQ AI — or capture web prospects 24/7 via Ask OpsIQ.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => { setOpen(o => !o); if (!open) reset(); }}
+            id="add-lead-toggle"
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-black border transition-all flex-shrink-0 cursor-pointer ${
+              open
+                ? "bg-white/[0.12] border-sky-400/50 text-sky-300 shadow-[0_0_18px_rgba(56,189,248,0.28)]"
+                : "bg-gradient-to-r from-blue-500 to-indigo-600 border-blue-400/30 text-white hover:opacity-95 shadow-[0_0_18px_rgba(59,130,246,0.4)]"
+            }`}
+          >
+            <Plus size={16} />
+            <span>{open ? "Close Lead Form" : "Add New Lead"}</span>
+            <ChevronDown size={14} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+          </button>
+        </div>
+      </div>
 
       {/* Collapsible form */}
       {open && (
@@ -2914,6 +2937,17 @@ export default function AdminPage() {
         {/* ─ LEADS TAB ──────────────────────────────────────────────────────── */}
         {activeTab === "leads" && (
           <>
+            {/* Top Action Bar: Add or Log New Lead */}
+            <AddLeadPanel
+              onLeadAdded={lead => {
+                seenIdsRef.current.add(lead.id);
+                setLeads(prev => [lead, ...prev]);
+              }}
+              currentUserName={currentUser?.name}
+              currentUserEmail={currentUser?.email}
+              orgId={activeOrg?.id}
+            />
+
             {renderLeaseAlerts()}
             {renderFollowUpAlerts()}
 
@@ -3106,17 +3140,6 @@ export default function AdminPage() {
                 )}
               </div>
             )}
-
-            {/* Add Lead Panel */}
-            <AddLeadPanel
-              onLeadAdded={lead => {
-                seenIdsRef.current.add(lead.id);
-                setLeads(prev => [lead, ...prev]);
-              }}
-              currentUserName={currentUser?.name}
-              currentUserEmail={currentUser?.email}
-              orgId={activeOrg?.id}
-            />
 
             {/* QR Leaderboard */}
             {(() => {
