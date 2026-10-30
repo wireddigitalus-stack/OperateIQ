@@ -582,6 +582,51 @@ textarea {
 }
 .oiq-btn-ghost:hover { background: rgba(255,255,255,0.07); }
 
+/* ── High-End Liquid Frosted Glass Top Navigation Bar ────────────────────────
+   Desktop (md+): Apple-grade liquid frosted glass with saturation boost,
+   top specular highlight, and luminous cyan/indigo bottom edge.
+   Mobile (<768px): Ultra-lightweight, GPU-friendly high-contrast dark surface
+   with minimal blur for 60fps touch scrolling.
+──────────────────────────────────────────────────────────────────────────── */
+.oiq-liquid-nav {
+  background: linear-gradient(
+    180deg,
+    rgba(11, 16, 32, 0.78) 0%,
+    rgba(8, 12, 26, 0.68) 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 8px 32px -4px rgba(0, 0, 0, 0.35);
+}
+
+.oiq-liquid-nav-scrolled {
+  background: linear-gradient(
+    180deg,
+    rgba(9, 14, 28, 0.88) 0%,
+    rgba(6, 10, 22, 0.82) 100%
+  );
+  backdrop-filter: blur(24px) saturate(195%);
+  -webkit-backdrop-filter: blur(24px) saturate(195%);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    0 12px 40px -6px rgba(0, 0, 0, 0.65),
+    0 1px 20px 0 rgba(56, 189, 248, 0.08);
+}
+
+@media (max-width: 767px) {
+  .oiq-liquid-nav,
+  .oiq-liquid-nav-scrolled {
+    background: rgba(8, 12, 24, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  }
+}
+
 /* Ensure full clearance below AdminHeader (56px) + ImpersonationBanner (40px) */
 body.has-support-banner .admin-content-wrapper {
   padding-top: 7rem !important; /* 112px */
