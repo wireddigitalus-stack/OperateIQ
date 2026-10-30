@@ -46,7 +46,7 @@ import {
   getTipsForCategory,
   type TabKey,
 } from "@/lib/help-data";
-import { BRAND } from "@/lib/brand";
+import { BRAND, formatPlatformOrigin } from "@/lib/brand";
 import { getCustomerCode } from "@/lib/platform";
 
 type TextScale = "normal" | "large" | "xlarge";
@@ -165,7 +165,7 @@ export default function HelpCenterClient() {
   // Read URL params on mount for deep-linking (?category=tenants&topic=2 or ?q=...)
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setOriginUrl(window.location.origin);
+    setOriginUrl(formatPlatformOrigin(window.location.origin));
 
     const savedScale = window.localStorage.getItem("oiq-help-text-scale") as TextScale | null;
     if (savedScale === "normal" || savedScale === "large" || savedScale === "xlarge") {

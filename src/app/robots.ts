@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 
 // Allow indexing on production and custom domains unless explicitly disabled via NEXT_PUBLIC_ALLOW_INDEXING=false.
 const ALLOW_INDEXING = process.env.NEXT_PUBLIC_ALLOW_INDEXING !== "false";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.getoperateiq.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.PropOpsIQ.com";
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   if (!ALLOW_INDEXING) {

@@ -434,7 +434,11 @@ function UserSection({ title, role, icon, color, users, onRefresh, ownerEmail }:
   const [emailStatus, setEmailStatus] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const getInviteMessage = (u: AllowedUser) => {
-    const domain = typeof window !== "undefined" ? window.location.origin : "";
+    const rawOrigin = typeof window !== "undefined" ? window.location.origin : "https://www.PropOpsIQ.com";
+    const domain =
+      rawOrigin.toLowerCase().includes("propopsiq.com") || rawOrigin.toLowerCase().includes("operateiq.com")
+        ? "https://www.PropOpsIQ.com"
+        : rawOrigin;
     if (u.role === "admin" || u.role === "manager" || u.role === "owner") {
       const loginUrl = `${domain}/admin/login?email=${encodeURIComponent(u.email || "")}`;
       return `Hi ${u.name.split(" ")[0] || "there"}, you've been invited to join our team on PropOpsIQ:

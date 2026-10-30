@@ -12,6 +12,8 @@ export const config = {
 const PLATFORM_HOSTS = new Set([
   "localhost",
   "127.0.0.1",
+  "propopsiq.com",
+  "www.propopsiq.com",
   "operateiq.com",
   "www.operateiq.com",
   "getoperateiq.com",

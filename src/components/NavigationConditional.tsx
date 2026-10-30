@@ -9,6 +9,8 @@ function isTenantCustomDomain(): boolean {
   if (
     h === "localhost" ||
     h === "127.0.0.1" ||
+    h === "propopsiq.com" ||
+    h === "www.propopsiq.com" ||
     h === "getoperateiq.com" ||
     h === "www.getoperateiq.com" ||
     h === "operateiq.com" ||

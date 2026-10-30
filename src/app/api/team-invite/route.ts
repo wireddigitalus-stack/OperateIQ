@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgAdmin } from "@/lib/server-auth";
-import { BRAND } from "@/lib/brand";
+import { BRAND, formatPlatformOrigin } from "@/lib/brand";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || "PropOpsIQ <notifications@getoperateiq.com>";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || "PropOpsIQ <notifications@PropOpsIQ.com>";
 
 function escapeHtml(s: string): string {
   return s
@@ -51,10 +51,11 @@ export async function POST(req: NextRequest) {
     const safeRole = escapeHtml(String(role || "team member").trim());
     const safeEmail = escapeHtml(cleanEmail);
 
-    const origin =
+    const origin = formatPlatformOrigin(
       req.headers.get("origin") ||
       process.env.NEXT_PUBLIC_SITE_URL ||
-      "https://www.getoperateiq.com";
+      "https://www.PropOpsIQ.com"
+    );
     const loginUrl = `${origin}/admin/login?email=${encodeURIComponent(cleanEmail)}`;
 
     if (!RESEND_API_KEY) {

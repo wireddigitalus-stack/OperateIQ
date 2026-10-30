@@ -22,7 +22,7 @@ const LEAD_NOTIFY_TO = (process.env.LEAD_NOTIFY_TO || "")
 const FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL ||
   process.env.RESEND_FROM ||
-  "PropOpsIQ <notifications@getoperateiq.com>";
+  "PropOpsIQ <notifications@PropOpsIQ.com>";
 
 function parseBudgetNum(raw: unknown): number {
   if (typeof raw === "number" && Number.isFinite(raw)) return Math.round(raw);

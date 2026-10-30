@@ -1027,7 +1027,7 @@ export default function PlatformDashboardPage() {
                   const Icon = guide.icon;
                   const accent = ACCENT_STYLES[guide.accent];
                   const isExp = expandedGuideId === guide.id;
-                  const shareUrl = `${typeof window !== "undefined" ? window.location.origin : "https://www.getoperateiq.com"}/help?view=techsupport&q=${encodeURIComponent(guide.title)}`;
+                  const shareUrl = `${typeof window !== "undefined" && !window.location.origin.toLowerCase().includes("propopsiq.com") && !window.location.origin.toLowerCase().includes("operateiq.com") ? window.location.origin : "https://www.PropOpsIQ.com"}/help?view=techsupport&q=${encodeURIComponent(guide.title)}`;
 
                   return (
                     <div

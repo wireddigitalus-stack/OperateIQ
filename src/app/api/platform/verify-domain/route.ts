@@ -33,10 +33,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (
+      cleanDomain === "propopsiq.com" ||
+      cleanDomain === "www.propopsiq.com" ||
       cleanDomain === "getoperateiq.com" ||
       cleanDomain === "www.getoperateiq.com" ||
       cleanDomain === "operateiq.com" ||
       cleanDomain === "www.operateiq.com" ||
+      cleanDomain.endsWith(".propopsiq.com") ||
       cleanDomain.endsWith(".getoperateiq.com") ||
       cleanDomain.endsWith(".operateiq.com") ||
       cleanDomain.endsWith(".vercel.app")
