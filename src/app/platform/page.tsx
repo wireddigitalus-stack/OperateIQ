@@ -864,7 +864,7 @@ export default function PlatformDashboardPage() {
                           </span>
                         </div>
                         <h2 className="text-xl font-extrabold text-white">
-                          Global Anti-Hacker, Anti-Cracker &amp; Anti-Phisher Command Center
+                          Global Anti-Hacker, Security Center
                         </h2>
                         <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
                           Real-time edge WAF protection, constant-time PIN brute-force defense, cross-tenant RLS isolation, and AI phishing/wire-scam inspection across all {orgs.length} client organizations.
@@ -898,7 +898,7 @@ export default function PlatformDashboardPage() {
                         disabled={isRunningSecurityAudit}
                         className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/35 transition-colors disabled:opacity-50 cursor-pointer"
                       >
-                        ⚡ Simulate Hacker / Cracker Attack
+                        ⚡ Simulate Hacker Attack
                       </button>
                     </div>
                   </div>
@@ -938,7 +938,7 @@ export default function PlatformDashboardPage() {
                     <p className="text-xs text-cyan-200/90 mt-1.5">
                       <span className="font-bold text-cyan-300">OpsIQ Shield Directive:</span>{" "}
                       {securityAuditResult?.recommendation ||
-                        "Click 'Audit Platform Now' to run a live Gemini 2.5 Flash security posture analysis, or 'Simulate Hacker / Cracker Attack' to test threat detection."}
+                        "Click 'Audit Platform Now' to run a live Gemini 2.5 Flash security posture analysis, or 'Simulate Hacker Attack' to test threat detection."}
                     </p>
                   </div>
                 </div>
@@ -965,7 +965,7 @@ export default function PlatformDashboardPage() {
               <div className="oiq-card p-5 border border-cyan-500/25">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-black uppercase tracking-wider text-cyan-400">
-                    Layer 2 · Anti-Cracker
+                    Layer 2 · Brute-Force Guard
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                     Active

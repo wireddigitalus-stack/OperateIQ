@@ -2036,7 +2036,7 @@ function LoginHistory() {
         </div>
       </button>
       <p className="text-xs text-gray-500 mb-3">
-        Autonomous OpsIQ Shield AI protecting against hackers (edge CSRF &amp; exploit traps), crackers (PIN &amp; login brute-force lockouts), and phishers (wire-fraud &amp; malicious link inspection).
+        Autonomous OpsIQ Shield AI protecting against hackers (edge CSRF &amp; exploit traps), brute-force attacks (PIN &amp; login lockouts), and phishers (wire-fraud &amp; malicious link inspection).
       </p>
 
       {expanded && (
@@ -2173,7 +2173,7 @@ function LoginHistory() {
                   ) : (
                     <>
                       <Zap size={12} />
-                      Simulate Hacker / Cracker Attack
+                      Simulate Hacker Attack
                     </>
                   )}
                 </button>
