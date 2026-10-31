@@ -352,12 +352,17 @@ function AdminLoginForm() {
             </div>
           )}
 
-          {/* Security note */}
+          {/* Security note + Anti-Phishing Seal */}
           <div className="mt-6 pt-4 border-t border-white/[0.08] space-y-3">
-            <p className="text-[11px] text-gray-400 text-center leading-relaxed flex items-center justify-center gap-1.5">
-              <Shield size={12} className="text-emerald-400" />
-              <span>Authorized personnel only. Sessions are encrypted and logged.</span>
-            </p>
+            <div className="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/25 text-center space-y-1">
+              <p className="text-[11px] font-bold text-emerald-300 flex items-center justify-center gap-1.5">
+                <Shield size={12} className="text-emerald-400 flex-shrink-0" />
+                <span>Verified OpsIQ Shield Seal · www.PropOpsIQ.com</span>
+              </p>
+              <p className="text-[10px] text-slate-400 leading-snug">
+                Anti-Phishing Notice: Always verify <strong className="text-slate-200">PropOpsIQ.com</strong> in your address bar. We will never ask for your password or bank credentials via SMS or email.
+              </p>
+            </div>
             <div className="flex items-center justify-center gap-4 text-xs font-semibold">
               <Link href="/" className="text-gray-400 hover:text-white transition-colors">
                 ← Home

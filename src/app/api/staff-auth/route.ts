@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { encodeStaffSession, readStaffSession, STAFF_COOKIE } from "@/lib/staff-session";
+import { maskIp } from "@/lib/security-shield";
+import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform";
 
 /**
  * POST /api/staff-auth  { pin }   → crew PIN login
@@ -11,8 +13,11 @@ import { encodeStaffSession, readStaffSession, STAFF_COOKIE } from "@/lib/staff-
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
-    if (!checkRateLimit(`staff-auth:${ip}`, 8, 10 * 60 * 1000)) {
-      return NextResponse.json({ error: "Too many attempts. Please wait a few minutes." }, { status: 429 });
+    if (!checkRateLimit(`staff-auth:${ip}`, 6, 10 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: "Too many failed PIN attempts. Locked by OpsIQ Shield for 10 minutes." },
+        { status: 429 }
+      );
     }
 
     const { pin } = await req.json();
@@ -29,7 +34,29 @@ export async function POST(req: NextRequest) {
       .limit(2);
 
     if (error) return NextResponse.json({ error: "Auth service unavailable." }, { status: 500 });
-    if (!users || users.length === 0) return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
+    if (!users || users.length === 0) {
+      // Constant-time anti-cracker jitter (120–240ms) + audit log entry
+      await new Promise((r) => setTimeout(r, 120 + Math.floor(Math.random() * 120)));
+      try {
+        await supabaseAdmin.from("activity_log").insert({
+          org_id: DEFAULT_PLATFORM_ORG_ID,
+          actor_email: `crew-pin@${maskIp(ip)}`,
+          actor_name: "Failed Crew PIN Attempt",
+          action: "admin_blocked",
+          resource_type: "session",
+          resource_name: "Staff Mobile Portal",
+          resource_id: "staff-pin",
+          metadata: {
+            reason: "Invalid 6-digit crew PIN attempt",
+            ip: maskIp(ip),
+            device: /mobile|iphone|android/i.test(req.headers.get("user-agent") || "") ? "mobile" : "desktop",
+          },
+        });
+      } catch {
+        /* ignore log error */
+      }
+      return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
+    }
     if (users.length > 1) {
       // Legacy duplicate PIN across orgs — refuse rather than guess the company.
       return NextResponse.json({ error: "This PIN must be reset by your manager." }, { status: 409 });

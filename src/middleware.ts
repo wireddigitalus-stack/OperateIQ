@@ -56,9 +56,43 @@ async function resolveOrgSlugForHost(host: string): Promise<string | null> {
   return slug;
 }
 
+const SCANNER_TRAP_REGEX =
+  /^\/(?:\.env|\.git|wp-admin|wp-login\.php|wp-content|wp-includes|xmlrpc\.php|phpmyadmin|pma|actuator|vendor\/phpunit|cgi-bin|\.aws|\.ssh|config\.json|server-status)(?:\/|$)/i;
+
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl;
   const host = (req.headers.get("host") || "").toLowerCase().split(":")[0];
+
+  // ── 1. Edge Exploit / Automated Scanner Trap ─────────────────────────────
+  if (SCANNER_TRAP_REGEX.test(url.pathname)) {
+    return new NextResponse("Forbidden — Blocked by OpsIQ Shield", { status: 403 });
+  }
+
+  // ── 2. CSRF Cross-Origin Mutation Guard on /api/* ────────────────────────
+  const method = req.method.toUpperCase();
+  if (
+    url.pathname.startsWith("/api/") &&
+    !url.pathname.startsWith("/api/stripe/webhook") &&
+    (method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE")
+  ) {
+    const originHeader = req.headers.get("origin");
+    if (originHeader) {
+      try {
+        const originHost = new URL(originHeader).hostname.toLowerCase();
+        if (originHost !== host && !isPlatformHost(originHost)) {
+          return NextResponse.json(
+            { error: "Cross-origin request blocked by OpsIQ Shield CSRF Guard." },
+            { status: 403 }
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          { error: "Malformed Origin header blocked by OpsIQ Shield." },
+          { status: 403 }
+        );
+      }
+    }
+  }
 
   if (isPlatformHost(host)) return NextResponse.next();
 

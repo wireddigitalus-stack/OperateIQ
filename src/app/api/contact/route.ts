@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { BRAND } from "@/lib/brand";
 import { orgContactLine } from "@/lib/org-profile";
+import { scanTextForPhishingAndMaliciousLinks, maskIp } from "@/lib/security-shield";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -231,14 +232,38 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 4. Server-side validation ────────────────────────────────────────────
+    // ── 4. Server-side validation & OpsIQ Shield Phishing Link Scan ──────────
     const cleanName     = sanitize(name);
     const cleanEmail    = sanitize(email).toLowerCase();
     const cleanCompany  = sanitize(company);
     const cleanPhone    = sanitize(phone);
     const cleanInterest = sanitize(interest);
     const cleanCity     = sanitize(city);
-    const cleanMessage  = sanitize(message);
+    const phishingScan  = scanTextForPhishingAndMaliciousLinks(sanitize(message));
+    const cleanMessage  = phishingScan.isSuspicious
+      ? `[⚠️ OpsIQ Shield Flagged: ${phishingScan.flags.join("; ")}] ${phishingScan.sanitizedText}`
+      : phishingScan.sanitizedText;
+
+    if (phishingScan.isHighRisk && supabaseAdmin) {
+      try {
+        await supabaseAdmin.from("activity_log").insert({
+          org_id: targetOrg?.id || platformOrgId(),
+          actor_email: cleanEmail || `visitor@${maskIp(ip)}`,
+          actor_name: cleanName || "External Form Submission",
+          action: "admin_blocked",
+          resource_type: "lead",
+          resource_name: "Phishing / Malicious Link Defanged",
+          resource_id: "contact-form",
+          metadata: {
+            reason: `Phishing / Malicious Link Defanged (${phishingScan.flags.join(", ")})`,
+            riskScore: phishingScan.riskScore,
+            ip: maskIp(ip),
+          },
+        });
+      } catch {
+        /* non-fatal */
+      }
+    }
 
     if (!cleanName || !cleanEmail || !cleanInterest) {
       return NextResponse.json(

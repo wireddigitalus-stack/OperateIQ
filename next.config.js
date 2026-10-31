@@ -37,6 +37,12 @@ const nextConfig = {
           { key: "X-XSS-Protection", value: "1; mode=block" },
           // DNS prefetch for performance without leaking
           { key: "X-DNS-Prefetch-Control", value: "on" },
+          // Enforce HTTPS everywhere for 2 years + preload (anti-SSL-stripping / MITM)
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          // Isolate browsing context from malicious cross-origin popups/openers
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+          // Block Adobe Flash / PDF cross-domain policy abuse
+          { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
         ],
       },
       // ── No-cache for API routes — never serve stale auth responses ──────────
