@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle, LifeBuoy, Copy, Check } from "lucide-react";
-import { getCustomerCode } from "@/lib/platform";
+import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle, LifeBuoy, Copy, Check, Clock } from "lucide-react";
+import { getCustomerCode, getTrialCountdown } from "@/lib/platform";
 
 interface OrgOption {
   id: string;
   name: string;
   slug: string;
   tier: string;
+  subscription_status?: string;
+  trial_ends_at?: string | null;
+  created_at?: string | null;
   role?: string;
   custom_domain?: string | null;
   customer_code?: string;
@@ -158,11 +161,41 @@ export default function AdminHeader() {
           </button>
         )}
 
-        {activeOrg && (
-          <span className="hidden md:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/[0.04] border border-white/10 text-gray-400">
-            {activeOrg.tier} Tier
-          </span>
-        )}
+        {activeOrg && (() => {
+          const trialInfo =
+            activeOrg.subscription_status === "trialing" && activeOrg.id !== "00000000-0000-0000-0000-000000000001"
+              ? getTrialCountdown(activeOrg)
+              : null;
+
+          if (trialInfo) {
+            return (
+              <button
+                type="button"
+                onClick={() => router.push("/admin?tab=settings")}
+                title={`14-Day Free Trial (${trialInfo.longLabel} · Ends ${trialInfo.endDateShort})`}
+                className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                  trialInfo.isExpired || trialInfo.urgency === "critical"
+                    ? "bg-rose-500/15 border-rose-400/40 text-rose-300 hover:bg-rose-500/25"
+                    : trialInfo.urgency === "warning"
+                    ? "bg-amber-500/15 border-amber-400/40 text-amber-300 hover:bg-amber-500/25"
+                    : "bg-sky-500/15 border-sky-400/35 text-sky-300 hover:bg-sky-500/25"
+                }`}
+              >
+                <Clock size={12} />
+                <span className="capitalize">{activeOrg.tier} Trial</span>
+                <span className="px-1.5 py-0.2 rounded bg-black/30 font-mono text-[11px]">
+                  {trialInfo.shortLabel}
+                </span>
+              </button>
+            );
+          }
+
+          return (
+            <span className="hidden md:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/[0.04] border border-white/10 text-gray-400 capitalize">
+              {activeOrg.tier} Tier
+            </span>
+          );
+        })()}
       </div>
     </header>
   );

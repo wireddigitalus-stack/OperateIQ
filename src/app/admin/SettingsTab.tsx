@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import CustomDomainManager from "@/components/admin/CustomDomainManager";
 import { PLANS, getPlan, FEATURE_LABELS } from "@/lib/plans";
-import { getCustomerCode } from "@/lib/platform";
+import { getCustomerCode, getTrialCountdown } from "@/lib/platform";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 // ─── Types (shared with page.tsx) ─────────────────────────────────────────────
@@ -1093,6 +1093,8 @@ export function SubscriptionAndBillingCard({
     slug: string;
     tier: string;
     subscription_status?: string;
+    trial_ends_at?: string | null;
+    created_at?: string | null;
     custom_domain?: string | null;
   } | null;
   onClose?: () => void;
@@ -1106,6 +1108,7 @@ export function SubscriptionAndBillingCard({
 
   const currentPlan = getPlan(overrideTier || activeOrg?.tier || "starter");
   const isPaidActive = activeOrg?.subscription_status === "active" || Boolean(overrideTier);
+  const trialCountdown = !isPaidActive && activeOrg ? getTrialCountdown({ ...activeOrg, subscription_status: activeOrg.subscription_status || "trialing" }) : null;
 
   // Sync across multiple mounted instances when oiq-org-updated fires
   useEffect(() => {
@@ -1243,14 +1246,44 @@ export function SubscriptionAndBillingCard({
                 {currentPlan.name} Plan · ${currentPlan.monthly}/mo
               </span>
               {!isPaidActive && (
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-black uppercase tracking-wider">
-                  14-Day Trial
+                <span
+                  className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider border ${
+                    trialCountdown?.isExpired || trialCountdown?.urgency === "critical"
+                      ? "bg-rose-500/20 border-rose-400/40 text-rose-300"
+                      : "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                  }`}
+                >
+                  <Clock size={11} />
+                  <span>
+                    {trialCountdown ? `14-Day Trial · ${trialCountdown.longLabel}` : "14-Day Trial"}
+                  </span>
                 </span>
               )}
             </div>
             <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
               Upgrade or switch plans anytime via secure Stripe Checkout, or manage invoices and payment methods.
             </p>
+            {trialCountdown && (
+              <div className="mt-2.5 flex items-center gap-3 max-w-md">
+                <div className="flex-1 h-2 rounded-full bg-black/50 border border-white/10 overflow-hidden p-0.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      trialCountdown.isExpired || trialCountdown.urgency === "critical"
+                        ? "bg-gradient-to-r from-rose-500 to-orange-400"
+                        : trialCountdown.urgency === "warning"
+                        ? "bg-gradient-to-r from-amber-500 to-yellow-400"
+                        : "bg-gradient-to-r from-sky-400 to-emerald-400"
+                    }`}
+                    style={{ width: `${Math.max(5, trialCountdown.remainingPct)}%` }}
+                  />
+                </div>
+                <span className="text-[11px] font-mono font-bold text-slate-300 whitespace-nowrap">
+                  {trialCountdown.isExpired
+                    ? `Ended ${trialCountdown.endDateShort}`
+                    : `${trialCountdown.daysRemaining}/${trialCountdown.totalDays}d left · Ends ${trialCountdown.endDateShort}`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1430,6 +1463,8 @@ export function PlanAndBillingModal({
     slug: string;
     tier: string;
     subscription_status?: string;
+    trial_ends_at?: string | null;
+    created_at?: string | null;
     custom_domain?: string | null;
   } | null;
   onSubscriptionUpdated?: (tier: string, status: string) => void;
@@ -2375,6 +2410,8 @@ function SettingsPanel({
     slug: string;
     tier: string;
     subscription_status?: string;
+    trial_ends_at?: string | null;
+    created_at?: string | null;
     custom_domain?: string | null;
   } | null;
   onDomainUpdated?: (domain: string | null) => void;

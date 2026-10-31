@@ -30,7 +30,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { isSuperAdmin, getCustomerCode } from "@/lib/platform";
+import { isSuperAdmin, getCustomerCode, getTrialCountdown } from "@/lib/platform";
 import { PLANS, type Tier } from "@/lib/plans";
 import { TECH_SUPPORT_GUIDES, BASIC_FAQS, ACCENT_STYLES } from "@/lib/help-data";
 import type { SupportTicketItem } from "@/app/api/support-tickets/route";
@@ -283,7 +283,7 @@ export default function PlatformDashboardPage() {
     }
   }
 
-  async function handleExtendTrial() {
+  async function handleExtendTrial(days = 14) {
     if (!editOrg) return;
     setExtendingTrial(true);
     try {
@@ -292,7 +292,7 @@ export default function PlatformDashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editOrg.id,
-          extend_trial_days: 14,
+          extend_trial_days: days,
         }),
       });
       const data = await res.json();
@@ -737,6 +737,7 @@ export default function PlatformDashboardPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {matchedOrgs.slice(0, 6).map((org) => {
                       const code = org.customer_code || getCustomerCode(org.id);
+                      const trialInfo = org.subscription_status === "trialing" ? getTrialCountdown(org) : null;
                       return (
                         <div
                           key={org.id}
@@ -752,8 +753,19 @@ export default function PlatformDashboardPage() {
                                 <span>{copiedCode === `diag-${org.id}` ? "Copied!" : code}</span>
                                 {copiedCode === `diag-${org.id}` ? <Check size={12} /> : <Copy size={12} />}
                               </button>
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/10 text-slate-200 border border-white/15">
-                                {org.tier} · {org.subscription_status}
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                  trialInfo
+                                    ? trialInfo.isExpired || trialInfo.urgency === "critical"
+                                      ? "bg-rose-500/15 text-rose-300 border-rose-400/35"
+                                      : "bg-amber-500/15 text-amber-300 border-amber-400/35"
+                                    : "bg-white/10 text-slate-200 border-white/15"
+                                }`}
+                              >
+                                {trialInfo && <Clock size={10} />}
+                                <span>
+                                  {org.tier} · {trialInfo ? `Trial (${trialInfo.shortLabel})` : org.subscription_status}
+                                </span>
                               </span>
                             </div>
                             <h3 className="text-base font-extrabold text-white truncate">{org.name}</h3>
@@ -1274,11 +1286,17 @@ export default function PlatformDashboardPage() {
                           ? "text-cyan-300 bg-cyan-950/60 border-cyan-500/40"
                           : "text-slate-300 bg-slate-800/60 border-slate-600/40";
 
+                      const trialInfo = org.subscription_status === "trialing" ? getTrialCountdown(org) : null;
+
                       const statusColor =
                         org.subscription_status === "active"
                           ? "text-emerald-400 bg-emerald-950/40 border-emerald-500/30"
                           : org.subscription_status === "trialing"
-                          ? "text-amber-400 bg-amber-950/40 border-amber-500/30"
+                          ? trialInfo?.isExpired || trialInfo?.urgency === "critical"
+                            ? "text-rose-300 bg-rose-950/50 border-rose-500/40"
+                            : trialInfo?.urgency === "warning"
+                            ? "text-amber-300 bg-amber-950/50 border-amber-500/40"
+                            : "text-sky-300 bg-sky-950/50 border-sky-400/40"
                           : "text-rose-400 bg-rose-950/40 border-rose-500/30";
 
                       const code = org.customer_code || getCustomerCode(org.id);
@@ -1317,12 +1335,44 @@ export default function PlatformDashboardPage() {
                           </td>
 
                           <td className="py-4 px-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize border ${statusColor}`}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                              {org.subscription_status}
-                            </span>
+                            <div className="inline-flex flex-col gap-1.5 min-w-[132px]">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold capitalize border w-fit ${statusColor}`}
+                              >
+                                {trialInfo ? (
+                                  <Clock size={11} className="flex-shrink-0" />
+                                ) : (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                )}
+                                <span>
+                                  {trialInfo
+                                    ? `Trial · ${trialInfo.shortLabel}`
+                                    : org.subscription_status}
+                                </span>
+                              </span>
+
+                              {trialInfo && (
+                                <div className="w-32">
+                                  <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all duration-500 ${
+                                        trialInfo.isExpired || trialInfo.urgency === "critical"
+                                          ? "bg-gradient-to-r from-rose-500 to-orange-400"
+                                          : trialInfo.urgency === "warning"
+                                          ? "bg-gradient-to-r from-amber-500 to-yellow-400"
+                                          : "bg-gradient-to-r from-sky-400 to-emerald-400"
+                                      }`}
+                                      style={{ width: `${Math.max(6, trialInfo.remainingPct)}%` }}
+                                    />
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                    {trialInfo.isExpired
+                                      ? `Ended ${trialInfo.endDateShort}`
+                                      : `${trialInfo.daysRemaining}/${trialInfo.totalDays}d · Ends ${trialInfo.endDateShort}`}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           </td>
 
                           <td className="py-4 px-4 font-semibold text-slate-200">
@@ -1537,28 +1587,100 @@ export default function PlatformDashboardPage() {
                 </select>
               </div>
 
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3">
-                <div className="text-xs">
-                  <span className="text-slate-400 block">Trial Expiration</span>
-                  <span className="text-white font-semibold">
-                    {editOrg.trial_ends_at
-                      ? new Date(editOrg.trial_ends_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : "No active trial date"}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleExtendTrial}
-                  disabled={extendingTrial}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {extendingTrial ? "Extending…" : "+14 Days Trial"}
-                </button>
-              </div>
+              {(() => {
+                const editTrial = getTrialCountdown({
+                  ...editOrg,
+                  subscription_status: editStatus,
+                });
+                const isTrialMode = editStatus === "trialing" || Boolean(editOrg.trial_ends_at);
+
+                return (
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.015] border border-white/12 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-300">
+                          <Clock size={15} />
+                        </div>
+                        <div>
+                          <span className="text-xs font-extrabold text-white block">
+                            14-Day Trial Countdown
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {editTrial && isTrialMode
+                              ? `Expires ${editTrial.endDateFull}`
+                              : editStatus === "active"
+                              ? "Paid subscription active (no trial limit)"
+                              : "No active trial window"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {editTrial && isTrialMode && (
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+                            editTrial.isExpired || editTrial.urgency === "critical"
+                              ? "bg-rose-500/20 text-rose-300 border-rose-400/40"
+                              : editTrial.urgency === "warning"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-400/40"
+                              : "bg-emerald-500/20 text-emerald-300 border-emerald-400/40"
+                          }`}
+                        >
+                          {editTrial.longLabel}
+                        </span>
+                      )}
+                    </div>
+
+                    {editTrial && isTrialMode && (
+                      <div>
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
+                          <span>
+                            {editTrial.isExpired
+                              ? "0 of 14 days remaining"
+                              : `${editTrial.daysRemaining} of ${editTrial.totalDays} days remaining`}
+                          </span>
+                          <span className="font-mono text-sky-300">{editTrial.remainingPct}%</span>
+                        </div>
+                        <div className="h-2.5 w-full rounded-full bg-black/50 border border-white/10 overflow-hidden p-0.5">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              editTrial.isExpired || editTrial.urgency === "critical"
+                                ? "bg-gradient-to-r from-rose-500 to-orange-400"
+                                : editTrial.urgency === "warning"
+                                ? "bg-gradient-to-r from-amber-500 to-yellow-400"
+                                : "bg-gradient-to-r from-sky-400 to-emerald-400"
+                            }`}
+                            style={{ width: `${Math.max(4, editTrial.remainingPct)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <span className="text-[11px] text-slate-400">
+                        Grant extra evaluation time:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleExtendTrial(7)}
+                          disabled={extendingTrial}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-300 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          {extendingTrial ? "…" : "+7 Days"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleExtendTrial(14)}
+                          disabled={extendingTrial}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          {extendingTrial ? "Extending…" : "+14 Days Trial"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">Custom Domain (Pro Tier)</label>

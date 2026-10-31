@@ -72,3 +72,99 @@ export function getCustomerCode(
   }
   return `OIQ-${chars.join("")}`;
 }
+
+export interface TrialCountdownInfo {
+  isTrialing: boolean;
+  daysRemaining: number;
+  rawDaysRemaining: number;
+  isExpired: boolean;
+  totalDays: number;
+  remainingPct: number;
+  elapsedPct: number;
+  endDate: Date | null;
+  endDateShort: string;
+  endDateFull: string;
+  shortLabel: string;
+  longLabel: string;
+  urgency: "healthy" | "warning" | "critical" | "expired";
+}
+
+/**
+ * Computes a rich 14-day trial countdown state from `trial_ends_at` (or `created_at` + 14 days fallback).
+ */
+export function getTrialCountdown(org?: {
+  subscription_status?: string | null;
+  trial_ends_at?: string | null;
+  created_at?: string | null;
+} | null): TrialCountdownInfo | null {
+  if (!org) return null;
+  const status = (org.subscription_status || "").toLowerCase();
+  const isTrialing = status === "trialing";
+  if (!isTrialing && !org.trial_ends_at) return null;
+
+  const totalDays = 14;
+  let endMs: number | null = null;
+
+  if (org.trial_ends_at) {
+    const parsed = Date.parse(org.trial_ends_at);
+    if (!Number.isNaN(parsed)) endMs = parsed;
+  }
+  if (endMs === null && org.created_at) {
+    const createdMs = Date.parse(org.created_at);
+    if (!Number.isNaN(createdMs)) {
+      endMs = createdMs + totalDays * 86_400_000;
+    }
+  }
+  if (endMs === null) {
+    endMs = Date.now() + totalDays * 86_400_000;
+  }
+
+  const nowMs = Date.now();
+  const diffMs = endMs - nowMs;
+  const rawDaysRemaining = Math.ceil(diffMs / 86_400_000);
+  const daysRemaining = Math.max(0, rawDaysRemaining);
+  const isExpired = diffMs <= 0;
+
+  const remainingPct = Math.max(0, Math.min(100, Math.round((daysRemaining / totalDays) * 100)));
+  const elapsedPct = Math.max(0, Math.min(100, 100 - remainingPct));
+
+  const endDate = new Date(endMs);
+  const endDateShort = endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const endDateFull = endDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  let urgency: "healthy" | "warning" | "critical" | "expired" = "healthy";
+  if (isExpired) urgency = "expired";
+  else if (daysRemaining <= 3) urgency = "critical";
+  else if (daysRemaining <= 7) urgency = "warning";
+
+  let shortLabel = `${daysRemaining}d left`;
+  let longLabel = `${daysRemaining} ${daysRemaining === 1 ? "day" : "days"} left`;
+  if (isExpired) {
+    const daysAgo = Math.abs(rawDaysRemaining);
+    shortLabel = daysAgo === 0 ? "Ended today" : `Expired ${daysAgo}d ago`;
+    longLabel = daysAgo === 0 ? "Trial ended today" : `Trial expired ${daysAgo} ${daysAgo === 1 ? "day" : "days"} ago`;
+  } else if (daysRemaining === 1) {
+    shortLabel = "1d left";
+    longLabel = "1 day remaining";
+  }
+
+  return {
+    isTrialing,
+    daysRemaining,
+    rawDaysRemaining,
+    isExpired,
+    totalDays,
+    remainingPct,
+    elapsedPct,
+    endDate,
+    endDateShort,
+    endDateFull,
+    shortLabel,
+    longLabel,
+    urgency,
+  };
+}
