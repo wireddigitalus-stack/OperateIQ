@@ -74,15 +74,28 @@ interface Stats {
   trialing: number;
 }
 
+interface PlatformSecurityLog {
+  id: string;
+  org_id?: string | null;
+  customer_code?: string;
+  action: "admin_login" | "admin_blocked" | string;
+  actor_name: string;
+  actor_role?: string;
+  description: string;
+  created_at: string;
+  meta?: Record<string, string>;
+}
+
 export default function PlatformDashboardPage() {
   const router = useRouter();
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"organizations" | "signups" | "support">("organizations");
+  const [activeTab, setActiveTab] = useState<"organizations" | "signups" | "support" | "security">("organizations");
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [signups, setSignups] = useState<PlatformSignup[]>([]);
+  const [securityLogs, setSecurityLogs] = useState<PlatformSecurityLog[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicketItem[]>([]);
   const [ticketStatusFilter, setTicketStatusFilter] = useState<"all" | "Open" | "Resolved">("all");
   const [lookupCode, setLookupCode] = useState("");
@@ -92,6 +105,26 @@ export default function PlatformDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterTier, setFilterTier] = useState<string>("all");
+
+  // Master Security & OpsIQ Shield states
+  const [isRunningSecurityAudit, setIsRunningSecurityAudit] = useState(false);
+  const [securityAuditResult, setSecurityAuditResult] = useState<{
+    status: "secure" | "warning" | "critical";
+    securityScore?: number;
+    summary: string;
+    recommendation: string;
+    auditedAt: string;
+  } | null>(null);
+  const [phishingInput, setPhishingInput] = useState("");
+  const [isScanningPhishing, setIsScanningPhishing] = useState(false);
+  const [phishingResult, setPhishingResult] = useState<{
+    riskLevel: "safe" | "caution" | "danger";
+    riskScore: number;
+    headline: string;
+    redFlags: string[];
+    actionStep: string;
+    scannedAt: string;
+  } | null>(null);
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -120,6 +153,96 @@ export default function PlatformDashboardPage() {
     }, 2000);
   }
 
+  async function runMasterSecurityAudit(simulateAttack = false) {
+    setIsRunningSecurityAudit(true);
+    try {
+      let logsToAudit = securityLogs.slice(0, 20).map((item) => ({
+        status: (item.action === "admin_blocked" ? "blocked" : "success") as "success" | "blocked",
+        email: item.actor_name,
+        device: item.meta?.device || "Platform Browser",
+        reason: item.meta?.reason || item.description,
+        timestamp: item.created_at,
+      }));
+
+      if (simulateAttack) {
+        const now = new Date();
+        logsToAudit = [
+          {
+            status: "blocked",
+            email: "Unknown Crew PIN Attempt (IP: 185.220.101.44)",
+            device: "Automated Python Scanner / Tor Exit Node",
+            reason: "Invalid 4-digit PIN (Attempt 6/6 — 15-min IP Lockout Triggered)",
+            timestamp: now.toISOString(),
+          },
+          {
+            status: "blocked",
+            email: "bot-scanner@protonmail.com",
+            device: "HeadlessLinux / Chrome 120",
+            reason: "Edge WAF Exploit Probe (/.env & /wp-admin blocked with 403)",
+            timestamp: new Date(now.getTime() - 45_000).toISOString(),
+          },
+          {
+            status: "blocked",
+            email: "admin-spoof@evil-domain.ru",
+            device: "Windows 10 / curl 8.4.0",
+            reason: "Cross-Site Request Forgery (CSRF Origin Mismatch Blocked)",
+            timestamp: new Date(now.getTime() - 110_000).toISOString(),
+          },
+          ...logsToAudit,
+        ];
+      }
+
+      const res = await fetch("/api/security-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logs: logsToAudit }),
+      });
+      const data = await res.json();
+      if (res.ok && data.summary) {
+        setSecurityAuditResult({
+          status: data.status || "secure",
+          securityScore: typeof data.securityScore === "number" ? data.securityScore : undefined,
+          summary: data.summary,
+          recommendation: data.recommendation || "",
+          auditedAt: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        });
+      }
+    } catch {
+      // Fallback handled silently
+    } finally {
+      setIsRunningSecurityAudit(false);
+    }
+  }
+
+  async function handleScanPhishingText(overrideText?: string) {
+    const text = (overrideText ?? phishingInput).trim();
+    if (!text) return;
+    if (overrideText) setPhishingInput(overrideText);
+    setIsScanningPhishing(true);
+    try {
+      const res = await fetch("/api/security-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "scan_phishing", textToScan: text }),
+      });
+      const data = await res.json();
+      if (res.ok && data.headline) {
+        setPhishingResult({
+          riskLevel: data.riskLevel || "caution",
+          riskScore: typeof data.riskScore === "number" ? data.riskScore : 50,
+          headline: data.headline,
+          redFlags: Array.isArray(data.redFlags) ? data.redFlags : [],
+          actionStep: data.actionStep || "Verify sender identity by phone before acting.",
+          scannedAt: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        });
+      }
+    } catch {
+      // Fallback handled silently
+    } finally {
+      setIsScanningPhishing(false);
+    }
+  }
+
   // 1. Verify Platform Super-Admin access
   useEffect(() => {
     // Security: purge any stale client-side demo tokens immediately
@@ -146,7 +269,7 @@ export default function PlatformDashboardPage() {
     });
   }, []);
 
-  // 2. Fetch all organizations & platform stats & signups
+  // 2. Fetch all organizations & platform stats & signups & security logs
   const loadPlatformData = () => {
     setLoading(true);
     Promise.all([
@@ -155,6 +278,7 @@ export default function PlatformDashboardPage() {
         .then((data) => {
           if (data.organizations) setOrgs(data.organizations);
           if (data.stats) setStats(data.stats);
+          if (Array.isArray(data.securityLogs)) setSecurityLogs(data.securityLogs);
         }),
       fetch("/api/platform/signups")
         .then((res) => res.json())
@@ -589,7 +713,7 @@ export default function PlatformDashboardPage() {
         )}
 
         {/* ── Tabs Navigation ── */}
-        <div className="flex items-center gap-2 border-b border-white/10 mb-6 pb-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 mb-6 pb-2">
           <button
             onClick={() => setActiveTab("organizations")}
             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
@@ -636,42 +760,471 @@ export default function PlatformDashboardPage() {
               {supportTickets.filter((t) => t.status === "Open").length} open
             </span>
           </button>
+
+          <button
+            onClick={() => setActiveTab("security")}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === "security"
+                ? "bg-emerald-500/20 text-white shadow-sm border border-emerald-400/45"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <ShieldCheck size={16} className={activeTab === "security" ? "text-emerald-400" : ""} />
+            <span>Security &amp; OpsIQ Shield</span>
+            {(() => {
+              const blockedCount = securityLogs.filter((l) => l.action === "admin_blocked").length;
+              return (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                    blockedCount > 0
+                      ? "bg-rose-500/20 border-rose-400/40 text-rose-200"
+                      : "bg-emerald-500/20 border-emerald-400/40 text-emerald-200"
+                  }`}
+                >
+                  {blockedCount > 0 ? `${blockedCount} blocked` : "Shield Active"}
+                </span>
+              );
+            })()}
+          </button>
         </div>
 
         {/* Search & Filters */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <div className="relative w-full sm:w-96">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search by Customer Code (e.g. OIQ-7F4K), company name, slug, domain, or email…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
-            />
-          </div>
-
-          {activeTab === "organizations" && (
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              {["all", "starter", "growth", "pro"].map((tier) => (
-                <button
-                  key={tier}
-                  onClick={() => setFilterTier(tier)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
-                    filterTier === tier
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.07]"
-                  }`}
-                >
-                  {tier}
-                </button>
-              ))}
+        {activeTab !== "security" && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+            <div className="relative w-full sm:w-96">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search by Customer Code (e.g. OIQ-7F4K), company name, slug, domain, or email…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+              />
             </div>
-          )}
-        </div>
+
+            {activeTab === "organizations" && (
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                {["all", "starter", "growth", "pro"].map((tier) => (
+                  <button
+                    key={tier}
+                    onClick={() => setFilterTier(tier)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
+                      filterTier === tier
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.07]"
+                    }`}
+                  >
+                    {tier}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tables Section */}
-        {activeTab === "support" ? (
+        {activeTab === "security" ? (
+          <div className="space-y-6">
+            {/* 1. Global Security Score & OpsIQ Shield AI Command Center */}
+            {(() => {
+              const blockedCount = securityLogs.filter((l) => l.action === "admin_blocked").length;
+              const defaultScore = blockedCount === 0 ? 98 : blockedCount >= 3 ? 42 : 76;
+              const liveScore = securityAuditResult?.securityScore ?? defaultScore;
+              const liveStatus =
+                securityAuditResult?.status ??
+                (blockedCount === 0 ? "secure" : blockedCount >= 3 ? "critical" : "warning");
+
+              return (
+                <div className="oiq-card p-6 border border-emerald-500/35 bg-gradient-to-br from-[#07161B] via-[#091224] to-[#0B172A]">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-5 border-b border-white/10">
+                    <div className="flex items-start gap-4">
+                      {/* Score Gauge */}
+                      <div
+                        className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shadow-lg flex-shrink-0 ${
+                          liveStatus === "critical"
+                            ? "bg-rose-950/80 border-rose-400/50 text-rose-300"
+                            : liveStatus === "warning"
+                            ? "bg-amber-950/80 border-amber-400/50 text-amber-300"
+                            : "bg-emerald-950/80 border-emerald-400/50 text-emerald-300"
+                        }`}
+                      >
+                        <span className="text-2xl font-black leading-none">{liveScore}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-widest opacity-80 mt-0.5">
+                          Score
+                        </span>
+                      </div>
+
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+                            <ShieldCheck size={12} /> OpsIQ Shield AI · Master Defense Center
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 font-mono">
+                            www.PropOpsIQ.com
+                          </span>
+                        </div>
+                        <h2 className="text-xl font-extrabold text-white">
+                          Global Anti-Hacker, Anti-Cracker &amp; Anti-Phisher Command Center
+                        </h2>
+                        <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
+                          Real-time edge WAF protection, constant-time PIN brute-force defense, cross-tenant RLS isolation, and AI phishing/wire-scam inspection across all {orgs.length} client organizations.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => runMasterSecurityAudit(false)}
+                        disabled={isRunningSecurityAudit}
+                        className="px-4 py-2.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-emerald-500 to-cyan-600 hover:opacity-95 transition-opacity shadow-md disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                      >
+                        {isRunningSecurityAudit ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Auditing Platform…</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck size={14} />
+                            <span>Audit Platform Now</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => runMasterSecurityAudit(true)}
+                        disabled={isRunningSecurityAudit}
+                        className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/35 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        ⚡ Simulate Hacker / Cracker Attack
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* AI Executive Audit Banner */}
+                  <div className="mt-5 rounded-xl p-4 bg-[#060B16]/90 border border-white/10">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <span
+                        className={`text-xs font-black uppercase tracking-wider ${
+                          liveStatus === "critical"
+                            ? "text-rose-400"
+                            : liveStatus === "warning"
+                            ? "text-amber-300"
+                            : "text-emerald-400"
+                        }`}
+                      >
+                        {liveStatus === "critical"
+                          ? "🚨 Threat Alert — Active Brute-Force / Exploit Probe Neutralized"
+                          : liveStatus === "warning"
+                          ? "⚠️ Elevated Vigilance — Blocked Auth Attempts Logged"
+                          : "✅ All 4 Defense Layers Nominal — Zero Active Breaches"}
+                      </span>
+                      {securityAuditResult?.auditedAt && (
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          Audited at {securityAuditResult.auditedAt}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs sm:text-sm text-white font-semibold leading-relaxed">
+                      {securityAuditResult?.summary ||
+                        `OpsIQ Shield is actively guarding www.PropOpsIQ.com across ${orgs.length} tenant workspaces. ${
+                          blockedCount > 0
+                            ? `${blockedCount} unauthorized login or PIN attempt(s) were automatically blocked and logged.`
+                            : "Zero unauthorized access attempts or cross-origin anomalies detected."
+                        }`}
+                    </p>
+                    <p className="text-xs text-cyan-200/90 mt-1.5">
+                      <span className="font-bold text-cyan-300">OpsIQ Shield Directive:</span>{" "}
+                      {securityAuditResult?.recommendation ||
+                        "Click 'Audit Platform Now' to run a live Gemini 2.5 Flash security posture analysis, or 'Simulate Hacker / Cracker Attack' to test threat detection."}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 2. 4 Active Defense Layer Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="oiq-card p-5 border border-emerald-500/25">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400">
+                    Layer 1 · Anti-Hacker
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Active
+                  </span>
+                </div>
+                <p className="text-sm font-extrabold text-white">Edge WAF &amp; Exploit Trap</p>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Blocks <code className="text-slate-200">/.env</code>, <code className="text-slate-200">/.git</code>, <code className="text-slate-200">/wp-admin</code>, and <code className="text-slate-200">.php</code> probes at the edge before hitting Next.js or Supabase. Enforces strict CSRF Origin checks and HSTS Preload.
+                </p>
+              </div>
+
+              <div className="oiq-card p-5 border border-cyan-500/25">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-cyan-400">
+                    Layer 2 · Anti-Cracker
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    Active
+                  </span>
+                </div>
+                <p className="text-sm font-extrabold text-white">PIN &amp; Auth Brute-Force Guard</p>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Constant-time jitter (220–380ms) defeats timing attacks. Locks out IPs for 15 minutes after 6 failed PINs, blocks trivial PINs (<code className="text-slate-200">0000</code>, <code className="text-slate-200">1234</code>), and logs every failure.
+                </p>
+              </div>
+
+              <div className="oiq-card p-5 border border-indigo-500/25">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-indigo-400">
+                    Layer 3 · Anti-Phisher
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    Active
+                  </span>
+                </div>
+                <p className="text-sm font-extrabold text-white">Link Defanger &amp; Domain Seal</p>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Automatically defangs raw <code className="text-slate-200">http://</code> links in public leads (<code className="text-slate-200">hxxp://</code>), flags wire/gift-card lures, and displays a live <code className="text-slate-200">www.PropOpsIQ.com</code> anti-spoofing seal on login.
+                </p>
+              </div>
+
+              <div className="oiq-card p-5 border border-purple-500/25">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-purple-400">
+                    Layer 4 · Multi-Tenant RLS
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    Active
+                  </span>
+                </div>
+                <p className="text-sm font-extrabold text-white">Strict Org &amp; Crew Isolation</p>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  PostgreSQL Row-Level Security isolates every <code className="text-slate-200">org_id</code>. Crew sessions use HMAC-SHA256 <code className="text-slate-200">httpOnly</code> cookies and cannot access <code className="text-slate-200">/admin</code> or <code className="text-slate-200">/platform</code>.
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Interactive Phishing, Suspicious Link & Wire-Scam Inspector */}
+            <div className="oiq-card p-6 border border-cyan-500/30 bg-[#080F20]">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 mb-1.5">
+                    🛡️ OpsIQ AI Phishing &amp; Wire-Scam Inspector
+                  </span>
+                  <h3 className="text-base sm:text-lg font-extrabold text-white">
+                    Scan Suspicious Emails, Texts, Vendor Invoices &amp; Links
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Paste any suspicious message or URL below. OpsIQ Shield AI inspects lookalike domains, urgente wire/ACH routing changes, and credential-harvesting lures.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleScanPhishingText(
+                        "URGENT: Please update our HVAC vendor payout to our new ACH routing 021000021 account 99812344 immediately and wire the $4,850 invoice balance today so we don't pause service."
+                      )
+                    }
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/15 transition-colors cursor-pointer"
+                  >
+                    Test Vendor Wire Scam
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleScanPhishingText(
+                        "Action Required: Your PropOpsIQ administrator password expires in 2 hours. Verify your account immediately at http://prop0psiq-security-login.tk/verify or your portfolio will be suspended."
+                      )
+                    }
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/15 transition-colors cursor-pointer"
+                  >
+                    Test Lookalike Phishing Link
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <textarea
+                  rows={3}
+                  value={phishingInput}
+                  onChange={(e) => setPhishingInput(e.target.value)}
+                  placeholder="Paste a suspicious email, SMS, vendor ACH change request, or URL here to inspect with OpsIQ Shield AI…"
+                  className="flex-1 rounded-xl bg-[#050914] border border-white/15 p-3 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleScanPhishingText()}
+                  disabled={isScanningPhishing || !phishingInput.trim()}
+                  className="sm:w-48 px-4 py-3 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-cyan-500 to-indigo-600 hover:opacity-95 transition-opacity disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {isScanningPhishing ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      <span>Inspecting…</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck size={15} />
+                      <span>Scan for Phishing</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {phishingResult && (
+                <div
+                  className={`mt-4 rounded-xl p-4 border ${
+                    phishingResult.riskLevel === "danger"
+                      ? "bg-rose-950/60 border-rose-500/50 text-rose-100"
+                      : phishingResult.riskLevel === "caution"
+                      ? "bg-amber-950/60 border-amber-500/50 text-amber-100"
+                      : "bg-emerald-950/60 border-emerald-500/50 text-emerald-100"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                          phishingResult.riskLevel === "danger"
+                            ? "bg-rose-500 text-white"
+                            : phishingResult.riskLevel === "caution"
+                            ? "bg-amber-400 text-slate-950"
+                            : "bg-emerald-500 text-slate-950"
+                        }`}
+                      >
+                        {phishingResult.riskLevel.toUpperCase()} · Risk {phishingResult.riskScore}/100
+                      </span>
+                      <span className="text-sm font-extrabold text-white">{phishingResult.headline}</span>
+                    </div>
+                    <span className="text-[11px] opacity-75 font-mono">
+                      Scanned at {phishingResult.scannedAt}
+                    </span>
+                  </div>
+
+                  {phishingResult.redFlags.length > 0 && (
+                    <ul className="list-disc list-inside text-xs space-y-1 mb-2.5 opacity-95">
+                      {phishingResult.redFlags.map((flag, idx) => (
+                        <li key={idx}>{flag}</li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <p className="text-xs font-bold bg-black/30 rounded-lg px-3 py-2 border border-white/10">
+                    🛡️ Recommended Action: {phishingResult.actionStep}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Global Cross-Organization Security & Auth Event Log */}
+            <div className="oiq-card overflow-hidden">
+              <div className="p-5 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                    <Lock size={16} className="text-cyan-400" />
+                    <span>Global Cross-Organization Security &amp; Auth Event Log</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Live stream of administrator sign-ins, failed Crew PIN lockouts, and blocked access attempts across all customer organizations.
+                  </p>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-white/5 border border-white/10 text-slate-300">
+                  {securityLogs.length} recent events
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-white/[0.02] border-b border-white/[0.08] text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    <tr>
+                      <th className="py-3 px-5">Status</th>
+                      <th className="py-3 px-4">Customer / Org</th>
+                      <th className="py-3 px-4">Actor / IP</th>
+                      <th className="py-3 px-4">Security Event &amp; Device</th>
+                      <th className="py-3 px-5 text-right">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.06]">
+                    {securityLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-10 text-center text-slate-400 text-xs">
+                          <CheckCircle2 size={22} className="text-emerald-400 mx-auto mb-2" />
+                          No blocked attempts or anomalous auth events recorded across customer organizations.
+                        </td>
+                      </tr>
+                    ) : (
+                      securityLogs.map((log) => {
+                        const isBlocked = log.action === "admin_blocked";
+                        const orgMatch = log.org_id ? orgs.find((o) => o.id === log.org_id) : null;
+                        const code = log.customer_code || (log.org_id ? getCustomerCode(log.org_id) : null);
+
+                        return (
+                          <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="py-3.5 px-5 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                                  isBlocked
+                                    ? "bg-rose-950/60 text-rose-300 border-rose-500/40"
+                                    : "bg-emerald-950/50 text-emerald-300 border-emerald-500/30"
+                                }`}
+                              >
+                                {isBlocked ? <AlertCircle size={12} /> : <CheckCircle2 size={12} />}
+                                <span>{isBlocked ? "Blocked" : "Verified"}</span>
+                              </span>
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white text-xs">
+                                  {orgMatch?.name || "Platform / Global"}
+                                </span>
+                                {code && (
+                                  <span className="px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 font-mono text-[10px] font-bold">
+                                    {code}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4 text-xs font-mono text-slate-200">
+                              {log.actor_name}
+                            </td>
+
+                            <td className="py-3.5 px-4 text-xs">
+                              <p className="font-semibold text-white">
+                                {log.meta?.reason || log.description}
+                              </p>
+                              {log.meta?.device && (
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                  Device: {log.meta.device}
+                                </p>
+                              )}
+                            </td>
+
+                            <td className="py-3.5 px-5 text-right text-xs text-slate-400 whitespace-nowrap font-mono">
+                              {new Date(log.created_at).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === "support" ? (
           <div className="space-y-8">
             {/* 1. Instant Customer Support Code (OIQ-XXXX) Troubleshooter */}
             <div className="oiq-card p-6 border border-sky-500/30 bg-gradient-to-br from-[#0B1328] via-[#0A1020] to-[#0D1830]">

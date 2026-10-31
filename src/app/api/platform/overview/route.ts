@@ -73,12 +73,13 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. Fetch counts per organization & signups
+    // 2. Fetch counts per organization, signups & recent cross-org security events
     const [
       { data: properties },
       { data: tenants },
       { data: tickets },
       { data: rawSignups },
+      { data: rawSecurityLogs },
     ] = await Promise.all([
       supabaseAdmin.from("properties").select("id, org_id"),
       supabaseAdmin.from("tenants").select("id, org_id"),
@@ -88,6 +89,12 @@ export async function GET(req: NextRequest) {
         .select("*")
         .order("submitted_at", { ascending: false })
         .limit(100),
+      supabaseAdmin
+        .from("activity_log")
+        .select("*")
+        .in("action", ["admin_login", "admin_blocked"])
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
 
     const propsMap: Record<string, number> = {};
@@ -122,6 +129,11 @@ export async function GET(req: NextRequest) {
       ...(s.org_id ? { customer_code: getCustomerCode(s.org_id) } : {}),
     }));
 
+    const enrichedSecurityLogs = (rawSecurityLogs || []).map((log: { org_id?: string | null } & Record<string, unknown>) => ({
+      ...log,
+      ...(log.org_id ? { customer_code: getCustomerCode(log.org_id) } : {}),
+    }));
+
     const stats = {
       totalOrgs: enrichedOrgs.length,
       totalProperties: Object.values(propsMap).reduce((a, b) => a + b, 0),
@@ -133,6 +145,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       organizations: enrichedOrgs,
       signups: enrichedSignups,
+      securityLogs: enrichedSecurityLogs,
       stats,
     });
   } catch (error) {
