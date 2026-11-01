@@ -132,7 +132,7 @@ export default function HomePage() {
       <section className="px-5 pb-24">
         <div className="mx-auto max-w-5xl oiq-card oiq-glow p-12 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white">Ready to run smarter?</h2>
-          <p className="mt-4 text-slate-300">Join owners who've traded spreadsheets for {BRAND.name}.</p>
+          <p className="mt-4 text-slate-300">Join owners who've traded spreadsheets for real Property Intelligence.</p>
           <ul className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-300">
             {["Free for " + TRIAL_DAYS + " days", "No credit card", "Cancel anytime"].map((t) => (
               <li key={t} className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-[var(--oiq-cyan)]" />{t}</li>
