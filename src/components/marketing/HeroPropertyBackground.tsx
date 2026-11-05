@@ -67,7 +67,7 @@ export default function HeroPropertyBackground() {
       {/* 3. GPU spectral data wave — pinned to the first screen (the hero section is much taller
              because it contains the dashboard demo card), additive glow above scrims, below copy */}
       <div className="absolute inset-x-0 top-0 h-[100svh] min-h-[640px] max-h-[980px] z-20">
-        <HeroWaveGL intensity={0.95} speed={1.0} />
+        <HeroWaveGL intensity={0.95} speed={0.9} />
       </div>
     </div>
   );
