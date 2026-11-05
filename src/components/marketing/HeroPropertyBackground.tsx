@@ -59,13 +59,13 @@ export default function HeroPropertyBackground() {
         );
       })}
 
-      {/* 2. 3D Undulating Data Graph & Wave Mesh (Live Property Telemetry) */}
-      <HeroDataWave opacity={0.65} speed={0.85} interactive={true} className="z-20" />
-
       {/* Deep Contrast Vignettes & Gradient Scrims (Ensures 100% Text Readability) */}
-      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#060911] via-[#060911]/85 to-transparent z-30" />
-      <div className="absolute inset-0 bg-radial from-[#060911]/40 via-[#060911]/80 to-[#060911] z-30" />
-      <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#060911] via-[#060911]/90 to-transparent z-30" />
+      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#060911] via-[#060911]/85 to-transparent z-20" />
+      <div className="absolute inset-0 bg-radial from-[#060911]/30 via-[#060911]/70 to-[#060911] z-20" />
+      <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#060911] via-[#060911]/90 to-transparent z-20" />
+
+      {/* 2. 3D Undulating Data Graph & Wave Mesh (Exact Artwork Spectral Waves & Telemetry) */}
+      <HeroDataWave opacity={0.92} speed={0.95} interactive={true} className="z-25" />
     </div>
   );
 }

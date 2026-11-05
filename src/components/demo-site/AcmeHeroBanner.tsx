@@ -8,7 +8,6 @@ import {
   Search, SlidersHorizontal
 } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
-import HeroDataWave from "./HeroDataWave";
 
 export interface HeroSlideItem {
   propertyId: string;
@@ -195,9 +194,6 @@ export default function AcmeHeroBanner({
           );
         })}
       </div>
-
-      {/* ── 3D Undulating Data Graph & Wave Mesh (High-End Live Telemetry) ── */}
-      <HeroDataWave opacity={0.88} speed={1.0} interactive={true} />
 
       {/* ── Foreground Hero Content ── */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full pt-10 sm:pt-16">
