@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import HeroDataWave from "@/components/demo-site/HeroDataWave";
 
 const BACKGROUND_PROPERTIES = [
   {
@@ -57,6 +58,9 @@ export default function HeroPropertyBackground() {
           </div>
         );
       })}
+
+      {/* 2. 3D Undulating Data Graph & Wave Mesh (Live Property Telemetry) */}
+      <HeroDataWave opacity={0.65} speed={0.85} interactive={true} className="z-20" />
 
       {/* Deep Contrast Vignettes & Gradient Scrims (Ensures 100% Text Readability) */}
       <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#060911] via-[#060911]/85 to-transparent z-30" />

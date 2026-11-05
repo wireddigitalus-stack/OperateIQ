@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import NavigationConditional from "@/components/NavigationConditional";
 import FooterConditional from "@/components/FooterConditional";
@@ -10,17 +9,8 @@ import AuthHashRedirect from "@/components/AuthHashRedirect";
 import AuthFetchBridge from "@/components/AuthFetchBridge";
 import { BRAND } from "@/lib/brand";
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-dm-sans",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-inter",
-});
+const dmSans = { variable: "font-sans" };
+const inter = { variable: "font-sans" };
 
 const ALLOW_INDEXING = process.env.NEXT_PUBLIC_ALLOW_INDEXING === "true";
 
