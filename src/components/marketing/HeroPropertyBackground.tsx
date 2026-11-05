@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import HeroDataWave from "@/components/demo-site/HeroDataWave";
+import HeroWaveGL from "@/components/marketing/HeroWaveGL";
 
 const BACKGROUND_PROPERTIES = [
   {
@@ -35,23 +35,23 @@ export default function HeroPropertyBackground() {
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      {/* 1. Multi-Layer Cross-Dissolving Panoramic Images */}
+      {/* 1. Multi-Layer Cross-Dissolving Panoramic Images (own compositor layers) */}
       {BACKGROUND_PROPERTIES.map((prop, idx) => {
         const isActive = idx === currentIdx;
         return (
           <div
             key={prop.src}
-            className={`absolute inset-0 transition-opacity duration-[2500ms] ease-in-out ${
-              isActive ? "opacity-35 sm:opacity-40 z-10" : "opacity-0 z-0"
+            className={`absolute inset-0 transition-opacity duration-[2500ms] ease-in-out transform-gpu will-change-[opacity] ${
+              isActive ? "opacity-35 sm:opacity-40 z-[1]" : "opacity-0 z-0"
             }`}
           >
             <Image
               src={prop.src}
               alt={prop.alt}
               fill
-              priority
+              priority={idx === 0}
               sizes="100vw"
-              className={`object-cover object-center filter saturate-120 contrast-110 transition-transform duration-[8000ms] ease-out ${
+              className={`object-cover object-center transform-gpu will-change-transform transition-transform duration-[8000ms] ease-out ${
                 isActive ? "scale-105" : "scale-100"
               }`}
             />
@@ -59,13 +59,16 @@ export default function HeroPropertyBackground() {
         );
       })}
 
-      {/* Deep Contrast Vignettes & Gradient Scrims (Ensures 100% Text Readability) */}
-      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#060911] via-[#060911]/85 to-transparent z-20" />
-      <div className="absolute inset-0 bg-radial from-[#060911]/30 via-[#060911]/70 to-[#060911] z-20" />
-      <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#060911] via-[#060911]/90 to-transparent z-20" />
+      {/* 2. Deep Contrast Vignettes & Gradient Scrims (Ensures 100% Text Readability) */}
+      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#060911] via-[#060911]/85 to-transparent z-10" />
+      <div className="absolute inset-0 bg-radial from-[#060911]/30 via-[#060911]/70 to-[#060911] z-10" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#060911] via-[#060911]/70 to-transparent z-10" />
 
-      {/* 2. 3D Undulating Data Graph & Wave Mesh (Exact Artwork Spectral Waves & Telemetry) */}
-      <HeroDataWave opacity={0.92} speed={0.95} interactive={true} className="z-25" />
+      {/* 3. GPU spectral data wave — pinned to the first screen (the hero section is much taller
+             because it contains the dashboard demo card), additive glow above scrims, below copy */}
+      <div className="absolute inset-x-0 top-0 h-[100svh] min-h-[640px] max-h-[980px] z-20">
+        <HeroWaveGL intensity={0.95} speed={1.0} />
+      </div>
     </div>
   );
 }
