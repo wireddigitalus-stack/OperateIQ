@@ -109,7 +109,7 @@ function buildLocalFallbackAnswer(query: string, customerCode?: string): string 
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!checkRateLimit(`help-assistant:${ip}`, 25, 60_000)) {
+  if (!(await checkRateLimit(`help-assistant:${ip}`, 25, 60_000))) {
     return NextResponse.json(
       { error: "Please wait a moment before asking another question." },
       { status: 429 }

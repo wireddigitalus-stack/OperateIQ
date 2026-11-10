@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrgAdmin } from "@/lib/server-auth";
 import { BRAND, formatPlatformOrigin } from "@/lib/brand";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || "PropOpsIQ <notifications@PropOpsIQ.com>";
@@ -19,6 +20,11 @@ export async function POST(req: NextRequest) {
     const g = await requireOrgAdmin(req);
     if (!g.ok) return g.res;
     const { org } = g.ctx;
+
+    // Cap invitation emails per org to prevent the platform being used to spam.
+    if (!(await checkRateLimit(`team-invite:${g.ctx.orgId}`, 20, 60 * 60 * 1000))) {
+      return NextResponse.json({ error: "Too many invitations sent in the last hour. Please try again later." }, { status: 429 });
+    }
 
     const body = await req.json();
     const { email, name, role } = body;
@@ -51,11 +57,9 @@ export async function POST(req: NextRequest) {
     const safeRole = escapeHtml(String(role || "team member").trim());
     const safeEmail = escapeHtml(cleanEmail);
 
-    const origin = formatPlatformOrigin(
-      req.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      "https://www.PropOpsIQ.com"
-    );
+    // Always link to the configured platform URL — never to the request's Origin
+    // header, which a caller could point at a look-alike phishing host.
+    const origin = formatPlatformOrigin(process.env.NEXT_PUBLIC_SITE_URL || BRAND.url);
     const loginUrl = `${origin}/admin/login?email=${encodeURIComponent(cleanEmail)}`;
 
     if (!RESEND_API_KEY) {

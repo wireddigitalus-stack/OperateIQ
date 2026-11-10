@@ -62,7 +62,7 @@ function detectRecommendedPlan(userText: string, replyText: string): "starter" |
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!checkRateLimit(`opsiq:${ip}`, 20, 60_000)) {
+  if (!(await checkRateLimit(`opsiq:${ip}`, 20, 60_000))) {
     return NextResponse.json(
       { reply: "You're sending messages quickly — please wait a moment or start your 14-day free trial right below!" },
       { status: 429 }

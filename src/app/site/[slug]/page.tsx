@@ -7,6 +7,7 @@ import TenantSiteClient, {
   FormattedProperty,
 } from "./TenantSiteClient";
 import { HeroSlideItem } from "@/components/demo-site/AcmeHeroBanner";
+import { safeJsonLd } from "@/lib/json-ld";
 
 export const dynamic = "force-dynamic";
 
@@ -413,7 +414,7 @@ export default async function TenantPublicSitePage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdData) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLdData) }}
       />
       <TenantSiteClient
         initialOrg={org}

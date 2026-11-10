@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import AdminHeader from "@/components/AdminHeader";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import EmailVerifyBanner from "@/components/admin/EmailVerifyBanner";
 
 export const metadata: Metadata = {
   title: "PropOpsIQ | Property Intelligence Platform",
@@ -30,6 +31,7 @@ export default function AdminLayout({
       <AdminHeader />
       <ImpersonationBanner />
       <div className="admin-content-wrapper pt-16">
+        <EmailVerifyBanner />
         <Suspense fallback={<div className="min-h-screen bg-[#040812]" />}>
           {children}
         </Suspense>

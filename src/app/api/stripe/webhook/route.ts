@@ -10,6 +10,9 @@ function verifyStripeSignature(payload: string, sigHeader: string, secret: strin
     if (!tPart || !v1Part) return false;
     const timestamp = tPart.slice(2);
     const signature = v1Part.slice(3);
+    // Reject events signed more than 5 minutes ago (replay protection, as Stripe's SDK does).
+    const ts = Number(timestamp);
+    if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false;
     const expected = createHmac("sha256", secret)
       .update(`${timestamp}.${payload}`, "utf8")
       .digest("hex");
@@ -28,11 +31,12 @@ export async function POST(req: NextRequest) {
       .trim()
       .replace(/^['"]+|['"]+$/g, "");
 
-    if (!webhookSecret && process.env.NODE_ENV === "production") {
+    if (!webhookSecret) {
+      // Never process unsigned billing events, in any environment.
       return NextResponse.json({ error: "Stripe webhook secret is not configured." }, { status: 503 });
     }
 
-    if (webhookSecret) {
+    {
       const sig = req.headers.get("stripe-signature") || "";
       if (!verifyStripeSignature(rawBody, sig, webhookSecret)) {
         return NextResponse.json({ error: "Invalid Stripe webhook signature." }, { status: 400 });

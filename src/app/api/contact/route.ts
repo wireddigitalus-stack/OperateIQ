@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { platformOrgId } from "@/lib/platform-org";
 import { supabaseAdmin } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { escapeHtml } from "@/lib/email";
 import { BRAND } from "@/lib/brand";
-import { orgContactLine } from "@/lib/org-profile";
 import { scanTextForPhishingAndMaliciousLinks, maskIp } from "@/lib/security-shield";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -71,11 +71,23 @@ Respond strictly in JSON format:
   }
 }
 
-function buildHtml(data: {
+function buildHtml(raw: {
   name: string; email: string; company: string; phone: string;
   interest: string; city: string; message: string;
   isSpam?: boolean; spamReason?: string;
 }): string {
+  // Every visitor-supplied value is HTML-escaped before it goes into the email.
+  const data = {
+    ...raw,
+    name: escapeHtml(raw.name),
+    email: escapeHtml(raw.email),
+    company: escapeHtml(raw.company),
+    phone: escapeHtml(raw.phone),
+    interest: escapeHtml(raw.interest),
+    city: escapeHtml(raw.city),
+    message: escapeHtml(raw.message),
+    spamReason: raw.spamReason ? escapeHtml(raw.spamReason) : raw.spamReason,
+  };
   const row = (label: string, value: string) =>
     value
       ? `<tr>
@@ -162,7 +174,7 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
       req.headers.get("x-real-ip") ??
       "unknown";
-    if (!checkRateLimit(`contact:${ip}`, 5, 60 * 60 * 1000)) {
+    if (!(await checkRateLimit(`contact:${ip}`, 5, 60 * 60 * 1000))) {
       return NextResponse.json(
         { error: "Too many submissions. Please try again later or call us directly." },
         { status: 429 }
@@ -185,6 +197,14 @@ export async function POST(req: NextRequest) {
       }
       const { data: orgData } = await q.maybeSingle();
       if (orgData) targetOrg = orgData;
+    }
+
+    // Per-organization cap so one company's inbox / CRM can't be flooded.
+    if (targetOrg && !(await checkRateLimit(`contact:org:${targetOrg.id}`, 40, 60 * 60 * 1000))) {
+      return NextResponse.json(
+        { error: "This form is receiving a lot of messages right now. Please try again later." },
+        { status: 429 }
+      );
     }
 
     // ── 3.5 Turnstile Verification ───────────────────────────────────────────
@@ -390,13 +410,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[contact] Unexpected error:", err);
-    const contact = orgContactLine();
+    // Never show the built-in demo company's contact details to a real visitor.
     return NextResponse.json(
-      {
-        error: contact
-          ? `Something went wrong. Please contact us directly: ${contact}`
-          : "Something went wrong. Please try again later.",
-      },
+      { error: "Something went wrong sending your message. Please try again in a few minutes." },
       { status: 500 }
     );
   }

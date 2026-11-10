@@ -20,6 +20,9 @@ import {
 import { BRAND } from "@/lib/brand";
 import { PLANS, TRIAL_DAYS, type Tier } from "@/lib/plans";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import Turnstile from "@/components/Turnstile";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 function SignupForm() {
   const searchParams = useSearchParams();
@@ -40,6 +43,7 @@ function SignupForm() {
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [created, setCreated] = useState<{ slug: string; signedIn: boolean } | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const activePlan = PLANS.find((p) => p.id === selectedPlan) || PLANS[2];
 
@@ -103,6 +107,7 @@ function SignupForm() {
           plan: activePlan.id,
           unitCount,
           portfolioType,
+          turnstileToken,
         }),
       });
 
@@ -470,11 +475,21 @@ function SignupForm() {
               </div>
             </div>
 
+            {/* Bot protection (rendered only when Turnstile is configured) */}
+            {TURNSTILE_SITE_KEY && (
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                onVerify={(t) => setTurnstileToken(t)}
+                onExpire={() => setTurnstileToken("")}
+                onError={() => setTurnstileToken("")}
+              />
+            )}
+
             {/* Submit Button */}
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
                 className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-500 via-sky-500 to-indigo-600 text-white font-bold text-xs shadow-[0_0_24px_rgba(56,189,248,0.35)] hover:opacity-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {submitting ? (

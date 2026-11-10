@@ -163,6 +163,27 @@ function getTodayISO(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+type Charges = Pick<RentPayment, "rentDue" | "nnFee" | "nnnFee" | "utilityFee" | "cleaningFee" | "camFee" | "lateFee">;
+
+/** Everything owed for the month: rent + all fees + late fee. */
+function totalDue(p: Charges): number {
+  return (
+    (Number(p.rentDue) || 0) +
+    (Number(p.nnFee) || 0) +
+    (Number(p.nnnFee) || 0) +
+    (Number(p.utilityFee) || 0) +
+    (Number(p.cleaningFee) || 0) +
+    (Number(p.camFee) || 0) +
+    (Number(p.lateFee) || 0)
+  );
+}
+
+/** Paid in full only when the amount received covers the full amount owed. */
+function isFullyPaid(p: Charges & Pick<RentPayment, "amountPaid">): boolean {
+  const due = totalDue(p);
+  return due > 0 && (Number(p.amountPaid) || 0) >= due - 0.005;
+}
+
 export function formatInstructionsText(inst: PaymentInstructions): string {
   const parts: string[] = [];
   if (inst.zelle.trim()) parts.push(`Zelle: ${inst.zelle.trim()}`);
@@ -188,7 +209,12 @@ export function printRentReceipt(params: {
   paymentType: string;
   paymentDate: string | null;
   notes?: string;
+  /** Total owed for the month (rent + fees). When provided, the receipt shows the real remaining balance. */
+  totalDue?: number;
 }) {
+  const esc = (v: unknown) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const balance = typeof params.totalDue === "number" ? Math.max(0, params.totalDue - (params.amountPaid || 0)) : null;
+  const paidInFull = balance !== null && balance < 0.005;
   const dateFormatted = params.paymentDate
     ? new Date(params.paymentDate + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
     : new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -197,7 +223,7 @@ export function printRentReceipt(params: {
   win.document.write(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Rent Receipt — ${params.tenantName} (${params.monthLabel})</title>
+  <title>Rent Receipt — ${esc(params.tenantName)} (${esc(params.monthLabel)})</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; padding: 40px; max-width: 580px; margin: 0 auto; }
     .card { border: 2px solid #e2e8f0; border-radius: 16px; padding: 32px; }
@@ -215,19 +241,19 @@ export function printRentReceipt(params: {
 </head>
 <body>
   <div class="card">
-    <div class="badge">✓ Paid in Full</div>
+    <div class="badge" style="${paidInFull || balance === null ? "" : "background:#fef3c7;color:#92400e;"}">${balance === null ? "✓ Payment Received" : paidInFull ? "✓ Paid in Full" : "Partial Payment"}</div>
     <h1>Official Rent Receipt</h1>
     <div class="sub">Billing Period: ${params.monthLabel}</div>
     <div class="amount-box">
       <div class="amount-label">Amount Received</div>
       <div class="amount-val">${fmtMoney(params.amountPaid)}</div>
     </div>
-    <div class="row"><span>Tenant</span><strong>${params.tenantName}</strong></div>
-    <div class="row"><span>Property / Unit</span><strong>${params.building}${params.unit ? " · Unit " + params.unit : ""}</strong></div>
-    <div class="row"><span>Payment Method</span><strong>${params.paymentType || "Recorded Payment"}</strong></div>
+    <div class="row"><span>Tenant</span><strong>${esc(params.tenantName)}</strong></div>
+    <div class="row"><span>Property / Unit</span><strong>${esc(params.building)}${params.unit ? " · Unit " + esc(params.unit) : ""}</strong></div>
+    <div class="row"><span>Payment Method</span><strong>${esc(params.paymentType || "Recorded Payment")}</strong></div>
     <div class="row"><span>Date Received</span><strong>${dateFormatted}</strong></div>
-    ${params.notes ? `<div class="row"><span>Reference / Memo</span><strong>${params.notes}</strong></div>` : ""}
-    <div class="row"><span>Remaining Balance (${params.monthLabel})</span><strong style="color:#059669">$0.00</strong></div>
+    ${params.notes ? `<div class="row"><span>Reference / Memo</span><strong>${esc(params.notes)}</strong></div>` : ""}
+    ${balance === null ? "" : `<div class="row"><span>Remaining Balance (${esc(params.monthLabel)})</span><strong style="color:${paidInFull ? "#059669" : "#b45309"}">${fmtMoney(balance)}</strong></div>`}
     <div class="footer">Generated via PropOpsIQ Property Operations Platform · ${new Date().toLocaleDateString()}</div>
   </div>
   <script>window.onload = () => { window.print(); };</script>
@@ -458,12 +484,8 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
 
       changed = true;
       const synced = { ...p, nnFee: newNn, nnnFee: newNnn, utilityFee: newUtil, cleaningFee: newClean, camFee: newCam };
-      // Recalculate total if it was previously auto-calculated (amountPaid equals sum of old fees)
-      const oldTotal = p.rentDue + p.nnFee + p.nnnFee + p.utilityFee + p.cleaningFee + p.camFee;
-      if (p.amountPaid === oldTotal || p.amountPaid === 0) {
-        synced.amountPaid = synced.rentDue + synced.nnFee + synced.nnnFee + synced.utilityFee + synced.cleaningFee + synced.camFee;
-        synced.paid = synced.amountPaid >= synced.rentDue && synced.rentDue > 0;
-      }
+      // Fees changed; never rewrite the amount actually paid — just re-evaluate status.
+      synced.paid = isFullyPaid(synced);
       return synced;
     });
 
@@ -548,17 +570,17 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
     setPayments(prev => prev.map(p => {
       if (p.id !== id) return p;
       const updated = { ...p, [field]: value };
-      const fullObligation = (updated.rentDue || 0) + (updated.nnFee || 0) + (updated.nnnFee || 0) + (updated.utilityFee || 0) + (updated.cleaningFee || 0) + (updated.camFee || 0) + (updated.lateFee || 0);
-      
-      // Auto-calculate amountPaid if any fee or rentDue changed
-      if (["rentDue", "nnFee", "nnnFee", "utilityFee", "cleaningFee", "camFee"].includes(field as string)) {
-        updated.amountPaid = (updated.rentDue || 0) + (updated.nnFee || 0) + (updated.nnnFee || 0) + (updated.utilityFee || 0) + (updated.cleaningFee || 0) + (updated.camFee || 0);
-        updated.paid = updated.amountPaid >= updated.rentDue && updated.rentDue > 0;
+      const fullObligation = totalDue(updated);
+
+      // Editing what is OWED (rent or any fee) never changes what was PAID.
+      // It only re-evaluates whether the row is now fully paid.
+      if (["rentDue", "nnFee", "nnnFee", "utilityFee", "cleaningFee", "camFee", "lateFee"].includes(field as string)) {
+        updated.paid = isFullyPaid(updated);
       }
-      
-      // Auto-mark paid if amountPaid >= rentDue
+
+      // Recording an amount: fully paid only when it covers rent + all fees.
       if (field === "amountPaid") {
-        updated.paid = Number(value) >= p.rentDue && p.rentDue > 0;
+        updated.paid = isFullyPaid(updated);
         if (updated.paid && !p.paymentDate) {
           updated.paymentDate = getTodayISO();
         }
@@ -639,9 +661,8 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
         cleaningFee: t.cleaningFee,
         camFee: t.camFee,
       };
-      // Recalculate total
-      updated.amountPaid = updated.rentDue + updated.nnFee + updated.nnnFee + updated.utilityFee + updated.cleaningFee + updated.camFee;
-      updated.paid = updated.amountPaid >= updated.rentDue && updated.rentDue > 0;
+      // Fees changed; amount paid is untouched. Re-evaluate paid status only.
+      updated.paid = isFullyPaid(updated);
       
       // Save all synced fields
       saveField(p.id, "nnFee", updated.nnFee);
@@ -649,7 +670,6 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
       saveField(p.id, "utilityFee", updated.utilityFee);
       saveField(p.id, "cleaningFee", updated.cleaningFee);
       saveField(p.id, "camFee", updated.camFee);
-      saveField(p.id, "amountPaid", updated.amountPaid);
       saveField(p.id, "paid", updated.paid);
       
       return updated;
@@ -673,12 +693,11 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
             cleaningFee: t.cleaningFee,
             camFee: t.camFee,
           };
-          updated.amountPaid = (updated.rentDue || 0) + updated.nnFee + updated.nnnFee + updated.utilityFee + updated.cleaningFee + updated.camFee;
-          updated.paid = updated.amountPaid >= updated.rentDue && updated.rentDue > 0;
+          updated.paid = isFullyPaid(updated);
           
           updatedPayments[i] = updated;
 
-          // Save to DB in one shot
+          // Save to DB in one shot (amount paid is never rewritten by a fee sync)
           await fetch(`/api/rent-payments?id=${encodeURIComponent(p.id)}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -688,7 +707,6 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
               utilityFee: t.utilityFee,
               cleaningFee: t.cleaningFee,
               camFee: t.camFee,
-              amountPaid: updated.amountPaid,
               paid: updated.paid
             }),
           });
@@ -832,7 +850,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
     const dateStr = p.paymentDate
       ? new Date(p.paymentDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
       : new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    return `RENT RECEIPT (${fmtMonthFull(selectedMonth)}): Received ${fmtMoney(p.amountPaid)} via ${p.paymentType || "Payment"} on ${dateStr} for ${unitLabel}.${p.notes ? ` Ref: ${p.notes}.` : ""} Balance due: $0.00. Thank you!`;
+    return `RENT RECEIPT (${fmtMonthFull(selectedMonth)}): Received ${fmtMoney(p.amountPaid)} via ${p.paymentType || "Payment"} on ${dateStr} for ${unitLabel}.${p.notes ? ` Ref: ${p.notes}.` : ""} Balance due: ${fmtMoney(Math.max(0, totalDue(p) - (p.amountPaid || 0)))}. Thank you!`;
   }, [selectedMonth]);
 
   const handleRemindTenant = useCallback((p: RentPayment) => {
@@ -862,6 +880,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
         paymentType: p.paymentType,
         paymentDate: p.paymentDate,
         notes: p.notes,
+        totalDue: totalDue(p),
       });
       return;
     }

@@ -8,6 +8,28 @@ const SUPABASE_HOST = (() => {
   }
 })();
 
+/**
+ * Content-Security-Policy. Primary goal: even if markup injection slipped
+ * through, scripts can't load from or send data to attacker-controlled hosts.
+ * ('unsafe-inline' scripts are still required by Next.js without nonces.)
+ */
+const isDev = process.env.NODE_ENV !== "production";
+const CSP = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://challenges.cloudflare.com`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  `connect-src 'self'${SUPABASE_HOST ? ` https://${SUPABASE_HOST} wss://${SUPABASE_HOST}` : ""} https://challenges.cloudflare.com${isDev ? " ws: http://localhost:*" : ""}`,
+  "frame-src 'self' https://challenges.cloudflare.com",
+  "media-src 'self' blob: https:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+].join("; ");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -43,6 +65,7 @@ const nextConfig = {
           { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
           // Block Adobe Flash / PDF cross-domain policy abuse
           { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+          { key: "Content-Security-Policy", value: CSP },
         ],
       },
       // ── No-cache for API routes — never serve stale auth responses ──────────

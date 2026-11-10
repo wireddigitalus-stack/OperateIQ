@@ -48,6 +48,14 @@ export interface AuthedUser {
   id: string;
   email: string;
   name: string;
+  /**
+   * True once the user has proven they own the email address: Google OAuth,
+   * magic link, or our signup verification link. Accounts created by
+   * /api/signup start with app_metadata.email_verified = false.
+   * Unverified users can use the org they created, but are never auto-joined
+   * to orgs that invited their email, and are never treated as super-admins.
+   */
+  emailVerified: boolean;
 }
 
 export interface RequestContext {
@@ -97,6 +105,7 @@ export async function getAuthUser(req?: NextRequest): Promise<AuthedUser | null>
       id: u.id,
       email: (u.email || "").toLowerCase(),
       name: (u.user_metadata?.full_name as string) || (u.email || "").split("@")[0],
+      emailVerified: !!u.email_confirmed_at && u.app_metadata?.email_verified !== false,
     };
   } catch {
     return null;
@@ -112,7 +121,10 @@ export async function getAuthUser(req?: NextRequest): Promise<AuthedUser | null>
 async function loadMemberships(user: AuthedUser): Promise<{ org_id: string; role: OrgRole }[]> {
   const [{ data: existing }, { data: invited }] = await Promise.all([
     supabaseAdmin.from("memberships").select("org_id, role, created_at").eq("user_id", user.id).order("created_at", { ascending: true }),
-    supabaseAdmin.from("allowed_users").select("org_id, role").eq("email", user.email).eq("active", true).in("role", ["owner", "admin", "manager"]),
+    // Invitations are only honoured for users who have proven they own the email.
+    user.emailVerified
+      ? supabaseAdmin.from("allowed_users").select("org_id, role").eq("email", user.email).eq("active", true).in("role", ["owner", "admin", "manager"])
+      : Promise.resolve({ data: [] as { org_id: string; role: string }[] }),
   ]);
 
   const result = ((existing || []) as { org_id: string; role: OrgRole }[]).map((m) => ({ org_id: m.org_id, role: m.role }));
@@ -182,7 +194,7 @@ export async function getRequestContext(
 
   const user = await getAuthUser(req);
   if (user) {
-    const superAdmin = isSuperAdmin(user.email);
+    const superAdmin = user.emailVerified && isSuperAdmin(user.email);
     const memberships = await loadMemberships(user);
 
     // Platform super-admin support mode:
@@ -232,8 +244,20 @@ export async function getRequestContext(
   if (opts.allowStaff) {
     const staff = await readStaffSession();
     if (staff) {
-      const org = await loadOrg(staff.orgId);
-      if (org) {
+      // Re-check the crew record on every request so a deactivated or removed
+      // worker loses access immediately instead of when the 12h cookie expires.
+      const [org, { data: crew }] = await Promise.all([
+        loadOrg(staff.orgId),
+        supabaseAdmin
+          .from("allowed_users")
+          .select("id")
+          .eq("id", staff.uid)
+          .eq("org_id", staff.orgId)
+          .eq("active", true)
+          .in("role", ["maintenance", "cleaning"])
+          .maybeSingle(),
+      ]);
+      if (org && crew) {
         return { kind: "staff", user: null, staff, orgId: org.id, org, role: staff.role, isSuperAdmin: false, impersonating: false, memberships: [] };
       }
     }
@@ -312,7 +336,7 @@ export function requireOrgAdmin(
 export async function requireSuperAdmin(req: NextRequest): Promise<Guarded<AuthedUser>> {
   const user = await getAuthUser(req);
   if (!user) return { ok: false, res: unauthorized() };
-  if (!isSuperAdmin(user.email)) return { ok: false, res: forbidden("Platform administrator access required.") };
+  if (!user.emailVerified || !isSuperAdmin(user.email)) return { ok: false, res: forbidden("Platform administrator access required.") };
   return { ok: true, ctx: user };
 }
 

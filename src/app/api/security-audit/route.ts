@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkAiQuota } from "@/lib/rateLimit";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { requireOrgAdmin } from "@/lib/server-auth";
 import { scanTextForPhishingAndMaliciousLinks } from "@/lib/security-shield";
@@ -53,6 +54,9 @@ Analyze the user-supplied message/email/URL and respond ONLY with a valid JSON o
 export async function POST(req: NextRequest) {
   const g = await requireOrgAdmin(req);
   if (!g.ok) return g.res;
+  if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
+    return NextResponse.json({ error: "Your workspace has reached today's AI usage limit. It resets tomorrow." }, { status: 429 });
+  }
 
   try {
     const body = await req.json();

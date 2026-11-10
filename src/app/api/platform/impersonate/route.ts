@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { IMPERSONATE_COOKIE } from "@/lib/platform";
+import { IMPERSONATE_COOKIE, DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform";
 import { requireSuperAdmin } from "@/lib/server-auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -21,16 +21,24 @@ export async function POST(req: NextRequest) {
     const { data: org } = await supabaseAdmin.from("organizations").select("id,name").eq("id", orgId).maybeSingle();
     if (!org) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
 
-    // Audit trail
-    await supabaseAdmin.from("activity_log").insert({
-      org_id: org.id,
+    // Audit trail — written to the customer's log AND to the platform org's log,
+    // which customers cannot access or delete.
+    const entry = {
       action: "platform_impersonation_start",
       resource_type: "auth",
       resource_name: org.name,
+      resource_id: org.id,
       actor_name: sa.ctx.name,
       actor_email: sa.ctx.email,
-      metadata: { by: sa.ctx.email },
-    }).then(() => null, () => null);
+      metadata: { by: sa.ctx.email, target_org_id: org.id },
+    };
+    await supabaseAdmin
+      .from("activity_log")
+      .insert([
+        { ...entry, org_id: org.id },
+        ...(org.id !== DEFAULT_PLATFORM_ORG_ID ? [{ ...entry, org_id: DEFAULT_PLATFORM_ORG_ID }] : []),
+      ])
+      .then(() => null, () => null);
 
     res.cookies.set(IMPERSONATE_COOKIE, org.id, {
       path: "/",

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkAiQuota } from "@/lib/rateLimit";
 import { type Lead } from "@/lib/leads-store";
 import { detectWhale } from "@/lib/whale-detector";
 import { rowToLead } from "@/lib/supabase";
@@ -212,6 +213,9 @@ export async function POST(req: NextRequest) {
   // Only the admin dashboard calls this route (no public lead form posts here).
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
+  if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
+    return NextResponse.json({ error: "Your workspace has reached today's AI usage limit. It resets tomorrow." }, { status: 429 });
+  }
   const { orgId, org, user } = g.ctx;
 
   if (!GEMINI_API_KEY) {

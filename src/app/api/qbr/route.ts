@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkAiQuota } from "@/lib/rateLimit";
 import { requireOrg } from "@/lib/server-auth";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -14,6 +15,9 @@ const H = {
 export async function GET(req: NextRequest) {
   const g = await requireOrg(req, { requireFeature: "weekly_report" });
   if (!g.ok) return g.res;
+  if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
+    return NextResponse.json({ error: "Your workspace has reached today's AI usage limit. It resets tomorrow." }, { status: 429 });
+  }
   const { orgId } = g.ctx;
   const scope = `org_id=eq.${orgId}`;
 

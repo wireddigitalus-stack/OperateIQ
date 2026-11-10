@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     let pin = "";
     for (let i = 0; i < 20; i++) {
       const candidate = randomInt(100000, 1000000).toString();
-      const { data: clash } = await supabaseAdmin.from("allowed_users").select("id").eq("pin", candidate).eq("active", true).limit(1);
+      const { data: clash } = await supabaseAdmin.from("allowed_users").select("id").eq("org_id", orgId).eq("pin", candidate).eq("active", true).limit(1);
       if (!clash?.length) { pin = candidate; break; }
     }
     if (!pin) return NextResponse.json({ error: "Could not generate a unique PIN" }, { status: 500 });

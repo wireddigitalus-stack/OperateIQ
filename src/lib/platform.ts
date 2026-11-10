@@ -10,16 +10,21 @@
 // longer treated as super-admin (it ships to every browser).
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Founding platform owner. TODO: move to PLATFORM_ADMIN_EMAILS once a dedicated platform-admin email exists. */
-const FOUNDER_EMAIL = "wireddigitalus@gmail.com";
+/**
+ * Platform super-admins come from the server-only env var PLATFORM_ADMIN_EMAILS
+ * (comma-separated). The founder address below is used ONLY when that env var
+ * is not set, so the console isn't locked out before it's configured. Set
+ * PLATFORM_ADMIN_EMAILS in Vercel to take full control of the list.
+ * Super-admin status additionally requires a verified email (server-auth.ts).
+ */
+const FOUNDER_EMAIL_FALLBACK = "wireddigitalus@gmail.com";
 
-export const SUPER_ADMIN_EMAILS = [
-  FOUNDER_EMAIL,
-  ...(process.env.PLATFORM_ADMIN_EMAILS || "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean),
-];
+const CONFIGURED_ADMINS = (process.env.PLATFORM_ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+export const SUPER_ADMIN_EMAILS = CONFIGURED_ADMINS.length ? CONFIGURED_ADMINS : [FOUNDER_EMAIL_FALLBACK];
 
 export const ACTIVE_ORG_COOKIE = "oiq_active_org_id";
 export const IMPERSONATE_COOKIE = "oiq_impersonate_org_id";

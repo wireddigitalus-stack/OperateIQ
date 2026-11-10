@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkAiQuota } from "@/lib/rateLimit";
 import { profileForOrg } from "@/lib/org-ai-profile";
 import { BRAND } from "@/lib/brand";
 import { requireOrg } from "@/lib/server-auth";
@@ -9,6 +10,9 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 export async function POST(req: NextRequest) {
   const g = await requireOrg(req, { allowStaff: true });
   if (!g.ok) return g.res;
+  if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
+    return NextResponse.json({ error: "Your workspace has reached today's AI usage limit. It resets tomorrow." }, { status: 429 });
+  }
 
   try {
     const { question, role, context } = await req.json();

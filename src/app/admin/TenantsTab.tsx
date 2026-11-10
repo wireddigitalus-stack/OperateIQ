@@ -1657,7 +1657,7 @@ function TenantCard({
                     {tenant.phone && (
                       <a
                         href={`sms:${tenant.phone}?body=${encodeURIComponent(
-                          `RENT RECEIPT (${payMonth}): Received ${fmtMoney(Number(payAmount) || 0)} via ${payMethod} on ${payDate} for ${tenant.building || "your unit"}${tenant.unit ? ` (Unit ${tenant.unit})` : ""}. Balance due: $0.00. Thank you!`
+                          `RENT RECEIPT (${payMonth}): Received ${fmtMoney(Number(payAmount) || 0)} via ${payMethod} on ${payDate} for ${tenant.building || "your unit"}${tenant.unit ? ` (Unit ${tenant.unit})` : ""}. Thank you!`
                         )}`}
                         className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.06] border border-white/15 text-white hover:bg-white/10 text-xs font-bold"
                       >

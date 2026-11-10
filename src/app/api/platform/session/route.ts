@@ -56,8 +56,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       authenticated: true,
-      user: { email: user.email, name: user.name },
-      isSuperAdmin: !!ctx?.isSuperAdmin || isSuperAdmin(user.email),
+      user: { email: user.email, name: user.name, emailVerified: user.emailVerified },
+      isSuperAdmin: !!ctx?.isSuperAdmin || (user.emailVerified && isSuperAdmin(user.email)),
       role: ctx?.role || null,
       activeOrg,
       impersonatingOrg: ctx?.impersonating ? activeOrg : null,

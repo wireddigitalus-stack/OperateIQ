@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkAiQuota } from "@/lib/rateLimit";
 import { requireOrg } from "@/lib/server-auth";
 import { profileForOrg } from "@/lib/org-ai-profile";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -35,6 +36,9 @@ export async function POST(req: NextRequest) {
   //    orgId is NEVER read from the request body or query params.
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
+  if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
+    return NextResponse.json({ error: "Your workspace has reached today's AI usage limit. It resets tomorrow." }, { status: 429 });
+  }
 
   const orgId = g.ctx.orgId;
   const apiKey = process.env.GEMINI_API_KEY;

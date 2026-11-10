@@ -412,14 +412,11 @@ function Tooltip({ text, children, wide }: { text: string; children: React.React
 
 // ─── User Section Component ──────────────────────────────────────────────────
 
-// ─── Owner lock — these emails can never be deleted from the dashboard
-const OWNER_EMAILS = new Set([
-  "wireddigitalus@gmail.com", // Robert Neilson — developer
-]);
+// Owner lock: the org's owner (role "owner" or the org's owner email) can never be deleted from the dashboard.
 
-function UserSection({ title, role, icon, color, users, onRefresh, ownerEmail }: {
+function UserSection({ title, role, icon, color, users, onRefresh, ownerEmail, orgSlug }: {
   title: string; role: string; icon: React.ReactNode; color: string;
-  users: AllowedUser[]; onRefresh: () => void; ownerEmail?: string | null;
+  users: AllowedUser[]; onRefresh: () => void; ownerEmail?: string | null; orgSlug?: string | null;
 }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -448,11 +445,12 @@ ${loginUrl}
 
 Sign in with your email (${u.email}) using Magic Link, Password, or Google to access the dashboard.`;
     }
-    const portalUrl = `${domain}/staff/${u.role}`;
+    const portalUrl = `${domain}/staff/${u.role}${orgSlug ? `?org=${encodeURIComponent(orgSlug)}` : ""}`;
     return `Hi ${u.name.split(" ")[0] || "there"}, here is the link to your PropOpsIQ ${u.role === "cleaning" ? "Cleaning" : "Maintenance"} Portal:
 
 ${portalUrl}
 
+Company code: ${orgSlug || "(ask your manager)"}
 PIN Code: ${u.pin || ""}
 
 Save a shortcut to your phone's Home Screen:
@@ -643,7 +641,7 @@ Save a shortcut to your phone's Home Screen:
         )}
         {users.map(u => {
             const emailLower = (u.email || "").toLowerCase();
-            const isOwner = u.role === "owner" || (emailLower ? (OWNER_EMAILS.has(emailLower) || (!!ownerEmail && emailLower === ownerEmail.toLowerCase())) : false);
+            const isOwner = u.role === "owner" || (emailLower ? (!!ownerEmail && emailLower === ownerEmail.toLowerCase()) : false);
             return (
           <div key={u.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${u.active ? "border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.02)]" : "border-[rgba(255,255,255,0.03)] opacity-40"}`}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
@@ -2695,6 +2693,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
               users={adminUsers}
               onRefresh={loadUsers}
               ownerEmail={ownerEmail}
+              orgSlug={activeOrg?.slug}
             />
             <UserSection
               title="Maintenance Staff"
@@ -2704,6 +2703,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
               users={maintUsers}
               onRefresh={loadUsers}
               ownerEmail={ownerEmail}
+              orgSlug={activeOrg?.slug}
             />
             <UserSection
               title="Cleaning Staff"
@@ -2713,6 +2713,7 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
               users={cleanUsers}
               onRefresh={loadUsers}
               ownerEmail={ownerEmail}
+              orgSlug={activeOrg?.slug}
             />
           </div>
         )}

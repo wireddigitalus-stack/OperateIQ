@@ -3,6 +3,25 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, getCustomerCode, isSuperAdmin } from "@/lib/platform";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getAuthUser } from "@/lib/server-auth";
+import { createEmailVerifyToken, platformUrl, sendEmail, verificationEmailHtml } from "@/lib/email";
+
+/** Turnstile is enforced only when BOTH keys are configured (otherwise the widget isn't rendered). */
+async function turnstileOk(token: unknown, ip: string): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret || !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) return true;
+  if (typeof token !== "string" || !token) return false;
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret, response: token, remoteip: ip }),
+    });
+    const d = await r.json();
+    return !!d.success;
+  } catch {
+    return false;
+  }
+}
 
 function sanitize(val: unknown): string {
   return String(val ?? "").trim().slice(0, 500);
@@ -23,7 +42,7 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-real-ip") ??
       "unknown";
 
-    if (!checkRateLimit(`signup:${ip}`, 10, 60 * 60 * 1000)) {
+    if (!(await checkRateLimit(`signup:${ip}`, 10, 60 * 60 * 1000))) {
       return NextResponse.json(
         { error: "Too many signup requests. Please wait a few minutes." },
         { status: 429 }
@@ -31,6 +50,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    if (!(await turnstileOk(body.turnstileToken, ip))) {
+      return NextResponse.json({ error: "Security check failed. Please reload the page and try again." }, { status: 400 });
+    }
     const cleanName = sanitize(body.name);
     const cleanEmail = sanitize(body.email).toLowerCase();
     const cleanCompany = sanitize(body.company);
@@ -98,8 +120,12 @@ export async function POST(req: NextRequest) {
       const { data: createdUser, error: createUserErr } = await supabaseAdmin.auth.admin.createUser({
         email: ownerEmail,
         password,
+        // Lets the new owner sign straight into the workspace they're creating.
+        // Ownership of the email is NOT assumed: email_verified=false until they
+        // click the verification link, which gates invites and admin access.
         email_confirm: true,
         user_metadata: { full_name: cleanName },
+        app_metadata: { email_verified: false },
       });
       if (createUserErr) {
         const msg = (createUserErr.message || "").toLowerCase();
@@ -226,6 +252,19 @@ export async function POST(req: NextRequest) {
     });
     if (subErr) console.warn("[signup] contact_submissions insert notice:", subErr.message);
 
+    // 3b. Email verification for password signups (Google/magic-link users are already verified).
+    let verificationSent = false;
+    if (createdNewAuthUserId) {
+      const link = `${platformUrl()}/api/auth/verify-email?token=${encodeURIComponent(
+        createEmailVerifyToken(createdNewAuthUserId, ownerEmail)
+      )}`;
+      verificationSent = await sendEmail({
+        to: ownerEmail,
+        subject: "Confirm your email",
+        html: verificationEmailHtml(cleanName, link),
+      });
+    }
+
     // 4. Return success response and set active organization cookie so the user lands on their workspace
     const res = NextResponse.json({
       success: true,
@@ -236,6 +275,7 @@ export async function POST(req: NextRequest) {
       trialDays: 14,
       signedIn: !!authedUser,
       accountCreated: !!createdNewAuthUserId,
+      verificationSent,
       email: ownerEmail,
       customerCode,
       organization: {

@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { requireSuperAdmin, getRequestContext } from "@/lib/server-auth";
 import { getCustomerCode, DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform";
 import { platformOrgId } from "@/lib/platform-org";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
+import { sendEmail, escapeHtml } from "@/lib/email";
 
 export interface SupportTicketItem {
   id: string;
@@ -178,6 +180,9 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    if (!(await checkRateLimit(`support-ticket:${clientIp(req)}`, 6, 60 * 60 * 1000))) {
+      return NextResponse.json({ error: "Too many requests. Please try again later or email us directly." }, { status: 429 });
+    }
     const body = await req.json();
     const name = String(body.name || "").trim().slice(0, 200);
     const email = String(body.email || "").trim().toLowerCase().slice(0, 200);
@@ -198,13 +203,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Try to resolve authenticated session org or match by customerCode
-    let resolvedOrgId: string | null = typeof body.orgId === "string" ? body.orgId : null;
+    // org is NEVER taken from the request body — only from the signed-in session,
+    // or matched server-side from the customer support code / account email.
+    let resolvedOrgId: string | null = null;
+    let authenticated = false;
     let resolvedCompany = company;
     let resolvedCode = /^OIQ-[A-Z0-9]{4,8}$/.test(submittedCode) ? submittedCode : "";
 
     try {
       const ctx = await getRequestContext(req);
       if (ctx?.org) {
+        authenticated = true;
         if (!resolvedOrgId) resolvedOrgId = ctx.org.id;
         if (!resolvedCompany) resolvedCompany = ctx.org.name;
         if (!resolvedCode) resolvedCode = getCustomerCode(ctx.org.id);
@@ -256,8 +265,24 @@ export async function POST(req: NextRequest) {
 
       const { error } = await supabaseAdmin.from("contact_submissions").insert(row);
       if (error) {
-        console.warn("[support-tickets POST] DB insert warning:", error.message);
+        console.error("[support-tickets POST] DB insert failed:", error.message);
+        return NextResponse.json({ error: "Could not submit support ticket. Please try again." }, { status: 500 });
       }
+    }
+
+    // Notify the platform team so tickets are never silently missed.
+    const notifyTo = (process.env.CONTACT_NOTIFY_TO || "").split(",").map((e) => e.trim()).filter(Boolean)[0];
+    if (notifyTo) {
+      await sendEmail({
+        to: notifyTo,
+        replyTo: email,
+        subject: `[Support · ${priority}] ${category} — ${resolvedCode}`,
+        html: `<div style="font-family:sans-serif;font-size:14px;line-height:1.5">
+          <p><strong>${escapeHtml(name)}</strong> &lt;${escapeHtml(email)}&gt; ${phone ? "· " + escapeHtml(phone) : ""}</p>
+          <p>Company: ${escapeHtml(resolvedCompany || company || "—")} · Code: ${escapeHtml(resolvedCode)} · Priority: ${escapeHtml(priority)}</p>
+          <pre style="white-space:pre-wrap;font-family:inherit;background:#f6f7f9;padding:12px;border-radius:8px">${escapeHtml(message)}</pre>
+        </div>`,
+      });
     }
 
     return NextResponse.json({
@@ -267,13 +292,13 @@ export async function POST(req: NextRequest) {
         submitted_at: submittedAt,
         name,
         email,
-        company: resolvedCompany || "PropOpsIQ Customer",
+        company: authenticated ? resolvedCompany || "PropOpsIQ Customer" : company,
         phone,
         category,
         priority,
         status: "Open",
-        customer_code: resolvedCode,
-        org_id: resolvedOrgId,
+        customer_code: authenticated ? resolvedCode : submittedCode || "OIQ-HELP",
+        org_id: authenticated ? resolvedOrgId : null,
         message,
       },
     });

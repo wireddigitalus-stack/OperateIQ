@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkAiQuota } from "@/lib/rateLimit";
 import { requireOrg } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,9 @@ export async function POST(req: NextRequest) {
   // Auth required: protects LLM spend from anonymous abuse.
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
+  if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
+    return NextResponse.json({ error: "Your workspace has reached today's AI usage limit. It resets tomorrow." }, { status: 429 });
+  }
 
   try {
     if (!GEMINI_API_KEY) {
@@ -54,6 +58,12 @@ export async function POST(req: NextRequest) {
 
       mimeType = file.type || "image/jpeg";
       filename = file.name || "upload";
+      if (file.size > 15 * 1024 * 1024) {
+        return NextResponse.json({ error: "File is too large (max 15 MB)." }, { status: 413 });
+      }
+      if (!/^(image\/|application\/pdf$|text\/|application\/vnd\.(openxmlformats|ms-excel))/.test(mimeType)) {
+        return NextResponse.json({ error: "Unsupported file type. Upload an image, PDF, CSV or spreadsheet." }, { status: 415 });
+      }
       const arrayBuffer = await file.arrayBuffer();
       base64Data = Buffer.from(arrayBuffer).toString("base64");
     } else {

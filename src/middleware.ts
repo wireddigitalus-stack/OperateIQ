@@ -94,13 +94,27 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
-  if (isPlatformHost(host)) return NextResponse.next();
+  if (isPlatformHost(host)) {
+    // x-tenant-slug is set ONLY by this middleware for verified custom domains.
+    // Never let a client supply it on the platform host.
+    if (req.headers.has("x-tenant-slug") || req.headers.has("x-custom-domain")) {
+      const clean = new Headers(req.headers);
+      clean.delete("x-tenant-slug");
+      clean.delete("x-custom-domain");
+      return NextResponse.next({ request: { headers: clean } });
+    }
+    return NextResponse.next();
+  }
 
   // ── Tenant custom domain (GoDaddy / IONOS → Vercel) ──────────────────────
   const slug = await resolveOrgSlugForHost(host);
   if (!slug) {
-    // Unknown host (e.g. a platform alias not listed above): serve the app normally.
-    return NextResponse.next();
+    // Unknown host (e.g. a platform alias not listed above): serve the app normally,
+    // without any client-supplied tenant headers.
+    const clean = new Headers(req.headers);
+    clean.delete("x-tenant-slug");
+    clean.delete("x-custom-domain");
+    return NextResponse.next({ request: { headers: clean } });
   }
 
   const requestHeaders = new Headers(req.headers);

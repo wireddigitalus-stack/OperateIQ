@@ -10,6 +10,7 @@ import AcmeAiSearchInspector from "@/components/demo-site/AcmeAiSearchInspector"
 import AcmeTourModal from "@/components/demo-site/AcmeTourModal";
 import AcmeBuildingSpecsModal from "@/components/demo-site/AcmeBuildingSpecsModal";
 import AcmeFooter from "@/components/demo-site/AcmeFooter";
+import { safeJsonLd } from "@/lib/json-ld";
 import { PROPERTIES } from "@/lib/data";
 
 export default function DemoPropertySitePage() {
@@ -77,7 +78,7 @@ export default function DemoPropertySitePage() {
       {/* ── Ultra SEO & Generative Engine Optimization (GEO) Structured Data ── */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdData) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLdData) }}
       />
 
       {/* ── Top Workspace Bar: Public Showcase Demo Header ── */}

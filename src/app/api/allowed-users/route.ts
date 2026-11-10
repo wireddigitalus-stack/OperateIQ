@@ -10,8 +10,9 @@ import { getPlan } from "@/lib/plans";
  *  PATCH  org admins
  *  DELETE org admins
  *
- * Crew PINs are globally unique among active staff, because PIN login has no
- * org selector — a duplicate PIN would sign a worker into the wrong company.
+ * Crew PINs are unique WITHIN an organization. Crew log in with company code +
+ * PIN, so PIN checks are always scoped to the caller's org and never reveal
+ * anything about other organizations.
  */
 
 const STAFF_ROLES = ["maintenance", "cleaning"];
@@ -21,8 +22,8 @@ const EDITABLE = ["name", "email", "role", "active", "pin"];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const stripPin = (u: any) => { const { pin: _pin, ...rest } = u; return rest; };
 
-async function pinTaken(pin: string, exceptId?: string): Promise<boolean> {
-  let q = supabaseAdmin.from("allowed_users").select("id").eq("pin", pin).eq("active", true);
+async function pinTaken(orgId: string, pin: string, exceptId?: string): Promise<boolean> {
+  let q = supabaseAdmin.from("allowed_users").select("id").eq("org_id", orgId).eq("pin", pin).eq("active", true);
   if (exceptId) q = q.neq("id", exceptId);
   const { data } = await q.limit(1);
   return !!data?.length;
@@ -30,10 +31,10 @@ async function pinTaken(pin: string, exceptId?: string): Promise<boolean> {
 
 import { randomInt } from "crypto";
 
-async function generateUniquePin(): Promise<string> {
+async function generateUniquePin(orgId: string): Promise<string> {
   for (let i = 0; i < 20; i++) {
     const pin = randomInt(100000, 1000000).toString();
-    if (!(await pinTaken(pin))) return pin;
+    if (!(await pinTaken(orgId, pin))) return pin;
   }
   throw new Error("Could not generate a unique PIN");
 }
@@ -140,10 +141,10 @@ export async function POST(req: NextRequest) {
   if (STAFF_ROLES.includes(role)) {
     if (pin) {
       if (!/^\d{6}$/.test(String(pin))) return NextResponse.json({ error: "PIN must be 6 digits" }, { status: 400 });
-      if (await pinTaken(String(pin))) return NextResponse.json({ error: "That PIN is already in use. Choose another." }, { status: 409 });
+      if (await pinTaken(orgId, String(pin))) return NextResponse.json({ error: "That PIN is already in use. Choose another." }, { status: 409 });
       issuedPin = String(pin);
     } else {
-      issuedPin = await generateUniquePin();
+      issuedPin = await generateUniquePin(orgId);
     }
     payload.pin = issuedPin;
   }
@@ -171,17 +172,19 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "invalid role" }, { status: 400 });
   }
   if (updates.email) updates.email = String(updates.email).toLowerCase().trim();
-  if (updates.pin !== undefined) {
-    if (!/^\d{6}$/.test(String(updates.pin))) return NextResponse.json({ error: "PIN must be 6 digits" }, { status: 400 });
-    if (await pinTaken(String(updates.pin), id)) return NextResponse.json({ error: "That PIN is already in use. Choose another." }, { status: 409 });
-  }
 
+  // Ownership first — never evaluate anything about a row outside the caller's org.
   const { data: before } = await supabaseAdmin.from("allowed_users").select("email,role,pin,active").eq("id", id).eq("org_id", orgId).maybeSingle();
   if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  if (updates.pin !== undefined) {
+    if (!/^\d{6}$/.test(String(updates.pin))) return NextResponse.json({ error: "PIN must be 6 digits" }, { status: 400 });
+    if (await pinTaken(orgId, String(updates.pin), id)) return NextResponse.json({ error: "That PIN is already in use. Choose another." }, { status: 409 });
+  }
+
   if (updates.active === true) {
     const effectivePin = updates.pin !== undefined ? String(updates.pin) : before.pin ? String(before.pin) : null;
-    if (effectivePin && (await pinTaken(effectivePin, id))) {
+    if (effectivePin && (await pinTaken(orgId, effectivePin, id))) {
       return NextResponse.json({ error: "That PIN is already in use by another active staff member. Choose another PIN first." }, { status: 409 });
     }
     if (before.active === false) {

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import CompletionSheet from "@/components/crew/CompletionSheet";
 import MicButton from "@/components/MicButton";
+import { CompanyCodeField, useStaffOrgCode } from "@/components/crew/CompanyCode";
 import FilterChangesTab from "@/app/admin/FilterChangesTab";
 import BuildingInspectionsTab from "@/app/admin/BuildingInspectionsTab";
 import StaffAskOpsIQ from "../StaffAskOpsIQ";
@@ -1231,8 +1232,10 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
   const [checking, setChecking] = useState(false);
   const [shake, setShake] = useState(false);
   const [welcome, setWelcome] = useState("");
+  const [orgCode, setOrgCode] = useStaffOrgCode();
 
   const handleDigit = (d: string) => {
+    if (!orgCode) { setError("Enter your company code first."); return; }
     if (digits.length >= 6) return;
     const next = digits + d;
     setDigits(next);
@@ -1251,7 +1254,7 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
       const res = await fetch("/api/staff-auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
+        body: JSON.stringify({ pin, org: orgCode }),
       });
       const data = await res.json();
       if (res.ok && (data.success || data.authenticated)) {
@@ -1300,6 +1303,8 @@ function PinKeypad({ onAuth }: { onAuth: (name: string) => void }) {
       </div>
       <h1 className="text-3xl font-black text-white text-center mb-1">Maintenance Portal</h1>
       <p className="text-gray-500 text-center mb-5 sm:mb-8">Enter your 6-digit PIN</p>
+
+      <CompanyCodeField code={orgCode} onChange={setOrgCode} accent="#FACC15" />
 
       {/* PIN dots */}
       <div className={`flex gap-3 mb-5 sm:mb-8 ${shake ? "animate-shake" : ""}`}

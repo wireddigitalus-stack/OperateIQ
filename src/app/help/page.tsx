@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
 import { BASIC_FAQS } from "@/lib/help-data";
 import HelpCenterClient from "./HelpCenterClient";
+import { safeJsonLd } from "@/lib/json-ld";
 
 export const metadata: Metadata = {
   title: `Help Center & Tech Support | ${BRAND.name}`,
@@ -26,7 +27,7 @@ export default function HelpPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }}
       />
       <HelpCenterClient />
     </>

@@ -7,10 +7,22 @@ import AnalyticsTracker from "@/components/AnalyticsTracker";
 import UnsupportedBrowserBanner from "@/components/UnsupportedBrowserBanner";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
 import AuthFetchBridge from "@/components/AuthFetchBridge";
+import localFont from "next/font/local";
 import { BRAND } from "@/lib/brand";
 
-const dmSans = { variable: "font-sans" };
-const inter = { variable: "font-sans" };
+// Self-hosted variable fonts (no build-time network fetch).
+const dmSans = localFont({
+  src: "./fonts/DMSans-latin-var.woff2",
+  weight: "400 800",
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+const inter = localFont({
+  src: "./fonts/Inter-latin-var.woff2",
+  weight: "400 600",
+  variable: "--font-inter",
+  display: "swap",
+});
 
 const ALLOW_INDEXING = process.env.NEXT_PUBLIC_ALLOW_INDEXING === "true";
 
