@@ -7,6 +7,7 @@ import {
   CreditCard, Banknote, Landmark, StickyNote, RefreshCw, Trash2,
   Bell, Receipt, Mail, Phone, Settings, Check, Copy,
 } from "lucide-react";
+import { showToast as showGlobalToast } from "@/lib/api-client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -362,8 +363,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
   const savePaymentInstructions = async () => {
     setSavingInstructions(true);
     try {
-      try { localStorage.setItem("oiq_payment_instructions", JSON.stringify(instructions)); } catch { /* ignore */ }
-      await fetch("/api/site-content", {
+      const res = await fetch("/api/site-content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -372,10 +372,15 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
           value: JSON.stringify(instructions),
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Failed to save instructions (HTTP ${res.status})`);
+      }
+      try { localStorage.setItem("oiq_payment_instructions", JSON.stringify(instructions)); } catch { /* ignore */ }
       setInstructionsSaved(true);
       setTimeout(() => setInstructionsSaved(false), 2500);
-    } catch {
-      /* ignore */
+    } catch (err) {
+      showGlobalToast(err instanceof Error ? err.message : "Could not save payment instructions.", "error");
     } finally {
       setSavingInstructions(false);
     }
@@ -550,16 +555,22 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
       if (!patch) return;
 
       try {
-        await fetch(`/api/rent-payments?id=${encodeURIComponent(paymentId)}`, {
+        const res = await fetch(`/api/rent-payments?id=${encodeURIComponent(paymentId)}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(patch),
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Ledger save failed (HTTP ${res.status})`);
+        }
       } catch (err) {
         console.error("Auto-save failed:", err);
+        showGlobalToast(err instanceof Error ? err.message : "Failed to save rent change — reloading ledger.", "error");
+        fetchPayments(selectedMonth);
       }
     }, 400);
-  }, []);
+  }, [fetchPayments, selectedMonth]);
 
   // ─── Update local state + trigger auto-save ─────────────────────────────
   const updatePayment = useCallback((id: string, field: keyof RentPayment, value: unknown) => {

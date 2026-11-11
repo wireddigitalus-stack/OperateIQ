@@ -81,6 +81,10 @@ const nextConfig = {
     return [
       // Social redirect shortcut to admin login
       { source: "/l/admin", destination: "/admin/login", permanent: false },
+      // Legacy bookmarks → canonical multi-tenant routes
+      { source: "/wired-digital", destination: "/site/wired-digital-llc", permanent: false },
+      { source: "/wired-digital-admin", destination: "/admin", permanent: false },
+      { source: "/WIREDDIGITALLLC-admin", destination: "/admin", permanent: false },
     ];
   },
 };

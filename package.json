@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "ci:check": "npm run typecheck && npm run lint && npm run build && npm run test:e2e"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -16,13 +19,13 @@
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.469.0",
     "next": "^15.3.9",
-    "puppeteer": "^22.15.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.2.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

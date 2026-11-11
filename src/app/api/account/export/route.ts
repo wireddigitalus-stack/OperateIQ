@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
     bundle.team_members = [];
   }
 
-  writeActivityLog({
+  await writeActivityLog({
     actor_email: user?.email || "admin",
     actor_name: user?.name || "Admin",
     org_id: orgId,

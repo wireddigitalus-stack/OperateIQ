@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
       const { data: orgs } = await supabaseAdmin
         .from("organizations")
         .select("id,name,slug,tier")
-        .in("id", ctx.memberships.map((m) => m.org_id));
+        .in("id", ctx.memberships.slice(0, 100).map((m) => m.org_id))
+        .limit(100);
       memberships = (orgs || []).map((o: { id: string; name: string; slug: string; tier: string }) => ({
         ...o,
         name: o.name === "OperateIQ Demo" || o.name === "OpsIQ Demo" ? "PropOpsIQ Demo" : o.name,

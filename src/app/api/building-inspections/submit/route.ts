@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
 import { requireOrg } from "@/lib/server-auth";
+import { apiErrorResponse, safeJsonBody } from "@/lib/pagination";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -11,11 +12,6 @@ const HEADERS = {
   "Content-Type": "application/json",
 };
 
-// ────────────────────────────────────────────────────────────────────────────
-// POST /api/building-inspections/submit   Body: { month: "2025-06" }
-// Marks all draft rows for the month (in the caller's org) as submitted.
-// Only called from the admin Building Inspections tab → requires an org member.
-// ────────────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
@@ -24,8 +20,9 @@ export async function POST(req: NextRequest) {
   const actorName = user?.name || "Staff";
 
   try {
-    const body = await req.json();
-    const { month } = body as { month: string };
+    const parsed = await safeJsonBody<{ month?: string }>(req);
+    if (!parsed.ok) return parsed.res;
+    const month = String(parsed.body.month || "").trim();
 
     if (!month) {
       return NextResponse.json({ error: "month required" }, { status: 400 });
@@ -44,16 +41,19 @@ export async function POST(req: NextRequest) {
           submitted_by: actorName || actorEmail || "Staff",
           updated_at: now,
         }),
-      },
+      }
     );
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("building_inspections submit error:", errText);
-      return NextResponse.json({ error: "Submit failed" }, { status: 500 });
+      return apiErrorResponse(
+        new Error(`building_inspections submit (${res.status}): ${errText}`),
+        "Failed to submit building inspections.",
+        { route: "/api/building-inspections/submit", orgId }
+      );
     }
 
-    writeActivityLog({
+    await writeActivityLog({
       org_id: orgId,
       actor_email: actorEmail,
       actor_name: actorName,
@@ -65,7 +65,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, submittedAt: now });
   } catch (err) {
-    console.error("building_inspections submit catch:", err);
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+    return apiErrorResponse(err, "Failed to submit building inspections.", {
+      route: "/api/building-inspections/submit",
+      orgId,
+    });
   }
 }

@@ -77,16 +77,27 @@ export async function GET(req: NextRequest) {
     // Full list: platform super-admins only.
     const sa = await requireSuperAdmin(req);
     if (!sa.ok) return sa.res;
-    const [{ data: orgs }, { data: profileSettings }] = await Promise.all([
+    const rawLimit = Number(req.nextUrl.searchParams.get("limit"));
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 500) : 200;
+    const rawOffset = Number(req.nextUrl.searchParams.get("offset"));
+    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : 0;
+
+    const [{ data: orgs, count, error: orgErr }, { data: profileSettings }] = await Promise.all([
       supabaseAdmin
         .from("organizations")
-        .select("*")
-        .order("created_at", { ascending: false }),
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1),
       supabaseAdmin
         .from("site_settings")
         .select("org_id, value")
-        .eq("key", "org_profile"),
+        .eq("key", "org_profile")
+        .limit(1000),
     ]);
+    if (orgErr) {
+      console.error("[platform/organizations] query error:", orgErr.message);
+      return NextResponse.json({ error: "Failed to fetch organizations" }, { status: 500 });
+    }
     const profMap = new Map<string, Record<string, unknown>>();
     (profileSettings || []).forEach((s: { org_id: string; value: unknown }) => {
       if (s.org_id && s.value && typeof s.value === "object") {
@@ -103,7 +114,11 @@ export async function GET(req: NextRequest) {
         ),
       };
     });
-    return NextResponse.json({ organizations: enriched });
+    const total = typeof count === "number" ? count : enriched.length;
+    return NextResponse.json({
+      organizations: enriched,
+      pagination: { limit, offset, total, hasMore: offset + enriched.length < total },
+    });
   } catch (error) {
     console.error("[platform/organizations] GET error:", error);
     return NextResponse.json({ error: "Failed to fetch organizations" }, { status: 500 });

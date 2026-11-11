@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeActivityLog } from "@/lib/activity-log";
 import { requireOrg } from "@/lib/server-auth";
+import { apiErrorResponse, safeJsonBody } from "@/lib/pagination";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 const HEADERS = {
@@ -11,11 +12,6 @@ const HEADERS = {
   "Content-Type": "application/json",
 };
 
-// ────────────────────────────────────────────────────────────────────────────
-// POST /api/rent-payments/submit   Body: { month: "2025-06" }
-// Marks all draft rows for the month (in the caller's org) as submitted.
-// Only called from the admin Rent Ledger tab → requires a signed-in org member.
-// ────────────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
@@ -24,11 +20,12 @@ export async function POST(req: NextRequest) {
   const actorName = user?.name || "Staff";
 
   try {
-    const body = await req.json();
-    const { month } = body as { month: string };
+    const parsed = await safeJsonBody<{ month?: string }>(req);
+    if (!parsed.ok) return parsed.res;
+    const month = String(parsed.body.month || "").trim();
 
-    if (!month) {
-      return NextResponse.json({ error: "month required" }, { status: 400 });
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      return NextResponse.json({ error: "Valid month (YYYY-MM) required" }, { status: 400 });
     }
 
     const now = new Date().toISOString();
@@ -44,16 +41,19 @@ export async function POST(req: NextRequest) {
           submitted_by: actorName || actorEmail || "Staff",
           updated_at: now,
         }),
-      },
+      }
     );
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("rent_payments submit error:", errText);
-      return NextResponse.json({ error: "Submit failed" }, { status: 500 });
+      return apiErrorResponse(
+        new Error(`rent_payments submit (${res.status}): ${errText}`),
+        "Failed to submit rent ledger.",
+        { route: "/api/rent-payments/submit", orgId }
+      );
     }
 
-    writeActivityLog({
+    await writeActivityLog({
       org_id: orgId,
       actor_email: actorEmail,
       actor_name: actorName,
@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, submittedAt: now });
   } catch (err) {
-    console.error("rent_payments submit catch:", err);
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+    return apiErrorResponse(err, "Failed to submit rent ledger.", { route: "/api/rent-payments/submit", orgId });
   }
 }

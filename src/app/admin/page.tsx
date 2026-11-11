@@ -3,30 +3,46 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import TenantsTab, { rowToTenant, type Tenant } from "./TenantsTab";
-import PropDetailsTab from "./PropDetailsTab";
-import AnalyticsTab, { type AnalyticsLead } from "./AnalyticsTab";
-import MaintenanceTab from "./MaintenanceTab";
-import CleaningTab from "./CleaningTab";
-import RentLedgerTab from "./RentLedgerTab";
-import SecurityDepositLedgerTab from "./SecurityDepositLedgerTab";
-import MarketingTab from "./MarketingTab";
-import ContentTab from "./ContentTab";
-import ConversationTab from "./ConversationTab";
-import TasksTab from "./TasksTab";
+import dynamic from "next/dynamic";
+import { rowToTenant, type Tenant } from "@/lib/tenant-mapper";
+import type { AnalyticsLead } from "./AnalyticsTab";
 import ProTips from "./ProTips";
 import CallLogModal, { type CallLog, outcomeColor, outcomeLabel } from "./CallLogModal";
 import PrintButton from "./PrintButton";
-import ActivityFeedPanel from "./ActivityFeedPanel";
-import SettingsTab, { PlanAndBillingModal } from "./SettingsTab";
-import IntakeStagingModal from "./IntakeStagingModal";
 import GetStartedChecklist from "@/components/admin/GetStartedChecklist";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { signOutEverywhere } from "@/lib/sign-out";
 import { hasFeature, FEATURE_LABELS, getPlan, type Feature, type Tier } from "@/lib/plans";
 import { getCustomerCode } from "@/lib/platform";
-import * as XLSX from "xlsx";
+
+function AdminTabSkeleton() {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 flex items-center justify-center gap-3 text-sm text-gray-400 min-h-[260px]">
+      <div className="h-4 w-4 rounded-full border-2 border-sky-400/40 border-t-sky-400 animate-spin" />
+      <span>Loading module…</span>
+    </div>
+  );
+}
+
+const TenantsTab = dynamic(() => import("./TenantsTab"), { loading: () => <AdminTabSkeleton /> });
+const PropDetailsTab = dynamic(() => import("./PropDetailsTab"), { loading: () => <AdminTabSkeleton /> });
+const AnalyticsTab = dynamic(() => import("./AnalyticsTab"), { loading: () => <AdminTabSkeleton /> });
+const MaintenanceTab = dynamic(() => import("./MaintenanceTab"), { loading: () => <AdminTabSkeleton /> });
+const CleaningTab = dynamic(() => import("./CleaningTab"), { loading: () => <AdminTabSkeleton /> });
+const RentLedgerTab = dynamic(() => import("./RentLedgerTab"), { loading: () => <AdminTabSkeleton /> });
+const SecurityDepositLedgerTab = dynamic(() => import("./SecurityDepositLedgerTab"), { loading: () => <AdminTabSkeleton /> });
+const MarketingTab = dynamic(() => import("./MarketingTab"), { loading: () => <AdminTabSkeleton /> });
+const ContentTab = dynamic(() => import("./ContentTab"), { loading: () => <AdminTabSkeleton /> });
+const ConversationTab = dynamic(() => import("./ConversationTab"), { loading: () => <AdminTabSkeleton /> });
+const TasksTab = dynamic(() => import("./TasksTab"), { loading: () => <AdminTabSkeleton /> });
+const SettingsTab = dynamic(() => import("./SettingsTab"), { loading: () => <AdminTabSkeleton /> });
+const ActivityFeedPanel = dynamic(() => import("./ActivityFeedPanel"), { ssr: false });
+const IntakeStagingModal = dynamic(() => import("./IntakeStagingModal"), { ssr: false });
+const PlanAndBillingModal = dynamic(
+  () => import("./SettingsTab").then((m) => m.PlanAndBillingModal),
+  { ssr: false }
+);
 import {
   Zap, RefreshCw, Phone, Clock, Building2, TrendingUp,
   Users, Filter, AlertCircle, DollarSign, Calendar,
@@ -1834,64 +1850,68 @@ export default function AdminPage() {
     return () => { supabaseBrowser.removeChannel(channel); };
   }, [currentUser, activeOrg?.id]);
 
-  const fetchLeads = async () => {
+  const leadsAbortRef = useRef<AbortController | null>(null);
+
+  const fetchLeads = useCallback(async (signal?: AbortSignal) => {
+    const targetOrgId = activeOrg?.id;
     setLoading(true);
     try {
-      const orgParam = activeOrg?.id ? `?org_id=${encodeURIComponent(activeOrg.id)}` : "";
-      const res = await fetch(`/api/lease-bot${orgParam}`);
+      const orgParam = targetOrgId ? `?org_id=${encodeURIComponent(targetOrgId)}` : "";
+      const res = await fetch(`/api/lease-bot${orgParam}`, { signal });
+      if (!res.ok) return;
       const data = await res.json();
+      if (signal?.aborted) return;
       if (data.leads && Array.isArray(data.leads)) {
         const fetched: Lead[] = data.leads;
+        const hadInitialSnapshot = seenIdsRef.current.size > 0;
+        const brandNew = hadInitialSnapshot
+          ? fetched.filter(l => !seenIdsRef.current.has(l.id))
+          : [];
         fetched.forEach(l => seenIdsRef.current.add(l.id));
         setLeads(fetched);
+        if (brandNew.length > 0) {
+          setRecentLiveIds(prev => {
+            const s = new Set(prev);
+            brandNew.forEach(l => s.add(l.id));
+            return s;
+          });
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+          setNewLeadToast(brandNew[0]);
+          toastTimerRef.current = setTimeout(() => setNewLeadToast(null), 5000);
+        }
         // Bump briefKey once after the first real fetch so the brief regenerates with live data
         if (briefKeyRef.current === 0 && fetched.some(l => !l.id.startsWith("demo_"))) {
           briefKeyRef.current = 1;
           setBriefKey(1);
         }
       }
-    } catch { /* keep existing state on error */ }
-    finally { setLoading(false); setLastRefresh(new Date()); }
-  };
-
-  // ── localStorage live-lead poller (4s interval, scoped per org) ────────────
-  const pollLocalStorage = useCallback(() => {
-    if (!activeOrg?.id) return;
-    try {
-      const stored: Lead[] = JSON.parse(localStorage.getItem(`oiq_live_leads_${activeOrg.id}`) || "[]");
-      if (!stored.length) return;
-
-      const brandNew = stored.filter(l => !seenIdsRef.current.has(l.id));
-      if (!brandNew.length) return;
-
-      // Mark all as seen
-      brandNew.forEach(l => seenIdsRef.current.add(l.id));
-      setRecentLiveIds(prev => { const s = new Set(prev); brandNew.forEach(l => s.add(l.id)); return s; });
-
-      // Merge into leads list (new ones at top)
-      setLeads(prev => {
-        const existingIds = new Set(prev.map(l => l.id));
-        const toAdd = brandNew.filter(l => !existingIds.has(l.id));
-        return toAdd.length ? [...toAdd, ...prev] : prev;
-      });
-
-      // Show toast for the most recent new lead
-      const latest = brandNew[0];
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      setNewLeadToast(latest);
-      toastTimerRef.current = setTimeout(() => setNewLeadToast(null), 5000);
-      setLastRefresh(new Date());
-    } catch { /* ignore */ }
+    } catch (err) {
+      if ((err as { name?: string })?.name === "AbortError") return;
+      /* keep existing state on transient error */
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+        setLastRefresh(new Date());
+      }
+    }
   }, [activeOrg?.id]);
 
   useEffect(() => {
-    fetchLeads();
-    const apiInterval = setInterval(fetchLeads, 30000);
-    const lsInterval = setInterval(pollLocalStorage, 4000);
-    // Also run once on mount in case chatbot already fired
-    pollLocalStorage();
-    return () => { clearInterval(apiInterval); clearInterval(lsInterval); };
-  }, [activeOrg?.id, pollLocalStorage]);
+    seenIdsRef.current = new Set();
+    leadsAbortRef.current?.abort();
+    const controller = new AbortController();
+    leadsAbortRef.current = controller;
+
+    fetchLeads(controller.signal);
+    const apiInterval = setInterval(() => {
+      if (!controller.signal.aborted) fetchLeads(controller.signal);
+    }, 30000);
+
+    return () => {
+      controller.abort();
+      clearInterval(apiInterval);
+    };
+  }, [activeOrg?.id, fetchLeads]);
 
   // Remove NEW badge after 60s
   useEffect(() => {
@@ -2385,7 +2405,7 @@ export default function AdminPage() {
             </button>
             {activeTab === "leads" && (
               <button
-                onClick={fetchLeads}
+                onClick={() => fetchLeads()}
                 disabled={loading}
                 className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-xl bg-white/[0.04] border border-white/12 text-sky-400 text-xs hover:border-white/20 hover:shadow-[0_0_12px_rgba(56,189,248,0.12)] transition-colors disabled:opacity-50"
                 title="Refresh leads"
@@ -3925,16 +3945,18 @@ export default function AdminPage() {
       )}
 
       {/* Centered Plan & Billing Modal */}
-      <PlanAndBillingModal
-        open={showBillingModal}
-        onClose={() => setShowBillingModal(false)}
-        activeOrg={activeOrg}
-        onSubscriptionUpdated={(newTier, newStatus) =>
-          setActiveOrg((prev) =>
-            prev ? { ...prev, tier: newTier as Tier, subscription_status: newStatus, trial_ends_at: null } : prev
-          )
-        }
-      />
+      {showBillingModal && (
+        <PlanAndBillingModal
+          open={showBillingModal}
+          onClose={() => setShowBillingModal(false)}
+          activeOrg={activeOrg}
+          onSubscriptionUpdated={(newTier, newStatus) =>
+            setActiveOrg((prev) =>
+              prev ? { ...prev, tier: newTier as Tier, subscription_status: newStatus, trial_ends_at: null } : prev
+            )
+          }
+        />
+      )}
 
     </div>
   );

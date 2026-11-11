@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/allowed_users?active=eq.true&org_id=eq.${orgId}&select=name,role`,
-      { headers: H }
+      `${SUPABASE_URL}/rest/v1/allowed_users?active=eq.true&org_id=eq.${orgId}&select=name,role&limit=200`,
+      { headers: H, cache: "no-store" }
     );
     if (!res.ok) {
       return NextResponse.json({ name: orgProfile.name, title: "Commercial Real Estate" });

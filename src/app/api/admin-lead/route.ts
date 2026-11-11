@@ -108,8 +108,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Database insert failed" }, { status: 500 });
     }
 
-    // Audit log — fire and forget
-    writeActivityLog({
+    // Audit log — awaited before lambda exits
+    await writeActivityLog({
       org_id:        orgId,
       actor_email:   user?.email || body.actorEmail  || "unknown",
       actor_name:    body.actorName || user?.name || "Staff",
@@ -281,7 +281,7 @@ export async function PATCH(req: NextRequest) {
       logMetadata = { changed: changedFields.join(", ") };
     }
 
-    writeActivityLog({
+    await writeActivityLog({
       org_id:        orgId,
       actor_email:   user?.email || actorEmail  || "unknown",
       actor_name:    actorName || user?.name || "Staff",

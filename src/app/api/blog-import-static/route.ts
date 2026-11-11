@@ -93,9 +93,12 @@ export async function GET(req: NextRequest) {
   const slugs = BLOG_POSTS.map(p => p.slug);
 
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/blog_posts?org_id=eq.${orgId}&slug=in.(${slugs.map(s => `"${s}"`).join(",")})&select=slug`,
-    { headers: H }
+    `${SUPABASE_URL}/rest/v1/blog_posts?org_id=eq.${orgId}&slug=in.(${slugs.map(s => `"${s}"`).join(",")})&select=slug&limit=${Math.max(slugs.length, 50)}`,
+    { headers: H, cache: "no-store" }
   );
+  if (!res.ok) {
+    return NextResponse.json({ error: "Failed to check static blog posts." }, { status: 500 });
+  }
 
   const existing = await res.json();
   const existingSlugs = new Set(

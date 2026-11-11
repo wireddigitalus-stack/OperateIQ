@@ -43,7 +43,7 @@ async function getRaw(orgId: string): Promise<{ value: HeroConfig | null; tableE
 }
 
 async function getOverrides(orgId: string): Promise<Record<string, string>> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/property_image_overrides?org_id=eq.${orgId}`, { headers: H, cache: "no-store" });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/property_image_overrides?org_id=eq.${orgId}&limit=300`, { headers: H, cache: "no-store" });
   if (!res.ok) return {};
   const data = await res.json();
   const map: Record<string, string> = {};
@@ -53,7 +53,7 @@ async function getOverrides(orgId: string): Promise<Record<string, string>> {
 
 async function getOrgProperties(orgId: string): Promise<DbPropertyRow[]> {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&select=*`, { headers: H, cache: "no-store" });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&select=id,name,city,hero_image,images&limit=300`, { headers: H, cache: "no-store" });
     if (!res.ok) return [];
     const rows = await res.json();
     return Array.isArray(rows) ? rows : [];

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import * as XLSX from "xlsx";
+import { downloadWorkbook, parseSpreadsheetFile } from "@/lib/spreadsheet";
+import { showToast } from "@/lib/api-client";
 import {
   RefreshCw, Plus, Trash2, Save, CheckCircle2, Loader2,
   Mail, Shield, X, Smartphone, Lock, BellRing,
@@ -62,7 +63,7 @@ function initials(name: string) {
 function ExportButton({ leads }: { leads: Lead[] }) {
   const [exporting, setExporting] = useState(false);
 
-  function doExport() {
+  async function doExport() {
     setExporting(true);
     try {
       const rows = leads.map(l => ({
@@ -79,10 +80,12 @@ function ExportButton({ leads }: { leads: Lead[] }) {
         "Notes":      l.additionalInfo || "",
         "Submitted":  new Date(l.timestamp).toLocaleString(),
       }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Leads");
-      XLSX.writeFile(wb, `propopsiq-leads-${new Date().toISOString().slice(0,10)}.xlsx`);
+      await downloadWorkbook(
+        [{ name: "Leads", rows }],
+        `propopsiq-leads-${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Export failed.", "error");
     } finally {
       setExporting(false);
     }
@@ -191,9 +194,6 @@ function QBExportButton() {
       });
 
       // ── Also generate a clean Excel rent roll ──
-      const wb = XLSX.utils.book_new();
-
-      // Sheet 1: Rent Roll
       const rentRows = tenants.filter(t => t.status === "active").map(t => ({
         "Tenant": t.name,
         "Contact": t.contactName,
@@ -213,10 +213,7 @@ function QBExportButton() {
         "Phone": t.phone,
         "Email": t.email,
       }));
-      const ws1 = XLSX.utils.json_to_sheet(rentRows);
-      XLSX.utils.book_append_sheet(wb, ws1, "Rent Roll");
 
-      // Sheet 2: QB Customer Import
       const custRows = tenants.map(t => ({
         "Customer Name": t.unit ? `${t.name} - ${t.building} ${t.unit}` : `${t.name} - ${t.building}`,
         "Contact": t.contactName || t.name,
@@ -225,12 +222,16 @@ function QBExportButton() {
         "Building": t.building,
         "Unit": t.unit,
       }));
-      const ws2 = XLSX.utils.json_to_sheet(custRows);
-      XLSX.utils.book_append_sheet(wb, ws2, "QB Customers");
 
       // Download Excel
       const dateStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `propopsiq-qb-export-${dateStr}.xlsx`);
+      await downloadWorkbook(
+        [
+          { name: "Rent Roll", rows: rentRows },
+          { name: "QB Customers", rows: custRows },
+        ],
+        `propopsiq-qb-export-${dateStr}.xlsx`
+      );
 
       // Download IIF
       const blob = new Blob([lines.join("\n")], { type: "text/plain" });
@@ -276,59 +277,60 @@ function ImportPanel() {
   const [err, setErr] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleFile(file: File) {
+  async function handleFile(file: File) {
     setErr(""); setDone(0); setRows([]); setHeaders([]);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const parsed: ImportRow[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
-        if (!parsed.length) { setErr("No rows found in file."); return; }
-        setHeaders(Object.keys(parsed[0]));
-        setRows(parsed.slice(0, 5)); // preview first 5
-      } catch { setErr("Could not read file. Make sure it's .xlsx or .csv."); }
-    };
-    reader.readAsArrayBuffer(file);
+    try {
+      const parsed = (await parseSpreadsheetFile(file)) as ImportRow[];
+      if (!parsed.length) { setErr("No rows found in file."); return; }
+      setHeaders(Object.keys(parsed[0]));
+      setRows(parsed.slice(0, 5)); // preview first 5
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not read file. Make sure it's .xlsx or .csv.");
+    }
   }
 
   async function doImport() {
-    if (!inputRef.current?.files?.[0]) return;
+    const file = inputRef.current?.files?.[0];
+    if (!file) return;
     setImporting(true); setErr(""); setDone(0);
     try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const allRows: ImportRow[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
-        let count = 0;
-        for (const row of allRows) {
-          const name = String(row["Name"] || row["name"] || row["Contact"] || row["Lead Name"] || "").trim();
-          if (!name) continue;
-          const body = {
-            name,
-            phone:          String(row["Phone"] || row["phone"] || ""),
-            email:          String(row["Email"] || row["email"] || ""),
-            spaceType:      String(row["Space Type"] || row["spaceType"] || row["Type"] || "Office Space"),
-            budget:         String(row["Budget/mo"] || row["Budget"] || row["budget"] || ""),
-            timeline:       String(row["Timeline"] || row["timeline"] || "Exploring options"),
-            teamSize:       String(row["Team Size"] || row["teamSize"] || "Solo"),
-            additionalInfo: String(row["Notes"] || row["notes"] || row["Additional Info"] || ""),
-            score:          Number(row["AI Score"] || row["Score"] || row["score"] || 50),
-            scoreLabel:     String(row["Label"] || row["scoreLabel"] || "Warm Lead"),
-            reasoning:      `Imported from spreadsheet on ${new Date().toLocaleDateString()}.`,
-            source:         "import",
-            medium:         "excel",
-          };
-          await fetch("/api/admin-lead", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-          count++;
+      const allRows = (await parseSpreadsheetFile(file)) as ImportRow[];
+      let count = 0;
+      for (const row of allRows) {
+        const name = String(row["Name"] || row["name"] || row["Contact"] || row["Lead Name"] || "").trim();
+        if (!name) continue;
+        const body = {
+          name,
+          phone:          String(row["Phone"] || row["phone"] || ""),
+          email:          String(row["Email"] || row["email"] || ""),
+          spaceType:      String(row["Space Type"] || row["spaceType"] || row["Type"] || "Office Space"),
+          budget:         String(row["Budget/mo"] || row["Budget"] || row["budget"] || ""),
+          timeline:       String(row["Timeline"] || row["timeline"] || "Exploring options"),
+          teamSize:       String(row["Team Size"] || row["teamSize"] || "Solo"),
+          additionalInfo: String(row["Notes"] || row["notes"] || row["Additional Info"] || ""),
+          score:          Number(row["AI Score"] || row["Score"] || row["score"] || 50),
+          scoreLabel:     String(row["Label"] || row["scoreLabel"] || "Warm Lead"),
+          reasoning:      `Imported from spreadsheet on ${new Date().toLocaleDateString()}.`,
+          source:         "import",
+          medium:         "excel",
+        };
+        const res = await fetch("/api/admin-lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Failed on row "${name}" (HTTP ${res.status})`);
         }
-        setDone(count); setImporting(false);
-      };
-      reader.readAsArrayBuffer(inputRef.current.files[0]);
-    } catch { setErr("Import failed. Please try again."); setImporting(false); }
+        count++;
+      }
+      setDone(count);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Import failed. Please try again.");
+    } finally {
+      setImporting(false);
+    }
   }
 
   return (

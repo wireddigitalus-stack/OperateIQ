@@ -17,14 +17,14 @@ const STATIC_PROPERTY_IMAGES: { url: string; label: string }[] = PROPERTIES.flat
 );
 
 // Lists only objects inside the tenant prefix `<orgId>/`.
-async function listBucket(bucket: string, orgId: string): Promise<string[]> {
+async function listBucket(bucket: string, orgId: string, limit: number, offset: number): Promise<string[]> {
   try {
     const res = await fetch(
       `${SUPABASE_URL}/storage/v1/object/list/${bucket}`,
       {
         method: "POST",
         headers: { ...AUTH, "Content-Type": "application/json" },
-        body: JSON.stringify({ prefix: `${orgId}/`, limit: 200, offset: 0, sortBy: { column: "created_at", order: "desc" } }),
+        body: JSON.stringify({ prefix: `${orgId}/`, limit, offset, sortBy: { column: "created_at", order: "desc" } }),
       }
     );
     if (!res.ok) return [];
@@ -40,22 +40,20 @@ async function listBucket(bucket: string, orgId: string): Promise<string[]> {
   }
 }
 
-/**
- * GET /api/image-library
- * Returns all available images for use in blog posts:
- *   - built-in property catalogue images (PROPERTIES)
- *   - uploaded images from Supabase property-images bucket
- *   - uploaded images from Supabase blog-images bucket
- */
 export async function GET(req: NextRequest) {
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
+  const rawLimit = Number(req.nextUrl.searchParams.get("limit"));
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 300) : 200;
+  const rawOffset = Number(req.nextUrl.searchParams.get("offset"));
+  const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : 0;
+
   // Fetch both Supabase buckets in parallel
   const [propertyBucketUrls, blogBucketUrls] = await Promise.all([
-    listBucket("property-images", orgId),
-    listBucket("blog-images", orgId),
+    listBucket("property-images", orgId, limit, offset),
+    listBucket("blog-images", orgId, limit, offset),
   ]);
 
   // Built-in catalogue images (demo org only)

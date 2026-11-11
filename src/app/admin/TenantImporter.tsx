@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, X, ChevronRight, Loader2, Download, RefreshCw } from "lucide-react";
 import type { Tenant } from "./TenantsTab";
+import { parseSpreadsheetFile } from "@/lib/spreadsheet";
 
 // ─── Column mapping: Excel header variants → our field keys ──────────────────
 
@@ -111,26 +112,12 @@ export default function TenantImporter({ onImport, onClose }: Props) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [errors, setErrors] = useState<{ row: number; name: string; error: string }[]>([]);
+  const [uploadError, setUploadError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const parseFile = useCallback(async (file: File) => {
-    // Dynamically load xlsx from CDN (no npm needed)
-    if (!(window as any).XLSX) {
-      await new Promise<void>((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("Failed to load Excel parser"));
-        document.head.appendChild(script);
-      });
-    }
-    const XLSX = (window as any).XLSX;
-
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: "array", cellDates: false });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    const rows = await parseSpreadsheetFile(file);
 
     if (!rows.length) throw new Error("The spreadsheet appears to be empty.");
 
@@ -160,7 +147,7 @@ export default function TenantImporter({ onImport, onClose }: Props) {
           else if (fieldKey === "leaseStart") m.leaseStart = excelDateToISO(row[h]);
           else if (fieldKey === "leaseEnd") m.leaseEnd = excelDateToISO(row[h]);
           else if (fieldKey === "status") m.status = normaliseStatus(rawVal);
-          else (m as any)[fieldKey] = rawVal;
+          else (m as unknown as Record<string, string>)[fieldKey] = rawVal;
         } else {
           m._raw[h] = rawVal;
         }
@@ -176,12 +163,16 @@ export default function TenantImporter({ onImport, onClose }: Props) {
   }, []);
 
   const handleFile = async (file: File) => {
+    setUploadError("");
     if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
-      alert("Please upload an Excel (.xlsx/.xls) or CSV file.");
+      setUploadError("Please upload an Excel (.xlsx, .xls) or CSV (.csv) file.");
       return;
     }
-    try { await parseFile(file); }
-    catch (e: any) { alert(e.message || "Failed to parse file."); }
+    try {
+      await parseFile(file);
+    } catch (e: unknown) {
+      setUploadError(e instanceof Error ? e.message : "Failed to parse spreadsheet.");
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -192,7 +183,8 @@ export default function TenantImporter({ onImport, onClose }: Props) {
 
   const toggleRow = (i: number) => {
     const next = new Set(selected);
-    next.has(i) ? next.delete(i) : next.add(i);
+    if (next.has(i)) next.delete(i);
+    else next.add(i);
     setSelected(next);
   };
 
@@ -232,8 +224,17 @@ export default function TenantImporter({ onImport, onClose }: Props) {
     try {
       await onImport(tenants);
       setProgress({ done: tenants.length, total: tenants.length });
-    } catch (e: any) {
-      errs.push({ row: 0, name: "Batch", error: e.message || "Import failed" });
+    } catch (e: unknown) {
+      const rowErrors = (e as { rowErrors?: Array<{ row: number; name: string; message: string }> })?.rowErrors;
+      if (Array.isArray(rowErrors) && rowErrors.length > 0) {
+        rowErrors.forEach((re) => errs.push({ row: re.row, name: re.name, error: re.message }));
+      } else {
+        errs.push({
+          row: 0,
+          name: "Batch Import",
+          error: e instanceof Error ? e.message : "Import failed",
+        });
+      }
     }
     setErrors(errs);
     setStep("done");
@@ -274,6 +275,12 @@ export default function TenantImporter({ onImport, onClose }: Props) {
         {/* Step: Upload */}
         {step === "upload" && (
           <div className="p-6 space-y-5">
+            {uploadError && (
+              <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300">
+                <AlertTriangle size={15} className="text-red-400 shrink-0 mt-0.5" />
+                <span>{uploadError}</span>
+              </div>
+            )}
             <div
               onDrop={handleDrop}
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}

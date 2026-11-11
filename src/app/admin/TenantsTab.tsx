@@ -7,85 +7,21 @@ import {
   MessageSquare, FileSpreadsheet, Camera, FileText, Paperclip,
   Bell, RotateCcw, Sparkles, Receipt, Send,
 } from "lucide-react";
-import TenantImporter from "./TenantImporter";
-import IntakeStagingModal from "./IntakeStagingModal";
+import dynamic from "next/dynamic";
 import PrintButton from "./PrintButton";
 import { PAYMENT_TYPES, printRentReceipt } from "./RentLedgerTab";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { compressImageFile } from "@/lib/image-compression";
+import { showToast } from "@/lib/api-client";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+const TenantImporter = dynamic(() => import("./TenantImporter"), { ssr: false });
+const IntakeStagingModal = dynamic(() => import("./IntakeStagingModal"), { ssr: false });
 
-export interface Tenant {
-  id: string;
-  name: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  building: string;
-  unit: string;
-  rep: string;
-  monthlyRent: number;
-  utilitiesFee: number;
-  securityDeposit: number;
-  nnnFee: number;
-  cleaningFee: number;
-  camFee: number;
-  nnFee: number;
-  leaseStart: string | null;
-  leaseEnd: string | null;
-  renewalDate: string | null;
-  leaseAlertDays: number | null;  // 90 | 60 | 30 | null
-  escalationPct: number;
-  escalationDate: string | null;
-  status: "active" | "pending" | "expired";
-  notes: string;
-  sourceLeadId: string;
-  createdAt: string;
-  leaseDocuments?: string;
-  secDepReceived?: boolean;
-  secDepDate?: string | null;
-  secDepStatus?: string;
-  secDepNotes?: string;
-}
+import { rowToTenant, type Tenant } from "@/lib/tenant-mapper";
+export { rowToTenant, type Tenant };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-export function rowToTenant(r: Record<string, unknown>): Tenant {
-  return {
-    id: r.id as string,
-    name: r.name as string,
-    contactName: (r.contact_name as string) || "",
-    email: (r.email as string) || "",
-    phone: (r.phone as string) || "",
-    building: (r.building as string) || "",
-    unit: (r.unit as string) || "",
-    rep: (r.rep as string) || "",
-    monthlyRent: Number(r.monthly_rent) || 0,
-    utilitiesFee: Number(r.utilities_fee) || 0,
-    securityDeposit: Number(r.security_deposit) || 0,
-    nnnFee: Number(r.nnn_fee) || 0,
-    cleaningFee: Number(r.cleaning_fee) || 0,
-    camFee: Number(r.cam_fee) || 0,
-    nnFee: Number(r.nn_fee) || 0,
-    leaseStart: (r.lease_start as string) || null,
-    leaseEnd: (r.lease_end as string) || null,
-    renewalDate: (r.renewal_date as string) || null,
-    leaseAlertDays: r.lease_alert_days !== undefined && r.lease_alert_days !== null ? Number(r.lease_alert_days) : 90,
-    escalationPct: Number(r.escalation_pct) || 0,
-    escalationDate: (r.escalation_date as string) || null,
-    status: (r.status as "active" | "pending" | "expired") || "active",
-    notes: (r.notes as string) || "",
-    sourceLeadId: (r.source_lead_id as string) || "",
-    createdAt: (r.created_at as string) || new Date().toISOString(),
-    leaseDocuments: (r.lease_documents as string) || "[]",
-    secDepReceived: !!(r.sec_dep_received),
-    secDepDate: (r.sec_dep_date as string) || null,
-    secDepStatus: (r.sec_dep_status as string) || "no_change",
-    secDepNotes: (r.sec_dep_notes as string) || "",
-  };
-}
 
 export function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null;
@@ -1900,22 +1836,43 @@ export default function TenantsTab({
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/tenants?id=${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ actorName: currentUserName || currentUserEmail?.split("@")[0] || "Staff", actorEmail: currentUserEmail || "" }),
-    });
+    const previous = tenants;
     setTenants(prev => prev.filter(t => t.id !== id));
-  };
-
-  const handleBatchImport = async (tenants: Partial<Tenant>[]) => {
-    for (const form of tenants) {
-      const res = await fetch("/api/tenants", {
-        method: "POST",
+    try {
+      const res = await fetch(`/api/tenants?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.name, contactName: form.contactName, email: form.email, phone: form.phone,
-          building: form.building, unit: form.unit, rep: "",
+          actorName: currentUserName || currentUserEmail?.split("@")[0] || "Staff",
+          actorEmail: currentUserEmail || "",
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Delete failed (HTTP ${res.status})`);
+      }
+      showToast("Tenant removed.", "success");
+    } catch (err) {
+      setTenants(previous);
+      showToast(err instanceof Error ? err.message : "Could not delete tenant.", "error");
+    }
+  };
+
+  const handleBatchImport = async (batch: Partial<Tenant>[]) => {
+    const res = await fetch("/api/intake/commit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        autoCreateBuildings: true,
+        source: "Excel Tenant Importer",
+        tenants: batch.map((form) => ({
+          name: form.name,
+          contactName: form.contactName,
+          email: form.email,
+          phone: form.phone,
+          building: form.building,
+          unit: form.unit,
+          rep: "",
           monthlyRent: Number(form.monthlyRent) || 0,
           utilitiesFee: 0,
           securityDeposit: 0,
@@ -1923,17 +1880,26 @@ export default function TenantsTab({
           cleaningFee: 0,
           camFee: 0,
           nnFee: 0,
-          leaseStart: form.leaseStart || null, leaseEnd: form.leaseEnd || null,
-          renewalDate: null, leaseAlertDays: 60,
-          escalationPct: 0, escalationDate: null,
-          status: form.status ?? "active", notes: form.notes ?? "",
-        }),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Failed to import tenant (${res.status})`);
-      }
+          leaseStart: form.leaseStart || null,
+          leaseEnd: form.leaseEnd || null,
+          renewalDate: null,
+          leaseAlertDays: 60,
+          escalationPct: 0,
+          escalationDate: null,
+          status: form.status ?? "active",
+          notes: form.notes ?? "",
+        })),
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || `Failed to import tenants (HTTP ${res.status})`) as Error & {
+        rowErrors?: unknown;
+      };
+      if (Array.isArray(data.rowErrors)) err.rowErrors = data.rowErrors;
+      throw err;
     }
+    showToast(`Imported ${data.tenantsCreated ?? batch.length} tenant(s).`, "success");
     await fetchTenants();
   };
 

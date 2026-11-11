@@ -414,8 +414,8 @@ export async function POST(req: NextRequest) {
         const errText = await insertRes.text();
         console.error("Supabase REST insert failed:", insertRes.status, errText);
       } else {
-        // Audit log — fire and forget
-        writeActivityLog({
+        // Audit log — await before lambda exits
+        await writeActivityLog({
           org_id:        orgId,
           actor_email:   user?.email || actorEmail   || "unknown",
           actor_name:    actorName || user?.name || actorEmail?.split("@")[0] || "Staff",
@@ -491,25 +491,49 @@ export async function GET(req: NextRequest) {
     const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+    const rawLimit = Number(req.nextUrl.searchParams.get("limit"));
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 500) : 100;
+    const rawOffset = Number(req.nextUrl.searchParams.get("offset"));
+    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : 0;
+
     // Any ?org_id= query param is ignored — tenancy comes from the session.
-    const url = `${SUPABASE_URL}/rest/v1/leads?select=*&org_id=eq.${orgId}&order=timestamp.desc&limit=50`;
+    const url = `${SUPABASE_URL}/rest/v1/leads?select=*&org_id=eq.${orgId}&order=timestamp.desc`;
 
     const res = await fetch(url, {
       headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        Range: `${offset}-${offset + limit - 1}`,
+        Prefer: "count=exact",
       },
+      cache: "no-store",
     });
 
-    if (!res.ok) throw new Error(`Supabase GET failed: ${res.status}`);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Supabase leads GET failed:", res.status, errText);
+      return NextResponse.json({ error: "Failed to load leads." }, { status: 500 });
+    }
     const data = await res.json();
+    const rows = Array.isArray(data) ? data : [];
+    const cr = res.headers.get("content-range") || "";
+    const totalMatch = cr.includes("/") ? Number(cr.split("/")[1]) : NaN;
+    const total = Number.isFinite(totalMatch) ? totalMatch : offset + rows.length;
 
-    const leads: Lead[] = (data || []).map(rowToLead);
+    const leads: Lead[] = rows.map(rowToLead);
 
-    return NextResponse.json({ leads });
+    return NextResponse.json({
+      leads,
+      pagination: {
+        limit,
+        offset,
+        total,
+        hasMore: offset + rows.length < total,
+      },
+    });
   } catch (err) {
     console.error("Supabase fetch error:", err);
-    return NextResponse.json({ leads: [] });
+    return NextResponse.json({ error: "Failed to load leads." }, { status: 500 });
   }
 }
 

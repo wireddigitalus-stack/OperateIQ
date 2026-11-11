@@ -8,7 +8,7 @@ import {
   Calendar, Layers, CheckSquare, Square, ArrowRight, ShieldCheck,
   HelpCircle, ArrowUpRight, Users
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import { parseSpreadsheetFile } from "@/lib/spreadsheet";
 import type { Tenant } from "./TenantsTab";
 import { compressImageFile } from "@/lib/image-compression";
 
@@ -423,8 +423,6 @@ export default function IntakeStagingModal({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
 
-  if (isOpen !== undefined && !isOpen) return null;
-
   // Available building suggestions
   const buildingSuggestions = useMemo(() => {
     const list = Array.from(new Set([...knownBuildings, detectedBuilding])).filter(Boolean);
@@ -439,10 +437,7 @@ export default function IntakeStagingModal({
     setScanStatusText("Parsing spreadsheet columns & financial ledger...");
 
     try {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array", cellDates: false });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      const rows = await parseSpreadsheetFile(file);
 
       if (!rows.length) {
         throw new Error("Spreadsheet appears to be empty.");
@@ -696,83 +691,34 @@ export default function IntakeStagingModal({
         };
       });
 
-      // 1. Auto-enroll unique buildings into dynamic properties catalogue and property_details
       const uniqueBuildingNames = Array.from(new Set(payload.map((p) => p.building).filter(Boolean)));
-      const createdBuildingList: string[] = [];
 
-      // Skip buildings that already exist in this org's catalogue (safe to retry after a failure)
-      const existingRes = await fetch("/api/properties-dynamic?admin=1");
-      if (!existingRes.ok) {
-        const errData = await existingRes.json().catch(() => ({}));
-        throw new Error(errData.error || `Could not load existing properties (HTTP ${existingRes.status})`);
-      }
-      const existingData = await existingRes.json().catch(() => ({}));
-      const existingNames = new Set(
-        (Array.isArray(existingData.properties) ? existingData.properties : [])
-          .map((p: { name?: string }) => (p.name || "").trim().toLowerCase())
-      );
-
-      for (const bName of uniqueBuildingNames) {
-        const propSlug = bName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-        const unitsInThisBuilding = payload.filter((p) => p.building === bName).length;
-
-        // Existing buildings keep their catalogue entry AND their P&L details untouched
-        if (existingNames.has(bName.trim().toLowerCase())) continue;
-
-        {
-          // Enroll in dynamic properties catalog as an unpublished draft —
-          // address/city are left blank for the operator to fill in.
-          const propRes = await fetch("/api/properties-dynamic", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: bName,
-              type: "Residential / Mixed-Use",
-              address: "",
-              city: "",
-              lease_status: "active",
-              published: false,
-              in_banner: false,
-              is_sample: isSampleRoll,
-              description: `Auto-enrolled via PropOpsIQ AI Multi-Tenant Intake on ${new Date().toLocaleDateString()}`,
-            }),
-          });
-          if (!propRes.ok) {
-            const errData = await propRes.json().catch(() => ({}));
-            throw new Error(`Failed to create property "${bName}": ${errData.error || `HTTP ${propRes.status}`}`);
-          }
-          createdBuildingList.push(bName);
-        }
-
-        // Register in property_details for occupancy and P&L tracking
-        const detailsRes = await fetch("/api/property-details", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            propertyId: propSlug || bName,
-            displayName: bName,
-            totalUnits: unitsInThisBuilding,
-            notes: `Auto-enrolled via AI Intake with ${unitsInThisBuilding} staged unit(s).`,
-          }),
-        });
-        if (!detailsRes.ok) {
-          const errData = await detailsRes.json().catch(() => ({}));
-          throw new Error(`Failed to register property details for "${bName}": ${errData.error || `HTTP ${detailsRes.status}`}`);
-        }
-      }
-
-      // 2. Commit tenant leases to database
-      const res = await fetch("/api/tenants", {
+      // Single atomic server-side commit (validates all rows + plan limits upfront and rolls back on error)
+      const res = await fetch("/api/intake/commit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenants: payload }),
+        body: JSON.stringify({
+          tenants: payload,
+          autoCreateBuildings: true,
+          isSample: isSampleRoll,
+          source: "AI Multi-Tenant Intake",
+        }),
       });
 
+      const commitData = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Insert failed with HTTP ${res.status}`);
+        const rowErrPreview = Array.isArray(commitData.rowErrors) && commitData.rowErrors.length > 0
+          ? ` (${commitData.rowErrors
+              .slice(0, 3)
+              .map((e: { row: number; name: string; message: string }) => `Row ${e.row} "${e.name}": ${e.message}`)
+              .join("; ")})`
+          : "";
+        throw new Error((commitData.error || `Import failed with HTTP ${res.status}`) + rowErrPreview);
       }
 
+      const createdBuildingList: string[] = Array.isArray(commitData.buildingsCreated)
+        ? commitData.buildingsCreated
+        : [];
       const totalMonthlyRentSum = payload.reduce((acc, t) => acc + (t.monthly_rent || 0), 0);
       setSavedBuildings(createdBuildingList.length ? createdBuildingList : uniqueBuildingNames);
       setSavedTenantsCount(payload.length);
@@ -786,6 +732,8 @@ export default function IntakeStagingModal({
       setStep("review");
     }
   };
+
+  if (isOpen !== undefined && !isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">

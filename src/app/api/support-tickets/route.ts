@@ -105,11 +105,11 @@ export async function GET(req: NextRequest) {
 
   try {
     if (!supabaseAdmin) {
-      return NextResponse.json({ tickets: [] });
+      return NextResponse.json({ error: "Database connection unavailable." }, { status: 503 });
     }
 
     const [{ data: orgs }, { data: submissions, error }] = await Promise.all([
-      supabaseAdmin.from("organizations").select("id, name, contact_email"),
+      supabaseAdmin.from("organizations").select("id, name, contact_email").limit(500),
       supabaseAdmin
         .from("contact_submissions")
         .select("*")
@@ -118,8 +118,8 @@ export async function GET(req: NextRequest) {
     ]);
 
     if (error) {
-      console.warn("[support-tickets] fetch warning:", error.message);
-      return NextResponse.json({ tickets: [] });
+      console.error("[support-tickets] fetch error:", error.message);
+      return NextResponse.json({ error: "Failed to load support tickets." }, { status: 500 });
     }
 
     const orgLookupById = new Map<string, { id: string; name: string; customer_code: string }>();
@@ -223,21 +223,36 @@ export async function POST(req: NextRequest) {
     }
 
     if (supabaseAdmin && (!resolvedOrgId || !resolvedCode)) {
-      const { data: orgs } = await supabaseAdmin
-        .from("organizations")
-        .select("id, name, contact_email");
+      if (!resolvedCode) {
+        // Fast indexed email lookup instead of full-scanning organizations
+        const { data: emailOrg } = await supabaseAdmin
+          .from("organizations")
+          .select("id, name")
+          .ilike("contact_email", email)
+          .limit(1)
+          .maybeSingle();
+        if (emailOrg) {
+          resolvedOrgId = emailOrg.id;
+          resolvedCode = getCustomerCode(emailOrg.id);
+          if (!resolvedCompany) resolvedCompany = emailOrg.name;
+        }
+      } else {
+        const { data: orgs } = await supabaseAdmin
+          .from("organizations")
+          .select("id, name, contact_email")
+          .limit(500);
 
-      for (const o of orgs || []) {
-        const code = getCustomerCode(o.id);
-        if (
-          (resolvedOrgId && o.id === resolvedOrgId) ||
-          (resolvedCode && code === resolvedCode) ||
-          (o.contact_email && String(o.contact_email).toLowerCase().trim() === email)
-        ) {
-          resolvedOrgId = o.id;
-          if (!resolvedCode) resolvedCode = code;
-          if (!resolvedCompany) resolvedCompany = o.name;
-          break;
+        for (const o of orgs || []) {
+          const code = getCustomerCode(o.id);
+          if (
+            (resolvedOrgId && o.id === resolvedOrgId) ||
+            code === resolvedCode ||
+            (o.contact_email && String(o.contact_email).toLowerCase().trim() === email)
+          ) {
+            resolvedOrgId = o.id;
+            if (!resolvedCompany) resolvedCompany = o.name;
+            break;
+          }
         }
       }
     }
@@ -345,7 +360,8 @@ export async function PATCH(req: NextRequest) {
       .eq("id", id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[support-tickets PATCH] db error:", error.message);
+      return NextResponse.json({ error: "Failed to update support ticket" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, id, status: newStatus });
@@ -371,7 +387,8 @@ export async function DELETE(req: NextRequest) {
 
     const { error } = await supabaseAdmin.from("contact_submissions").delete().eq("id", id);
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[support-tickets PATCH] db error:", error.message);
+      return NextResponse.json({ error: "Failed to update support ticket" }, { status: 500 });
     }
     return NextResponse.json({ success: true });
   } catch (err) {

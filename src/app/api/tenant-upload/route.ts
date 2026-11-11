@@ -85,7 +85,8 @@ export async function GET(req: NextRequest) {
 
   if (!signRes.ok) {
     const errText = await signRes.text();
-    return NextResponse.json({ error: `Failed to sign URL: ${errText}` }, { status: 404 });
+    console.error("[tenant-upload] sign error:", signRes.status, errText);
+    return NextResponse.json({ error: "Document not found or expired." }, { status: 404 });
   }
 
   const signedData = await signRes.json();
