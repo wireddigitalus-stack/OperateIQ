@@ -41,21 +41,21 @@ const PRO: Feature[] = [
 
 export const PLANS: Plan[] = [
   {
-    id: "starter", name: "Starter", monthly: 99, annual: 990,
-    blurb: "For independent owners getting organized.",
-    tagline: "For independent owners getting organized.",
+    id: "starter", name: "Starter", monthly: 29, annual: 290,
+    blurb: "For independent landlords getting organized (up to 5 properties).",
+    tagline: "For independent landlords getting organized (up to 5 properties).",
     limits: { properties: 5, users: 3 }, features: STARTER,
   },
   {
-    id: "growth", name: "Growth", monthly: 249, annual: 2490,
-    blurb: "For growing portfolios with staff and vendors.",
-    tagline: "For growing portfolios with staff and vendors.",
+    id: "growth", name: "Growth", monthly: 79, annual: 790,
+    blurb: "For growing small & mid-size portfolios with crew & Schedule E reports.",
+    tagline: "For growing small & mid-size portfolios with crew & Schedule E reports.",
     limits: { properties: 25, users: 10 }, features: GROWTH, highlight: true,
   },
   {
-    id: "pro", name: "Pro", monthly: 499, annual: 4990,
-    blurb: "For management companies that want it all — plus a website.",
-    tagline: "For management companies that want it all — plus a website.",
+    id: "pro", name: "Pro", monthly: 149, annual: 1490,
+    blurb: "Unlimited properties & team — plus a branded leasing website & custom domain.",
+    tagline: "Unlimited properties & team — plus a branded leasing website & custom domain.",
     limits: { properties: null, users: null }, features: PRO,
   },
 ];
@@ -114,6 +114,6 @@ export function isSubscriptionActive(org: {
     if (!Number.isNaN(ends) && ends < Date.now()) return false;
     return true;
   }
-  // past_due: allow grace access
-  return true;
+  // past_due: allow grace access; reject incomplete_expired / unpaid / unknown states
+  return status === "past_due";
 }

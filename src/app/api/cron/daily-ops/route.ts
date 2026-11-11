@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { requireOrgAdmin } from "@/lib/server-auth";
 import { sendEmail, emailConfigured, escapeHtml, platformUrl } from "@/lib/email";
+import { isSubscriptionActive } from "@/lib/plans";
 import { apiErrorResponse } from "@/lib/pagination";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
@@ -125,14 +126,20 @@ export async function GET(req: NextRequest) {
 
   try {
     const orgsRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/organizations?select=id,name,contact_email,subscription_status&limit=200`,
+      `${SUPABASE_URL}/rest/v1/organizations?select=id,name,contact_email,subscription_status,trial_ends_at&limit=200`,
       { headers: HEADERS, cache: "no-store" }
     );
     const orgs = orgsRes.ok ? ((await orgsRes.json()) as Array<Record<string, unknown>>) : [];
     const results = [];
     for (const o of orgs) {
-      const status = String(o.subscription_status || "trialing").toLowerCase();
-      if (status === "canceled" || status === "paused") continue;
+      if (
+        !isSubscriptionActive({
+          subscription_status: (o.subscription_status as string) || null,
+          trial_ends_at: (o.trial_ends_at as string) || null,
+        })
+      ) {
+        continue;
+      }
       results.push(
         await runDailyOpsForOrg(
           String(o.id),

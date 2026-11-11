@@ -13,7 +13,7 @@ const HEADERS = {
 };
 
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "inspections" });
   if (!g.ok) return g.res;
   const { orgId, user } = g.ctx;
   const actorEmail = user?.email || "unknown";

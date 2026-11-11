@@ -10,10 +10,9 @@ function verifyStripeSignature(payload: string, sigHeader: string, secret: strin
   try {
     const parts = sigHeader.split(",").map((p) => p.trim());
     const tPart = parts.find((p) => p.startsWith("t="));
-    const v1Part = parts.find((p) => p.startsWith("v1="));
-    if (!tPart || !v1Part) return false;
+    const v1Parts = parts.filter((p) => p.startsWith("v1="));
+    if (!tPart || v1Parts.length === 0) return false;
     const timestamp = tPart.slice(2);
-    const signature = v1Part.slice(3);
     // Reject events signed more than 5 minutes ago (replay protection, as Stripe's SDK does).
     const ts = Number(timestamp);
     if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false;
@@ -21,8 +20,12 @@ function verifyStripeSignature(payload: string, sigHeader: string, secret: strin
       .update(`${timestamp}.${payload}`, "utf8")
       .digest("hex");
     const a = Buffer.from(expected, "hex");
-    const b = Buffer.from(signature, "hex");
-    return a.length === b.length && timingSafeEqual(a, b);
+    for (const v1 of v1Parts) {
+      const signature = v1.slice(3);
+      const b = Buffer.from(signature, "hex");
+      if (a.length === b.length && timingSafeEqual(a, b)) return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -46,9 +49,9 @@ function inferTierFromSubscriptionObject(obj: any): Tier | null {
   }
 
   const unitAmount = Number(firstItem?.price?.unit_amount || 0);
-  if (unitAmount === 9900 || unitAmount === 99000) return "starter";
-  if (unitAmount === 24900 || unitAmount === 249000) return "growth";
-  if (unitAmount === 49900 || unitAmount === 499000) return "pro";
+  if ([2900, 29000, 9900, 99000].includes(unitAmount)) return "starter";
+  if ([7900, 79000, 24900, 249000].includes(unitAmount)) return "growth";
+  if ([14900, 149000, 49900, 499000].includes(unitAmount)) return "pro";
 
   const metaTier = String(obj?.metadata?.tier || "").toLowerCase();
   if (metaTier === "starter" || metaTier === "growth" || metaTier === "pro") {

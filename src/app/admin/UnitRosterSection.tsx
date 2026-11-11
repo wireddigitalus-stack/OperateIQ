@@ -18,6 +18,7 @@ import { showToast } from "@/lib/api-client";
 export interface UnitRosterProperty {
   id: string;
   name: string;
+  displayName?: string;
 }
 
 export interface UnitRosterTenant {
@@ -66,10 +67,12 @@ export default function UnitRosterSection({
   properties,
   tenants,
   selectedPropertyName,
+  selectedPropertyDisplayName,
 }: {
   properties: UnitRosterProperty[];
   tenants: UnitRosterTenant[];
   selectedPropertyName?: string | null;
+  selectedPropertyDisplayName?: string | null;
 }) {
   const [units, setUnits] = useState<PropertyUnitItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,28 +234,46 @@ export default function UnitRosterSection({
     }
   };
 
-  // Match active tenants to units by (building, unitNumber)
+  // Match active tenants to units by (building, unitNumber), honoring custom property displayName renames
   const enrichedUnits = useMemo(() => {
     const activeTenants = tenants.filter((t) => (t.status || "active") === "active");
-    const filtered = selectedPropertyName
-      ? units.filter((u) => u.building.toLowerCase() === selectedPropertyName.toLowerCase())
+    const propByLower = new Map<string, UnitRosterProperty>();
+    for (const p of properties) {
+      propByLower.set(p.name.trim().toLowerCase(), p);
+      if (p.displayName) propByLower.set(p.displayName.trim().toLowerCase(), p);
+    }
+    const sameBuilding = (a: string, b: string) => {
+      const al = a.trim().toLowerCase();
+      const bl = b.trim().toLowerCase();
+      if (!al || !bl) return false;
+      if (al === bl) return true;
+      const pa = propByLower.get(al);
+      const pb = propByLower.get(bl);
+      return Boolean(pa && pb && pa.id === pb.id);
+    };
+
+    const filterTarget = selectedPropertyName || selectedPropertyDisplayName;
+    const filtered = filterTarget
+      ? units.filter((u) => sameBuilding(u.building, filterTarget))
       : units;
 
     return filtered.map((u) => {
       const matchedTenant = activeTenants.find((t) => {
-        const tb = (t.building || "").trim().toLowerCase();
+        const tb = (t.building || "").trim();
         const tu = (t.unit || "").trim().toLowerCase() || "main";
-        return tb === u.building.trim().toLowerCase() && tu === u.unitNumber.trim().toLowerCase();
+        return sameBuilding(tb, u.building) && tu === u.unitNumber.trim().toLowerCase();
       });
+      const matchedProp = propByLower.get(u.building.trim().toLowerCase());
       const effectiveStatus: PropertyUnitItem["status"] = matchedTenant ? "occupied" : u.status;
       return {
         ...u,
+        displayBuilding: matchedProp?.displayName || u.building,
         matchedTenant,
         effectiveStatus,
         actualRent: matchedTenant ? Number(matchedTenant.monthly_rent) || 0 : 0,
       };
     });
-  }, [units, tenants, selectedPropertyName]);
+  }, [units, tenants, properties, selectedPropertyName, selectedPropertyDisplayName]);
 
   const kpis = useMemo(() => {
     const total = enrichedUnits.length;
@@ -271,9 +292,9 @@ export default function UnitRosterSection({
           <h3 className="text-sm font-black text-white flex items-center gap-2">
             <Home size={16} className="text-emerald-400" />
             <span>Unit Roster &amp; Rent Roll Inventory</span>
-            {selectedPropertyName && (
+            {(selectedPropertyDisplayName || selectedPropertyName) && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold">
-                {selectedPropertyName}
+                {selectedPropertyDisplayName || selectedPropertyName}
               </span>
             )}
           </h3>
@@ -380,7 +401,7 @@ export default function UnitRosterSection({
                   <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-4 py-3">
                       <p className="font-black text-white">{u.unitNumber}</p>
-                      <p className="text-[10px] text-gray-500">{u.building}</p>
+                      <p className="text-[10px] text-gray-500">{u.displayBuilding}</p>
                     </td>
                     <td className="px-3 py-3 text-gray-300 whitespace-nowrap">
                       {u.beds || u.baths || u.sqft ? (
@@ -406,6 +427,7 @@ export default function UnitRosterSection({
                       <div className="relative w-28">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-[10px]">$</span>
                         <input
+                          key={`${u.id}_${u.marketRent}`}
                           type="number"
                           defaultValue={u.marketRent || ""}
                           onBlur={(e) => {
@@ -490,7 +512,7 @@ export default function UnitRosterSection({
                       <option value="" className="bg-[#0A0F1A]">Select property…</option>
                       {properties.map((p) => (
                         <option key={p.id} value={p.name} className="bg-[#0A0F1A]">
-                          {p.name}
+                          {p.displayName || p.name}
                         </option>
                       ))}
                     </select>

@@ -273,10 +273,16 @@ export default function PortalClient({ token }: { token: string }) {
 
   const printReceipt = (r: PortalData["receipts"][number]) => {
     if (!data) return;
+    const esc = (v: unknown) =>
+      String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
     const win = window.open("", "_blank", "width=640,height=720");
     if (!win) return;
     const unitLabel = `${data.tenant.building}${data.tenant.unit ? ` · Unit ${data.tenant.unit}` : ""}`;
-    const html = `<!DOCTYPE html><html><head><title>Rent Receipt — ${fmtMonth(r.month)}</title>
+    const html = `<!DOCTYPE html><html><head><title>Rent Receipt — ${esc(fmtMonth(r.month))}</title>
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px; color: #0f172a; max-width: 560px; margin: 0 auto; }
         .hdr { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 24px; }
@@ -285,16 +291,16 @@ export default function PortalClient({ token }: { token: string }) {
         .tot { font-size: 18px; font-weight: 800; padding-top: 14px; }
       </style></head><body>
       <div class="hdr">
-        <div><h2 style="margin:0">${data.organization.name}</h2><p style="margin:4px 0 0;color:#64748b;font-size:13px">Official Rent Payment Receipt</p></div>
+        <div><h2 style="margin:0">${esc(data.organization.name)}</h2><p style="margin:4px 0 0;color:#64748b;font-size:13px">Official Rent Payment Receipt</p></div>
         <span class="badge">${r.paid ? "PAID IN FULL" : "PARTIAL PAYMENT"}</span>
       </div>
-      <div class="row"><span>Resident</span><strong>${data.tenant.name}</strong></div>
-      <div class="row"><span>Property / Unit</span><strong>${unitLabel}</strong></div>
-      <div class="row"><span>Billing Period</span><strong>${fmtMonth(r.month)}</strong></div>
-      <div class="row"><span>Payment Date</span><strong>${r.paymentDate || "Recorded"}</strong></div>
-      <div class="row"><span>Payment Method</span><strong>${r.paymentType || "Payment"}</strong></div>
-      <div class="row"><span>Total Charges</span><span>${fmtMoney(r.totalDue)}</span></div>
-      <div class="row tot"><span>Amount Received</span><span style="color:#059669">${fmtMoney(r.amountPaid)}</span></div>
+      <div class="row"><span>Resident</span><strong>${esc(data.tenant.name)}</strong></div>
+      <div class="row"><span>Property / Unit</span><strong>${esc(unitLabel)}</strong></div>
+      <div class="row"><span>Billing Period</span><strong>${esc(fmtMonth(r.month))}</strong></div>
+      <div class="row"><span>Payment Date</span><strong>${esc(r.paymentDate || "Recorded")}</strong></div>
+      <div class="row"><span>Payment Method</span><strong>${esc(r.paymentType || "Payment")}</strong></div>
+      <div class="row"><span>Total Charges</span><span>${esc(fmtMoney(r.totalDue))}</span></div>
+      <div class="row tot"><span>Amount Received</span><span style="color:#059669">${esc(fmtMoney(r.amountPaid))}</span></div>
       <p style="margin-top:32px;font-size:12px;color:#94a3b8;text-align:center">Generated via PropOpsIQ Resident Portal</p>
       <script>window.onload = () => window.print();</script>
       </body></html>`;

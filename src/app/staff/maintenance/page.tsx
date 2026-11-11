@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import CompletionSheet from "@/components/crew/CompletionSheet";
 import MicButton from "@/components/MicButton";
-import { CompanyCodeField, useStaffOrgCode } from "@/components/crew/CompanyCode";
+import { CompanyCodeField, normalizeOrgCode, useStaffOrgCode } from "@/components/crew/CompanyCode";
 import FilterChangesTab from "@/app/admin/FilterChangesTab";
 import BuildingInspectionsTab from "@/app/admin/BuildingInspectionsTab";
 import StaffAskOpsIQ from "../StaffAskOpsIQ";
@@ -1410,11 +1410,14 @@ export default function MaintenanceStaffPage() {
   useEffect(() => {
     const saved = localStorage.getItem("oiq_staff_name");
     if (saved) setWorkerName(saved);
-    // Crew sessions expire after a shift — if the signed session is gone, return to PIN entry.
+    const urlOrg = normalizeOrgCode(new URLSearchParams(window.location.search).get("org") || "");
+    // Crew sessions expire after a shift — or if the worker tapped an invite link for a different org, reset to PIN entry.
     fetch("/api/staff-auth")
       .then(r => r.json())
       .then(d => {
-        if (!d.authenticated || (d.role && d.role !== "maintenance")) {
+        const mismatchOrg = Boolean(urlOrg && d.orgSlug && normalizeOrgCode(d.orgSlug) !== urlOrg);
+        if (!d.authenticated || (d.role && d.role !== "maintenance") || mismatchOrg) {
+          if (mismatchOrg) fetch("/api/staff-auth", { method: "DELETE" }).catch(() => {});
           localStorage.removeItem("oiq_staff_name");
           setWorkerName(null);
         }

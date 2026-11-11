@@ -69,6 +69,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (body.agreedToTerms !== true) {
+      return NextResponse.json(
+        { error: "Please agree to the Terms of Service and Privacy Policy to continue." },
+        { status: 400 }
+      );
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail)) {
       return NextResponse.json(
@@ -240,6 +247,7 @@ export async function POST(req: NextRequest) {
             site_published: false,
             commercial_tools_enabled: enableCommercialByDefault,
             checklist_dismissed: false,
+            terms_accepted_at: new Date().toISOString(),
           },
           updated_at: new Date().toISOString(),
         },

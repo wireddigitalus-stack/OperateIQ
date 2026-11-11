@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireOrg } from "@/lib/server-auth";
 import { createTenantPortalToken } from "@/lib/tenant-portal-token";
 import { sendEmail, emailConfigured, escapeHtml, platformUrl } from "@/lib/email";
+import { isSubscriptionActive } from "@/lib/plans";
 import { apiErrorResponse, safeJsonBody } from "@/lib/pagination";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
@@ -25,7 +26,14 @@ async function getTenantPortalVersion(orgId: string, tenantId: string): Promise<
 export async function GET(req: NextRequest) {
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
-  const { orgId } = g.ctx;
+  const { orgId, org, isSuperAdmin } = g.ctx;
+
+  if (!isSuperAdmin && !isSubscriptionActive(org)) {
+    return NextResponse.json(
+      { error: "An active subscription is required to issue resident portal links." },
+      { status: 402 }
+    );
+  }
 
   const tenantId = req.nextUrl.searchParams.get("tenantId")?.trim();
   if (!tenantId) {
@@ -44,8 +52,7 @@ export async function GET(req: NextRequest) {
 
     const version = await getTenantPortalVersion(orgId, tenantId);
     const token = createTenantPortalToken({ orgId, tenantId, version });
-    const origin = req.headers.get("origin") || platformUrl();
-    const url = `${origin.replace(/\/+$/, "")}/portal/${token}`;
+    const url = `${platformUrl()}/portal/${token}`;
 
     return NextResponse.json({ ok: true, token, url, emailConfigured: emailConfigured() });
   } catch (err) {
@@ -59,7 +66,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
-  const { orgId, org } = g.ctx;
+  const { orgId, org, isSuperAdmin } = g.ctx;
+
+  if (!isSuperAdmin && !isSubscriptionActive(org)) {
+    return NextResponse.json(
+      { error: "An active subscription is required to manage resident portal links." },
+      { status: 402 }
+    );
+  }
 
   const parsed = await safeJsonBody<{
     tenantId?: string;

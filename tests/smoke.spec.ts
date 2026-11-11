@@ -58,12 +58,17 @@ test.describe("PropOpsIQ Beta Readiness Smoke Suite", () => {
     await page.goto("/pricing");
     await expect(page.locator("body")).toContainText(/Starter/i);
     await expect(page.locator("body")).toContainText(/Growth/i);
+    await expect(page.locator("body")).toContainText("$29");
+    await expect(page.locator("body")).toContainText("$79");
+    await expect(page.locator("body")).toContainText("$149");
+    await expect(page.locator("body")).not.toContainText("$499");
 
     await page.goto("/terms");
     await expect(page.locator("h1")).toContainText(/Terms/i);
 
     await page.goto("/privacy");
     await expect(page.locator("h1")).toContainText(/Privacy/i);
+    await expect(page.locator("body")).not.toContainText("${");
   });
 
   test("signup page enforces Terms & Privacy agreement before submit", async ({ page }) => {
@@ -89,10 +94,15 @@ test.describe("PropOpsIQ Beta Readiness Smoke Suite", () => {
       // Platform demo org is unpublished by default → shows private gate
       await expect(page.locator("body")).toContainText(/not published|private|unpublished|not available/i);
 
-      // Existing live tenant WIRED DIGITAL LLC remains 100% live
+      // Existing live tenant WIRED DIGITAL LLC remains 100% live and never leaks private site_content RSC sections
       const liveRes = await page.goto("/site/wired-digital-llc");
       expect(liveRes?.status()).toBe(200);
       await expect(page.locator("body")).toContainText(/WIRED DIGITAL/i);
+      const rawHtml = await page.content();
+      expect(rawHtml).not.toContain("late_fee_policy");
+      expect(rawHtml).not.toContain("portal_tokens");
+      expect(rawHtml).not.toContain("expenses_ledger");
+      expect(rawHtml).not.toContain("property_units_v1");
     } else {
       // Offline / placeholder-env CI: renders custom 404 screen cleanly without crashing
       expect(demoRes?.status()).toBe(404);

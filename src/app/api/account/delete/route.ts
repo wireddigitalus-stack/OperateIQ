@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const confirmText = String(body.confirm || "").trim().toLowerCase();
+  const confirmText = String(body.confirm || body.confirmSlug || "").trim().toLowerCase();
   const expectedSlug = String(org.slug || "").trim().toLowerCase();
   const expectedName = String(org.name || "").trim().toLowerCase();
 
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const res = NextResponse.json({ success: true, deletedOrgId: orgId });
+  const res = NextResponse.json({ ok: true, success: true, deletedOrgId: orgId });
   res.cookies.delete(ACTIVE_ORG_COOKIE);
   res.cookies.delete(IMPERSONATE_COOKIE);
   return res;

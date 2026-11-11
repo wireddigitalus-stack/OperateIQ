@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrg } from "@/lib/server-auth";
-import { getPublicOrgSlug, resolveOrgIdBySlug } from "@/lib/public-org";
+import { getPublicOrgSlug, PUBLIC_SITE_SECTIONS, resolveOrgIdBySlug } from "@/lib/public-org";
 import {
   apiErrorResponse,
   buildPaginationMeta,
@@ -17,23 +17,6 @@ const headers = {
   apikey: SERVICE_KEY,
   Authorization: `Bearer ${SERVICE_KEY}`,
 };
-
-const PUBLIC_SITE_SECTIONS = new Set([
-  "hero",
-  "about",
-  "footer",
-  "seo",
-  "contact",
-  "market",
-  "banner",
-  "listings",
-  "theme",
-  "branding",
-  "general",
-  "social",
-  "faq",
-  "testimonials",
-]);
 
 export async function GET(req: NextRequest) {
   let orgId: string | null = null;

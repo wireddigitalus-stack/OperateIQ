@@ -18,7 +18,7 @@ const H = {
  * Returns { imported: string[], skipped: string[], errors: string[] }
  */
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "blog" });
   if (!g.ok) return g.res;
   const { orgId, org } = g.ctx;
   const orgName = org.brand_name || org.name || getOrgProfile().name;

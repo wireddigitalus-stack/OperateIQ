@@ -503,15 +503,17 @@ function TenantCard({
         }),
       });
 
-      // 2. Patch the deterministic row ID rp_${tenant.id}_${payMonth} as PAID
+      // 2. Patch the deterministic row ID rp_${tenant.id}_${payMonth} (marks paid=true only when paid in full)
       const rowId = `rp_${tenant.id}_${payMonth}`;
       const amtNum = Number(payAmount) || 0;
       const lateNum = Number(payLateFee) || 0;
+      const expectedTotal = totalMonthlyObligation + lateNum;
+      const isPaidInFull = amtNum >= expectedTotal - 0.009;
       const patchRes = await fetch(`/api/rent-payments?id=${encodeURIComponent(rowId)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          paid: true,
+          paid: isPaidInFull,
           amountPaid: amtNum,
           paymentType: payMethod,
           paymentDate: payDate || new Date().toISOString().split("T")[0],
@@ -1659,6 +1661,7 @@ function TenantCard({
                           paymentType: payMethod,
                           paymentDate: payDate,
                           notes: payMemo,
+                          totalDue: totalMonthlyObligation + (Number(payLateFee) || 0),
                         })
                       }
                       className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/25 text-xs font-bold cursor-pointer"
@@ -1680,7 +1683,7 @@ function TenantCard({
                         href={`mailto:${tenant.email}?subject=${encodeURIComponent(
                           `Paid Rent Receipt — ${payMonth} (${tenant.building || ""}${tenant.unit ? ` Unit ${tenant.unit}` : ""})`
                         )}&body=${encodeURIComponent(
-                          `RENT RECEIPT (${payMonth})\n\nReceived: ${fmtMoney(Number(payAmount) || 0)}\nMethod: ${payMethod}\nDate: ${payDate}\nProperty: ${tenant.building || ""}${tenant.unit ? ` Unit ${tenant.unit}` : ""}${payMemo ? `\nReference: ${payMemo}` : ""}\nRemaining Balance: $0.00\n\nThank you!`
+                          `RENT RECEIPT (${payMonth})\n\nReceived: ${fmtMoney(Number(payAmount) || 0)}\nMethod: ${payMethod}\nDate: ${payDate}\nProperty: ${tenant.building || ""}${tenant.unit ? ` Unit ${tenant.unit}` : ""}${payMemo ? `\nReference: ${payMemo}` : ""}\nRemaining Balance: ${fmtMoney(Math.max(0, totalMonthlyObligation + (Number(payLateFee) || 0) - (Number(payAmount) || 0)))}\n\nThank you!`
                         )}`}
                         className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.06] border border-white/15 text-white hover:bg-white/10 text-xs font-bold"
                       >

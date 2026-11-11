@@ -146,9 +146,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const isSample = Boolean(body.is_sample);
+    // Sample properties can only be created via action="seed_demo" above; never trust client is_sample on arbitrary POST
+    const isSample = false;
+    const rawBadge = typeof body.badge === "string" ? body.badge.trim() : null;
+    const safeBadge =
+      rawBadge && rawBadge.toUpperCase() === SAMPLE_PROP_BADGE.toUpperCase() ? null : rawBadge;
     const limit = getPlan(g.ctx.org.tier).limits.properties;
-    if (!isSample && limit !== null && !g.ctx.isSuperAdmin) {
+    if (limit !== null && !g.ctx.isSuperAdmin) {
       const countRes = await fetch(
         `${SUPABASE_URL}/rest/v1/properties?select=id,badge&org_id=eq.${orgId}&limit=1000`,
         { headers: H, cache: "no-store" }
@@ -176,7 +180,7 @@ export async function POST(req: NextRequest) {
       city: body.city,
       sqft: body.sqft || null,
       lease_status: body.lease_status || "available",
-      badge: isSample ? SAMPLE_PROP_BADGE : body.badge || null,
+      badge: isSample ? SAMPLE_PROP_BADGE : safeBadge,
       badge_color: isSample ? "#F59E0B" : body.badge_color || "#4ADE80",
       description: body.description || null,
       features: body.features || [],

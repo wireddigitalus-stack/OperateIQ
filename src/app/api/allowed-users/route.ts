@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireOrg, requireOrgAdmin } from "@/lib/server-auth";
 import { getPlan } from "@/lib/plans";
+import { isWeakPin, generateStrongPin } from "@/lib/security-shield";
 
 /**
  * Team & crew management — always scoped to the caller's organization.
@@ -32,10 +33,12 @@ async function pinTaken(orgId: string, pin: string, exceptId?: string): Promise<
 import { randomInt } from "crypto";
 
 async function generateUniquePin(orgId: string): Promise<string> {
-  for (let i = 0; i < 20; i++) {
-    const pin = randomInt(100000, 1000000).toString();
-    if (!(await pinTaken(orgId, pin))) return pin;
+  for (let i = 0; i < 30; i++) {
+    const pin = generateStrongPin();
+    if (!isWeakPin(pin) && !(await pinTaken(orgId, pin))) return pin;
   }
+  const fallback = randomInt(100000, 1000000).toString();
+  if (!isWeakPin(fallback) && !(await pinTaken(orgId, fallback))) return fallback;
   throw new Error("Could not generate a unique PIN");
 }
 
@@ -141,6 +144,12 @@ export async function POST(req: NextRequest) {
   if (STAFF_ROLES.includes(role)) {
     if (pin) {
       if (!/^\d{6}$/.test(String(pin))) return NextResponse.json({ error: "PIN must be 6 digits" }, { status: 400 });
+      if (isWeakPin(String(pin))) {
+        return NextResponse.json(
+          { error: "OpsIQ Shield blocked a weak/sequential PIN (e.g. 123456 or repeating digits). Choose a stronger 6-digit PIN." },
+          { status: 400 }
+        );
+      }
       if (await pinTaken(orgId, String(pin))) return NextResponse.json({ error: "That PIN is already in use. Choose another." }, { status: 409 });
       issuedPin = String(pin);
     } else {
@@ -177,8 +186,21 @@ export async function PATCH(req: NextRequest) {
   const { data: before } = await supabaseAdmin.from("allowed_users").select("email,role,pin,active").eq("id", id).eq("org_id", orgId).maybeSingle();
   if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  if (before.role === "owner" && g.ctx.role !== "owner" && !g.ctx.isSuperAdmin) {
+    return NextResponse.json({ error: "Only the workspace owner can modify the owner account." }, { status: 403 });
+  }
+  if (before.role === "owner" && (updates.active === false || (updates.role && updates.role !== "owner"))) {
+    return NextResponse.json({ error: "The workspace owner account cannot be deactivated or demoted." }, { status: 400 });
+  }
+
   if (updates.pin !== undefined) {
     if (!/^\d{6}$/.test(String(updates.pin))) return NextResponse.json({ error: "PIN must be 6 digits" }, { status: 400 });
+    if (isWeakPin(String(updates.pin))) {
+      return NextResponse.json(
+        { error: "OpsIQ Shield blocked a weak/sequential PIN. Choose a stronger 6-digit PIN." },
+        { status: 400 }
+      );
+    }
     if (await pinTaken(orgId, String(updates.pin), id)) return NextResponse.json({ error: "That PIN is already in use. Choose another." }, { status: 409 });
   }
 
@@ -227,6 +249,9 @@ export async function DELETE(req: NextRequest) {
 
   const { data: row } = await supabaseAdmin.from("allowed_users").select("email,role").eq("id", id).eq("org_id", orgId).maybeSingle();
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (row.role === "owner") {
+    return NextResponse.json({ error: "The workspace owner account cannot be removed." }, { status: 403 });
+  }
   if (row.email && user && row.email.toLowerCase() === user.email) {
     return NextResponse.json({ error: "You can't remove yourself." }, { status: 400 });
   }

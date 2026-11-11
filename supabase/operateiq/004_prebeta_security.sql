@@ -80,12 +80,14 @@ declare
   ];
 begin
   foreach t in array tables loop
-    execute format('drop policy if exists org_member_all on public.%I', t);
-    execute format('drop policy if exists org_member_read on public.%I', t);
-    execute format(
-      'create policy org_member_read on public.%I for select to authenticated
-         using (org_id in (select public.current_user_org_ids()))', t);
-    execute format('revoke insert, update, delete on public.%I from anon, authenticated', t);
+    if to_regclass('public.' || t) is not null then
+      execute format('drop policy if exists org_member_all on public.%I', t);
+      execute format('drop policy if exists org_member_read on public.%I', t);
+      execute format(
+        'create policy org_member_read on public.%I for select to authenticated
+           using (org_id in (select public.current_user_org_ids()))', t);
+      execute format('revoke insert, update, delete on public.%I from anon, authenticated', t);
+    end if;
   end loop;
 end $$;
 

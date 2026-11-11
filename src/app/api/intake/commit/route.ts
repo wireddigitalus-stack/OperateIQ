@@ -58,8 +58,10 @@ export async function POST(req: NextRequest) {
 
   const rawTenants = Array.isArray(parsed.body?.tenants) ? parsed.body.tenants : [];
   const autoCreateBuildings = parsed.body?.autoCreateBuildings !== false;
-  const isSample = Boolean(parsed.body?.isSample);
+  const requestedSample = Boolean(parsed.body?.isSample);
   const sourceLabel = String(parsed.body?.source || "Bulk Intake").slice(0, 80);
+  // Only allow sample-mode cap exemption for small starter sample loads (<= 25 rows)
+  const isSample = requestedSample && rawTenants.length <= 25 && sourceLabel.toLowerCase().includes("sample");
 
   if (rawTenants.length === 0) {
     return NextResponse.json({ ok: false, error: "No tenant rows provided." }, { status: 400 });
@@ -280,25 +282,33 @@ export async function POST(req: NextRequest) {
             );
           }
 
-          const insertedProps = (await propInsertRes.json()) as Array<{ id?: string }>;
+          const insertedProps = (await propInsertRes.json()) as Array<{ id?: string; name?: string }>;
+          const insertedIdByName = new Map<string, string>();
           for (const p of Array.isArray(insertedProps) ? insertedProps : []) {
-            if (p?.id) createdPropertyIds.push(String(p.id));
+            if (p?.id) {
+              createdPropertyIds.push(String(p.id));
+              if (p.name) {
+                insertedIdByName.set(String(p.name).trim().toLowerCase(), String(p.id));
+              }
+            }
           }
 
-          // Batch upsert property_details for net-new buildings
+          // Batch upsert property_details keyed by actual property UUID so PropDetailsTab detailMap[p.id] matches immediately
           const detailRows = netNewBuildingNames.map((bName) => {
-            const propSlug =
+            const propId =
+              insertedIdByName.get(bName.trim().toLowerCase()) ||
               bName
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, "-")
-                .replace(/(^-|-$)/g, "") || bName;
-            createdDetailSlugs.push(propSlug);
+                .replace(/(^-|-$)/g, "") ||
+              bName;
+            createdDetailSlugs.push(propId);
             const unitsCount = tenantsToInsert.filter(
               (t) => t.building.trim().toLowerCase() === bName.toLowerCase()
             ).length;
             return {
               org_id: orgId,
-              property_id: propSlug,
+              property_id: propId,
               display_name: bName,
               total_units: unitsCount,
               taxes_annual: 0,

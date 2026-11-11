@@ -10,6 +10,32 @@ const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,62}$/i;
 
+/**
+ * Explicit allowlist of `site_content` sections safe to expose on public
+ * tenant marketing sites (`/site/[slug]`) and unauthenticated `GET /api/site-content`.
+ * Private operational sections (`rent_ledger`, `portal_tokens`, `property_units_v1`,
+ * `expenses_ledger`, `property:*`, etc.) must NEVER be serialized to public clients.
+ */
+export const PUBLIC_SITE_SECTIONS = new Set([
+  "hero",
+  "about",
+  "footer",
+  "seo",
+  "contact",
+  "market",
+  "banner",
+  "listings",
+  "theme",
+  "branding",
+  "general",
+  "social",
+  "faq",
+  "testimonials",
+  "stats",
+  "services",
+  "cta",
+]);
+
 /** Returns the raw slug param if present (org_slug preferred, then slug). */
 export function getPublicOrgSlug(req: NextRequest, opts: { allowSlugParam?: boolean } = {}): string | null {
   const sp = req.nextUrl.searchParams;

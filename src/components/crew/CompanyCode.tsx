@@ -57,19 +57,22 @@ export function CompanyCodeField({
 }) {
   const [editing, setEditing] = useState(!code);
   const [draft, setDraft] = useState(code);
+  const [userTyping, setUserTyping] = useState(false);
 
   useEffect(() => {
-    // Collapse to the summary line whenever a code is known (from the link,
-    // device memory, or after the worker confirms it); expand when it's cleared.
-    setEditing(!code);
-    setDraft(code);
-  }, [code]);
+    // Collapse to the summary line when a code arrives externally (from URL link or localStorage)
+    // without collapsing mid-keystroke while the worker is typing.
+    if (!userTyping) {
+      setEditing(!code);
+      setDraft(code);
+    }
+  }, [code, userTyping]);
 
   if (!editing && code) {
     return (
       <div className="mb-4 sm:mb-6 text-center text-xs text-gray-500">
         Company code: <span className="font-mono font-bold text-gray-300">{code}</span>{" "}
-        <button type="button" onClick={() => setEditing(true)} className="underline hover:text-white ml-1">
+        <button type="button" onClick={() => { setUserTyping(true); setEditing(true); }} className="underline hover:text-white ml-1">
           change
         </button>
       </div>
@@ -81,8 +84,9 @@ export function CompanyCodeField({
       className="w-full max-w-xs mb-4 sm:mb-6"
       onSubmit={(e) => {
         e.preventDefault();
+        setUserTyping(false);
         onChange(draft);
-        if (draft.trim()) setEditing(false);
+        if (normalizeOrgCode(draft)) setEditing(false);
       }}
     >
       <label htmlFor="company-code" className="block text-xs font-bold text-gray-400 mb-1.5 text-center">
@@ -92,8 +96,16 @@ export function CompanyCodeField({
         <input
           id="company-code"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => { if (draft.trim() && draft.trim() !== code) onChange(draft); }}
+          onChange={(e) => {
+            const v = e.target.value;
+            setUserTyping(true);
+            setDraft(v);
+            onChange(v);
+          }}
+          onBlur={() => {
+            setUserTyping(false);
+            if (normalizeOrgCode(draft)) setEditing(false);
+          }}
           placeholder="e.g. smith-properties"
           autoCapitalize="none"
           autoCorrect="off"

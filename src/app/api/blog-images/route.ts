@@ -37,7 +37,7 @@ async function ensureBucket() {
  * Returns: { success: true, url: string }
  */
 export async function POST(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "blog" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 
@@ -47,6 +47,20 @@ export async function POST(req: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "file is required" }, { status: 400 });
+    }
+
+    const mimeToExt: Record<string, string> = {
+      "image/webp": "webp",
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/gif": "gif",
+    };
+    const normalizedType = (file.type || "").toLowerCase();
+    if (!mimeToExt[normalizedType]) {
+      return NextResponse.json(
+        { error: "Unsupported image format. Allowed formats: WebP, JPEG, PNG, GIF." },
+        { status: 400 }
+      );
     }
 
     // Guard: reject files over 5 MB (shouldn't happen after client compression, but safety net)
@@ -59,15 +73,7 @@ export async function POST(req: NextRequest) {
 
     await ensureBucket();
 
-    // Derive extension from mime type or filename
-    const mimeToExt: Record<string, string> = {
-      "image/webp": "webp",
-      "image/jpeg": "jpg",
-      "image/png": "png",
-      "image/gif": "gif",
-    };
-    const rawExt = mimeToExt[file.type] || file.name.split(".").pop()?.toLowerCase() || "webp";
-    const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : "webp";
+    const ext = mimeToExt[normalizedType];
     // Objects are namespaced per tenant: <orgId>/blog-....
     const filename = `${orgId}/blog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
@@ -111,7 +117,7 @@ export async function POST(req: NextRequest) {
  * Optional — the blog post record still needs to be updated separately.
  */
 export async function DELETE(req: NextRequest) {
-  const g = await requireOrg(req);
+  const g = await requireOrg(req, { requireFeature: "blog" });
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
 

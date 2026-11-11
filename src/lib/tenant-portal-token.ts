@@ -81,3 +81,39 @@ export function verifyTenantPortalToken(token: string): TenantPortalClaims | nul
     return null;
   }
 }
+
+/**
+ * Verifies both the cryptographic HMAC signature AND the live revocation version
+ * (`site_content` section=`portal_tokens`, key=`v:${tenantId}`) so rotated links
+ * are immediately rejected across document downloads and photo uploads too.
+ */
+export async function verifyActiveTenantPortalToken(
+  token: string
+): Promise<TenantPortalClaims | null> {
+  const claims = verifyTenantPortalToken(token);
+  if (!claims) return null;
+
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) return claims;
+
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/site_content?org_id=eq.${encodeURIComponent(claims.orgId)}&section=eq.portal_tokens&key=eq.${encodeURIComponent(`v:${claims.tenantId}`)}&select=value&limit=1`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Array<{ value?: string }>;
+    const requiredVersion = rows[0]?.value ? Number(rows[0].value) || 1 : 1;
+    if (claims.v < requiredVersion) return null;
+    return claims;
+  } catch {
+    return null;
+  }
+}

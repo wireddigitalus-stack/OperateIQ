@@ -112,7 +112,17 @@ export async function POST(req: NextRequest) {
 /** GET → is there a valid crew session? */
 export async function GET() {
   const s = await readStaffSession();
-  return NextResponse.json(s ? { authenticated: true, name: s.name, role: s.role } : { authenticated: false });
+  if (!s) return NextResponse.json({ authenticated: false });
+  let orgSlug: string | null = null;
+  if (supabaseAdmin && s.orgId) {
+    const { data: orgRow } = await supabaseAdmin
+      .from("organizations")
+      .select("slug")
+      .eq("id", s.orgId)
+      .maybeSingle();
+    orgSlug = orgRow?.slug ? String(orgRow.slug) : null;
+  }
+  return NextResponse.json({ authenticated: true, name: s.name, role: s.role, orgSlug });
 }
 
 export async function DELETE() {

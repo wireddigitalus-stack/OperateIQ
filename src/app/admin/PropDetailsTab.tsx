@@ -298,15 +298,17 @@ function PrintReport({ data, onClose }: { data: PrintData[]; onClose: () => void
   const totalRevenue = data.reduce((s, { tenants: ts }) => s + ts.reduce((a, t) => a + (t.monthlyRent || 0), 0), 0);
   const totalExp = data.reduce((s, { detail: d }) => {
     if (!d) return s;
-    const taxMo = (d.taxes_annual || 0) / 12;
+    const annualTaxes = ((d.taxes_county_annual || 0) + (d.taxes_city_annual || 0)) || (d.taxes_annual || 0);
+    const taxMo = annualTaxes / 12;
     const insMo = (d.insurance_annual || 0) / 12;
     const fireMo = (d.fire_security_annual || 0) / 12;
     const gasMo = (d.gas_annual || 0) / 12;
     const internetMo = (d.internet_annual || 0) / 12;
+    const trashMo = (d.trash_annual || 0) / 12;
     const electricMo = d.electric_annual ? (d.electric_annual / 12) : (d.electric_monthly || 0);
     const waterMo = d.water_annual ? (d.water_annual / 12) : (d.water_monthly || 0);
     const otherMo = d.other_monthly || 0;
-    return s + taxMo + insMo + fireMo + gasMo + internetMo + electricMo + waterMo + otherMo;
+    return s + taxMo + insMo + fireMo + gasMo + internetMo + trashMo + electricMo + waterMo + otherMo;
   }, 0);
 
   return (
@@ -360,15 +362,17 @@ function PrintReport({ data, onClose }: { data: PrintData[]; onClose: () => void
 
           {/* Per-property tables */}
           {data.map(({ property, tenants: ts, detail: d }) => {
-            const rev = ts.reduce((s, t) => s + (t.monthlyRent || 0), 0);
-            const taxMo = (d?.taxes_annual || 0) / 12;
+            const rev = ts.reduce((s, t) => s + (t.monthlyRent || 0) + (t.nnnFee || 0) + (t.nnFee || 0) + (t.camFee || 0) + (t.utilitiesFee || 0) + (t.cleaningFee || 0), 0);
+            const annualTaxes = ((d?.taxes_county_annual || 0) + (d?.taxes_city_annual || 0)) || (d?.taxes_annual || 0);
+            const taxMo = annualTaxes / 12;
             const insMo = (d?.insurance_annual || 0) / 12;
             const fireMo = (d?.fire_security_annual || 0) / 12;
             const gasMo = (d?.gas_annual || 0) / 12;
             const internetMo = (d?.internet_annual || 0) / 12;
+            const trashMo = (d?.trash_annual || 0) / 12;
             const electricMo = d?.electric_annual ? (d.electric_annual / 12) : (d?.electric_monthly || 0);
             const waterMo = d?.water_annual ? (d.water_annual / 12) : (d?.water_monthly || 0);
-            const exp = taxMo + insMo + fireMo + gasMo + internetMo + electricMo + waterMo + (d?.other_monthly || 0);
+            const exp = taxMo + insMo + fireMo + gasMo + internetMo + trashMo + electricMo + waterMo + (d?.other_monthly || 0);
             const profit = rev - exp;
             const totalUnits = d?.total_units || ts.length;
             const occ = totalUnits ? Math.round((ts.length / totalUnits) * 100) : 0;
@@ -1050,27 +1054,31 @@ export default function PropDetailsTab() {
   const activeTenants = useMemo(() => tenants.filter(t => t.status === "active"), [tenants]);
   const totalRevenue = useMemo(() => activeTenants.reduce((s, t) =>
     s + (t.monthlyRent || 0) + (t.nnnFee || 0) + (t.nnFee || 0) + (t.camFee || 0) + (t.utilitiesFee || 0) + (t.cleaningFee || 0), 0), [activeTenants]);
-  const totalExpenses = useMemo(() => details.reduce((s, d) => {
-    const taxMo = (d.taxes_annual || 0) / 12;
+  const totalExpenses = useMemo(() => allProperties.reduce((s, p) => {
+    const d = detailMap[p.id];
+    if (!d) return s;
+    const annualTaxes = ((d.taxes_county_annual || 0) + (d.taxes_city_annual || 0)) || (d.taxes_annual || 0);
+    const taxMo = annualTaxes / 12;
     const insMo = (d.insurance_annual || 0) / 12;
     const fireMo = (d.fire_security_annual || 0) / 12;
     const gasMo = (d.gas_annual || 0) / 12;
     const internetMo = (d.internet_annual || 0) / 12;
+    const trashMo = (d.trash_annual || 0) / 12;
     const electricMo = d.electric_annual ? (d.electric_annual / 12) : (d.electric_monthly || 0);
     const waterMo = d.water_annual ? (d.water_annual / 12) : (d.water_monthly || 0);
     const otherMo = d.other_monthly || 0;
-    return s + taxMo + insMo + fireMo + gasMo + internetMo + electricMo + waterMo + otherMo;
-  }, 0), [details]);
-  const alerts = useMemo(() => tenants.filter(t => { const d = daysUntil(t.leaseEnd || t.renewalDate); return d !== null && d <= 90; }).length, [tenants]);
+    return s + taxMo + insMo + fireMo + gasMo + internetMo + trashMo + electricMo + waterMo + otherMo;
+  }, 0), [allProperties, detailMap]);
+  const alerts = useMemo(() => activeTenants.filter(t => { const d = daysUntil(t.leaseEnd || t.renewalDate); return d !== null && d <= 90; }).length, [activeTenants]);
 
   const printData = useMemo(() => allProperties.map(p => ({
     property: p,
-    tenants: tenants.filter(t => {
+    tenants: activeTenants.filter(t => {
       const displayName = detailMap[p.id]?.display_name || p.name;
       return exactBuildingMatch(t.building || "", p.id, displayName, p.name);
     }),
     detail: detailMap[p.id],
-  })), [allProperties, tenants, detailMap]);
+  })), [allProperties, activeTenants, detailMap]);
 
   const overviewProperties = useMemo(() => 
     allProperties.filter(() => true), 
@@ -1169,13 +1177,20 @@ export default function PropDetailsTab() {
           </div>
     `;
 
+    const escHtml = (v: unknown) =>
+      String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
     Object.values(grouped).forEach(group => {
       const groupRent = group.spaces.reduce((s, sp) => s + (sp.monthly_rent || 0), 0);
       const groupSqft = group.spaces.reduce((s, sp) => s + (parseInt(String(sp.sqft)) || 0), 0);
 
       htmlContent += `
         <div class="property-group">
-          <div class="property-name">${group.propertyName}</div>
+          <div class="property-name">${escHtml(group.propertyName)}</div>
           <table>
             <thead>
               <tr>
@@ -1197,10 +1212,10 @@ export default function PropDetailsTab() {
 
         htmlContent += `
           <tr>
-            <td><strong>${sp.name}</strong></td>
-            <td>$${sp.monthly_rent.toLocaleString()}/mo</td>
-            <td>${sp.sqft ? sp.sqft + " sqft" : "—"}</td>
-            <td>${feesStr}</td>
+            <td><strong>${escHtml(sp.name)}</strong></td>
+            <td>$${(sp.monthly_rent || 0).toLocaleString()}/mo</td>
+            <td>${sp.sqft ? escHtml(sp.sqft) + " sqft" : "—"}</td>
+            <td>${escHtml(feesStr)}</td>
           </tr>
         `;
       });
@@ -1456,7 +1471,8 @@ export default function PropDetailsTab() {
         <UnitRosterSection
           properties={allProperties.map((p) => ({
             id: p.id,
-            name: detailMap[p.id]?.display_name || p.name,
+            name: p.name,
+            displayName: detailMap[p.id]?.display_name || p.name,
           }))}
           tenants={tenants.map((t) => ({
             id: t.id,
@@ -1467,6 +1483,11 @@ export default function PropDetailsTab() {
             status: t.status,
           }))}
           selectedPropertyName={
+            selectedPropertyId !== "all"
+              ? allProperties.find((p) => p.id === selectedPropertyId)?.name || null
+              : null
+          }
+          selectedPropertyDisplayName={
             selectedPropertyId !== "all"
               ? detailMap[selectedPropertyId]?.display_name ||
                 allProperties.find((p) => p.id === selectedPropertyId)?.name ||

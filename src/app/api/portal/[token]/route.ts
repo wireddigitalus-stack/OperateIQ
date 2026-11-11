@@ -292,7 +292,20 @@ export async function POST(
       const category = String(body.category || "General").trim().slice(0, 50);
       const urgency = String(body.urgency || "normal").toLowerCase();
       const permissionToEnter = Boolean(body.permissionToEnter);
-      const photoUrl = typeof body.photoUrl === "string" && body.photoUrl.trim() ? body.photoUrl.trim() : null;
+      const rawPhotoUrl = typeof body.photoUrl === "string" ? body.photoUrl.trim() : "";
+      let photoUrl: string | null = null;
+      if (rawPhotoUrl) {
+        const expectedPrefix = `${SUPABASE_URL}/storage/v1/object/public/maintenance-photos/${claims.orgId}/portal/`;
+        if (
+          !rawPhotoUrl.startsWith(expectedPrefix) ||
+          rawPhotoUrl.includes("..") ||
+          /\s/.test(rawPhotoUrl) ||
+          rawPhotoUrl.length > 500
+        ) {
+          return NextResponse.json({ error: "Invalid photo attachment URL." }, { status: 400 });
+        }
+        photoUrl = rawPhotoUrl;
+      }
 
       if (!title || description.length < 5) {
         return NextResponse.json(
@@ -423,7 +436,7 @@ export async function POST(
           method: "POST",
           headers: HEADERS,
           body: JSON.stringify({
-            id: `rp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            id: `rp_${claims.tenantId}_${month}`,
             org_id: claims.orgId,
             tenant_id: claims.tenantId,
             tenant_name: tenantName,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyTenantPortalToken } from "@/lib/tenant-portal-token";
+import { verifyActiveTenantPortalToken } from "@/lib/tenant-portal-token";
 import { checkRateLimit, clientIp as getClientIp } from "@/lib/rateLimit";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
@@ -29,7 +29,7 @@ export async function POST(
   }
 
   const { token } = await context.params;
-  const claims = verifyTenantPortalToken(token);
+  const claims = await verifyActiveTenantPortalToken(token);
   if (!claims) {
     return NextResponse.json({ error: "Invalid portal link." }, { status: 403 });
   }

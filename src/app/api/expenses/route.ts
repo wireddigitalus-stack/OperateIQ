@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
       );
 
       const mRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/maintenance_tickets?org_id=eq.${orgId}&status=eq.completed&select=id,building,unit,category,description,actual_cost,material_amount,completed_at,created_at,assigned_to`,
+        `${SUPABASE_URL}/rest/v1/maintenance_tickets?org_id=eq.${orgId}&status=in.(complete,completed)&select=id,building,unit,category,description,actual_cost,material_amount,completed_date,completed_at,created_at,assigned_to`,
         { headers, cache: "no-store" }
       );
       const tickets: Array<Record<string, unknown>> = mRes.ok ? await mRes.json() : [];
@@ -237,7 +237,7 @@ export async function POST(req: NextRequest) {
         const totalCost = Math.round((labor + materials) * 100) / 100;
         if (totalCost <= 0) continue;
 
-        const rawDate = String(tk.completed_at || tk.created_at || `${year}-01-01`).slice(0, 10);
+        const rawDate = String(tk.completed_date || tk.completed_at || tk.created_at || `${year}-01-01`).slice(0, 10);
         if (!rawDate.startsWith(`${year}-`)) continue;
 
         toAdd.push({

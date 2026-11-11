@@ -26,6 +26,17 @@ function isPlatformHost(host: string): boolean {
   return !!site && (host === site || host === `www.${site}`);
 }
 
+/**
+ * Strict CSRF origin check — never trusts arbitrary third-party `*.vercel.app` origins!
+ * Only exact same-host (`originHost === host`) or our explicit owned platform domains are allowed.
+ */
+function isTrustedCsrfOrigin(originHost: string, currentHost: string): boolean {
+  if (originHost === currentHost) return true;
+  if (PLATFORM_HOSTS.has(originHost)) return true;
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
+  return !!site && (originHost === site || originHost === `www.${site}`);
+}
+
 // Small edge-local cache: host → org slug (or null for unknown hosts).
 const domainCache = new Map<string, { slug: string | null; expires: number }>();
 const TTL_MS = 60_000;
@@ -79,7 +90,7 @@ export default async function middleware(req: NextRequest) {
     if (originHeader) {
       try {
         const originHost = new URL(originHeader).hostname.toLowerCase();
-        if (originHost !== host && !isPlatformHost(originHost)) {
+        if (!isTrustedCsrfOrigin(originHost, host)) {
           return NextResponse.json(
             { error: "Cross-origin request blocked by OpsIQ Shield CSRF Guard." },
             { status: 403 }

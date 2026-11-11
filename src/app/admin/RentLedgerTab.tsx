@@ -941,7 +941,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
       if (!res.ok) throw new Error(data.error || "Failed to assess late fees.");
       await fetchPayments(selectedMonth);
       if (data.appliedCount > 0) {
-        showGlobalToast(`Assessed late fees on ${data.appliedCount} unpaid row${data.appliedCount === 1 ? "" : "s"} (${fmtMoney(data.totalFeeAdded || 0)}).`, "success");
+        showGlobalToast(`Assessed late fees on ${data.appliedCount} unpaid row${data.appliedCount === 1 ? "" : "s"} (${fmtMoney(data.totalFeesAdded ?? data.totalFeeAdded ?? 0)}).`, "success");
       } else {
         showGlobalToast("No eligible unpaid rows needed a late fee.", "info");
       }
@@ -965,6 +965,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
         body: JSON.stringify({
           month: selectedMonth,
           mode: "single",
+          paymentId: p.id,
           tenantId: p.tenantId,
           kind,
         }),
@@ -976,10 +977,21 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
       if (!res.ok) {
         throw new Error(data.error || "Could not send email.");
       }
+      if (!data.sent || data.sent < 1) {
+        showGlobalToast(
+          data.skippedNoEmail
+            ? "This tenant does not have a valid email address on file."
+            : data.message || "Could not match a rent ledger row to email — try saving the row first.",
+          "warning"
+        );
+        return true;
+      }
       showGlobalToast(
         kind === "receipt"
           ? `Emailed paid receipt + portal link to ${t.email}`
-          : `Emailed rent reminder + portal link to ${t.email}`,
+          : kind === "overdue"
+            ? `Emailed past-due notice + portal link to ${t.email}`
+            : `Emailed rent reminder + portal link to ${t.email}`,
         "success"
       );
       return true;

@@ -109,7 +109,10 @@ function buildLocalFallbackAnswer(query: string, customerCode?: string): string 
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!(await checkRateLimit(`help-assistant:${ip}`, 25, 60_000))) {
+  if (
+    !(await checkRateLimit(`help-assistant:${ip}`, 12, 10 * 60_000)) ||
+    !(await checkRateLimit(`help-assistant-day:${ip}`, 50, 24 * 60 * 60_000))
+  ) {
     return NextResponse.json(
       { error: "Please wait a moment before asking another question." },
       { status: 429 }
@@ -119,7 +122,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as { question?: string; customerCode?: string };
     const question = String(body.question || "").trim().slice(0, 600);
-    const customerCode = typeof body.customerCode === "string" && body.customerCode.trim() ? body.customerCode.trim() : undefined;
+    const rawCode = typeof body.customerCode === "string" ? body.customerCode.trim() : "";
+    const customerCode = /^[A-Z0-9-]{2,20}$/i.test(rawCode) ? rawCode : undefined;
     if (!question) {
       return NextResponse.json({ error: "Please enter a question." }, { status: 400 });
     }

@@ -69,7 +69,7 @@ const SECTIONS: PrivacySection[] = [
     ],
   },
   {
-    title: "4. AI Processing (${BRAND.assistant} & OCR Intake)",
+    title: `4. AI Processing (${BRAND.assistant} & OCR Intake)`,
     paragraphs: [
       `When you invoke an AI tool — such as uploading a rent roll spreadsheet/photo to Fast Intake or asking ${BRAND.assistant} a question — only the workspace context needed to fulfill that specific request is sent over TLS to the Google Gemini API.`,
       `We use paid API access where API prompts and responses are not used by Google to train foundation models, and we never share one customer's data with another customer's AI context.`,

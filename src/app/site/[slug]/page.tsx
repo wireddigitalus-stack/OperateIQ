@@ -8,6 +8,7 @@ import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform";
 import { isSubscriptionActive } from "@/lib/plans";
 import { getRequestContext } from "@/lib/server-auth";
 import { isSampleProperty } from "@/lib/sample-data";
+import { PUBLIC_SITE_SECTIONS } from "@/lib/public-org";
 import TenantSiteClient, {
   OrgData,
   FormattedProperty,
@@ -544,6 +545,13 @@ export default async function TenantPublicSitePage({ params }: Props) {
       }
     : null;
 
+  const publicSiteContent: Record<string, Record<string, string>> = {};
+  for (const [sec, kv] of Object.entries(siteContent)) {
+    if (PUBLIC_SITE_SECTIONS.has(sec.toLowerCase())) {
+      publicSiteContent[sec] = kv;
+    }
+  }
+
   return (
     <>
       {jsonLdData && (
@@ -556,7 +564,7 @@ export default async function TenantPublicSitePage({ params }: Props) {
         initialOrg={org}
         initialProperties={formattedProperties}
         initialHeroSlides={heroSlides}
-        initialSiteContent={siteContent}
+        initialSiteContent={publicSiteContent}
         sitePublished={publiclyLive}
       />
     </>

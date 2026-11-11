@@ -116,6 +116,7 @@ function SignupForm() {
           plan: activePlan.id,
           unitCount,
           portfolioType,
+          agreedToTerms,
           turnstileToken,
         }),
       });
@@ -186,11 +187,11 @@ function SignupForm() {
             <ArrowRight size={14} />
           </Link>
           <Link
-            href={created?.slug ? `/site/${created.slug}` : "/demo-site"}
+            href={created?.signedIn && created?.slug ? `/site/${created.slug}` : "/demo-site"}
             target="_blank"
             className="w-full sm:w-auto px-4 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5"
           >
-            <span>{created?.slug ? "Preview Your Public Site" : "Explore Demo Site"}</span>
+            <span>{created?.signedIn && created?.slug ? "Preview Your Site Draft" : "Explore Demo Site"}</span>
             <ExternalLink size={13} />
           </Link>
         </div>

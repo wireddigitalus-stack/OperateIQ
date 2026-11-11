@@ -78,15 +78,19 @@ export async function POST(req: NextRequest) {
   const parsed = await safeJsonBody<{
     month?: string;
     paymentId?: string;
-    kind?: "reminder" | "late_notice" | "receipt";
+    tenantId?: string;
+    kind?: "reminder" | "late_notice" | "overdue" | "receipt";
     mode?: "single" | "bulk_unpaid";
   }>(req);
   if (!parsed.ok) return parsed.res;
 
   const month = String(parsed.body?.month || "").trim();
   const paymentId = String(parsed.body?.paymentId || "").trim();
-  const kind = parsed.body?.kind || "reminder";
-  const mode = parsed.body?.mode || (paymentId ? "single" : "bulk_unpaid");
+  const reqTenantId = String(parsed.body?.tenantId || "").trim();
+  const rawKind = parsed.body?.kind || "reminder";
+  const kind: "reminder" | "late_notice" | "receipt" =
+    rawKind === "overdue" ? "late_notice" : rawKind;
+  const mode = parsed.body?.mode || (paymentId || reqTenantId ? "single" : "bulk_unpaid");
 
   if (!MONTH_RE.test(month)) {
     return NextResponse.json({ error: "Valid month (YYYY-MM) is required." }, { status: 400 });
@@ -95,7 +99,7 @@ export async function POST(req: NextRequest) {
   try {
     const [paymentsRes, tenantsRes, contentRes] = await Promise.all([
       fetch(
-        `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&month=eq.${encodeURIComponent(month)}&limit=500`,
+        `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&month=lte.${encodeURIComponent(month)}&limit=2000`,
         { headers: HEADERS, cache: "no-store" }
       ),
       fetch(
@@ -108,7 +112,19 @@ export async function POST(req: NextRequest) {
       ),
     ]);
 
-    const allPayments = paymentsRes.ok ? ((await paymentsRes.json()) as Array<Record<string, unknown>>) : [];
+    const fetchedPayments = paymentsRes.ok ? ((await paymentsRes.json()) as Array<Record<string, unknown>>) : [];
+    const allPayments = fetchedPayments.filter((p) => String(p.month || "") === month);
+    const priorArrearsByTenant = new Map<string, number>();
+    for (const p of fetchedPayments) {
+      const m = String(p.month || "");
+      const tid = String(p.tenant_id || "");
+      if (!tid || !m || m >= month || p.paid) continue;
+      const unpaid = Math.max(0, rowDue(p) - (Number(p.amount_paid) || 0));
+      if (unpaid > 0.009) {
+        priorArrearsByTenant.set(tid, Math.round(((priorArrearsByTenant.get(tid) || 0) + unpaid) * 100) / 100);
+      }
+    }
+
     const allTenants = tenantsRes.ok ? ((await tenantsRes.json()) as Array<Record<string, unknown>>) : [];
     const contentRows = contentRes.ok ? ((await contentRes.json()) as Array<{ section: string; key: string; value: string }>) : [];
 
@@ -133,8 +149,16 @@ export async function POST(req: NextRequest) {
 
     const targets =
       mode === "single"
-        ? allPayments.filter((p) => String(p.id) === paymentId)
-        : allPayments.filter((p) => !p.paid && rowDue(p) - (Number(p.amount_paid) || 0) > 0.009);
+        ? allPayments.filter(
+            (p) =>
+              (paymentId && String(p.id) === paymentId) ||
+              (reqTenantId && String(p.tenant_id) === reqTenantId)
+          )
+        : allPayments.filter((p) => {
+            const tid = String(p.tenant_id || "");
+            const prior = priorArrearsByTenant.get(tid) || 0;
+            return (!p.paid && rowDue(p) - (Number(p.amount_paid) || 0) > 0.009) || prior > 0.009;
+          });
 
     if (targets.length === 0) {
       return NextResponse.json({
@@ -171,9 +195,10 @@ export async function POST(req: NextRequest) {
 
       const tenantName = String(p.tenant_name || tenant?.name || "Resident");
       const unitLabel = `${p.building || tenant?.building || ""}${p.unit || tenant?.unit ? ` · Unit ${p.unit || tenant?.unit}` : ""}`.trim();
-      const totalDueAmt = rowDue(p);
+      const priorArrears = priorArrearsByTenant.get(tenantId) || 0;
+      const currentRemaining = p.paid ? 0 : Math.max(0, rowDue(p) - (Number(p.amount_paid) || 0));
       const paidAmt = Number(p.amount_paid) || 0;
-      const balanceAmt = Math.max(0, totalDueAmt - paidAmt);
+      const balanceAmt = Math.round((currentRemaining + priorArrears) * 100) / 100;
       const lateFeeAmt = Number(p.late_fee) || 0;
 
       const token = tenantId

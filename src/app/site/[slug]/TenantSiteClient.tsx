@@ -830,7 +830,7 @@ export default function TenantSiteClient({
                   {c(
                     "about",
                     "leader_bio_1",
-                    "We believe great commercial real estate starts with responsive local ownership and pride of maintenance."
+                    "We believe great property management starts with responsive local ownership, clear communication, and pride of maintenance."
                   )}
                 </p>
                 {siteContent.about?.leader_bio_2 && (
@@ -848,7 +848,7 @@ export default function TenantSiteClient({
                     {c(
                       "about",
                       "leader_quote",
-                      "We don't just lease buildings — we invest in the long-term success of every business in our portfolio."
+                      "We don't just lease spaces — we take pride in caring for every resident, tenant, and building in our portfolio."
                     )}
                     &rdquo;
                   </p>
@@ -980,7 +980,7 @@ export default function TenantSiteClient({
                 {c(
                   "cta",
                   "subtext",
-                  "Whether you're looking for an office suite, retail storefront, or warehouse space — our team is ready to help."
+                  "Whether you're looking for your next apartment, home, office suite, or retail space — our local team is ready to help."
                 )}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">

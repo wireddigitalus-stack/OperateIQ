@@ -9,10 +9,12 @@ export const dynamic = "force-dynamic";
 const EXPORT_TABLES = [
   "properties",
   "property_details",
+  "property_units",
   "available_spaces",
   "parking_lots",
   "tenants",
   "rent_payments",
+  "expenses",
   "maintenance_tickets",
   "cleaning_assignments",
   "filter_changes",

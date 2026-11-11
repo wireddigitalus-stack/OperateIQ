@@ -516,7 +516,12 @@ Save a shortcut to your phone's Home Screen:
       });
       const d = await res.json();
       if (!res.ok) { setError(d.error || "Failed — email may already exist."); }
-      else { setEmail(""); setName(""); setPin(""); setShowAdd(false); onRefresh(); }
+      else {
+        if (isStaffRole && d.pin) {
+          showToast(`Added ${name.trim()} — 6-digit PIN: ${d.pin}`, "success");
+        }
+        setEmail(""); setName(""); setPin(""); setShowAdd(false); onRefresh();
+      }
     } catch { setError("Network error."); }
     finally { setSaving(false); }
   };
@@ -604,7 +609,7 @@ Save a shortcut to your phone's Home Screen:
               <label className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">6-Digit PIN</label>
               <div className="flex gap-2">
                 <input value={pin} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(v); }}
-                  placeholder="123456" maxLength={6} inputMode="numeric" pattern="[0-9]*"
+                  placeholder="Auto" maxLength={6} inputMode="numeric" pattern="[0-9]*"
                   className={FIELD + " font-mono tracking-[0.3em] text-center"}
                   onKeyDown={e => { if (e.key === "Enter") addUser(); }} />
                 <button onClick={generatePin} type="button"
@@ -612,7 +617,7 @@ Save a shortcut to your phone's Home Screen:
                   🎲 Random
                 </button>
               </div>
-              <p className="text-xs text-gray-600 mt-1">Leave empty for default PIN: 123456</p>
+              <p className="text-xs text-gray-600 mt-1">Leave blank to auto-generate a secure 6-digit PIN</p>
             </div>
           )}
           {isStaffRole && (
@@ -672,7 +677,7 @@ Save a shortcut to your phone's Home Screen:
                         className="w-28 bg-[rgba(255,255,255,0.07)] border border-[rgba(250,204,21,0.4)] rounded-lg px-2 py-1 text-xs font-mono text-white outline-none tracking-widest"
                       />
                       <button
-                        onClick={() => setNewPin(Math.floor(100000 + Math.random() * 900000).toString())}
+                        onClick={() => setNewPin(generateStrongPin())}
                         className="text-[10px] text-gray-500 hover:text-white px-1.5 py-1 rounded-lg border border-[rgba(255,255,255,0.08)] transition-colors"
                       >Gen</button>
                       <button
@@ -2415,10 +2420,10 @@ function DangerZoneSection({
       const res = await fetch("/api/account/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmSlug: orgDeleteSlug.trim() }),
+        body: JSON.stringify({ confirm: orgDeleteSlug.trim(), confirmSlug: orgDeleteSlug.trim() }),
       });
       const data = await res.json();
-      if (!res.ok || !data.ok) {
+      if (!res.ok || !(data.ok || data.success)) {
         setOrgDeleteError(data.error || "Could not delete workspace.");
         setDeletingOrg(false);
         return;
