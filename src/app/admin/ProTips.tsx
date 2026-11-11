@@ -8,8 +8,6 @@ import {
   Search,
   ChevronRight,
   ChevronLeft,
-  ChevronDown,
-  ChevronUp,
   CheckCircle2,
   ExternalLink,
   LifeBuoy,
@@ -35,14 +33,8 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
   const [pulse, setPulse] = useState(false);
   const [mobileShowArticle, setMobileShowArticle] = useState(false);
   const prevTab = useRef<TabKey>(activeTab);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-
-  const sidebarListRef = useRef<HTMLDivElement>(null);
-  const [sidebarScrollState, setSidebarScrollState] = useState<{
-    canScrollDown: boolean;
-    canScrollUp: boolean;
-    progress: number;
-  }>({ canScrollDown: false, canScrollUp: false, progress: 0 });
 
   // Sync selectedCategory when user switches tabs in the dashboard
   useEffect(() => {
@@ -88,18 +80,13 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Close on outside click
+  // Lock background page scroll while the expanded modal overlay is open
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const t = setTimeout(() => document.addEventListener("mousedown", handler), 10);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      clearTimeout(t);
-      document.removeEventListener("mousedown", handler);
+      document.body.style.overflow = prevOverflow;
     };
   }, [open]);
 
@@ -112,50 +99,8 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
   const safeIdx = Math.min(selectedIdx, Math.max(0, displayedTips.length - 1));
   const current = displayedTips[safeIdx] ?? null;
 
-  // Update vertical sidebar scroll state & progress
-  const updateSidebarScrollState = () => {
-    const el = sidebarListRef.current;
-    if (!el) return;
-    const maxScroll = el.scrollHeight - el.clientHeight;
-    if (maxScroll <= 6) {
-      setSidebarScrollState({ canScrollDown: false, canScrollUp: false, progress: 100 });
-      return;
-    }
-    const progress = Math.min(100, Math.max(0, Math.round((el.scrollTop / maxScroll) * 100)));
-    setSidebarScrollState({
-      canScrollUp: el.scrollTop > 10,
-      canScrollDown: el.scrollTop < maxScroll - 10,
-      progress,
-    });
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const t = setTimeout(() => {
-      updateSidebarScrollState();
-    }, 60);
-    return () => clearTimeout(t);
-  }, [open, selectedCategory, displayedTips.length, searchQuery]);
-
-  // Smooth scroll selected topic button into view when navigating via Prev/Next or Segmented Bar
-  useEffect(() => {
-    if (!open || !sidebarListRef.current) return;
-    const activeBtn = sidebarListRef.current.querySelector(
-      `[data-tip-idx="${safeIdx}"]`
-    ) as HTMLElement | null;
-    if (activeBtn) {
-      activeBtn.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
-  }, [safeIdx, open]);
-
-  const scrollSidebarStep = () => {
-    const el = sidebarListRef.current;
-    if (!el) return;
-    if (sidebarScrollState.canScrollDown) {
-      el.scrollBy({ top: 220, behavior: "smooth" });
-    } else {
-      el.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  const scrollCardToTop = () => {
+    overlayRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -180,19 +125,33 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
         )}
       </button>
 
-      {/* ── Centered Large Modal Popup ── */}
+      {/* ── Full-Height Expanding Modal Popup (Scrolls via Outer Overlay, Zero Inner Scrollbars) ── */}
       {open && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-6 md:p-8">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-md animate-in fade-in duration-200" />
+        <div
+          ref={overlayRef}
+          onMouseDown={(e) => {
+            if (
+              e.target === e.currentTarget &&
+              e.clientX < e.currentTarget.clientWidth
+            ) {
+              setOpen(false);
+            }
+          }}
+          className="fixed inset-0 z-[200] overflow-y-auto p-3 sm:p-6 md:p-10 flex items-start justify-center"
+        >
+          {/* Full-Viewport Backdrop */}
+          <div
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          />
 
-          {/* Modal Window */}
+          {/* Modal Card — Expands Downward Naturally */}
           <div
             ref={modalRef}
             role="dialog"
             aria-modal="true"
             aria-label="PropOpsIQ Help and Guide Center"
-            className="relative w-full max-w-5xl h-[90dvh] md:h-auto max-h-[90dvh] flex flex-col bg-[#0B1120] border border-white/15 rounded-3xl
+            className="relative my-auto w-full max-w-5xl h-auto flex flex-col bg-[#0B1120] border border-white/15 rounded-3xl
               shadow-[0_25px_90px_rgba(0,0,0,0.85),0_0_60px_rgba(56,189,248,0.16)] overflow-hidden
               animate-in zoom-in-95 fade-in duration-200"
           >
@@ -285,10 +244,10 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
               </div>
             </div>
 
-            {/* ── Compact Single-Row Horizontal Scroll on Mobile, 6-Col Grid on Desktop ── */}
+            {/* ── Responsive Category Grid (No Horizontal Scrollbar) ── */}
             {!searchQuery && (
-              <div className="px-4 sm:px-8 py-2.5 sm:py-3.5 border-b border-white/10 bg-[#080D1A] flex-shrink-0">
-                <div className="flex md:grid md:grid-cols-6 gap-1.5 sm:gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+              <div className="px-4 sm:px-8 py-2.5 sm:py-3.5 border-b border-white/10 bg-[#080D1A]">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5 sm:gap-2">
                   {SECTION_CATEGORIES.map((cat) => {
                     const Icon = cat.icon;
                     const isActive =
@@ -303,7 +262,7 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
                           setSelectedIdx(0);
                           setMobileShowArticle(false);
                         }}
-                        className={`flex items-center gap-2 px-3 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-left shrink-0 md:shrink ${
+                        className={`flex items-center gap-2 px-3 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-left ${
                           isActive
                             ? "bg-gradient-to-r from-sky-500/25 to-indigo-500/20 border border-sky-400/60 text-white shadow-[0_0_16px_rgba(56,189,248,0.22)]"
                             : "bg-white/[0.03] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.07] hover:border-white/20"
@@ -313,7 +272,7 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
                           size={15}
                           className={`flex-shrink-0 ${isActive ? "text-sky-400" : "text-slate-400"}`}
                         />
-                        <span className="whitespace-nowrap md:truncate">{cat.label}</span>
+                        <span className="truncate">{cat.label}</span>
                       </button>
                     );
                   })}
@@ -321,35 +280,20 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
               </div>
             )}
 
-            {/* ── Main Split Body: Left Topic List + Right Guide Content ── */}
-            <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-              {/* Left Sidebar: Topic List with Modern Scroll UI Graphic */}
-              <div className={`${mobileShowArticle ? "hidden md:flex" : "flex"} relative w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-white/10 bg-[#090E1C] flex-col flex-1 md:flex-initial md:flex-shrink-0 min-h-0`}>
-                {/* Sidebar Header with Scroll Progress Graphic */}
-                <div className="px-5 pt-3.5 pb-2.5 border-b border-white/[0.06] flex items-center justify-between gap-2 flex-shrink-0">
+            {/* ── Main Split Body: Full Natural Height (Left Topic List + Right Guide Content) ── */}
+            <div className="flex flex-col md:flex-row items-stretch">
+              {/* Left Sidebar: Full-Height Topic List */}
+              <div className={`${mobileShowArticle ? "hidden md:flex" : "flex"} w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-white/10 bg-[#090E1C] flex-col md:flex-shrink-0`}>
+                <div className="px-5 pt-3.5 pb-2.5 border-b border-white/[0.06] flex items-center justify-between gap-2">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400 truncate">
                     {searchQuery
                       ? `Search Results (${displayedTips.length})`
                       : `${TAB_LABELS[selectedCategory] || "Section"} (${displayedTips.length})`}
                   </span>
-                  {(sidebarScrollState.canScrollDown || sidebarScrollState.canScrollUp) && (
-                    <div className="flex items-center gap-2 flex-shrink-0" title="Scroll progress">
-                      <div className="w-14 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-400 transition-all duration-150"
-                          style={{ width: `${Math.max(15, sidebarScrollState.progress)}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {/* Scrollable Topic List */}
-                <div
-                  ref={sidebarListRef}
-                  onScroll={updateSidebarScrollState}
-                  className="flex-1 overflow-y-auto help-scroll p-3 sm:p-4 pb-14 space-y-1.5"
-                >
+                {/* Expanded Topic List (No Inner Scroll Window) */}
+                <div className="p-3 sm:p-4 space-y-1.5">
                   {displayedTips.length === 0 ? (
                     <div className="px-4 py-8 text-center">
                       <p className="text-base font-bold text-slate-300">No matching guides found</p>
@@ -369,6 +313,7 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
                           onClick={() => {
                             setSelectedIdx(i);
                             setMobileShowArticle(true);
+                            scrollCardToTop();
                           }}
                           className={`w-full text-left p-3.5 rounded-2xl flex items-start gap-3.5 transition-all cursor-pointer border ${
                             isSelected
@@ -404,38 +349,19 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
                     })
                   )}
                 </div>
-
-                {/* Floating Modern Scroll Indicator Pill Graphic at Bottom of Sidebar */}
-                {(sidebarScrollState.canScrollDown || sidebarScrollState.canScrollUp) && (
-                  <div className="absolute bottom-0 left-0 right-0 pt-6 pb-2.5 px-4 bg-gradient-to-t from-[#090E1C] via-[#090E1C]/95 to-transparent flex justify-center pointer-events-none">
-                    <button
-                      onClick={scrollSidebarStep}
-                      className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/35 text-xs font-bold text-sky-200 hover:text-white shadow-[0_4px_20px_rgba(0,0,0,0.6),0_0_15px_rgba(56,189,248,0.25)] backdrop-blur-md transition-all cursor-pointer group"
-                    >
-                      <span className="w-3.5 h-5 rounded-full border-2 border-sky-400/80 flex items-start justify-center p-0.5">
-                        <span className="w-1 h-1.5 rounded-full bg-sky-300 animate-bounce" />
-                      </span>
-                      <span>
-                        {sidebarScrollState.canScrollDown ? "Scroll for more guides" : "Back to top"}
-                      </span>
-                      {sidebarScrollState.canScrollDown ? (
-                        <ChevronDown size={14} className="text-sky-400 group-hover:translate-y-0.5 transition-transform" />
-                      ) : (
-                        <ChevronUp size={14} className="text-sky-400 group-hover:-translate-y-0.5 transition-transform" />
-                      )}
-                    </button>
-                  </div>
-                )}
               </div>
 
-              {/* Right Content Pane */}
-              <div className={`${mobileShowArticle ? "flex" : "hidden md:flex"} flex-1 flex-col justify-between p-4 sm:p-8 md:p-10 overflow-y-auto help-scroll bg-[#0B1120]`}>
+              {/* Right Content Pane: Full Natural Height (No Inner Scroll Window) */}
+              <div className={`${mobileShowArticle ? "flex" : "hidden md:flex"} flex-1 flex-col justify-between p-4 sm:p-8 md:p-10 bg-[#0B1120]`}>
                 {current ? (
                   <div key={`${current.title}-${safeIdx}`} className="animate-in fade-in duration-200">
-                    {/* Sticky Back to Topics button on mobile */}
-                    <div className="md:hidden sticky top-0 z-10 -mx-4 px-4 py-2.5 mb-4 bg-[#0B1120]/95 backdrop-blur-md border-b border-white/10">
+                    {/* Back to Topics button on mobile */}
+                    <div className="md:hidden -mx-4 px-4 pb-3 mb-4 border-b border-white/10">
                       <button
-                        onClick={() => setMobileShowArticle(false)}
+                        onClick={() => {
+                          setMobileShowArticle(false);
+                          scrollCardToTop();
+                        }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 border border-sky-400/35 text-xs font-bold text-sky-300 hover:text-white transition-colors"
                       >
                         <ChevronLeft size={14} />
@@ -533,7 +459,10 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
                 {/* Bottom Navigation Controls */}
                 <div className="flex items-center justify-between gap-4 mt-8 pt-5 border-t border-white/10">
                   <button
-                    onClick={() => setSelectedIdx((i) => Math.max(0, i - 1))}
+                    onClick={() => {
+                      setSelectedIdx((i) => Math.max(0, i - 1));
+                      scrollCardToTop();
+                    }}
                     disabled={safeIdx === 0}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-sm font-bold text-slate-200 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
                   >
@@ -546,9 +475,10 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
                   </span>
 
                   <button
-                    onClick={() =>
-                      setSelectedIdx((i) => Math.min(displayedTips.length - 1, i + 1))
-                    }
+                    onClick={() => {
+                      setSelectedIdx((i) => Math.min(displayedTips.length - 1, i + 1));
+                      scrollCardToTop();
+                    }}
                     disabled={safeIdx >= displayedTips.length - 1}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sm font-bold text-sky-200 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
                   >
