@@ -14,6 +14,7 @@ import { type Tenant, rowToTenant } from "./TenantsTab";
 import PortfolioOverviewCard from "./PortfolioOverviewCard";
 import PortfolioHistoryChart from "./PortfolioHistoryChart";
 import IntakeStagingModal from "./IntakeStagingModal";
+import UnitRosterSection from "./UnitRosterSection";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -1448,6 +1449,31 @@ export default function PropDetailsTab() {
             ))}
           </div>
         </>
+      )}
+
+      {/* Unit Roster & Rent Roll Inventory */}
+      {!loading && (
+        <UnitRosterSection
+          properties={allProperties.map((p) => ({
+            id: p.id,
+            name: detailMap[p.id]?.display_name || p.name,
+          }))}
+          tenants={tenants.map((t) => ({
+            id: t.id,
+            name: t.name,
+            building: t.building,
+            unit: t.unit,
+            monthly_rent: t.monthlyRent,
+            status: t.status,
+          }))}
+          selectedPropertyName={
+            selectedPropertyId !== "all"
+              ? detailMap[selectedPropertyId]?.display_name ||
+                allProperties.find((p) => p.id === selectedPropertyId)?.name ||
+                null
+              : null
+          }
+        />
       )}
 
       {/* CEO Overview Card */}

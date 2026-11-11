@@ -18,6 +18,12 @@ test.describe("PropOpsIQ Beta Readiness Smoke Suite", () => {
       { method: "GET", url: "/api/maintenance" },
       { method: "GET", url: "/api/cleaning" },
       { method: "POST", url: "/api/intake/commit", data: { tenants: [{ name: "Test", monthlyRent: 1000 }] } },
+      { method: "GET", url: "/api/property-units" },
+      { method: "GET", url: "/api/expenses?year=2026" },
+      { method: "GET", url: "/api/tenants/portal-link?tenantId=test" },
+      { method: "POST", url: "/api/rent-payments/remind", data: { month: "2026-11", mode: "bulk_unpaid" } },
+      { method: "POST", url: "/api/rent-payments/apply-late-fees", data: { action: "apply_now", month: "2026-11" } },
+      { method: "GET", url: "/api/cron/daily-ops" },
     ];
 
     for (const ep of protectedEndpoints) {
@@ -103,5 +109,37 @@ test.describe("PropOpsIQ Beta Readiness Smoke Suite", () => {
       data: { pin: "987654", role: "maintenance", orgCode: "operateiq-demo" },
     });
     expect([400, 401, 404, 429]).toContain(pinRes.status());
+  });
+
+  test("Resident Portal rejects forged/tampered HMAC tokens cleanly with noindex", async ({ page, request }) => {
+    const forgedToken = "tp1.eyJvcmdJZCI6IjAwMCIsInRlbmFudElkIjoiMTExIiwidjoxfQ.forgedsignature";
+
+    const apiRes = await request.get(`/api/portal/${forgedToken}`);
+    expect([403, 404]).toContain(apiRes.status());
+
+    const postRes = await request.post(`/api/portal/${forgedToken}`, {
+      data: { action: "maintenance_request", description: "Leaky faucet" },
+    });
+    expect([403, 404]).toContain(postRes.status());
+
+    await page.goto(`/portal/${forgedToken}`);
+    await expect(page.locator("body")).toContainText(/Portal Link Unavailable|invalid|expired/i);
+    const robotsMeta = await page.locator('meta[name="robots"]').getAttribute("content");
+    expect(robotsMeta || "").toContain("noindex");
+    // Ensure marketing WebGL canvas is never mounted on resident portal
+    await expect(page.locator("canvas")).toHaveCount(0);
+  });
+
+  test("public site-content endpoint strips private landlord ledger & token sections", async ({ request }) => {
+    const res = await request.get("/api/site-content?org_slug=wired-digital-llc");
+    expect(res.status()).toBeLessThan(500);
+    if (res.status() === 200) {
+      const data = await res.json();
+      const items: Array<{ section?: string }> = Array.isArray(data.items) ? data.items : [];
+      const forbidden = new Set(["rent_ledger", "portal_tokens", "property_units_v1", "expenses_ledger"]);
+      for (const it of items) {
+        expect(forbidden.has(String(it.section || "").toLowerCase())).toBe(false);
+      }
+    }
   });
 });

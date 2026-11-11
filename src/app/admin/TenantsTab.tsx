@@ -5,7 +5,7 @@ import {
   AlertTriangle, ChevronDown, ChevronUp, Edit2, Trash2, Save, X, Search,
   Clock, RefreshCw, CheckCircle2, User, Home, BadgePercent, Loader2,
   MessageSquare, FileSpreadsheet, Camera, FileText, Paperclip,
-  Bell, RotateCcw, Sparkles, Receipt, Send,
+  Bell, RotateCcw, Sparkles, Receipt, Send, Link2, Check,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import PrintButton from "./PrintButton";
@@ -564,6 +564,50 @@ function TenantCard({
   });
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [docUploadError, setDocUploadError] = useState("");
+  const [portalBusy, setPortalBusy] = useState<"copy" | "email" | null>(null);
+  const [portalCopied, setPortalCopied] = useState(false);
+
+  const handleCopyPortalLink = async () => {
+    setPortalBusy("copy");
+    try {
+      const res = await fetch(`/api/tenants/portal-link?tenantId=${encodeURIComponent(tenant.id)}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error || "Could not create portal link.");
+      await navigator.clipboard.writeText(data.url);
+      setPortalCopied(true);
+      showToast(`Copied Resident Portal link for ${tenant.name}.`, "success");
+      setTimeout(() => setPortalCopied(false), 2200);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to copy portal link.", "error");
+    } finally {
+      setPortalBusy(null);
+    }
+  };
+
+  const handleEmailPortalLink = async () => {
+    setPortalBusy("email");
+    try {
+      const res = await fetch("/api/tenants/portal-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantId: tenant.id, action: "send_email" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.url) {
+          await navigator.clipboard.writeText(data.url).catch(() => {});
+          showToast(`${data.error || "Email unavailable"} — link copied to clipboard instead!`, "info");
+          return;
+        }
+        throw new Error(data.error || "Could not email portal link.");
+      }
+      showToast(`Emailed Resident Portal link to ${tenant.email}.`, "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to email portal link.", "error");
+    } finally {
+      setPortalBusy(null);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -956,6 +1000,37 @@ function TenantCard({
             <DollarSign size={12} className="text-emerald-400" />
             <span>Log Rent</span>
           </button>
+
+          {/* Resident Self-Service Portal Link (Copy + optional Email) */}
+          <div className="inline-flex items-center rounded-lg border border-sky-500/30 bg-sky-500/10 overflow-hidden">
+            <button
+              type="button"
+              disabled={portalBusy !== null}
+              onClick={handleCopyPortalLink}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-sky-300 hover:bg-sky-500/20 hover:text-white transition-all cursor-pointer disabled:opacity-50"
+              title="Copy Resident Portal link (view balance, receipts, lease PDFs & submit maintenance with photos)"
+            >
+              {portalBusy === "copy" ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : portalCopied ? (
+                <Check size={11} className="text-emerald-400" />
+              ) : (
+                <Link2 size={11} className="text-sky-400" />
+              )}
+              <span>{portalCopied ? "Copied!" : "Portal Link"}</span>
+            </button>
+            {tenant.email && (
+              <button
+                type="button"
+                disabled={portalBusy !== null}
+                onClick={handleEmailPortalLink}
+                className="px-2 py-1 border-l border-sky-500/25 text-sky-300 hover:bg-sky-500/20 hover:text-white transition-all cursor-pointer disabled:opacity-50"
+                title={`Email Resident Portal link to ${tenant.email}`}
+              >
+                {portalBusy === "email" ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+              </button>
+            )}
+          </div>
 
           {/* Quick Renew Lease Button */}
           <button

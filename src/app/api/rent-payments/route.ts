@@ -141,17 +141,27 @@ export async function GET(req: NextRequest) {
     }
 
     const pg = parsePagination(req, { defaultLimit: 500, maxLimit: 1000 });
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&month=eq.${encodeURIComponent(month)}&order=tenant_name.asc`,
-      {
-        headers: {
-          ...HEADERS,
-          Range: pg.rangeHeader,
-          Prefer: "count=exact",
-        },
-        cache: "no-store",
-      }
-    );
+    const [res, priorRes, policyRes] = await Promise.all([
+      fetch(
+        `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&month=eq.${encodeURIComponent(month)}&order=tenant_name.asc`,
+        {
+          headers: {
+            ...HEADERS,
+            Range: pg.rangeHeader,
+            Prefer: "count=exact",
+          },
+          cache: "no-store",
+        }
+      ),
+      fetch(
+        `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${orgId}&month=lt.${encodeURIComponent(month)}&paid=eq.false&select=tenant_id,rent_due,nn_fee,nnn_fee,utility_fee,cleaning_fee,cam_fee,late_fee,amount_paid&limit=2000`,
+        { headers: HEADERS, cache: "no-store" }
+      ),
+      fetch(
+        `${SUPABASE_URL}/rest/v1/site_content?org_id=eq.${orgId}&section=eq.rent_ledger&key=eq.late_fee_policy&select=value&limit=1`,
+        { headers: HEADERS, cache: "no-store" }
+      ),
+    ]);
 
     if (!res.ok) {
       const errText = await res.text();
@@ -165,9 +175,45 @@ export async function GET(req: NextRequest) {
     const payments = (await res.json()) as unknown[];
     const total = parseContentRangeTotal(res.headers.get("content-range"), payments.length);
 
+    const priorArrearsByTenant: Record<string, number> = {};
+    if (priorRes.ok) {
+      const priorRows = (await priorRes.json()) as Array<Record<string, unknown>>;
+      for (const r of Array.isArray(priorRows) ? priorRows : []) {
+        const tid = String(r.tenant_id || "");
+        if (!tid) continue;
+        const due =
+          (Number(r.rent_due) || 0) +
+          (Number(r.nn_fee) || 0) +
+          (Number(r.nnn_fee) || 0) +
+          (Number(r.utility_fee) || 0) +
+          (Number(r.cleaning_fee) || 0) +
+          (Number(r.cam_fee) || 0) +
+          (Number(r.late_fee) || 0);
+        const rem = Math.max(0, due - (Number(r.amount_paid) || 0));
+        if (rem > 0.009) {
+          priorArrearsByTenant[tid] = Math.round(((priorArrearsByTenant[tid] || 0) + rem) * 100) / 100;
+        }
+      }
+    }
+
+    let lateFeePolicy: Record<string, unknown> | null = null;
+    if (policyRes.ok) {
+      const pRows = (await policyRes.json()) as Array<{ value?: string }>;
+      if (pRows[0]?.value) {
+        try {
+          lateFeePolicy =
+            typeof pRows[0].value === "string" ? JSON.parse(pRows[0].value) : pRows[0].value;
+        } catch {
+          lateFeePolicy = null;
+        }
+      }
+    }
+
     return NextResponse.json(
       {
         payments,
+        priorArrearsByTenant,
+        lateFeePolicy,
         pagination: buildPaginationMeta({
           limit: pg.limit,
           offset: pg.offset,

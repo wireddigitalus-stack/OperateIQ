@@ -29,6 +29,26 @@ const DEFAULT_INSTRUCTIONS: PaymentInstructions = {
   customNote: "",
 };
 
+interface LateFeePolicy {
+  dueDay: number;
+  graceDays: number;
+  feeType: "flat" | "percent";
+  feeAmount: number;
+  maxFee: number;
+  autoApply: boolean;
+  autoRemind: boolean;
+}
+
+const DEFAULT_LATE_FEE_POLICY: LateFeePolicy = {
+  dueDay: 1,
+  graceDays: 5,
+  feeType: "flat",
+  feeAmount: 50,
+  maxFee: 0,
+  autoApply: false,
+  autoRemind: false,
+};
+
 interface RentPayment {
   id: string;
   tenantId: string;
@@ -331,6 +351,15 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
   const [instructionsSaved, setInstructionsSaved] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // Carry-forward prior arrears + Late-Fee & Email Automation state
+  const [priorArrearsByTenant, setPriorArrearsByTenant] = useState<Record<string, number>>({});
+  const [showLateFeePanel, setShowLateFeePanel] = useState(false);
+  const [lateFeePolicy, setLateFeePolicy] = useState<LateFeePolicy>(DEFAULT_LATE_FEE_POLICY);
+  const [savingPolicy, setSavingPolicy] = useState(false);
+  const [applyingLateFees, setApplyingLateFees] = useState(false);
+  const [emailingBulk, setEmailingBulk] = useState(false);
+  const [emailingTenantId, setEmailingTenantId] = useState<string | null>(null);
+
   const showToast = useCallback((msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
@@ -422,11 +451,21 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
       if (data.migrationSql) {
         setMigrationSql(data.migrationSql);
         setPayments([]);
+        setPriorArrearsByTenant({});
       } else if (Array.isArray(data.payments)) {
         setMigrationSql(null);
         setPayments(data.payments.map(rowToPayment));
+        if (data.priorArrearsByTenant && typeof data.priorArrearsByTenant === "object") {
+          setPriorArrearsByTenant(data.priorArrearsByTenant as Record<string, number>);
+        } else {
+          setPriorArrearsByTenant({});
+        }
+        if (data.lateFeePolicy && typeof data.lateFeePolicy === "object") {
+          setLateFeePolicy({ ...DEFAULT_LATE_FEE_POLICY, ...(data.lateFeePolicy as Partial<LateFeePolicy>) });
+        }
       } else {
         setPayments([]);
+        setPriorArrearsByTenant({});
       }
     } catch (err) {
       console.error("Failed to fetch payments:", err);
@@ -829,14 +868,15 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
     // Fees = NN + NNN + Utility + Cleaning + CAM — shown in their own columns, not added to Rent Due
     const totalFees = payments.reduce((s, p) =>
       s + (p.nnFee || 0) + (p.nnnFee || 0) + (p.utilityFee || 0) + (p.cleaningFee || 0) + (p.camFee || 0), 0);
-    // Total obligations = rent + fees — used for Outstanding calculation
-    const totalObligations = totalDue + totalFees;
-    const totalPaid = payments.reduce((s, p) => s + (p.amountPaid || 0), 0);
     const totalLateFees = payments.reduce((s, p) => s + (p.lateFee || 0), 0);
-    const outstanding = totalObligations - totalPaid;
+    // Total obligations = rent + fees + late fees — used for Outstanding calculation
+    const totalObligations = totalDue + totalFees + totalLateFees;
+    const totalPaid = payments.reduce((s, p) => s + (p.amountPaid || 0), 0);
+    const outstanding = Math.max(0, totalObligations - totalPaid);
+    const totalPriorArrears = payments.reduce((s, p) => s + (priorArrearsByTenant[p.tenantId] || 0), 0);
     const paidCount = payments.filter(p => p.paid).length;
-    return { totalDue, totalFees, totalObligations, totalPaid, totalLateFees, outstanding, paidCount };
-  }, [payments]);
+    return { totalDue, totalFees, totalObligations, totalPaid, totalLateFees, outstanding, totalPriorArrears, paidCount };
+  }, [payments, priorArrearsByTenant]);
 
   const isMonthSubmitted = payments.length > 0 && payments.every(p => p.isSubmitted);
   const hasDraftRows = payments.length > 0 && payments.some(p => !p.isSubmitted);
@@ -864,8 +904,133 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
     return `RENT RECEIPT (${fmtMonthFull(selectedMonth)}): Received ${fmtMoney(p.amountPaid)} via ${p.paymentType || "Payment"} on ${dateStr} for ${unitLabel}.${p.notes ? ` Ref: ${p.notes}.` : ""} Balance due: ${fmtMoney(Math.max(0, totalDue(p) - (p.amountPaid || 0)))}. Thank you!`;
   }, [selectedMonth]);
 
-  const handleRemindTenant = useCallback((p: RentPayment) => {
+  const saveLateFeePolicy = async () => {
+    setSavingPolicy(true);
+    try {
+      const res = await fetch("/api/rent-payments/apply-late-fees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "save_policy", policy: lateFeePolicy }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not save late-fee policy.");
+      if (data.policy) setLateFeePolicy(data.policy);
+      showGlobalToast("Late-fee & reminder policy saved.", "success");
+    } catch (err) {
+      showGlobalToast(err instanceof Error ? err.message : "Could not save late-fee policy.", "error");
+    } finally {
+      setSavingPolicy(false);
+    }
+  };
+
+  const applyLateFeesNow = async () => {
+    if (applyingLateFees) return;
+    setApplyingLateFees(true);
+    try {
+      const res = await fetch("/api/rent-payments/apply-late-fees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "apply_now",
+          month: selectedMonth,
+          force: true,
+          policy: lateFeePolicy,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to assess late fees.");
+      await fetchPayments(selectedMonth);
+      if (data.appliedCount > 0) {
+        showGlobalToast(`Assessed late fees on ${data.appliedCount} unpaid row${data.appliedCount === 1 ? "" : "s"} (${fmtMoney(data.totalFeeAdded || 0)}).`, "success");
+      } else {
+        showGlobalToast("No eligible unpaid rows needed a late fee.", "info");
+      }
+    } catch (err) {
+      showGlobalToast(err instanceof Error ? err.message : "Failed to assess late fees.", "error");
+    } finally {
+      setApplyingLateFees(false);
+    }
+  };
+
+  const emailSingleReminderOrReceipt = useCallback(async (p: RentPayment, kind: "reminder" | "overdue" | "receipt") => {
     const t = tenants.find(tx => tx.id === p.tenantId);
+    if (!t?.email) {
+      return false;
+    }
+    setEmailingTenantId(p.tenantId);
+    try {
+      const res = await fetch("/api/rent-payments/remind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          month: selectedMonth,
+          mode: "single",
+          tenantId: p.tenantId,
+          kind,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 503 || data.emailConfigured === false) {
+        return false; // Fall back to native mailto/sms
+      }
+      if (!res.ok) {
+        throw new Error(data.error || "Could not send email.");
+      }
+      showGlobalToast(
+        kind === "receipt"
+          ? `Emailed paid receipt + portal link to ${t.email}`
+          : `Emailed rent reminder + portal link to ${t.email}`,
+        "success"
+      );
+      return true;
+    } catch (err) {
+      showGlobalToast(err instanceof Error ? err.message : "Failed to email tenant.", "error");
+      return true; // Prevent double-opening mailto after surfacing error
+    } finally {
+      setEmailingTenantId(null);
+    }
+  }, [tenants, selectedMonth]);
+
+  const emailBulkUnpaid = async () => {
+    if (emailingBulk) return;
+    setEmailingBulk(true);
+    try {
+      const res = await fetch("/api/rent-payments/remind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          month: selectedMonth,
+          mode: "bulk_unpaid",
+          kind: "reminder",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 503 || data.emailConfigured === false) {
+        showGlobalToast("Automated email is not configured on this server yet — use per-row Remind for SMS/Mailto.", "warning");
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || "Failed to send bulk reminders.");
+      showGlobalToast(
+        data.sent > 0
+          ? `Sent ${data.sent} rent reminder email${data.sent === 1 ? "" : "s"} (${data.skippedNoEmail || 0} without email).`
+          : "No unpaid tenants with email addresses found for this month.",
+        data.sent > 0 ? "success" : "info"
+      );
+    } catch (err) {
+      showGlobalToast(err instanceof Error ? err.message : "Failed to send bulk reminders.", "error");
+    } finally {
+      setEmailingBulk(false);
+    }
+  };
+
+  const handleRemindTenant = useCallback(async (p: RentPayment) => {
+    const t = tenants.find(tx => tx.id === p.tenantId);
+    const arrears = priorArrearsByTenant[p.tenantId] || 0;
+    const kind = (p.lateFee > 0 || arrears > 0) ? "overdue" : "reminder";
+    if (t?.email) {
+      const sentViaApi = await emailSingleReminderOrReceipt(p, kind);
+      if (sentViaApi) return;
+    }
     const msg = buildReminderMessage(p);
     if (t?.phone) {
       window.location.href = `sms:${t.phone}?body=${encodeURIComponent(msg)}`;
@@ -878,9 +1043,9 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
     }
     navigator.clipboard.writeText(msg).catch(() => {});
     showToast(`Copied rent reminder for ${p.tenantName}!`);
-  }, [tenants, buildReminderMessage, selectedMonth, showToast]);
+  }, [tenants, priorArrearsByTenant, emailSingleReminderOrReceipt, buildReminderMessage, selectedMonth, showToast]);
 
-  const handleReceiptAction = useCallback((p: RentPayment, mode: "sms" | "email" | "print") => {
+  const handleReceiptAction = useCallback(async (p: RentPayment, mode: "sms" | "email" | "print") => {
     if (mode === "print") {
       printRentReceipt({
         tenantName: p.tenantName,
@@ -896,19 +1061,23 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
       return;
     }
     const t = tenants.find(tx => tx.id === p.tenantId);
+    if (mode === "email" && t?.email) {
+      const sentViaApi = await emailSingleReminderOrReceipt(p, "receipt");
+      if (sentViaApi) return;
+    }
     const msg = buildReceiptMessage(p);
     if (mode === "sms" && t?.phone) {
       window.location.href = `sms:${t.phone}?body=${encodeURIComponent(msg)}`;
       return;
     }
-    if (mode === "email" && t?.email) {
+    if (t?.email) {
       const subj = `Paid Rent Receipt — ${fmtMonthFull(selectedMonth)} (${p.building}${p.unit ? ` Unit ${p.unit}` : ""})`;
       window.location.href = `mailto:${t.email}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(msg)}`;
       return;
     }
     navigator.clipboard.writeText(msg).catch(() => {});
     showToast(`Copied rent receipt for ${p.tenantName}!`);
-  }, [tenants, buildReceiptMessage, selectedMonth, showToast]);
+  }, [tenants, emailSingleReminderOrReceipt, buildReceiptMessage, selectedMonth, showToast]);
 
   // ═══════════════════════════════════════════════════════════════════════
   // RENDER
@@ -993,7 +1162,29 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                   }`}
                 >
                   <Settings size={12} />
-                  <span>Payment Instructions (Zelle / Venmo / Check)</span>
+                  <span>Payment Instructions</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLateFeePanel(prev => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    showLateFeePanel
+                      ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                      : "text-amber-300 hover:text-white border-amber-500/25 hover:border-amber-500/45 bg-amber-500/[0.06]"
+                  }`}
+                >
+                  <Clock size={12} />
+                  <span>Late Fees &amp; Email Automation</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={emailBulkUnpaid}
+                  disabled={emailingBulk || totals.paidCount === payments.length}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-sky-300 hover:text-white border border-sky-500/25 hover:border-sky-500/45 bg-sky-500/[0.06] transition-all disabled:opacity-40 cursor-pointer"
+                  title="Email branded rent reminder + Resident Portal link to all unpaid tenants with an email on file"
+                >
+                  {emailingBulk ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
+                  <span>Email Unpaid ({payments.length - totals.paidCount})</span>
                 </button>
                 <button
                   onClick={syncAllFees}
@@ -1107,6 +1298,122 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
             </div>
           )}
 
+          {/* Collapsible Late Fees & Email Automation Panel */}
+          {showLateFeePanel && (
+            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.07] via-rose-500/[0.04] to-transparent p-4 sm:p-5 space-y-4 animate-in fade-in">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-black text-white flex items-center gap-2">
+                    <Clock size={15} className="text-amber-400" />
+                    <span>Late-Fee Rules &amp; Automated Rent Reminders</span>
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Configure grace-period rules once. Assess late fees manually on any month or enable daily automatic application after the grace period.
+                  </p>
+                </div>
+                <button onClick={() => setShowLateFeePanel(false)} className="text-gray-500 hover:text-white p-1">
+                  <XCircle size={16} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Due Day of Month</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={28}
+                    value={lateFeePolicy.dueDay}
+                    onChange={e => setLateFeePolicy(prev => ({ ...prev, dueDay: Math.max(1, Math.min(28, Number(e.target.value) || 1)) }))}
+                    className={FIELD_SM}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Grace Period (Days)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={lateFeePolicy.graceDays}
+                    onChange={e => setLateFeePolicy(prev => ({ ...prev, graceDays: Math.max(0, Math.min(30, Number(e.target.value) || 0)) }))}
+                    className={FIELD_SM}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Fee Type</label>
+                  <select
+                    value={lateFeePolicy.feeType}
+                    onChange={e => setLateFeePolicy(prev => ({ ...prev, feeType: e.target.value === "percent" ? "percent" : "flat" }))}
+                    className={FIELD_SM}
+                  >
+                    <option value="flat" style={{ background: "#0D1117" }}>Flat Dollar ($)</option>
+                    <option value="percent" style={{ background: "#0D1117" }}>% of Base Rent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                    {lateFeePolicy.feeType === "percent" ? "Late Fee (%)" : "Late Fee ($)"}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={lateFeePolicy.feeAmount}
+                    onChange={e => setLateFeePolicy(prev => ({ ...prev, feeAmount: Math.max(0, Number(e.target.value) || 0) }))}
+                    className={FIELD_SM}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Max Fee Cap ($)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={lateFeePolicy.maxFee || ""}
+                    placeholder="Optional"
+                    onChange={e => setLateFeePolicy(prev => ({ ...prev, maxFee: Math.max(0, Number(e.target.value) || 0) }))}
+                    className={FIELD_SM}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-white/[0.06]">
+                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={lateFeePolicy.autoApply}
+                    onChange={e => setLateFeePolicy(prev => ({ ...prev, autoApply: e.target.checked }))}
+                    className="rounded border-white/20 bg-black/40 accent-amber-400"
+                  />
+                  <span>
+                    Auto-apply late fee daily once day &gt; {lateFeePolicy.dueDay + lateFeePolicy.graceDays} (via daily operations job)
+                  </span>
+                </label>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={applyLateFeesNow}
+                    disabled={applyingLateFees || isMonthSubmitted}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-400/40 bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 text-xs font-black transition-all disabled:opacity-40 cursor-pointer"
+                  >
+                    {applyingLateFees ? <Loader2 size={13} className="animate-spin" /> : <Clock size={13} />}
+                    <span>Assess Late Fees on Unpaid</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveLateFeePolicy}
+                    disabled={savingPolicy}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {savingPolicy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                    <span>Save Policy</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Summary Cards */}
           {payments.length > 0 && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1129,13 +1436,20 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                 value={fmtMoney(totals.outstanding)}
                 icon={totals.outstanding > 0 ? AlertTriangle : CheckCircle2}
                 color={totals.outstanding > 0 ? "#F59E0B" : "#10B981"}
-                sub={totals.outstanding > 0 ? `${payments.length - totals.paidCount} unpaid` : "All collected!"}
+                sub={
+                  totals.totalPriorArrears > 0
+                    ? `${payments.length - totals.paidCount} unpaid · +${fmtMoney(totals.totalPriorArrears)} prior arrears`
+                    : totals.outstanding > 0
+                    ? `${payments.length - totals.paidCount} unpaid`
+                    : "All collected!"
+                }
               />
               <SummaryCard
                 label="Late Fees"
                 value={fmtMoney(totals.totalLateFees)}
                 icon={Clock}
                 color={totals.totalLateFees > 0 ? "#EF4444" : "#6B7280"}
+                sub={`Grace: Day ${lateFeePolicy.dueDay + lateFeePolicy.graceDays}`}
               />
             </div>
           )}
@@ -1271,9 +1585,19 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                         <td className={TD_CLASS + " text-xs text-gray-400 whitespace-nowrap"}>
                           {p.building}{p.unit ? ` / ${p.unit}` : ""}
                         </td>
-                        {/* Rent Due */}
+                        {/* Rent Due + Prior Arrears */}
                         <td className={TD_CLASS}>
-                          <span className="font-black text-white text-xs tabular-nums">{fmtMoney(p.rentDue)}</span>
+                          <div className="flex flex-col">
+                            <span className="font-black text-white text-xs tabular-nums">{fmtMoney(p.rentDue)}</span>
+                            {(priorArrearsByTenant[p.tenantId] || 0) > 0 && (
+                              <span
+                                title="Carry-forward unpaid balance from prior months"
+                                className="text-[9px] font-black text-rose-400 whitespace-nowrap tabular-nums"
+                              >
+                                +{fmtMoney(priorArrearsByTenant[p.tenantId])} arrears
+                              </span>
+                            )}
+                          </div>
                         </td>
                         {/* NN Fee */}
                         <td className={TD_CLASS}>
@@ -1373,8 +1697,17 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                               </button>
                               <button
                                 type="button"
+                                onClick={() => handleReceiptAction(p, "email")}
+                                disabled={emailingTenantId === p.tenantId}
+                                title="Email Paid Receipt + Resident Portal Link to Tenant"
+                                className="p-1 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-40"
+                              >
+                                {emailingTenantId === p.tenantId ? <Loader2 size={10} className="animate-spin" /> : <Mail size={10} />}
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => handleReceiptAction(p, "sms")}
-                                title="Text/Email Paid Receipt to Tenant"
+                                title="Text Paid Receipt to Tenant"
                                 className="p-1 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
                               >
                                 <Send size={10} />
@@ -1384,10 +1717,11 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                             <button
                               type="button"
                               onClick={() => handleRemindTenant(p)}
-                              title="Send 1-Tap Rent Reminder (with your Zelle/Venmo/Check instructions)"
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-[10px] font-bold transition-all cursor-pointer"
+                              disabled={emailingTenantId === p.tenantId}
+                              title="Send Rent Reminder Email (with Resident Portal link & Zelle/Venmo/Check instructions)"
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50"
                             >
-                              <Bell size={11} />
+                              {emailingTenantId === p.tenantId ? <Loader2 size={11} className="animate-spin" /> : <Bell size={11} />}
                               <span>Remind</span>
                             </button>
                           )}
@@ -1430,6 +1764,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                   <MobilePaymentCard
                     key={p.id}
                     payment={p}
+                    priorArrears={priorArrearsByTenant[p.tenantId] || 0}
                     isSubmitted={isMonthSubmitted}
                     onUpdate={updatePayment}
                     onSync={syncFees}
@@ -1647,8 +1982,9 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
 
 // ─── Mobile Payment Card ────────────────────────────────────────────────────
 
-function MobilePaymentCard({ payment: p, isSubmitted, onUpdate, onSync, onRemind, onReceipt }: {
+function MobilePaymentCard({ payment: p, priorArrears = 0, isSubmitted, onUpdate, onSync, onRemind, onReceipt }: {
   payment: RentPayment;
+  priorArrears?: number;
   isSubmitted: boolean;
   onUpdate: (id: string, field: keyof RentPayment, value: unknown) => void;
   onSync: (id: string, tenantId: string) => void;
@@ -1674,6 +2010,9 @@ function MobilePaymentCard({ payment: p, isSubmitted, onUpdate, onSync, onRemind
           <div className="text-right">
             <p className="text-[10px] font-semibold text-gray-400 tabular-nums">Base Rent: {fmtMoney(p.rentDue)}</p>
             <p className="text-xs font-black text-white tabular-nums">Total Due: {fmtMoney(totalDue)}</p>
+            {priorArrears > 0 && (
+              <p className="text-[10px] font-black text-rose-400 tabular-nums">+{fmtMoney(priorArrears)} prior arrears</p>
+            )}
             <p className={`text-[10px] font-bold ${p.paid ? "text-[#10B981]" : "text-gray-500"}`}>{p.paid ? "Paid" : "Unpaid"}</p>
           </div>
           {expanded ? <ChevronUp size={12} className="text-gray-600" /> : <ChevronDown size={12} className="text-gray-600" />}

@@ -31,6 +31,7 @@ const AnalyticsTab = dynamic(() => import("./AnalyticsTab"), { loading: () => <A
 const MaintenanceTab = dynamic(() => import("./MaintenanceTab"), { loading: () => <AdminTabSkeleton /> });
 const CleaningTab = dynamic(() => import("./CleaningTab"), { loading: () => <AdminTabSkeleton /> });
 const RentLedgerTab = dynamic(() => import("./RentLedgerTab"), { loading: () => <AdminTabSkeleton /> });
+const ExpensesTab = dynamic(() => import("./ExpensesTab"), { loading: () => <AdminTabSkeleton /> });
 const SecurityDepositLedgerTab = dynamic(() => import("./SecurityDepositLedgerTab"), { loading: () => <AdminTabSkeleton /> });
 const MarketingTab = dynamic(() => import("./MarketingTab"), { loading: () => <AdminTabSkeleton /> });
 const ContentTab = dynamic(() => import("./ContentTab"), { loading: () => <AdminTabSkeleton /> });
@@ -50,7 +51,7 @@ import {
   Bell, Mail, Shield, X, Radio,
   Sparkles, Brain, Send, ChevronRight, ChevronDown, Archive, MessageSquare, BarChart3, Wrench,
   ArrowRight, CheckSquare, Lock, AlertTriangle, Key, KeyRound, Download, FileSpreadsheet,
-  Search, Pencil, FileText, Flame, Landmark, Globe, ExternalLink,
+  Search, Pencil, FileText, Flame, Landmark, Globe, ExternalLink, Receipt,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1386,7 +1387,7 @@ export default function AdminPage() {
   const briefKeyRef = useRef(0);
   const [briefKey, setBriefKey] = useState(0);
   const searchParams = useSearchParams();
-  const VALID_TABS = ["propdetails", "tenants", "rentledger", "maintenance", "cleaning", "teamboard", "analytics", "content", "leads", "archived", "marketing", "settings"] as const;
+  const VALID_TABS = ["propdetails", "tenants", "rentledger", "expenses", "maintenance", "cleaning", "teamboard", "analytics", "content", "leads", "archived", "marketing", "settings"] as const;
   type TabKey = typeof VALID_TABS[number];
   const rawTabParam = searchParams.get("tab");
   const resolveTabParam = (raw: string | null): TabKey => {
@@ -1394,6 +1395,7 @@ export default function AdminPage() {
     const norm = raw.toLowerCase().trim();
     if (norm === "properties" || norm === "propdetails") return "propdetails";
     if (norm === "rentledger" || norm === "rent-ledger") return "rentledger";
+    if (norm === "expenses" || norm === "schedule-e") return "expenses";
     if (norm === "tenants") return "tenants";
     if (norm === "conversations" || norm === "tasks" || norm === "teamboard") return "teamboard";
     if (norm === "reports" || norm === "analytics") return "analytics";
@@ -2522,6 +2524,7 @@ export default function AdminPage() {
             { key: "propdetails", label: "Properties",      mobileLabel: "Properties",    icon: Building2,  color: "#A78BFA", desc: "Buildings & units" },
             { key: "tenants",     label: "Tenants",         mobileLabel: "Tenants",       icon: Users,      color: "#60A5FA", desc: "Active leases" },
             { key: "rentledger",  label: "Rent Ledger",     mobileLabel: "Rent Ledger",   icon: DollarSign, color: "#10B981", desc: "Monthly payments" },
+            { key: "expenses",    label: "Expenses",        mobileLabel: "Expenses",      icon: Receipt,    color: "#C084FC", desc: "Schedule E & NOI" },
             { key: "maintenance", label: "Maintenance",     mobileLabel: "Maint.",        icon: Wrench,     color: "#F97316", desc: "Work orders" },
             { key: "cleaning",    label: "Cleaning",        mobileLabel: "Cleaning",      icon: Sparkles,   color: "#34D399", desc: "Turnovers & crews" },
             { key: "teamboard",   label: "Team Board",      mobileLabel: "Team Board",    icon: MessageSquare, color: "#60A5FA", desc: "Comm & Tasks" },
@@ -3649,6 +3652,13 @@ export default function AdminPage() {
                 </>
               )}
 
+              {/* ─ EXPENSES & IRS SCHEDULE E TAB ────────────────────────────── */}
+              {activeTab === "expenses" && (
+                <div className="rounded-2xl border border-[rgba(192,132,252,0.2)] bg-[rgba(0,0,0,0.25)] p-4 sm:p-6">
+                  <ExpensesTab />
+                </div>
+              )}
+
               {/* ─ TENANTS TAB ──────────────────────────────────────────────── */}
               {activeTab === "tenants" && (
                 <TenantsTab
@@ -3935,7 +3945,7 @@ export default function AdminPage() {
 
       {/* ─ PRO TIPS floating button (always visible, context-aware) ─────────── */}
       <ProTips
-        activeTab={(activeTab === "marketing" ? `marketing-${marketingSubTab}` : activeTab === "content" ? contentSubView : activeTab === "rentledger" ? "tenants" : activeTab) as import("./ProTips").TabKey}
+        activeTab={(activeTab === "marketing" ? `marketing-${marketingSubTab}` : activeTab === "content" ? contentSubView : activeTab === "rentledger" ? "tenants" : activeTab === "expenses" ? "propdetails" : activeTab) as import("./ProTips").TabKey}
         customerCode={activeOrgCode}
       />
 

@@ -18,6 +18,23 @@ const headers = {
   Authorization: `Bearer ${SERVICE_KEY}`,
 };
 
+const PUBLIC_SITE_SECTIONS = new Set([
+  "hero",
+  "about",
+  "footer",
+  "seo",
+  "contact",
+  "market",
+  "banner",
+  "listings",
+  "theme",
+  "branding",
+  "general",
+  "social",
+  "faq",
+  "testimonials",
+]);
+
 export async function GET(req: NextRequest) {
   let orgId: string | null = null;
   let isPublic = false;
@@ -50,8 +67,15 @@ export async function GET(req: NextRequest) {
       );
     }
     const raw = await res.json();
-    const rows = Array.isArray(raw) ? raw : [];
-    const total = parseContentRangeTotal(res.headers.get("content-range"), rows.length);
+    const allRows = Array.isArray(raw) ? raw : [];
+    const rows = isPublic
+      ? allRows.filter((r: { section?: string }) =>
+          PUBLIC_SITE_SECTIONS.has(String(r?.section || "").toLowerCase())
+        )
+      : allRows;
+    const total = isPublic
+      ? rows.length
+      : parseContentRangeTotal(res.headers.get("content-range"), rows.length);
 
     return NextResponse.json({
       items: rows,
