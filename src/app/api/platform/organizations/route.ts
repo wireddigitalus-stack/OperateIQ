@@ -171,6 +171,9 @@ export async function POST(req: NextRequest) {
             state: "",
             address: "",
             description: "",
+            site_published: false,
+            commercial_tools_enabled: false,
+            checklist_dismissed: false,
           },
           updated_at: new Date().toISOString(),
         },
@@ -230,6 +233,9 @@ export async function PATCH(req: NextRequest) {
       state,
       address,
       description,
+      site_published,
+      commercial_tools_enabled,
+      checklist_dismissed,
     } = body;
     const updates: Record<string, unknown> = {};
     let targetId: string;
@@ -294,7 +300,13 @@ export async function PATCH(req: NextRequest) {
     if (brand_accent_color !== undefined) updates.brand_accent_color = brand_accent_color ? String(brand_accent_color).trim().slice(0, 40) : null;
 
     const hasProfileFields =
-      city !== undefined || state !== undefined || address !== undefined || description !== undefined;
+      city !== undefined ||
+      state !== undefined ||
+      address !== undefined ||
+      description !== undefined ||
+      site_published !== undefined ||
+      commercial_tools_enabled !== undefined ||
+      checklist_dismissed !== undefined;
 
     if (!Object.keys(updates).length && !hasProfileFields) {
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
@@ -328,7 +340,8 @@ export async function PATCH(req: NextRequest) {
         .eq("key", "org_profile")
         .maybeSingle();
       const prev = ((existingProfile?.value || {}) as Record<string, unknown>);
-      const nextProfile = {
+      const nextProfile: Record<string, unknown> = {
+        ...prev,
         customer_code: getCustomerCode(
           targetId,
           typeof prev.customer_code === "string" ? prev.customer_code : null
@@ -338,6 +351,9 @@ export async function PATCH(req: NextRequest) {
         address: address !== undefined ? (address ? String(address).trim().slice(0, 240) : "") : (typeof prev.address === "string" ? prev.address : ""),
         description: description !== undefined ? (description ? String(description).trim().slice(0, 2000) : "") : (typeof prev.description === "string" ? prev.description : ""),
       };
+      if (site_published !== undefined) nextProfile.site_published = Boolean(site_published);
+      if (commercial_tools_enabled !== undefined) nextProfile.commercial_tools_enabled = Boolean(commercial_tools_enabled);
+      if (checklist_dismissed !== undefined) nextProfile.checklist_dismissed = Boolean(checklist_dismissed);
       await supabaseAdmin
         .from("site_settings")
         .upsert(

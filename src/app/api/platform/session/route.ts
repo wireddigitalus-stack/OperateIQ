@@ -43,6 +43,10 @@ export async function GET(req: NextRequest) {
           created_at: org.created_at,
           custom_domain: org.custom_domain,
           customer_code: org.customer_code || getCustomerCode(org.id),
+          site_published: Boolean(org.site_published),
+          commercial_tools_enabled: org.commercial_tools_enabled,
+          checklist_dismissed: Boolean(org.checklist_dismissed),
+          has_stripe_subscription: Boolean(org.stripe_subscription_id),
         }
       : null;
 

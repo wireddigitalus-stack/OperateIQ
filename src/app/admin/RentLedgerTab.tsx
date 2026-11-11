@@ -1065,7 +1065,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                   <input
                     value={instructions.checkPayableTo}
                     onChange={e => setInstructions(prev => ({ ...prev, checkPayableTo: e.target.value }))}
-                    placeholder="e.g. Acme Properties LLC"
+                    placeholder="e.g. Maple Street Properties LLC"
                     className={FIELD_SM}
                   />
                 </div>

@@ -13,17 +13,20 @@ const H = {
 };
 
 export async function GET(req: NextRequest) {
-  const g = await requireOrg(req, { requireFeature: "weekly_report" });
+  const metricsOnly = req.nextUrl.searchParams.get("metrics_only") === "1";
+  const g = await requireOrg(req, metricsOnly ? undefined : { requireFeature: "weekly_report" });
   if (!g.ok) return g.res;
-  if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
-    return NextResponse.json({ error: "Your workspace has reached today's AI usage limit. It resets tomorrow." }, { status: 429 });
+
+  if (!metricsOnly) {
+    if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
+      return NextResponse.json({ error: "Your workspace has reached today's AI usage limit. It resets tomorrow." }, { status: 429 });
+    }
+    if (!GEMINI_API_KEY) {
+      return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
+    }
   }
   const { orgId } = g.ctx;
   const scope = `org_id=eq.${orgId}`;
-
-  if (!GEMINI_API_KEY) {
-    return NextResponse.json({ error: "GEMINI_API_KEY is not configured" }, { status: 500 });
-  }
 
   try {
     // 1. Fetch leads
@@ -121,6 +124,45 @@ export async function GET(req: NextRequest) {
     const cleaningActCost = cleanings.reduce((s: number, c: any) => s + (Number(c.actual_cost) || 0), 0);
 
     const activityCount = logs.length;
+    const hasData = totalTenants > 0 || totalTickets > 0 || totalCleaning > 0 || totalLeads > 0;
+    const compiledMetrics = {
+      totalLeads,
+      activeLeadsCount: activeLeads.length,
+      conversionRate,
+      pipelineValue,
+      totalTickets,
+      completedTicketsCount: completedTickets.length,
+      slaCompliancePct,
+      avgResponseTime,
+      maintEstCost,
+      maintActCost,
+      totalCleaning,
+      completedCleaningCount: completedCleaning,
+      cleaningEstCost,
+      cleaningActCost,
+      activityCount,
+      totalTenants,
+    };
+
+    if (metricsOnly) {
+      return NextResponse.json({
+        success: true,
+        hasData,
+        metrics: compiledMetrics,
+      });
+    }
+
+    if (!hasData) {
+      return NextResponse.json(
+        {
+          error:
+            "Your workspace does not have any tenants, maintenance tickets, or cleaning logs yet. Add operational records first so the AI review reflects real portfolio data.",
+          hasData: false,
+          metrics: compiledMetrics,
+        },
+        { status: 400 }
+      );
+    }
 
     // Call Gemini
     const systemPrompt = `

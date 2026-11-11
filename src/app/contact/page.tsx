@@ -187,7 +187,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label htmlFor="contact-company" className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Company</label>
-                  <input id="contact-company" type="text" name="company" placeholder="Acme Corp."
+                  <input id="contact-company" type="text" name="company" placeholder="Maple Street Properties LLC"
                     className={inputClass} />
                 </div>
               </div>

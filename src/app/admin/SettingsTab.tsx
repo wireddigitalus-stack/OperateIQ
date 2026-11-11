@@ -15,6 +15,7 @@ import { PLANS, getPlan, FEATURE_LABELS } from "@/lib/plans";
 import { getCustomerCode, getTrialCountdown } from "@/lib/platform";
 import { isWeakPin, generateStrongPin } from "@/lib/security-shield";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { signOutEverywhere } from "@/lib/sign-out";
 
 // ─── Types (shared with page.tsx) ─────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ function ExportButton({ leads }: { leads: Lead[] }) {
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Leads");
-      XLSX.writeFile(wb, `operateiq-leads-${new Date().toISOString().slice(0,10)}.xlsx`);
+      XLSX.writeFile(wb, `propopsiq-leads-${new Date().toISOString().slice(0,10)}.xlsx`);
     } finally {
       setExporting(false);
     }
@@ -229,14 +230,14 @@ function QBExportButton() {
 
       // Download Excel
       const dateStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `operateiq-qb-export-${dateStr}.xlsx`);
+      XLSX.writeFile(wb, `propopsiq-qb-export-${dateStr}.xlsx`);
 
       // Download IIF
       const blob = new Blob([lines.join("\n")], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `operateiq-qb-import-${dateStr}.iif`;
+      a.download = `propopsiq-qb-import-${dateStr}.iif`;
       a.click();
       URL.revokeObjectURL(url);
 
@@ -892,186 +893,99 @@ Save a shortcut to your phone's Home Screen:
 }
 
 
-// ─── Notifications Card (Beta) ────────────────────────────────────────────────
+// ─── Email Delivery Summary Card ──────────────────────────────────────────────
 
-const NOTIF_KEY = "oiq_notif_prefs";
-
-interface NotifPrefs {
-  emailEnabled: boolean;
-  emailAddress: string;
-  smsEnabled: boolean;
-  smsPhone: string;
-  alerts: {
-    newLead: boolean;
-    maintenanceEmergency: boolean;
-    chatRequest: boolean;
-    cleaningComplete: boolean;
-    weeklyDigest: boolean;
-  };
-  quietHoursEnabled: boolean;
-  quietStart: string;
-  quietEnd: string;
-}
-
-const DEFAULT_PREFS: NotifPrefs = {
-  emailEnabled: false,
-  emailAddress: "",
-  smsEnabled: false,
-  smsPhone: "",
-  alerts: {
-    newLead: true,
-    maintenanceEmergency: true,
-    chatRequest: false,
-    cleaningComplete: false,
-    weeklyDigest: true,
-  },
-  quietHoursEnabled: false,
-  quietStart: "22:00",
-  quietEnd: "07:00",
-};
-
-function NotificationsCard() {
-  const [prefs, setPrefs] = useState<NotifPrefs>(() => {
-    if (typeof window === "undefined") return DEFAULT_PREFS;
-    try {
-      const saved = localStorage.getItem(NOTIF_KEY);
-      return saved ? { ...DEFAULT_PREFS, ...JSON.parse(saved) } : DEFAULT_PREFS;
-    } catch { return DEFAULT_PREFS; }
-  });
-  const [saved, setSaved] = useState(false);
-
-  const update = (patch: Partial<NotifPrefs>) => {
-    const next = { ...prefs, ...patch };
-    setPrefs(next);
-    localStorage.setItem(NOTIF_KEY, JSON.stringify(next));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  const toggleAlert = (key: keyof NotifPrefs["alerts"]) => {
-    update({ alerts: { ...prefs.alerts, [key]: !prefs.alerts[key] } });
-  };
-
-  const ALERT_TYPES: { key: keyof NotifPrefs["alerts"]; label: string; icon: React.ReactNode; desc: string }[] = [
-    { key: "newLead", label: "New Lead", icon: <Zap size={14} className="text-[#FACC15]" />, desc: "Instant alert when a prospect submits a form" },
-    { key: "maintenanceEmergency", label: "Maintenance Emergency", icon: <AlertCircle size={14} className="text-[#EF4444]" />, desc: "Urgent tickets from maintenance staff" },
-    { key: "chatRequest", label: "AI Chat Escalation", icon: <MessageSquare size={14} className="text-[#60A5FA]" />, desc: "When a visitor asks to speak with a person" },
-    { key: "cleaningComplete", label: "Cleaning Complete", icon: <Sparkles size={14} className="text-[#4ADE80]" />, desc: "Unit turnovers marked as done" },
-    { key: "weeklyDigest", label: "Weekly Digest", icon: <BarChart3 size={14} className="text-[#A78BFA]" />, desc: "Summary of leads, activity & performance" },
-  ];
-
+function NotificationsCard({ contactEmail }: { contactEmail?: string | null }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div>
       {/* Header — clickable to expand/collapse */}
       <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-2 mb-1 group">
-        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#F59E0B] to-[#EF4444] flex items-center justify-center flex-shrink-0">
+        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
           <BellRing size={13} className="text-white" />
         </div>
-        <h2 className="text-sm font-black text-white uppercase tracking-widest">Notifications</h2>
-        <span className="text-[9px] px-2 py-0.5 rounded-full bg-gradient-to-r from-[rgba(250,204,21,0.15)] to-[rgba(245,158,11,0.15)] border border-[rgba(250,204,21,0.3)] text-[#FACC15] font-black tracking-wider">BETA</span>
+        <h2 className="text-sm font-black text-white uppercase tracking-widest">Email Notifications</h2>
         <div className="ml-auto w-6 h-6 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center">
-          <ChevronRight size={16} className={`text-[#FACC15] transition-transform duration-300 ${expanded ? "rotate-90" : ""}`} />
+          <ChevronRight size={16} className={`text-sky-400 transition-transform duration-300 ${expanded ? "rotate-90" : ""}`} />
         </div>
       </button>
       <p className="text-xs text-gray-500 mb-3">
-        Configure how you get notified about new leads, emergencies, and activity.
+        Transactional emails sent for your workspace and public portfolio inquiries.
       </p>
 
-      {!expanded ? null : (<>
-
-      {/* Saved toast */}
-      {saved && (
-        <div className="mb-4 flex items-center gap-2 text-xs text-[#4ADE80] font-bold animate-pulse">
-          <CheckCircle2 size={12} /> Preferences saved
-        </div>
-      )}
-
-      <div className="space-y-4">
-
-        {/* ── Active Email Notifications ── */}
-        <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-4 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <Mail size={16} className="text-sky-400" />
-            </div>
-            <div>
-              <p className="text-sm font-black text-white">Email Notifications</p>
-              <p className="text-xs text-[#4ADE80] font-bold">Active · Powered by Resend</p>
-            </div>
-            <div className="ml-auto flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#4ADE80] animate-pulse" />
-              <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-wider">Live</span>
-            </div>
-          </div>
-
-          {/* Recipients */}
-          <div className="mb-3">
-            <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Recipients</p>
-            <div className="space-y-1.5">
-              <p className="text-[10px] text-gray-600 px-3 py-2 rounded-xl bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.05)]">Configure recipients in the LEAD_NOTIFY_TO environment variable.</p>
-              {([] as { name: string; email: string }[]).map(r => (
-                <div key={r.email} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.05)]">
-                  <div className="w-6 h-6 rounded-lg bg-[rgba(74,222,128,0.1)] flex items-center justify-center text-[10px] font-black text-[#4ADE80]">
-                    {r.name.split(" ").map(w => w[0]).join("")}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-white truncate">{r.name}</p>
-                    <p className="text-[10px] text-gray-600 truncate">{r.email}</p>
-                  </div>
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] flex-shrink-0" />
+      {!expanded ? null : (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-4 sm:p-5 shadow-[0_0_24px_rgba(56,189,248,0.05)]">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                  <Mail size={16} className="text-sky-400" />
                 </div>
-              ))}
+                <div>
+                  <p className="text-sm font-black text-white">Workspace Email Routing</p>
+                  <p className="text-xs text-gray-400">
+                    Public inquiries route to{" "}
+                    <span className="font-semibold text-sky-300">
+                      {contactEmail || "your Organization Profile Contact Email"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              {!contactEmail && (
+                <span className="text-[10px] font-bold text-amber-300 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30">
+                  Set Contact Email in Organization Profile above
+                </span>
+              )}
             </div>
-          </div>
 
-          {/* What triggers emails */}
-          <div>
-            <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Triggers</p>
-            <div className="space-y-1">
+            <div className="space-y-1.5 mt-3">
               {[
-                { icon: <Zap size={12} className="text-[#FACC15]" />, label: "New Lead (Chatbot)", desc: "Instant email when someone submits via Ask OpsIQ" },
-                { icon: <MessageSquare size={12} className="text-[#60A5FA]" />, label: "Contact Form", desc: "Inquiry from the website contact page" },
+                {
+                  icon: <Shield size={12} className="text-emerald-400" />,
+                  label: "Team Invites & Account Verification",
+                  desc: "Sent automatically when you invite an admin or verify your login email",
+                },
+                {
+                  icon: <MessageSquare size={12} className="text-sky-400" />,
+                  label: "Public Portfolio Inquiries",
+                  desc: "Sent to your Public Contact Email when a prospect submits an inquiry on your published site",
+                },
+                {
+                  icon: <CreditCard size={12} className="text-amber-400" />,
+                  label: "Subscription & Renewal Alerts",
+                  desc: "Sent if a renewal invoice fails so your workspace stays active without interruption",
+                },
               ].map((t, i) => (
-                <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[rgba(0,0,0,0.15)]">
+                <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[rgba(0,0,0,0.2)] border border-white/[0.04]">
                   <div className="w-6 h-6 rounded-lg bg-[rgba(255,255,255,0.04)] flex items-center justify-center flex-shrink-0">
                     {t.icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-white">{t.label}</p>
-                    <p className="text-[10px] text-gray-600">{t.desc}</p>
+                    <p className="text-[11px] text-gray-500">{t.desc}</p>
                   </div>
-                  <span className="text-[9px] font-black text-[#4ADE80] px-2 py-0.5 rounded-md bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.2)]">ON</span>
+                  <span className="text-[9px] font-black text-emerald-300 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 uppercase">
+                    Included
+                  </span>
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* ── SMS Alerts (Coming Soon) ── */}
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-4 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[rgba(8,12,20,0.6)] backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-2xl">
-            <div className="w-10 h-10 rounded-xl bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center mb-2">
-              <Lock size={16} className="text-gray-500" />
-            </div>
-            <p className="text-xs font-black text-gray-400">Coming Soon</p>
-            <p className="text-xs text-gray-600 mt-0.5">SMS & Customizable Preferences</p>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[rgba(74,222,128,0.12)] flex items-center justify-center">
-              <Smartphone size={16} className="text-[#4ADE80]" />
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center flex-shrink-0">
+              <Smartphone size={15} className="text-gray-400" />
             </div>
             <div>
-              <p className="text-sm font-black text-white">SMS Alerts & Custom Routing</p>
-              <p className="text-xs text-gray-500">Per-user preferences, Twilio SMS, quiet hours</p>
+              <p className="text-xs font-bold text-gray-300">SMS Alerts &amp; Granular Digest Schedules</p>
+              <p className="text-[11px] text-gray-500">
+                Planned for a post-beta release — per-event SMS routing and weekly email digests are not active yet.
+              </p>
             </div>
           </div>
         </div>
-
-      </div>
-
-      </>)}
+      )}
     </div>
   );
 }
@@ -1348,6 +1262,23 @@ export function SubscriptionAndBillingCard({
         </div>
       )}
 
+      {activeOrg?.subscription_status === "past_due" && (
+        <div className="mb-4 rounded-xl px-4 py-3 border border-rose-400/40 bg-rose-500/15 text-rose-100 text-xs sm:text-sm flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 font-bold">
+            <AlertCircle size={15} className="text-rose-400 shrink-0" />
+            <span>Payment past due — update your card in the Stripe Billing Portal to restore full editing access.</span>
+          </div>
+          <button
+            type="button"
+            onClick={openBillingPortal}
+            disabled={portalLoading}
+            className="px-3.5 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-400 text-white text-xs font-black transition-all cursor-pointer disabled:opacity-50"
+          >
+            {portalLoading ? "Opening…" : "Update Card →"}
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {PLANS.map((plan) => {
           const isCurrent = plan.id === currentPlan.id;
@@ -1355,7 +1286,7 @@ export function SubscriptionAndBillingCard({
             plan.limits.properties === null ? "Unlimited properties" : `Up to ${plan.limits.properties} properties`;
           const userLimitLabel =
             plan.limits.users === null ? "Unlimited team members" : `Up to ${plan.limits.users} team members`;
-          const displayName = plan.id === "pro" ? "Scale (Pro)" : plan.name;
+          const displayName = plan.name;
           const isBusy = loadingTier === plan.id;
 
           return (
@@ -1640,7 +1571,7 @@ function OrganizationProfileCard({
             <input
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
-              placeholder="Acme Property Group"
+              placeholder="Maple Street Properties LLC"
               className={INPUT}
             />
           </div>
@@ -1757,6 +1688,184 @@ function OrganizationProfileCard({
   );
 }
 
+// ─── Workspace Visibility & Modules Card ──────────────────────────────────────
+
+function WorkspaceModulesCard({
+  activeOrg,
+  hasExistingLeads,
+  onModulesUpdated,
+}: {
+  activeOrg?: {
+    id: string;
+    name: string;
+    slug: string;
+    tier: string;
+    custom_domain?: string | null;
+    site_published?: boolean;
+    commercial_tools_enabled?: boolean;
+  } | null;
+  hasExistingLeads?: boolean;
+  onModulesUpdated?: (patch: { site_published?: boolean; commercial_tools_enabled?: boolean }) => void;
+}) {
+  const resolvedSitePublished = Boolean(activeOrg?.site_published);
+  const resolvedCommercial =
+    activeOrg?.commercial_tools_enabled ??
+    (Boolean(hasExistingLeads) || activeOrg?.slug === "wired-digital-llc");
+
+  const [sitePublished, setSitePublished] = useState<boolean>(resolvedSitePublished);
+  const [commercialEnabled, setCommercialEnabled] = useState<boolean>(resolvedCommercial);
+  const [savingKey, setSavingKey] = useState<"site" | "commercial" | null>(null);
+  const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    setSitePublished(Boolean(activeOrg?.site_published));
+  }, [activeOrg?.site_published]);
+
+  useEffect(() => {
+    setCommercialEnabled(
+      activeOrg?.commercial_tools_enabled ??
+        (Boolean(hasExistingLeads) || activeOrg?.slug === "wired-digital-llc")
+    );
+  }, [activeOrg?.commercial_tools_enabled, activeOrg?.slug, hasExistingLeads]);
+
+  const toggleSetting = async (
+    key: "site" | "commercial",
+    nextVal: boolean
+  ) => {
+    setSavingKey(key);
+    setStatus(null);
+    const body =
+      key === "site"
+        ? { site_published: nextVal }
+        : { commercial_tools_enabled: nextVal };
+    try {
+      const res = await fetch("/api/platform/organizations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (key === "site") setSitePublished(nextVal);
+        else setCommercialEnabled(nextVal);
+        onModulesUpdated?.(body);
+        window.dispatchEvent(new CustomEvent("oiq-org-updated", { detail: body }));
+        setStatus({
+          ok: true,
+          msg:
+            key === "site"
+              ? nextVal
+                ? "Public portfolio site is now published and visible to visitors."
+                : "Public portfolio site is now private (draft mode, hidden from search engines)."
+              : nextVal
+              ? "Commercial Leasing & Marketing tabs enabled in dashboard navigation."
+              : "Commercial Leasing & Marketing tabs hidden for a cleaner landlord view.",
+        });
+      } else {
+        setStatus({ ok: false, msg: data.error || "Failed to update workspace setting." });
+      }
+    } catch {
+      setStatus({ ok: false, msg: "Network error saving workspace setting." });
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  if (!activeOrg) return null;
+
+  return (
+    <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-5 sm:p-6">
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center">
+          <Globe size={16} className="text-cyan-400" />
+        </div>
+        <div>
+          <h2 className="text-sm font-black text-white uppercase tracking-widest">
+            Workspace Visibility &amp; Modules
+          </h2>
+          <p className="text-xs text-gray-500">
+            Control whether your portfolio website is public and tailor your navigation tabs to residential vs. commercial workflows.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Public Portfolio Website Toggle */}
+        <div className="rounded-xl border border-white/10 bg-black/25 p-4 flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs sm:text-sm font-bold text-white">Public Portfolio Website</p>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider border ${
+                  sitePublished
+                    ? "bg-emerald-500/15 border-emerald-400/35 text-emerald-300"
+                    : "bg-amber-500/15 border-amber-400/35 text-amber-300"
+                }`}
+              >
+                {sitePublished ? "Published" : "Private Draft"}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              {sitePublished
+                ? "Visitors and search engines can view your published listings at your portfolio URL."
+                : "Hidden from Google and public visitors. Signed-in team members can still preview."}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={savingKey === "site"}
+            onClick={() => toggleSetting("site", !sitePublished)}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer border disabled:opacity-50 ${
+              sitePublished
+                ? "bg-white/[0.06] hover:bg-white/[0.12] border-white/15 text-gray-200"
+                : "bg-emerald-500 hover:bg-emerald-400 border-emerald-400 text-slate-950"
+            }`}
+          >
+            {savingKey === "site" ? "Saving…" : sitePublished ? "Unpublish" : "Publish Site"}
+          </button>
+        </div>
+
+        {/* Commercial Leasing & Marketing Suite Toggle */}
+        <div className="rounded-xl border border-white/10 bg-black/25 p-4 flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs sm:text-sm font-bold text-white">Commercial CRM &amp; Marketing Tabs</p>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider border ${
+                  commercialEnabled
+                    ? "bg-sky-500/15 border-sky-400/35 text-sky-300"
+                    : "bg-white/[0.05] border-white/10 text-gray-400"
+                }`}
+              >
+                {commercialEnabled ? "Shown" : "Hidden"}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Show or hide Leads CRM, Archived Leads, and Marketing Studio in top navigation. Turn off for a focused residential landlord view.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={savingKey === "commercial"}
+            onClick={() => toggleSetting("commercial", !commercialEnabled)}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer border disabled:opacity-50 ${
+              commercialEnabled
+                ? "bg-white/[0.06] hover:bg-white/[0.12] border-white/15 text-gray-200"
+                : "bg-sky-500/20 hover:bg-sky-500/30 border-sky-400/40 text-sky-200"
+            }`}
+          >
+            {savingKey === "commercial" ? "Saving…" : commercialEnabled ? "Hide Tabs" : "Enable Tabs"}
+          </button>
+        </div>
+      </div>
+
+      {status && (
+        <p className={`text-xs font-bold mt-3 ${status.ok ? "text-emerald-400" : "text-red-400"}`}>{status.msg}</p>
+      )}
+    </div>
+  );
+}
+
 // ─── Password & Security Card ─────────────────────────────────────────────────
 
 function PasswordSecurityCard() {
@@ -1855,31 +1964,23 @@ function PasswordSecurityCard() {
 
 // ─── Settings Panel ────────────────────────────────────────────────────────────
 
-// ─── Login History & AI Security Guard ────────────────────────────────────────────
+// ─── Sign-In History & Phishing Text Scanner ──────────────────────────────────
 
 interface LoginEntry {
   id: string;
   actor_name: string;
   actor_email: string;
   action?: string;
-  metadata?: { device?: string; reason?: string; simulated?: boolean };
+  metadata?: { device?: string; reason?: string };
   created_at: string;
 }
 
 function LoginHistory() {
   const [logins, setLogins] = useState<LoginEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [auditing, setAuditing] = useState(false);
-  const [expanded, setExpanded] = useState(true);
-  const [auditResult, setAuditResult] = useState<{
-    securityScore: number;
-    threatLevel: "safe" | "warning" | "threat";
-    summary: string;
-    anomalies: string[];
-    recommendations?: string[];
-  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
-  // Interactive OpsIQ AI Phishing & Wire-Scam Inspector state
+  // Optional on-demand phishing & wire-scam text scanner (only calls API when user clicks Scan)
   const [phishingInput, setPhishingInput] = useState("");
   const [scanningPhishing, setScanningPhishing] = useState(false);
   const [phishingResult, setPhishingResult] = useState<{
@@ -1890,15 +1991,9 @@ function LoginHistory() {
     recommendedAction: string;
   } | null>(null);
 
-  const [simulatedActive, setSimulatedActive] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("oiq_simulated_threat") === "true";
-  });
-
-  const runPhishingScan = async (overrideText?: string) => {
-    const text = (overrideText ?? phishingInput).trim();
+  const runPhishingScan = async () => {
+    const text = phishingInput.trim();
     if (!text) return;
-    if (overrideText) setPhishingInput(overrideText);
     setScanningPhishing(true);
     try {
       const res = await fetch("/api/security-audit", {
@@ -1917,78 +2012,24 @@ function LoginHistory() {
     }
   };
 
-  const fetchLoginsAndAudit = useCallback(async (isSimulated: boolean) => {
+  const fetchLogins = useCallback(async () => {
     setLoading(true);
-    setAuditing(true);
     try {
       const res = await fetch("/api/activity-log?resource_type=auth&limit=50");
       const data = await res.json();
-      let logsList: LoginEntry[] = data.logs || [];
-      
-      if (isSimulated) {
-        const simulatedLogs: LoginEntry[] = [
-          {
-            id: "sim_threat_123",
-            actor_name: "Intruder (Simulated Credential Stuffer)",
-            actor_email: "attacker_root@hacker.io",
-            action: "admin_blocked",
-            metadata: { device: "linux", reason: "Simulated brute-force credentials from suspicious IP (194.226.154.xxx)", simulated: true },
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: "sim_threat_124",
-            actor_name: "Failed Crew PIN Sweep (Simulated)",
-            actor_email: "crew-pin@185.220.101.xxx",
-            action: "admin_blocked",
-            metadata: { device: "mobile", reason: "Invalid 6-digit crew PIN attempt (6 rapid guesses blocked)", simulated: true },
-            created_at: new Date(Date.now() - 45_000).toISOString(),
-          },
-        ];
-        logsList = [...simulatedLogs, ...logsList];
-      }
-      
-      setLogins(logsList);
-      
-      // Perform AI audit via our security-audit endpoint
-      const auditRes = await fetch("/api/security-audit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logs: logsList.slice(0, 15) }),
-      });
-      const auditData = await auditRes.json();
-      setAuditResult(auditData);
+      setLogins(Array.isArray(data.logs) ? data.logs : []);
     } catch (err) {
-      console.error("Failed to fetch logs or audit:", err);
-      setAuditResult({
-        securityScore: isSimulated ? 62 : 98,
-        threatLevel: isSimulated ? "threat" : "safe",
-        summary: isSimulated 
-          ? "Simulated threat evaluation: OpsIQ Shield AI detected blocked credential-stuffing and rapid 6-digit Crew PIN brute-force probes. IP rate-limiter engaged." 
-          : "OpsIQ Shield AI is active. Analyzed recent admin logins, crew PIN sessions, and inbound phishing filters. System running under normal parameters.",
-        anomalies: isSimulated ? ["Simulated Brute-Force Attack", "Crew PIN Guessing Sweep Blocked"] : [],
-        recommendations: [
-          "Keep 6-digit Crew PINs strong and non-sequential.",
-          "Scan any unexpected vendor ACH/wire change emails with the OpsIQ Phishing Inspector below.",
-        ],
-      });
+      console.error("Failed to fetch sign-in logs:", err);
     } finally {
       setLoading(false);
-      setAuditing(false);
     }
   }, []);
 
   useEffect(() => {
     if (expanded) {
-      fetchLoginsAndAudit(simulatedActive);
+      fetchLogins();
     }
-  }, [expanded, fetchLoginsAndAudit]); // Runs when expanded toggles to true
-
-  const toggleSimulation = () => {
-    const next = !simulatedActive;
-    setSimulatedActive(next);
-    localStorage.setItem("oiq_simulated_threat", String(next));
-    fetchLoginsAndAudit(next);
-  };
+  }, [expanded, fetchLogins]);
 
   function timeAgo(iso: string) {
     const diff = Date.now() - new Date(iso).getTime();
@@ -2002,224 +2043,127 @@ function LoginHistory() {
     return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   }
 
-  // Find the first actual successful login session to mark as current
-  const firstRealLogin = logins.find(l => !l.metadata?.simulated && l.action === "admin_login");
+  const firstRealLogin = logins.find((l) => l.action === "admin_login");
 
   return (
     <div>
-      {/* Accordion Trigger button */}
       <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-2 mb-1 group">
         <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#60A5FA] to-[#3B82F6] flex items-center justify-center flex-shrink-0">
           <Shield size={13} className="text-white" />
         </div>
-        <h2 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-          OpsIQ Shield AI — Cyber, Brute-Force &amp; Phishing Guard
-          {!expanded && (
-            <span className={`w-2 h-2 rounded-full ${
-              simulatedActive ? "bg-red-500 animate-ping" : "bg-emerald-500 animate-pulse"
-            }`} />
-          )}
+        <h2 className="text-sm font-black text-white uppercase tracking-widest">
+          Sign-In Activity &amp; Wire-Fraud Scanner
         </h2>
-        <div className="ml-auto flex items-center gap-2">
-          <span className={`text-[10px] px-2.5 py-0.5 rounded-full border font-bold uppercase ${
-            simulatedActive 
-              ? "bg-[rgba(239,68,68,0.1)] border-[rgba(239,68,68,0.25)] text-red-400 animate-pulse" 
-              : "bg-[rgba(74,222,128,0.1)] border-[rgba(74,222,128,0.25)] text-[#4ADE80]"
-          }`}>
-            {simulatedActive ? "Demo Attack Active" : "OpsIQ Shield Active"}
-          </span>
-          <div className="w-6 h-6 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center">
-            <ChevronRight size={16} className={`text-[#60A5FA] transition-transform duration-300 ${expanded ? "rotate-90" : ""}`} />
-          </div>
+        <div className="ml-auto w-6 h-6 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center">
+          <ChevronRight size={16} className={`text-[#60A5FA] transition-transform duration-300 ${expanded ? "rotate-90" : ""}`} />
         </div>
       </button>
       <p className="text-xs text-gray-500 mb-3">
-        Autonomous OpsIQ Shield AI protecting against hackers (edge CSRF &amp; exploit traps), brute-force attacks (PIN &amp; login lockouts), and phishers (wire-fraud &amp; malicious link inspection).
+        Review recent workspace logins and scan suspicious vendor bank/ACH change messages before sending funds.
       </p>
 
       {expanded && (
         <div className="space-y-5">
-          {/* AI Security Shield Card */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Circular Gauge */}
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.01)] p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
-              <div className={`absolute inset-0 opacity-[0.03] pointer-events-none ${
-                simulatedActive || auditResult?.threatLevel === "threat"
-                  ? "bg-red-500 blur-[80px]"
-                  : auditResult?.threatLevel === "warning"
-                  ? "bg-yellow-500 blur-[80px]"
-                  : "bg-emerald-500 blur-[80px]"
-              }`} />
-              
-              <div className="relative w-28 h-28 flex items-center justify-center mb-3">
-                <svg className="absolute w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="transparent" />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="44"
-                    stroke={
-                      simulatedActive || auditResult?.threatLevel === "threat"
-                        ? "#EF4444"
-                        : auditResult?.threatLevel === "warning"
-                        ? "#FACC15"
-                        : "#4ADE80"
-                    }
-                    strokeWidth="6"
-                    fill="transparent"
-                    strokeDasharray={276}
-                    strokeDashoffset={276 - (276 * (auditResult?.securityScore ?? 98)) / 100}
-                    className="transition-all duration-1000 ease-out"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                
-                <div className="text-center z-10">
-                  <p className="text-3xl font-black tracking-tight tabular-nums text-white">
-                    {loading && !auditResult ? "--" : (auditResult?.securityScore ?? 98)}
-                  </p>
-                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Score</p>
-                </div>
-              </div>
-
-              <span className={`text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider ${
-                simulatedActive || auditResult?.threatLevel === "threat"
-                  ? "bg-[rgba(239,68,68,0.12)] border border-[rgba(239,68,68,0.3)] text-red-400 animate-pulse"
-                  : auditResult?.threatLevel === "warning"
-                  ? "bg-[rgba(250,204,21,0.12)] border border-[rgba(250,204,21,0.3)] text-[#FACC15]"
-                  : "bg-[rgba(74,222,128,0.12)] border border-[rgba(74,222,128,0.3)] text-[#4ADE80]"
-              }`}>
-                {loading && auditing ? "Auditing…" : simulatedActive ? "Demo Threat" : (auditResult?.threatLevel ?? "secured")}
-              </span>
+          {/* Sessions Log List */}
+          <div className="rounded-2xl border border-[rgba(96,165,250,0.18)] bg-[rgba(96,165,250,0.03)] overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(255,255,255,0.06)]">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent Sign-Ins &amp; PIN Sessions</p>
+              <button
+                onClick={fetchLogins}
+                disabled={loading}
+                className="p-1.5 rounded-lg hover:bg-[rgba(255,255,255,0.05)] text-gray-400 hover:text-white transition-colors"
+                title="Refresh sign-in history"
+              >
+                <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+              </button>
             </div>
 
-            {/* AI Summary and Controls */}
-            <div className="md:col-span-2 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.01)] p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Sparkles size={11} className="text-[#4ADE80]" />
-                    AI Guard Audit Summary
-                  </p>
-                  {auditing && <Loader2 size={12} className="animate-spin text-gray-500" />}
-                </div>
-                
-                {loading && !auditResult ? (
-                  <div className="space-y-2 py-2">
-                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
-                    <div className="h-4 bg-gray-800 rounded w-5/6 animate-pulse" />
-                    <div className="h-4 bg-gray-800 rounded w-2/3 animate-pulse" />
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-sm text-gray-300 leading-relaxed font-medium mb-3">
-                      {auditResult?.summary ?? "PropOpsIQ Security Guard is active. Logs are scanned for anomalies continuously. No immediate concerns."}
-                    </p>
+            {loading && logins.length === 0 ? (
+              <div className="flex items-center justify-center py-10 gap-2">
+                <Loader2 size={14} className="animate-spin text-[#60A5FA]" />
+                <span className="text-xs text-gray-500">Loading session history…</span>
+              </div>
+            ) : logins.length === 0 ? (
+              <div className="text-center py-10">
+                <Clock size={24} className="text-gray-700 mx-auto mb-2" />
+                <p className="text-xs text-gray-500">No sign-in events recorded yet.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-[rgba(255,255,255,0.04)] max-h-[320px] overflow-y-auto">
+                {logins.map((login) => {
+                  const isCurrent = firstRealLogin && login.id === firstRealLogin.id;
+                  const isBlocked = login.action === "admin_blocked";
+                  const device = login.metadata?.device || "desktop";
 
-                    {auditResult?.anomalies && auditResult.anomalies.length > 0 && (
-                      <div className="space-y-1.5 mt-2">
-                        {auditResult.anomalies.map((a: string, i: number) => (
-                          <div key={i} className="flex items-center gap-2 text-xs text-red-400 font-bold bg-[rgba(239,68,68,0.05)] border border-[rgba(239,68,68,0.15)] rounded-lg px-2.5 py-1">
-                            <AlertCircle size={12} className="flex-shrink-0" />
-                            {a}
+                  return (
+                    <div
+                      key={login.id}
+                      className={`flex items-start sm:items-center gap-3 px-4 py-3 hover:bg-[rgba(255,255,255,0.02)] transition-colors ${
+                        isCurrent ? "bg-[rgba(74,222,128,0.03)]" : isBlocked ? "bg-[rgba(239,68,68,0.02)]" : ""
+                      }`}
+                    >
+                      <div className="relative flex-shrink-0 mt-1 sm:mt-0">
+                        {isCurrent ? (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#4ADE80]">
+                            <div className="absolute inset-0 rounded-full bg-[#4ADE80] animate-ping opacity-40" />
                           </div>
-                        ))}
+                        ) : isBlocked ? (
+                          <div className="w-2 h-2 rounded-full bg-[#EF4444]" />
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-gray-700" />
+                        )}
                       </div>
-                    )}
 
-                    {auditResult?.recommendations && auditResult.recommendations.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-1">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-sky-400">
-                          OpsIQ Shield Active Hardening Layers
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-sm font-bold text-white truncate">{login.actor_name || "Team Member"}</p>
+                          {isCurrent && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] font-black">
+                              LATEST
+                            </span>
+                          )}
+                          {isBlocked && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-[#EF4444] font-black">
+                              BLOCKED
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 truncate">{login.actor_email}</p>
+                        {isBlocked && login.metadata?.reason && (
+                          <p className="text-[10px] text-red-400 mt-0.5 italic">{login.metadata.reason}</p>
+                        )}
+                      </div>
+
+                      <div className="flex-shrink-0 mt-1 sm:mt-0">
+                        {device === "mobile" ? (
+                          <Smartphone size={13} className="text-gray-600" />
+                        ) : (
+                          <Monitor size={13} className="text-gray-600" />
+                        )}
+                      </div>
+
+                      <div className="flex-shrink-0 text-right min-w-[70px]">
+                        <p className="text-xs font-bold text-gray-400 tabular-nums">{timeAgo(login.created_at)}</p>
+                        <p className="text-[11px] text-gray-500 tabular-nums">
+                          {new Date(login.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
                         </p>
-                        {auditResult.recommendations.map((rec: string, idx: number) => (
-                          <p key={idx} className="text-xs text-slate-300 flex items-center gap-1.5">
-                            <CheckCircle2 size={11} className="text-emerald-400 flex-shrink-0" />
-                            <span>{rec}</span>
-                          </p>
-                        ))}
                       </div>
-                    )}
-                  </>
-                )}
+                    </div>
+                  );
+                })}
               </div>
-
-              <div className="flex gap-2 mt-4 flex-wrap">
-                <button
-                  onClick={() => fetchLoginsAndAudit(simulatedActive)}
-                  disabled={loading}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)] text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
-                >
-                  <RefreshCw size={12} className={loading && auditing ? "animate-spin" : ""} />
-                  Audit Now
-                </button>
-
-                <button
-                  onClick={toggleSimulation}
-                  disabled={loading && auditing}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                    simulatedActive
-                      ? "bg-[rgba(239,68,68,0.12)] border border-[rgba(239,68,68,0.3)] text-red-400 hover:bg-[rgba(239,68,68,0.18)]"
-                      : "bg-[rgba(96,165,250,0.12)] border border-[rgba(96,165,250,0.25)] text-[#60A5FA] hover:bg-[rgba(96,165,250,0.18)]"
-                  }`}
-                >
-                  {simulatedActive ? (
-                    <>
-                      <X size={12} />
-                      Dismiss Simulated Attack
-                    </>
-                  ) : (
-                    <>
-                      <Zap size={12} />
-                      Simulate Hacker Attack
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* ── Interactive OpsIQ AI Phishing, Link & Wire-Scam Inspector ── */}
-          <div className="rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-[#0B1528] via-[#091020] to-[#0D1830] p-5 space-y-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.45)]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-400/35 text-[10px] font-black text-cyan-300 uppercase tracking-wider">
-                    OpsIQ Shield AI
-                  </span>
-                  <h3 className="text-sm font-black text-white">
-                    Phishing, Suspicious Link &amp; Wire-Scam Inspector
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Paste any suspicious email, text message, vendor bank/ACH change request, or link to scan it for phishing or real-estate wire fraud before clicking.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() =>
-                    runPhishingScan(
-                      "URGENT: This is Apex HVAC Services. Our regular bank account is under audit. Please send this month's $4,850 invoice via wire transfer immediately to our new routing number 021000021 or verify your login at http://185.220.101.42/quickbooks-login"
-                    )
-                  }
-                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[11px] font-bold transition-all cursor-pointer"
-                >
-                  Test Vendor Wire Scam
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    runPhishingScan(
-                      "DocuSign Alert: Tenant signed the commercial lease addendum. Review document immediately before your account is suspended: https://docusign.com@bit.ly/3xFakeLease"
-                    )
-                  }
-                  className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-400/30 text-rose-300 text-[11px] font-bold transition-all cursor-pointer"
-                >
-                  Test Fake DocuSign Link
-                </button>
-              </div>
+          {/* On-demand Phishing & Wire-Scam Text Scanner */}
+          <div className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-[#0B1528] via-[#091020] to-[#0D1830] p-5 space-y-3.5">
+            <div>
+              <h3 className="text-sm font-black text-white">
+                Vendor Wire-Scam &amp; Phishing Text Scanner
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Paste a suspicious email, text message, or vendor bank/ACH change request to check for common real-estate wire-fraud red flags.
+              </p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2.5">
@@ -2232,7 +2176,7 @@ function LoginHistory() {
               />
               <button
                 type="button"
-                onClick={() => runPhishingScan()}
+                onClick={runPhishingScan}
                 disabled={scanningPhishing || !phishingInput.trim()}
                 className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 sm:self-stretch"
               >
@@ -2244,7 +2188,7 @@ function LoginHistory() {
                 ) : (
                   <>
                     <Shield size={14} />
-                    <span>Scan with OpsIQ Shield</span>
+                    <span>Scan Message</span>
                   </>
                 )}
               </button>
@@ -2301,103 +2245,6 @@ function LoginHistory() {
               </div>
             )}
           </div>
-
-          {/* Sessions Log List */}
-          <div className="rounded-2xl border border-[rgba(96,165,250,0.18)] bg-[rgba(96,165,250,0.03)] overflow-hidden" style={{ boxShadow: "0 0 22px rgba(96,165,250,0.06)" }}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(255,255,255,0.06)]">
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Recent Sessions & Attempts</p>
-              <button 
-                onClick={() => fetchLoginsAndAudit(simulatedActive)} 
-                disabled={loading}
-                className="p-1.5 rounded-lg hover:bg-[rgba(255,255,255,0.05)] text-gray-500 hover:text-white transition-colors"
-              >
-                <RefreshCw size={12} className={loading && auditing ? "animate-spin" : ""} />
-              </button>
-            </div>
-
-            {loading && logins.length === 0 ? (
-              <div className="flex items-center justify-center py-10 gap-2">
-                <Loader2 size={14} className="animate-spin text-[#60A5FA]" />
-                <span className="text-xs text-gray-500">Loading session history…</span>
-              </div>
-            ) : logins.length === 0 ? (
-              <div className="text-center py-10">
-                <Clock size={24} className="text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-gray-600">No authentication events yet.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-[rgba(255,255,255,0.04)] max-h-[360px] overflow-y-auto">
-                {logins.map((login) => {
-                  const isCurrent = firstRealLogin && login.id === firstRealLogin.id;
-                  const isBlocked = login.action === "admin_blocked";
-                  const isSimulated = login.metadata?.simulated;
-                  const device = login.metadata?.device || "desktop";
-                  
-                  return (
-                    <div key={login.id} className={`flex items-start sm:items-center gap-3 px-4 py-3 hover:bg-[rgba(255,255,255,0.02)] transition-colors ${
-                      isCurrent ? "bg-[rgba(74,222,128,0.03)]" : isBlocked ? "bg-[rgba(239,68,68,0.02)]" : ""
-                    }`}>
-                      {/* Status dot */}
-                      <div className="relative flex-shrink-0 mt-1 sm:mt-0">
-                        {isCurrent ? (
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#4ADE80]" style={{ boxShadow: "0 0 8px rgba(74,222,128,0.5)" }}>
-                            <div className="absolute inset-0 rounded-full bg-[#4ADE80] animate-ping opacity-40" />
-                          </div>
-                        ) : isBlocked ? (
-                          <div className="w-2 h-2 rounded-full bg-[#EF4444]" style={{ boxShadow: "0 0 6px rgba(239,68,68,0.4)" }} />
-                        ) : (
-                          <div className="w-2 h-2 rounded-full bg-gray-700" />
-                        )}
-                      </div>
-
-                      {/* Name + email + details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-sm font-bold text-white truncate">{login.actor_name || "Unknown"}</p>
-                          {isCurrent && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)] text-[#4ADE80] font-black">
-                              CURRENT
-                            </span>
-                          )}
-                          {isBlocked && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-[#EF4444] font-black">
-                              BLOCKED
-                            </span>
-                          )}
-                          {isSimulated && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[rgba(167,139,250,0.15)] border border-[rgba(167,139,250,0.25)] text-[#A78BFA] font-black">
-                              DEMO
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 truncate">{login.actor_email}</p>
-                        {isBlocked && login.metadata?.reason && (
-                          <p className="text-[10px] text-red-400 mt-0.5 italic">{login.metadata.reason}</p>
-                        )}
-                      </div>
-
-                      {/* Device */}
-                      <div className="flex-shrink-0 mt-1 sm:mt-0">
-                        {device === "mobile" ? (
-                          <Smartphone size={13} className="text-gray-600" />
-                        ) : (
-                          <Monitor size={13} className="text-gray-600" />
-                        )}
-                      </div>
-
-                      {/* Time */}
-                      <div className="flex-shrink-0 text-right min-w-[70px]">
-                        <p className="text-xs font-bold text-gray-400 tabular-nums">{timeAgo(login.created_at)}</p>
-                        <p className="text-[11px] text-gray-400 tabular-nums">
-                          {new Date(login.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         </div>
       )}
     </div>
@@ -2416,16 +2263,38 @@ function DataExportSection({ leads }: { leads: Lead[] }) {
         <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#60A5FA] to-[#3B82F6] flex items-center justify-center flex-shrink-0">
           <FileSpreadsheet size={13} className="text-white" />
         </div>
-        <h2 className="text-sm font-black text-white uppercase tracking-widest">Data Import / Export</h2>
+        <h2 className="text-sm font-black text-white uppercase tracking-widest">Data Import / Export &amp; Full Backup</h2>
         <div className="ml-auto w-6 h-6 rounded-lg bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] flex items-center justify-center">
           <ChevronRight size={16} className={`text-[#60A5FA] transition-transform duration-300 ${expanded ? "rotate-90" : ""}`} />
         </div>
       </button>
       <p className="text-xs text-gray-500 mb-3">
-        Bring in historical leads from Excel, or export your full dashboard data for backup, sharing, or analysis.
+        Download a complete JSON archive of your workspace, export QuickBooks rent rolls, or import/export leads.
       </p>
       {expanded && (
         <div className="space-y-4">
+          {/* ── Full Workspace JSON Archive ── */}
+          <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/[0.04] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Download size={15} className="text-emerald-400" />
+                <p className="text-xs font-black text-white uppercase tracking-widest">
+                  Full Workspace Backup Archive (.json)
+                </p>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed max-w-2xl">
+                Exports all properties, units, tenants, leases, rent ledger records, security deposits, maintenance tickets, cleaning schedules, vendors, inspections, team tasks, leads, and site content in one portable JSON file.
+              </p>
+            </div>
+            <a
+              href="/api/account/export"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-black transition-all shrink-0 shadow-md"
+            >
+              <Download size={14} />
+              <span>Download Workspace Archive</span>
+            </a>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-white/12 bg-white/[0.02] p-5 flex flex-col gap-3 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
               <div className="flex items-center gap-2">
@@ -2513,11 +2382,53 @@ function DataExportSection({ leads }: { leads: Lead[] }) {
 
 // ─── Danger Zone (Collapsible) ────────────────────────────────────────────────
 
-function DangerZoneSection({ leads, deletingAll, deleteAllConfirm, setDeleteAllConfirm, deleteAllLeads }: {
-  leads: Lead[]; deletingAll: boolean; deleteAllConfirm: string;
-  setDeleteAllConfirm: (v: string) => void; deleteAllLeads: () => void;
+function DangerZoneSection({
+  leads,
+  deletingAll,
+  deleteAllConfirm,
+  setDeleteAllConfirm,
+  deleteAllLeads,
+  activeOrg,
+}: {
+  leads: Lead[];
+  deletingAll: boolean;
+  deleteAllConfirm: string;
+  setDeleteAllConfirm: (v: string) => void;
+  deleteAllLeads: () => void;
+  activeOrg?: { id: string; name: string; slug: string; role?: string } | null;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [orgDeleteSlug, setOrgDeleteSlug] = useState("");
+  const [deletingOrg, setDeletingOrg] = useState(false);
+  const [orgDeleteError, setOrgDeleteError] = useState<string | null>(null);
+
+  const isDemoOrg = activeOrg?.id === "00000000-0000-0000-0000-000000000001";
+  const isOwner = !activeOrg?.role || activeOrg.role === "owner";
+
+  const handleDeleteWorkspace = async () => {
+    if (!activeOrg?.slug || orgDeleteSlug.trim().toLowerCase() !== activeOrg.slug.toLowerCase()) return;
+    setDeletingOrg(true);
+    setOrgDeleteError(null);
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmSlug: orgDeleteSlug.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setOrgDeleteError(data.error || "Could not delete workspace.");
+        setDeletingOrg(false);
+        return;
+      }
+      await signOutEverywhere();
+      window.location.href = "/?deleted=1";
+    } catch {
+      setOrgDeleteError("Network error deleting workspace.");
+      setDeletingOrg(false);
+    }
+  };
+
   return (
     <div>
       <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-2 mb-1 group">
@@ -2530,39 +2441,91 @@ function DangerZoneSection({ leads, deletingAll, deleteAllConfirm, setDeleteAllC
         </div>
       </button>
       <p className="text-xs text-gray-500 mb-3">
-        Permanently delete all leads from the database. This action cannot be undone.
+        Destructive actions including clearing leads or permanently deleting your entire workspace.
       </p>
       {expanded && (
-        <div className="rounded-2xl border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.03)] p-5"
-          style={{ boxShadow: "0 0 22px rgba(239,68,68,0.06)" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Trash2 size={15} className="text-red-400" />
-            <p className="text-xs font-black text-white uppercase tracking-widest">Clear All Leads</p>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.12)] border border-[rgba(239,68,68,0.3)] text-red-400 font-bold ml-auto">
-              {leads.length} lead{leads.length !== 1 ? "s" : ""}
-            </span>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.03)] p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Trash2 size={15} className="text-red-400" />
+              <p className="text-xs font-black text-white uppercase tracking-widest">Clear All Leads</p>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.12)] border border-[rgba(239,68,68,0.3)] text-red-400 font-bold ml-auto">
+                {leads.length} lead{leads.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed mb-4">
+              Permanently remove <strong className="text-red-400">{leads.length}</strong> lead{leads.length !== 1 ? "s" : ""} from this workspace.
+              Type <code className="text-red-400 bg-[rgba(239,68,68,0.1)] px-1.5 py-0.5 rounded text-xs font-bold">DELETE</code> below to confirm.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="text"
+                value={deleteAllConfirm}
+                onChange={e => setDeleteAllConfirm(e.target.value)}
+                placeholder='Type "DELETE" to confirm'
+                className="flex-1 min-w-[160px] px-3 py-2 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(239,68,68,0.15)] text-white text-xs placeholder:text-gray-600 outline-none focus:border-[rgba(239,68,68,0.4)] transition-colors font-mono"
+              />
+              <button
+                onClick={deleteAllLeads}
+                disabled={deleteAllConfirm !== "DELETE" || deletingAll || leads.length === 0}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.35)] text-red-400 text-xs font-bold hover:bg-[rgba(239,68,68,0.25)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                {deletingAll ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                {deletingAll ? "Deleting…" : "Delete All Leads"}
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-gray-500 leading-relaxed mb-4">
-            This will permanently remove <strong className="text-red-400">{leads.length}</strong> lead{leads.length !== 1 ? "s" : ""} from Supabase.
-            Type <code className="text-red-400 bg-[rgba(239,68,68,0.1)] px-1.5 py-0.5 rounded text-xs font-bold">DELETE</code> below to confirm.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="text"
-              value={deleteAllConfirm}
-              onChange={e => setDeleteAllConfirm(e.target.value)}
-              placeholder='Type "DELETE" to confirm'
-              className="flex-1 min-w-[160px] px-3 py-2 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(239,68,68,0.15)] text-white text-xs placeholder:text-gray-600 outline-none focus:border-[rgba(239,68,68,0.4)] transition-colors font-mono"
-            />
-            <button
-              onClick={deleteAllLeads}
-              disabled={deleteAllConfirm !== "DELETE" || deletingAll || leads.length === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.35)] text-red-400 text-xs font-bold hover:bg-[rgba(239,68,68,0.25)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              {deletingAll ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-              {deletingAll ? "Deleting…" : "Delete All"}
-            </button>
-          </div>
+
+          {activeOrg && !isDemoOrg && (
+            <div className="rounded-2xl border border-rose-500/35 bg-rose-950/20 p-5">
+              <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={15} className="text-rose-400" />
+                  <p className="text-xs font-black text-white uppercase tracking-widest">
+                    Delete Entire Workspace
+                  </p>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-400/35 text-rose-300 font-black uppercase">
+                  Owner Only · Irreversible
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed mb-3">
+                Cancels any active Stripe subscription immediately and permanently deletes <strong className="text-white">{activeOrg.name}</strong> along with all properties, tenants, leases, rent ledgers, tickets, and team access. Download a Workspace Archive above first if you want a backup.
+              </p>
+              {!isOwner ? (
+                <p className="text-xs text-amber-300 font-semibold">
+                  Only the workspace Owner can permanently delete this organization.
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Type your workspace slug <code className="text-rose-300 bg-rose-500/15 px-1.5 py-0.5 rounded font-mono font-bold">{activeOrg.slug}</code> to confirm:
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      type="text"
+                      value={orgDeleteSlug}
+                      onChange={(e) => setOrgDeleteSlug(e.target.value)}
+                      placeholder={activeOrg.slug}
+                      className="flex-1 min-w-[200px] px-3 py-2 rounded-lg bg-black/40 border border-rose-500/30 text-white text-xs placeholder:text-gray-600 outline-none focus:border-rose-400 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleDeleteWorkspace}
+                      disabled={deletingOrg || orgDeleteSlug.trim().toLowerCase() !== activeOrg.slug.toLowerCase()}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-black transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {deletingOrg ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                      {deletingOrg ? "Deleting Workspace…" : "Permanently Delete Workspace"}
+                    </button>
+                  </div>
+                  {orgDeleteError && (
+                    <p className="text-xs text-rose-400 font-bold mt-2">{orgDeleteError}</p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -2579,6 +2542,7 @@ function SettingsPanel({
   activeOrg,
   onDomainUpdated,
   onSubscriptionUpdated,
+  onModulesUpdated,
 }: {
   leads: Lead[];
   deletingAll: boolean;
@@ -2590,19 +2554,24 @@ function SettingsPanel({
     name: string;
     slug: string;
     tier: string;
+    role?: string;
     subscription_status?: string;
     trial_ends_at?: string | null;
     created_at?: string | null;
     custom_domain?: string | null;
+    site_published?: boolean;
+    commercial_tools_enabled?: boolean;
+    has_stripe_subscription?: boolean;
   } | null;
   onDomainUpdated?: (domain: string | null) => void;
   onSubscriptionUpdated?: (tier: string, status: string) => void;
+  onModulesUpdated?: (patch: { site_published?: boolean; commercial_tools_enabled?: boolean }) => void;
 }) {
   const [adminUsers,  setAdminUsers]  = useState<AllowedUser[]>([]);
   const [maintUsers,  setMaintUsers]  = useState<AllowedUser[]>([]);
   const [cleanUsers,  setCleanUsers]  = useState<AllowedUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
-  const [setupSQL, setSetupSQL] = useState(false);
+  const [usersError, setUsersError] = useState(false);
   const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
@@ -2616,8 +2585,8 @@ function SettingsPanel({
       setAdminUsers(ar.users || []);
       setMaintUsers(mr.users || []);
       setCleanUsers(cr.users || []);
-      setSetupSQL(false);
-    } catch { setSetupSQL(true); }
+      setUsersError(false);
+    } catch { setUsersError(true); }
     finally { setUsersLoading(false); }
   }, []);
 
@@ -2630,6 +2599,13 @@ function SettingsPanel({
 
       {/* ── Organization Profile & Branding ── */}
       <OrganizationProfileCard activeOrg={activeOrg} onOwnerEmailLoaded={setOwnerEmail} />
+
+      {/* ── Workspace Visibility & Modules ── */}
+      <WorkspaceModulesCard
+        activeOrg={activeOrg}
+        hasExistingLeads={leads.length > 0}
+        onModulesUpdated={onModulesUpdated}
+      />
 
       {/* ── Public Website Custom Domain Manager (GoDaddy & IONOS) ── */}
       <CustomDomainManager
@@ -2649,31 +2625,11 @@ function SettingsPanel({
           Admins can sign in with Magic Link, Password, or Google. Staff portals (Maintenance &amp; Cleaning) use a 6-digit PIN — no email required. Changes take effect immediately.
         </p>
 
-        {/* Setup SQL banner */}
-        {setupSQL && (
-          <div className="mb-5 p-4 rounded-xl border border-white/12 bg-white/[0.02] shadow-[0_0_20px_rgba(56,189,248,0.06)]">
-            <p className="text-xs font-bold text-sky-400 mb-2">One-time Supabase setup required</p>
-            <p className="text-xs text-gray-400 mb-2">Run this SQL in your <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-[#4ADE80] underline">Supabase SQL Editor</a>, then click Refresh:</p>
-            <pre className="text-xs text-gray-300 bg-[rgba(0,0,0,0.5)] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">{`CREATE TABLE IF NOT EXISTS allowed_users (
-  id TEXT PRIMARY KEY,
-  email TEXT UNIQUE,
-  name TEXT DEFAULT '',
-  role TEXT DEFAULT 'admin',
-  pin TEXT DEFAULT NULL,
-  active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE allowed_users ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "allow_select_allowed_users" ON allowed_users
-  FOR SELECT TO anon, authenticated USING (true);
-REVOKE SELECT (pin) ON TABLE allowed_users FROM anon, authenticated;
-
--- Seed your own email as first admin:
-INSERT INTO allowed_users (id, email, name, role, active)
-VALUES ('user_owner', 'you@example.com', 'Your Name', 'admin', true)
-ON CONFLICT (email) DO NOTHING;`}</pre>
-            <button onClick={loadUsers} className="mt-3 flex items-center gap-1.5 text-xs font-bold text-[#4ADE80] hover:underline">
-              <RefreshCw size={11} /> Refresh after running SQL
+        {usersError && (
+          <div className="mb-5 p-4 rounded-xl border border-rose-500/25 bg-rose-500/10 flex items-center justify-between gap-3">
+            <p className="text-xs font-bold text-rose-200">Could not load portal users right now.</p>
+            <button onClick={loadUsers} className="flex items-center gap-1.5 text-xs font-bold text-white hover:underline">
+              <RefreshCw size={11} /> Retry
             </button>
           </div>
         )}
@@ -2728,13 +2684,13 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
       {/* ─ Divider */}
       <div className="border-t border-[rgba(255,255,255,0.05)]" />
 
-      {/* ── Notifications (Beta) ── */}
-      <NotificationsCard />
+      {/* ── Email Notifications ── */}
+      <NotificationsCard contactEmail={ownerEmail} />
 
       {/* ─ Divider */}
       <div className="border-t border-[rgba(255,255,255,0.05)]" />
 
-      {/* ── Login History ── */}
+      {/* ── Sign-In Activity & Wire-Fraud Scanner ── */}
       <LoginHistory />
 
       {/* ─ Divider */}
@@ -2746,8 +2702,15 @@ ON CONFLICT (email) DO NOTHING;`}</pre>
       {/* ─ Divider */}
       <div className="border-t border-[rgba(255,255,255,0.05)]" />
 
-      {/* ── Danger Zone: Clear All Leads ── */}
-      <DangerZoneSection leads={leads} deletingAll={deletingAll} deleteAllConfirm={deleteAllConfirm} setDeleteAllConfirm={setDeleteAllConfirm} deleteAllLeads={deleteAllLeads} />
+      {/* ── Danger Zone ── */}
+      <DangerZoneSection
+        leads={leads}
+        deletingAll={deletingAll}
+        deleteAllConfirm={deleteAllConfirm}
+        setDeleteAllConfirm={setDeleteAllConfirm}
+        deleteAllLeads={deleteAllLeads}
+        activeOrg={activeOrg}
+      />
     </div>
   );
 }

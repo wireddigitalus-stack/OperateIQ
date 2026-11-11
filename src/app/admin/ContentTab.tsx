@@ -17,70 +17,70 @@ import CustomDomainManager from "@/components/admin/CustomDomainManager";
 
 const DEFAULTS: Record<string, Record<string, { label: string; value: string; type: "text" | "textarea" | "number" }>> = {
   hero: {
-    trust_badge: { label: "Top Badge Text", value: "Commercial & Residential Leasing", type: "text" },
-    headline_before: { label: "Headline (Line 1)", value: "Premier Commercial &", type: "text" },
-    headline_highlight: { label: "Headline (Highlighted)", value: "Workspace Leasing", type: "text" },
+    trust_badge: { label: "Top Badge Text", value: "Residential & Commercial Leasing", type: "text" },
+    headline_before: { label: "Headline (Line 1)", value: "Quality Rentals &", type: "text" },
+    headline_highlight: { label: "Headline (Highlighted)", value: "Local Management", type: "text" },
     headline_after: { label: "Headline (After Highlight)", value: "", type: "text" },
-    subtext: { label: "Hero Subtext / Description", value: "Tell visitors what makes your properties great — your experience, your service area, and the kinds of spaces you offer.", type: "textarea" },
+    subtext: { label: "Hero Subtext / Description", value: "Tell visitors what makes your properties great — your location, your buildings, and the kinds of homes or suites you offer.", type: "textarea" },
     cta_primary: { label: "Primary Button Text", value: "Schedule a Tour", type: "text" },
     cta_secondary: { label: "Secondary Button Text", value: "Browse Properties", type: "text" },
-    micro_stat_1_value: { label: "Stat Pill 1 — Value", value: "20+", type: "text" },
-    micro_stat_1_label: { label: "Stat Pill 1 — Label", value: "Years in Business", type: "text" },
-    micro_stat_2_value: { label: "Stat Pill 2 — Value", value: "100%", type: "text" },
-    micro_stat_2_label: { label: "Stat Pill 2 — Label", value: "Locally Managed", type: "text" },
-    micro_stat_3_value: { label: "Stat Pill 3 — Value", value: "24/7", type: "text" },
-    micro_stat_3_label: { label: "Stat Pill 3 — Label", value: "Responsive Maintenance", type: "text" },
-    micro_stat_4_value: { label: "Stat Pill 4 — Value", value: "Flexible", type: "text" },
+    micro_stat_1_value: { label: "Stat Pill 1 — Value", value: "Local", type: "text" },
+    micro_stat_1_label: { label: "Stat Pill 1 — Label", value: "Owner-Managed", type: "text" },
+    micro_stat_2_value: { label: "Stat Pill 2 — Value", value: "Direct", type: "text" },
+    micro_stat_2_label: { label: "Stat Pill 2 — Label", value: "Leasing & Tours", type: "text" },
+    micro_stat_3_value: { label: "Stat Pill 3 — Value", value: "Fast", type: "text" },
+    micro_stat_3_label: { label: "Stat Pill 3 — Label", value: "Maintenance Response", type: "text" },
+    micro_stat_4_value: { label: "Stat Pill 4 — Value", value: "Clear", type: "text" },
     micro_stat_4_label: { label: "Stat Pill 4 — Label", value: "Lease Terms", type: "text" },
   },
   stats: {
-    stat_1_value: { label: "Stat 1 — Value", value: "20+", type: "text" },
-    stat_1_label: { label: "Stat 1 — Label", value: "Years in Business", type: "text" },
-    stat_2_value: { label: "Stat 2 — Value", value: "#1", type: "text" },
-    stat_2_label: { label: "Stat 2 — Label", value: "Locally Owned & Operated", type: "text" },
-    stat_3_value: { label: "Stat 3 — Value", value: "100%", type: "text" },
-    stat_3_label: { label: "Stat 3 — Label", value: "Hands-On Management", type: "text" },
-    stat_4_value: { label: "Stat 4 — Value", value: "24/7", type: "text" },
-    stat_4_label: { label: "Stat 4 — Label", value: "Tenant Support", type: "text" },
+    stat_1_value: { label: "Stat 1 — Value", value: "Local", type: "text" },
+    stat_1_label: { label: "Stat 1 — Label", value: "Listed Properties", type: "text" },
+    stat_2_value: { label: "Stat 2 — Value", value: "Direct", type: "text" },
+    stat_2_label: { label: "Stat 2 — Label", value: "Local Ownership", type: "text" },
+    stat_3_value: { label: "Stat 3 — Value", value: "Hands-On", type: "text" },
+    stat_3_label: { label: "Stat 3 — Label", value: "Property Management", type: "text" },
+    stat_4_value: { label: "Stat 4 — Value", value: "Responsive", type: "text" },
+    stat_4_label: { label: "Stat 4 — Label", value: "Maintenance & Care", type: "text" },
   },
   services: {
     section_heading_1: { label: "Section Heading (Line 1)", value: "Everything You Need.", type: "text" },
     section_heading_2: { label: "Section Heading (Highlighted)", value: "One Hands-On Partner.", type: "text" },
-    section_subtext: { label: "Section Description", value: "From initial tour and space planning through build-out and responsive day-to-day property management — no silos, just results.", type: "textarea" },
-    card_1_title: { label: "Card 1 — Title", value: "Commercial & Suite Leasing", type: "text" },
-    card_1_short: { label: "Card 1 — Subtitle", value: "Office, retail, warehouse & flex space", type: "text" },
-    card_1_desc: { label: "Card 1 — Description", value: "From private executive suites and storefronts to large-format commercial and industrial space tailored to your operations.", type: "textarea" },
-    card_2_title: { label: "Card 2 — Title", value: "Custom Build-Outs & Renovations", type: "text" },
-    card_2_short: { label: "Card 2 — Subtitle", value: "Spaces configured around your workflow", type: "text" },
-    card_2_desc: { label: "Card 2 — Description", value: "We partner with tenants to customize layouts, finishes, and infrastructure so your space is move-in ready from day one.", type: "textarea" },
-    card_3_title: { label: "Card 3 — Title", value: "Dedicated Property Management", type: "text" },
-    card_3_short: { label: "Card 3 — Subtitle", value: "Direct, local maintenance & tenant care", type: "text" },
-    card_3_desc: { label: "Card 3 — Description", value: "Our in-house maintenance and operations team responds fast, keeping your building clean, secure, and running smoothly.", type: "textarea" },
+    section_subtext: { label: "Section Description", value: "From initial showing through move-in and responsive day-to-day property care.", type: "textarea" },
+    card_1_title: { label: "Card 1 — Title", value: "Residential & Commercial Leasing", type: "text" },
+    card_1_short: { label: "Card 1 — Subtitle", value: "Apartments, homes, mixed-use & suites", type: "text" },
+    card_1_desc: { label: "Card 1 — Description", value: "Clear lease terms, straightforward touring, and well-cared-for units across our portfolio.", type: "textarea" },
+    card_2_title: { label: "Card 2 — Title", value: "Responsive Maintenance", type: "text" },
+    card_2_short: { label: "Card 2 — Subtitle", value: "Prompt repairs & preventative upkeep", type: "text" },
+    card_2_desc: { label: "Card 2 — Description", value: "Dedicated maintenance and cleaning coordination keeps buildings safe, clean, and comfortable year-round.", type: "textarea" },
+    card_3_title: { label: "Card 3 — Title", value: "Direct Local Management", type: "text" },
+    card_3_short: { label: "Card 3 — Subtitle", value: "Real people, clear communication", type: "text" },
+    card_3_desc: { label: "Card 3 — Description", value: "Work directly with our local management team from initial inquiry through renewal.", type: "textarea" },
   },
   about: {
     hero_heading_1: { label: "About Heading (Line 1)", value: "Committed to Our", type: "text" },
     hero_heading_2: { label: "About Heading (Highlighted)", value: "Community & Tenants", type: "text" },
-    hero_subtext: { label: "Company Story / Overview", value: "We are a locally owned and operated property company focused on long-term relationships, well-maintained buildings, and flexible leasing.", type: "textarea" },
-    leader_heading: { label: "Leadership / Team Heading", value: "Our Leadership Philosophy", type: "text" },
-    leader_bio_1: { label: "Story Paragraph 1", value: "We believe great commercial real estate starts with responsive local ownership and pride of maintenance.", type: "textarea" },
-    leader_bio_2: { label: "Story Paragraph 2", value: "Whether you are launching a new storefront, expanding your regional office, or scaling warehouse operations, our team works directly with you.", type: "textarea" },
-    leader_quote: { label: "Featured Quote", value: "We don't just lease buildings — we invest in the long-term success of every business in our portfolio.", type: "textarea" },
+    hero_subtext: { label: "Company Story / Overview", value: "We are a locally owned and operated property company focused on long-term relationships, well-maintained buildings, and clear communication.", type: "textarea" },
+    leader_heading: { label: "Leadership / Team Heading", value: "Our Approach", type: "text" },
+    leader_bio_1: { label: "Story Paragraph 1", value: "We believe great property management starts with responsive local ownership and pride of maintenance.", type: "textarea" },
+    leader_bio_2: { label: "Story Paragraph 2", value: "", type: "textarea" },
+    leader_quote: { label: "Featured Quote", value: "We take pride in keeping every building clean, responsive, and well cared for.", type: "textarea" },
   },
   testimonials: {
     section_heading_1: { label: "Section Heading", value: "What Our ", type: "text" },
     section_heading_2: { label: "Section Heading (Highlighted)", value: "Tenants Say", type: "text" },
-    section_subtext: { label: "Section Subtext", value: "Businesses across our community trust our team to put them in the right space and support their growth.", type: "textarea" },
-    quote_1: { label: "Review 1 — Quote", value: "The team didn't just find us a space — they positioned us for long-term success. Responsive, professional, and easy to work with.", type: "textarea" },
-    author_1: { label: "Review 1 — Name / Role", value: "Local Business Owner", type: "text" },
-    location_1: { label: "Review 1 — Location", value: "Commercial Tenant", type: "text" },
-    quote_2: { label: "Review 2 — Quote", value: "Flexible terms gave our company the professional environment we needed without unnecessary overhead. Genuinely invested in our success.", type: "textarea" },
-    author_2: { label: "Review 2 — Name / Role", value: "Managing Partner", type: "text" },
-    location_2: { label: "Review 2 — Location", value: "Office Suite Tenant", type: "text" },
-    quote_3: { label: "Review 3 — Quote", value: "Maintenance requests get handled fast and communication is always clear. It's the best landlord experience we've had.", type: "textarea" },
-    author_3: { label: "Review 3 — Name / Role", value: "Operations Director", type: "text" },
-    location_3: { label: "Review 3 — Location", value: "Long-Term Tenant", type: "text" },
-    review_score: { label: "Review Score Badge", value: "5.0 Stars", type: "text" },
-    review_tagline: { label: "Review Tagline", value: "Trusted by local businesses", type: "text" },
+    section_subtext: { label: "Section Subtext (only shown once you add at least one real quote below)", value: "", type: "textarea" },
+    quote_1: { label: "Review 1 — Quote (leave blank to hide)", value: "", type: "textarea" },
+    author_1: { label: "Review 1 — Name / Role", value: "", type: "text" },
+    location_1: { label: "Review 1 — Building or City", value: "", type: "text" },
+    quote_2: { label: "Review 2 — Quote (leave blank to hide)", value: "", type: "textarea" },
+    author_2: { label: "Review 2 — Name / Role", value: "", type: "text" },
+    location_2: { label: "Review 2 — Building or City", value: "", type: "text" },
+    quote_3: { label: "Review 3 — Quote (leave blank to hide)", value: "", type: "textarea" },
+    author_3: { label: "Review 3 — Name / Role", value: "", type: "text" },
+    location_3: { label: "Review 3 — Building or City", value: "", type: "text" },
+    review_score: { label: "Optional Review Badge (e.g. 4.9 Stars on Google)", value: "", type: "text" },
+    review_tagline: { label: "Optional Review Tagline", value: "", type: "text" },
   },
   faq: {
     section_badge: { label: "Section Badge", value: "Common Questions", type: "text" },
@@ -126,12 +126,20 @@ interface ContentItem { section: string; key: string; value: string }
 
 interface ContentTabProps {
   onSubViewChange?: (view: string) => void;
-  activeOrg?: { id: string; name: string; slug: string; tier: string; custom_domain?: string | null } | null;
+  activeOrg?: {
+    id: string;
+    name: string;
+    slug: string;
+    tier: string;
+    custom_domain?: string | null;
+    site_published?: boolean;
+  } | null;
+  onSitePublishChange?: (published: boolean) => void;
 }
 
 type BuilderTab = "properties" | "hero" | "content" | "domain";
 
-export default function ContentTab({ onSubViewChange, activeOrg }: ContentTabProps) {
+export default function ContentTab({ onSubViewChange, activeOrg, onSitePublishChange }: ContentTabProps) {
   const [overrides, setOverrides] = useState<ContentItem[]>([]);
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -139,6 +147,37 @@ export default function ContentTab({ onSubViewChange, activeOrg }: ContentTabPro
   const [error, setError] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [propRefreshKey, setPropRefreshKey] = useState(0);
+  const [sitePublished, setSitePublished] = useState<boolean>(Boolean(activeOrg?.site_published));
+  const [togglingPublish, setTogglingPublish] = useState(false);
+
+  useEffect(() => {
+    if (typeof activeOrg?.site_published === "boolean") {
+      setSitePublished(activeOrg.site_published);
+    }
+  }, [activeOrg?.site_published]);
+
+  const handleToggleSitePublish = async () => {
+    const next = !sitePublished;
+    setTogglingPublish(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/platform/organizations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ site_published: next }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Could not update site visibility");
+      }
+      setSitePublished(next);
+      onSitePublishChange?.(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update site visibility");
+    } finally {
+      setTogglingPublish(false);
+    }
+  };
 
   const siteUrl = activeOrg?.custom_domain
     ? `https://${activeOrg.custom_domain}`
@@ -341,20 +380,46 @@ export default function ContentTab({ onSubViewChange, activeOrg }: ContentTabPro
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
-                Site Builder &amp; Content Management
+                Site Builder &amp; Public Portfolio
               </h2>
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live Sync
-              </span>
+              {sitePublished ? (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Published (Live)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  Draft (Unpublished · Hidden from Google)
+                </span>
+              )}
             </div>
             <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
-              Customize your public property portfolio, hero showcase, website copy, and domain — updates publish directly to your live site.
+              {sitePublished
+                ? "Your public listing website is live. Visitors can browse your published properties and submit inquiries."
+                : "Your public site starts private so search engines never index placeholder copy. Preview your draft anytime, then click Publish Site when ready."}
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 self-start md:self-center">
+          <button
+            type="button"
+            disabled={togglingPublish}
+            onClick={handleToggleSitePublish}
+            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-black transition-all cursor-pointer disabled:opacity-50 ${
+              sitePublished
+                ? "bg-amber-500/10 hover:bg-amber-500/20 border-amber-400/30 text-amber-300"
+                : "bg-emerald-500 hover:bg-emerald-400 border-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+            }`}
+          >
+            {togglingPublish ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Globe size={14} />
+            )}
+            <span>{sitePublished ? "Unpublish Site" : "Publish Public Site"}</span>
+          </button>
           <button
             type="button"
             onClick={handleCopyUrl}
@@ -369,7 +434,7 @@ export default function ContentTab({ onSubViewChange, activeOrg }: ContentTabPro
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-300 hover:to-blue-400 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-[0_0_20px_rgba(56,189,248,0.3)]"
           >
-            <span>Open Live Website</span>
+            <span>{sitePublished ? "Open Live Website" : "Preview Draft Site"}</span>
             <ExternalLink size={14} />
           </a>
         </div>

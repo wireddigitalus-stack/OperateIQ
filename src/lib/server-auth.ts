@@ -36,12 +36,17 @@ export interface OrgSummary {
   brand_accent_color?: string | null;
   contact_email: string | null;
   contact_phone: string | null;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
   created_at?: string | null;
   city?: string | null;
   state?: string | null;
   address?: string | null;
   description?: string | null;
   customer_code?: string;
+  site_published?: boolean;
+  commercial_tools_enabled?: boolean;
+  checklist_dismissed?: boolean;
 }
 
 export interface AuthedUser {
@@ -71,7 +76,7 @@ export interface RequestContext {
 }
 
 const ORG_COLUMNS =
-  "id,name,slug,tier,subscription_status,trial_ends_at,custom_domain,brand_name,brand_logo_url,brand_primary_color,brand_accent_color,contact_email,contact_phone,created_at";
+  "id,name,slug,tier,subscription_status,trial_ends_at,stripe_customer_id,stripe_subscription_id,custom_domain,brand_name,brand_logo_url,brand_primary_color,brand_accent_color,contact_email,contact_phone,created_at";
 
 const ADMIN_ROLES: OrgRole[] = ["owner", "admin", "manager"];
 
@@ -162,6 +167,22 @@ async function loadOrg(orgId: string): Promise<OrgSummary | null> {
       : org.name;
   const prof = (profileSetting?.value || {}) as Record<string, unknown>;
   const customCode = typeof prof.customer_code === "string" ? prof.customer_code : null;
+
+  let sitePublished = false;
+  if (typeof prof.site_published === "boolean") {
+    sitePublished = prof.site_published;
+  } else if (org.custom_domain) {
+    sitePublished = true;
+  } else if (org.id !== DEFAULT_PLATFORM_ORG_ID) {
+    const { data: pubRows } = await supabaseAdmin
+      .from("properties")
+      .select("id")
+      .eq("org_id", org.id)
+      .eq("published", true)
+      .limit(5);
+    sitePublished = Array.isArray(pubRows) && pubRows.some((r: { id?: string }) => !String(r.id || "").startsWith("sample_"));
+  }
+
   return {
     ...org,
     name: normalizedName,
@@ -170,6 +191,11 @@ async function loadOrg(orgId: string): Promise<OrgSummary | null> {
     address: typeof prof.address === "string" ? prof.address : null,
     description: typeof prof.description === "string" ? prof.description : null,
     customer_code: getCustomerCode(org.id, customCode),
+    site_published: sitePublished,
+    commercial_tools_enabled:
+      typeof prof.commercial_tools_enabled === "boolean" ? prof.commercial_tools_enabled : undefined,
+    checklist_dismissed:
+      typeof prof.checklist_dismissed === "boolean" ? prof.checklist_dismissed : false,
   };
 }
 

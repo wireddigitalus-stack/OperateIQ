@@ -92,3 +92,44 @@ export function verificationEmailHtml(name: string, link: string): string {
     <p style="font-size:12px;color:#64748B;line-height:1.5;margin:0;">This link expires in 72 hours. If you didn't create a ${escapeHtml(BRAND.name)} account, you can ignore this email.</p>
   </div></body></html>`;
 }
+
+export function welcomeWorkspaceEmailHtml(opts: {
+  name: string;
+  company: string;
+  planName: string;
+  customerCode: string;
+  verifyLink?: string;
+}): string {
+  const safeName = escapeHtml(opts.name || "there");
+  const safeCompany = escapeHtml(opts.company || "your portfolio");
+  const safePlan = escapeHtml(opts.planName || "Growth");
+  const safeCode = escapeHtml(opts.customerCode || "");
+  const dashUrl = `${platformUrl()}/admin`;
+
+  return `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#080C14;color:#fff;padding:40px 20px;margin:0;">
+  <div style="max-width:540px;margin:0 auto;background:#0E1320;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:32px;">
+    <div style="font-size:20px;font-weight:900;color:#38BDF8;margin-bottom:20px;">${escapeHtml(BRAND.name)}</div>
+    <h2 style="font-size:22px;font-weight:800;margin:0 0 12px;">Welcome to ${escapeHtml(BRAND.name)}, ${safeName}</h2>
+    <p style="font-size:14px;color:#CBD5E1;line-height:1.6;margin:0 0 16px;">
+      Your 14-day free trial workspace for <strong>${safeCompany}</strong> (${safePlan} Plan) is ready.
+    </p>
+    ${
+      opts.verifyLink
+        ? `<div style="margin:24px 0;padding:18px;border-radius:12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.25);text-align:center;">
+            <p style="font-size:13px;color:#E2E8F0;margin:0 0 12px;">First, confirm your email address to secure your workspace:</p>
+            <a href="${opts.verifyLink}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#0284C7,#4F46E5);color:#fff;text-decoration:none;font-size:14px;font-weight:bold;border-radius:10px;">Confirm Email &amp; Open Dashboard</a>
+          </div>`
+        : `<div style="text-align:center;margin:24px 0;">
+            <a href="${dashUrl}" style="display:inline-block;padding:13px 26px;background:linear-gradient(135deg,#0284C7,#4F46E5);color:#fff;text-decoration:none;font-size:14px;font-weight:bold;border-radius:10px;">Open Your Dashboard</a>
+          </div>`
+    }
+    <div style="margin:20px 0;padding:16px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);font-size:13px;color:#94A3B8;line-height:1.7;">
+      <strong style="color:#fff;display:block;margin-bottom:6px;">Quick first steps:</strong>
+      1. Add your first building (or import an existing Excel/CSV rent roll in 1 click)<br/>
+      2. Review this month's Rent Ledger &amp; payment instructions<br/>
+      3. Create a 6-digit crew PIN for maintenance or cleaning staff<br/>
+      ${safeCode ? `<span style="display:block;margin-top:8px;color:#38BDF8;">Support Code: <strong>${safeCode}</strong></span>` : ""}
+    </div>
+    <p style="font-size:12px;color:#64748B;line-height:1.5;margin:0;">Need a hand importing your rent roll? Reply directly to this email or use the Help button inside your dashboard.</p>
+  </div></body></html>`;
+}

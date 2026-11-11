@@ -18,6 +18,8 @@ interface OrgOption {
   role?: string;
   custom_domain?: string | null;
   customer_code?: string;
+  site_published?: boolean;
+  commercial_tools_enabled?: boolean;
 }
 
 export default function AdminHeader() {
@@ -68,7 +70,7 @@ export default function AdminHeader() {
       {/* ── Left: Logo + active tenant workspace badge (strictly isolated) ── */}
       <div className="flex items-center gap-3 min-w-0">
         <button
-          onClick={() => router.push("/admin?tab=leads")}
+          onClick={() => router.push("/admin?tab=propdetails")}
           className="flex items-center gap-2.5 group min-w-0"
           aria-label="Go to dashboard home"
         >
@@ -110,17 +112,26 @@ export default function AdminHeader() {
             : null;
 
           if (!siteUrl) return null;
+          const isPublished = Boolean(activeOrg?.site_published);
           return (
             <a
               href={siteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/10 border border-sky-400/30 text-sky-300 hover:bg-sky-500/20 hover:text-white shadow-[0_0_12px_rgba(56,189,248,0.15)] transition-all"
-              title={`View public website for ${activeOrg?.name || "your company"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                isPublished
+                  ? "bg-sky-500/10 border-sky-400/30 text-sky-300 hover:bg-sky-500/20 hover:text-white shadow-[0_0_12px_rgba(56,189,248,0.15)]"
+                  : "bg-white/[0.04] border-white/15 text-slate-300 hover:bg-white/[0.09] hover:text-white"
+              }`}
+              title={
+                isPublished
+                  ? `View live public website for ${activeOrg?.name || "your company"}`
+                  : `Preview private draft site for ${activeOrg?.name || "your company"} (unpublished)`
+              }
             >
-              <Globe size={13} className="text-sky-400" />
-              <span className="hidden sm:inline">View Public Site</span>
-              <span className="sm:hidden">Public Site</span>
+              <Globe size={13} className={isPublished ? "text-sky-400" : "text-amber-400"} />
+              <span className="hidden sm:inline">{isPublished ? "View Public Site" : "Preview Site (Draft)"}</span>
+              <span className="sm:hidden">{isPublished ? "Public Site" : "Draft Site"}</span>
               <ExternalLink size={10} />
             </a>
           );

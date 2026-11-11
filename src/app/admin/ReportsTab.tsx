@@ -79,13 +79,16 @@ export default function ReportsTab({ showHeader = true }: { showHeader?: boolean
     }
   };
 
-  // Pre-load raw metrics on mount (if available) without generating full QBR
+  const [hasPortfolioData, setHasPortfolioData] = useState<boolean>(true);
+
+  // Pre-load raw metrics ONLY (no Gemini AI call on mount!)
   useEffect(() => {
-    fetch("/api/qbr")
+    fetch("/api/qbr?metrics_only=1")
       .then(r => r.json())
       .then(d => {
         if (d.success && d.metrics) {
           setMetrics(d.metrics);
+          if (typeof d.hasData === "boolean") setHasPortfolioData(d.hasData);
         }
       })
       .catch(() => {});
@@ -128,7 +131,8 @@ export default function ReportsTab({ showHeader = true }: { showHeader?: boolean
           )}
           <button
             onClick={fetchQBR}
-            disabled={loading}
+            disabled={loading || !hasPortfolioData}
+            title={!hasPortfolioData ? "Add tenants, maintenance tickets, or cleaning logs first" : undefined}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-white text-xs font-black hover:opacity-90 transition-all shadow-md disabled:opacity-50"
           >
             {loading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
@@ -204,9 +208,15 @@ export default function ReportsTab({ showHeader = true }: { showHeader?: boolean
       {!report && !loading && !error && (
         <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-[rgba(255,255,255,0.01)] border border-[rgba(255,255,255,0.04)] rounded-2xl no-print">
           <span className="text-5xl">📊</span>
-          <div className="space-y-1">
-            <h3 className="text-white font-bold text-base">QBR Builder Ready</h3>
-            <p className="text-xs text-gray-500">Click &ldquo;Generate QBR&rdquo; above to audit telemetry and request Gemini to build the executive slide deck.</p>
+          <div className="space-y-1 max-w-md px-4">
+            <h3 className="text-white font-bold text-base">
+              {hasPortfolioData ? "Operational Review Ready" : "No Operational Data Yet"}
+            </h3>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              {hasPortfolioData
+                ? "Click \"Generate QBR\" above to compile your real tenants, maintenance response times, and cleaning costs into a printable executive summary."
+                : "Add at least one tenant, maintenance ticket, or cleaning assignment first. PropOpsIQ only generates AI operational reports from real portfolio activity — never placeholder numbers."}
+            </p>
           </div>
         </div>
       )}

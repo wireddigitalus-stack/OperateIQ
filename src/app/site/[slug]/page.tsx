@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Building2, Lock, ArrowRight } from "lucide-react";
 import { supabaseAdmin, supabaseAnon } from "@/lib/supabase";
 import { BRAND } from "@/lib/brand";
+import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform";
+import { isSubscriptionActive } from "@/lib/plans";
+import { getRequestContext } from "@/lib/server-auth";
+import { isSampleProperty } from "@/lib/sample-data";
 import TenantSiteClient, {
   OrgData,
   FormattedProperty,
@@ -15,14 +21,21 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-async function getOrgBySlug(slug: string): Promise<OrgData | null> {
+interface ResolvedTenantOrg extends OrgData {
+  subscription_status?: string | null;
+  trial_ends_at?: string | null;
+  created_at?: string | null;
+  site_published: boolean;
+}
+
+async function getOrgBySlug(slug: string): Promise<ResolvedTenantOrg | null> {
   const client = supabaseAdmin || supabaseAnon;
   if (!client) return null;
   try {
     const { data: org, error } = await client
       .from("organizations")
       .select(
-        "id, name, slug, tier, custom_domain, contact_email, contact_phone, brand_name, brand_logo_url, brand_primary_color, brand_accent_color"
+        "id, name, slug, tier, subscription_status, trial_ends_at, created_at, custom_domain, contact_email, contact_phone, brand_name, brand_logo_url, brand_primary_color, brand_accent_color"
       )
       .eq("slug", slug.toLowerCase().trim())
       .maybeSingle();
@@ -32,7 +45,15 @@ async function getOrgBySlug(slug: string): Promise<OrgData | null> {
       return null;
     }
 
-    const enriched: OrgData = { ...(org as OrgData) };
+    let explicitSitePublished: boolean | undefined;
+    const enriched: ResolvedTenantOrg = {
+      ...(org as OrgData),
+      subscription_status: (org as any).subscription_status ?? null,
+      trial_ends_at: (org as any).trial_ends_at ?? null,
+      created_at: (org as any).created_at ?? null,
+      site_published: false,
+    };
+
     try {
       const { data: profileRow } = await client
         .from("site_settings")
@@ -53,10 +74,32 @@ async function getOrgBySlug(slug: string): Promise<OrgData | null> {
           if (profile.description || profile.tagline || profile.bio) {
             enriched.description = profile.description || profile.tagline || profile.bio;
           }
+          if (typeof profile.site_published === "boolean") {
+            explicitSitePublished = profile.site_published;
+          }
         }
       }
     } catch {
       // Optional enrichment
+    }
+
+    if (typeof explicitSitePublished === "boolean") {
+      enriched.site_published = explicitSitePublished;
+    } else if (org.custom_domain) {
+      enriched.site_published = true;
+    } else if (org.id !== DEFAULT_PLATFORM_ORG_ID) {
+      try {
+        const { data: pubRows } = await client
+          .from("properties")
+          .select("id, badge")
+          .eq("org_id", org.id)
+          .eq("published", true)
+          .limit(10);
+        enriched.site_published =
+          Array.isArray(pubRows) && pubRows.some((p) => !isSampleProperty(p));
+      } catch {
+        enriched.site_published = false;
+      }
     }
 
     return enriched;
@@ -72,20 +115,32 @@ async function getFirstPropertyPhoto(orgId: string): Promise<string | null> {
   try {
     const { data } = await client
       .from("properties")
-      .select("hero_image, images")
+      .select("id, badge, hero_image, images")
       .eq("org_id", orgId)
       .eq("published", true)
-      .limit(1)
-      .maybeSingle();
+      .limit(10);
+
+    const realRow = Array.isArray(data)
+      ? data.find((r) => !isSampleProperty(r))
+      : null;
+    if (!realRow) return null;
 
     const firstFromImages =
-      Array.isArray(data?.images) && typeof data.images[0] === "string"
-        ? data.images[0]
+      Array.isArray(realRow.images) && typeof realRow.images[0] === "string"
+        ? realRow.images[0]
         : null;
-    return data?.hero_image || firstFromImages || null;
+    return realRow.hero_image || firstFromImages || null;
   } catch {
     return null;
   }
+}
+
+function isOrgPubliclyLive(org: ResolvedTenantOrg): boolean {
+  if (!org.site_published) return false;
+  return isSubscriptionActive({
+    subscription_status: org.subscription_status,
+    trial_ends_at: org.trial_ends_at,
+  });
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -99,6 +154,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  const displayBrand = org.brand_name || org.name;
+
+  if (!isOrgPubliclyLive(org)) {
+    return {
+      title: `${displayBrand} | Private Portfolio`,
+      description: `This portfolio website is currently private.`,
+      robots: {
+        index: false,
+        follow: false,
+        googleBot: { index: false, follow: false },
+      },
+    };
+  }
+
   const siteBase =
     process.env.NEXT_PUBLIC_SITE_URL || BRAND.url.replace(/\/$/, "");
   const canonicalUrl = org.custom_domain
@@ -107,31 +176,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const description =
     org.description ||
-    `Explore commercial suites, retail spaces, and properties managed by ${org.name}.`;
+    `Explore available rentals, suites, and properties managed by ${displayBrand}.`;
 
   const photo = await getFirstPropertyPhoto(org.id);
   const ogImageUrl =
     photo ||
-    `${siteBase}/api/og?title=${encodeURIComponent(org.name)}&subtitle=${encodeURIComponent(description)}&tag=${encodeURIComponent(org.city || "Property Portfolio")}&type=property`;
+    `${siteBase}/api/og?title=${encodeURIComponent(displayBrand)}&subtitle=${encodeURIComponent(description)}&tag=${encodeURIComponent(org.city || "Property Portfolio")}&type=property`;
 
   return {
-    title: `${org.name} | Property Showcase & Leasing`,
+    title: `${displayBrand} | Property Listings & Management`,
     description,
     metadataBase: new URL(siteBase),
     alternates: {
       canonical: canonicalUrl,
     },
     openGraph: {
-      title: `${org.name} | Commercial & Residential Properties`,
+      title: `${displayBrand} | Property Listings & Management`,
       description,
       url: canonicalUrl,
-      siteName: org.name,
+      siteName: displayBrand,
       images: [
         {
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: org.name,
+          alt: displayBrand,
         },
       ],
       locale: "en_US",
@@ -139,7 +208,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
-      title: `${org.name} | Commercial & Residential Properties`,
+      title: `${displayBrand} | Property Listings & Management`,
       description,
       images: [ogImageUrl],
     },
@@ -163,6 +232,66 @@ export default async function TenantPublicSitePage({ params }: Props) {
 
   if (!org) {
     notFound();
+  }
+
+  const publiclyLive = isOrgPubliclyLive(org);
+  let viewerCanPreviewDraft = false;
+
+  if (!publiclyLive) {
+    try {
+      const ctx = await getRequestContext();
+      if (
+        ctx &&
+        (ctx.isSuperAdmin ||
+          ctx.orgId === org.id ||
+          ctx.memberships.some((m) => m.org_id === org.id))
+      ) {
+        viewerCanPreviewDraft = true;
+      }
+    } catch {
+      viewerCanPreviewDraft = false;
+    }
+  }
+
+  // Gate unpublished / inactive sites from anonymous visitors & search engines
+  if (!publiclyLive && !viewerCanPreviewDraft) {
+    const displayBrand = org.brand_name || org.name;
+    return (
+      <div className="min-h-screen bg-[#060911] text-white flex items-center justify-center px-4 py-16">
+        <div className="max-w-md w-full rounded-3xl bg-[#0B1222] border border-white/10 p-8 sm:p-10 text-center space-y-5 shadow-2xl">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-sky-500/10 border border-sky-400/25 flex items-center justify-center text-sky-400">
+            <Lock size={24} />
+          </div>
+          <div className="space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-sky-400">
+              Unpublished Portfolio
+            </p>
+            <h1 className="text-2xl font-black text-white tracking-tight">
+              {displayBrand}
+            </h1>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              This property website hasn&apos;t been published yet. If you manage this workspace, sign in to preview or publish your site in Site Builder.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/admin?tab=content"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs transition-all"
+            >
+              <span>Workspace Sign In</span>
+              <ArrowRight size={14} />
+            </Link>
+            <Link
+              href="/"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-300 font-semibold text-xs transition-all"
+            >
+              <Building2 size={13} />
+              <span>{BRAND.name}</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   let formattedProperties: FormattedProperty[] = [];
@@ -209,8 +338,11 @@ export default async function TenantPublicSitePage({ params }: Props) {
         }
       }
 
-      const rawProps = propsRes.data;
-      if (Array.isArray(rawProps) && rawProps.length > 0) {
+      const rawProps = Array.isArray(propsRes.data)
+        ? propsRes.data.filter((p: any) => !isSampleProperty(p))
+        : [];
+
+      if (rawProps.length > 0) {
         formattedProperties = rawProps.map((p: any) => {
           const propId = String(p.id || p.slug);
           const propOverrides = siteContent[`property:${propId}`] || {};
@@ -246,7 +378,7 @@ export default async function TenantPublicSitePage({ params }: Props) {
               ? p.images.filter((u: unknown) => typeof u === "string")
               : [];
 
-          const isDemoOrg = org.id === "00000000-0000-0000-0000-000000000001";
+          const isDemoOrg = org.id === DEFAULT_PLATFORM_ORG_ID;
           const primaryImage =
             imgOverride?.hero_url ||
             overrideImages[0] ||
@@ -257,14 +389,14 @@ export default async function TenantPublicSitePage({ params }: Props) {
               ? "/demo-properties/oakridge-professional-plaza.jpg"
               : "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80");
 
-          const resolvedName = propOverrides.name || p.name || "Commercial Asset";
+          const resolvedName = propOverrides.name || p.name || "Property Listing";
           const resolvedCity = propOverrides.city || p.city || org.city || "";
           const resolvedAddress =
             propOverrides.address ||
             [p.address, resolvedCity, p.state].filter(Boolean).join(", ");
-          const resolvedType = propOverrides.type || p.type || "Commercial Office";
+          const resolvedType = propOverrides.type || p.type || "Rental Property";
           const resolvedStatus = propOverrides.status || p.lease_status || p.status || "Available";
-          const resolvedBadge = propOverrides.badge || p.badge || resolvedType || "Featured Asset";
+          const resolvedBadge = propOverrides.badge || p.badge || resolvedType || "Available";
 
           return {
             id: propId,
@@ -281,7 +413,7 @@ export default async function TenantPublicSitePage({ params }: Props) {
             description:
               propOverrides.description ||
               p.description ||
-              `${resolvedName} managed by ${org.name}.`,
+              `${resolvedName} managed by ${org.brand_name || org.name}.`,
             highlights: features,
           };
         });
@@ -318,7 +450,7 @@ export default async function TenantPublicSitePage({ params }: Props) {
                   image: s.imageUrl || match.image,
                   type: match.type,
                   featuredSuite: match.status,
-                  suiteSpecs: match.sqft !== "—" ? `${match.sqft} RSF` : "",
+                  suiteSpecs: match.sqft !== "—" ? `${match.sqft} sq ft` : "",
                   rate: "Contact for pricing",
                   badge: match.badge,
                 };
@@ -356,7 +488,7 @@ export default async function TenantPublicSitePage({ params }: Props) {
       image: p.image,
       type: p.type,
       featuredSuite: p.status,
-      suiteSpecs: p.sqft !== "—" ? `${p.sqft} RSF` : "",
+      suiteSpecs: p.sqft !== "—" ? `${p.sqft} sq ft` : "",
       rate: "Contact for pricing",
       badge: p.badge,
     }));
@@ -368,59 +500,64 @@ export default async function TenantPublicSitePage({ params }: Props) {
     ? `https://${org.custom_domain}`
     : `${siteBase}/site/${org.slug}`;
 
-  const jsonLdData = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "RealEstateAgent",
-        "@id": `${canonicalUrl}#organization`,
-        name: org.name,
-        url: canonicalUrl,
-        description:
-          org.description ||
-          `Premier commercial and residential properties managed by ${org.name}.`,
-        telephone: org.contact_phone || undefined,
-        email: org.contact_email || undefined,
-        address: (org.city || formattedProperties[0]?.city)
-          ? {
-              "@type": "PostalAddress",
-              addressLocality: org.city || formattedProperties[0]?.city,
-              addressCountry: "US",
-            }
-          : undefined,
-      },
-      ...formattedProperties.map((prop) => ({
-        "@type": "RealEstateListing",
-        "@id": `${canonicalUrl}#listing-${prop.id}`,
-        name: prop.name,
-        description: prop.description,
-        image: prop.image,
-        category: prop.type,
-        availableAtOrFrom: {
-          "@type": "Place",
-          name: prop.name,
-          address: {
-            "@type": "PostalAddress",
-            streetAddress: prop.address,
-            addressLocality: prop.city,
-            addressCountry: "US",
+  const jsonLdData = publiclyLive
+    ? {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "RealEstateAgent",
+            "@id": `${canonicalUrl}#organization`,
+            name: org.brand_name || org.name,
+            url: canonicalUrl,
+            description:
+              org.description ||
+              `Residential and commercial properties managed by ${org.brand_name || org.name}.`,
+            telephone: org.contact_phone || undefined,
+            email: org.contact_email || undefined,
+            address: (org.city || formattedProperties[0]?.city)
+              ? {
+                  "@type": "PostalAddress",
+                  addressLocality: org.city || formattedProperties[0]?.city,
+                  addressCountry: "US",
+                }
+              : undefined,
           },
-        },
-      })),
-    ],
-  };
+          ...formattedProperties.map((prop) => ({
+            "@type": "RealEstateListing",
+            "@id": `${canonicalUrl}#listing-${prop.id}`,
+            name: prop.name,
+            description: prop.description,
+            image: prop.image,
+            category: prop.type,
+            availableAtOrFrom: {
+              "@type": "Place",
+              name: prop.name,
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: prop.address,
+                addressLocality: prop.city,
+                addressCountry: "US",
+              },
+            },
+          })),
+        ],
+      }
+    : null;
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLdData) }}
-      />
+      {jsonLdData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLdData) }}
+        />
+      )}
       <TenantSiteClient
         initialOrg={org}
         initialProperties={formattedProperties}
         initialHeroSlides={heroSlides}
         initialSiteContent={siteContent}
+        sitePublished={publiclyLive}
       />
     </>
   );

@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, getCustomerCode, isSuperAdmin } from "@/lib/platform";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getAuthUser } from "@/lib/server-auth";
-import { createEmailVerifyToken, platformUrl, sendEmail, verificationEmailHtml } from "@/lib/email";
+import { createEmailVerifyToken, escapeHtml, platformUrl, sendEmail, welcomeWorkspaceEmailHtml } from "@/lib/email";
 
 /** Turnstile is enforced only when BOTH keys are configured (otherwise the widget isn't rendered). */
 async function turnstileOk(token: unknown, ip: string): Promise<boolean> {
@@ -222,14 +222,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2b. Save customer_code in org_profile setting
+    // 2b. Save customer_code & honest first-run flags in org_profile setting
+    const enableCommercialByDefault =
+      cleanPortfolioType.toLowerCase().includes("commercial") ||
+      cleanPortfolioType.toLowerCase().includes("industrial");
     await supabaseAdmin
       .from("site_settings")
       .upsert(
         {
           org_id: orgId,
           key: "org_profile",
-          value: { customer_code: customerCode, city: "", state: "", description: "" },
+          value: {
+            customer_code: customerCode,
+            city: "",
+            state: "",
+            description: "",
+            site_published: false,
+            commercial_tools_enabled: enableCommercialByDefault,
+            checklist_dismissed: false,
+          },
           updated_at: new Date().toISOString(),
         },
         { onConflict: "org_id,key" }
@@ -252,17 +263,48 @@ export async function POST(req: NextRequest) {
     });
     if (subErr) console.warn("[signup] contact_submissions insert notice:", subErr.message);
 
-    // 3b. Email verification for password signups (Google/magic-link users are already verified).
+    // 3b. Welcome + Email verification for new signups, plus founder notification.
     let verificationSent = false;
-    if (createdNewAuthUserId) {
-      const link = `${platformUrl()}/api/auth/verify-email?token=${encodeURIComponent(
-        createEmailVerifyToken(createdNewAuthUserId, ownerEmail)
-      )}`;
-      verificationSent = await sendEmail({
-        to: ownerEmail,
-        subject: "Confirm your email",
-        html: verificationEmailHtml(cleanName, link),
-      });
+    const planLabel = cleanPlan.charAt(0).toUpperCase() + cleanPlan.slice(1);
+    const verifyLink = createdNewAuthUserId
+      ? `${platformUrl()}/api/auth/verify-email?token=${encodeURIComponent(
+          createEmailVerifyToken(createdNewAuthUserId, ownerEmail)
+        )}`
+      : undefined;
+
+    verificationSent = await sendEmail({
+      to: ownerEmail,
+      subject: verifyLink
+        ? `Welcome to PropOpsIQ — Confirm your email`
+        : `Welcome to PropOpsIQ — Your ${cleanCompany} workspace is ready`,
+      html: welcomeWorkspaceEmailHtml({
+        name: cleanName,
+        company: cleanCompany,
+        planName: planLabel,
+        customerCode,
+        verifyLink,
+      }),
+    });
+
+    const notifyList = (process.env.CONTACT_NOTIFY_TO || "")
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
+    for (const adminTo of notifyList) {
+      await sendEmail({
+        to: adminTo,
+        replyTo: ownerEmail,
+        subject: `[New Trial Signup] ${cleanCompany} (${planLabel})`,
+        html: `<div style="font-family:sans-serif;font-size:14px;line-height:1.6;">
+          <h3>New PropOpsIQ Trial Workspace</h3>
+          <p><strong>Owner:</strong> ${escapeHtml(cleanName)} (${escapeHtml(ownerEmail)})</p>
+          <p><strong>Company:</strong> ${escapeHtml(cleanCompany)} (<code>${escapeHtml(orgSlug)}</code>)</p>
+          <p><strong>Plan:</strong> ${escapeHtml(planLabel)} · <strong>Units:</strong> ${escapeHtml(cleanUnitCount)}</p>
+          <p><strong>Portfolio Type:</strong> ${escapeHtml(cleanPortfolioType)}</p>
+          <p><strong>Phone:</strong> ${escapeHtml(cleanPhone || "Not provided")}</p>
+          <p><strong>Support Code:</strong> <code>${escapeHtml(customerCode)}</code></p>
+        </div>`,
+      }).catch(() => {});
     }
 
     // 4. Return success response and set active organization cookie so the user lands on their workspace

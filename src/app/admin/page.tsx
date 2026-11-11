@@ -20,6 +20,7 @@ import PrintButton from "./PrintButton";
 import ActivityFeedPanel from "./ActivityFeedPanel";
 import SettingsTab, { PlanAndBillingModal } from "./SettingsTab";
 import IntakeStagingModal from "./IntakeStagingModal";
+import GetStartedChecklist from "@/components/admin/GetStartedChecklist";
 import MicButton from "@/components/MicButton";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { signOutEverywhere } from "@/lib/sign-out";
@@ -1369,25 +1370,25 @@ export default function AdminPage() {
   const briefKeyRef = useRef(0);
   const [briefKey, setBriefKey] = useState(0);
   const searchParams = useSearchParams();
-  const VALID_TABS = ["leads", "tenants", "propdetails", "analytics", "maintenance", "cleaning", "archived", "marketing", "content", "settings", "teamboard"] as const;
+  const VALID_TABS = ["propdetails", "tenants", "rentledger", "maintenance", "cleaning", "teamboard", "analytics", "content", "leads", "archived", "marketing", "settings"] as const;
   type TabKey = typeof VALID_TABS[number];
   const rawTabParam = searchParams.get("tab");
   const resolveTabParam = (raw: string | null): TabKey => {
-    if (!raw) return "leads";
+    if (!raw) return "propdetails";
     const norm = raw.toLowerCase().trim();
     if (norm === "properties" || norm === "propdetails") return "propdetails";
-    if (norm === "rentledger" || norm === "tenants") return "tenants";
+    if (norm === "rentledger" || norm === "rent-ledger") return "rentledger";
+    if (norm === "tenants") return "tenants";
     if (norm === "conversations" || norm === "tasks" || norm === "teamboard") return "teamboard";
     if (norm === "reports" || norm === "analytics") return "analytics";
     if (norm.startsWith("marketing-")) return "marketing";
     if (norm.startsWith("content-")) return "content";
     if (VALID_TABS.includes(norm as TabKey)) return norm as TabKey;
-    return "leads";
+    return "propdetails";
   };
-  const [rentLedgerOpen, setRentLedgerOpen] = useState(rawTabParam?.toLowerCase() === "rentledger");
   const [secDepLedgerOpen, setSecDepLedgerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>(() => resolveTabParam(rawTabParam));
-  const [previousTab, setPreviousTab] = useState<TabKey>("leads");
+  const [previousTab, setPreviousTab] = useState<TabKey>("propdetails");
 
   // Keep URL in sync when tab changes — use replace so the back button isn't polluted
   const switchTab = (tab: TabKey) => {
@@ -1424,7 +1425,6 @@ export default function AdminPage() {
     const norm = rawTabParam.toLowerCase().trim();
     const resolved = resolveTabParam(rawTabParam);
     setActiveTab(resolved);
-    if (norm === "rentledger") setRentLedgerOpen(true);
     if (norm === "tasks") setTeamBoardSubTab("tasks");
     if (norm === "conversations") setTeamBoardSubTab("chat");
     if (norm.startsWith("marketing-")) {
@@ -1435,22 +1435,39 @@ export default function AdminPage() {
     }
   }, [rawTabParam, searchParams]);
 
-  // Listen for org subscription updates dispatched by SettingsTab / PlanAndBillingModal
+  // Listen for org subscription / module updates dispatched by SettingsTab / PlanAndBillingModal
   useEffect(() => {
     const handleOrgUpdated = (e: Event) => {
-      const detail = (e as CustomEvent<{ tier?: string; subscription_status?: string }>).detail;
-      if (detail?.tier) {
-        setActiveOrg((prev) =>
-          prev
+      const detail = (
+        e as CustomEvent<{
+          tier?: string;
+          subscription_status?: string;
+          site_published?: boolean;
+          commercial_tools_enabled?: boolean;
+          checklist_dismissed?: boolean;
+        }>
+      ).detail;
+      if (!detail) return;
+      setActiveOrg((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          ...(detail.tier
             ? {
-                ...prev,
                 tier: detail.tier as Tier,
                 subscription_status: detail.subscription_status || "active",
                 trial_ends_at: null,
               }
-            : prev
-        );
-      }
+            : {}),
+          ...(typeof detail.site_published === "boolean" ? { site_published: detail.site_published } : {}),
+          ...(typeof detail.commercial_tools_enabled === "boolean"
+            ? { commercial_tools_enabled: detail.commercial_tools_enabled }
+            : {}),
+          ...(typeof detail.checklist_dismissed === "boolean"
+            ? { checklist_dismissed: detail.checklist_dismissed }
+            : {}),
+        };
+      });
     };
     window.addEventListener("oiq-org-updated", handleOrgUpdated);
     return () => window.removeEventListener("oiq-org-updated", handleOrgUpdated);
@@ -1503,11 +1520,16 @@ export default function AdminPage() {
     name: string;
     slug: string;
     tier: string;
+    role?: string;
     subscription_status?: string;
     trial_ends_at?: string | null;
     created_at?: string | null;
     custom_domain?: string | null;
     customer_code?: string | null;
+    site_published?: boolean;
+    commercial_tools_enabled?: boolean;
+    checklist_dismissed?: boolean;
+    has_stripe_subscription?: boolean;
   } | null>(null);
   const activeOrgCode = activeOrg ? getCustomerCode(activeOrg.id, activeOrg.customer_code) : "";
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -1742,6 +1764,11 @@ export default function AdminPage() {
       setIsSuperAdmin(!!session.isSuperAdmin || !!session.impersonatingOrg);
       const org = session.impersonatingOrg || session.activeOrg || null;
       if (!org) {
+        setCurrentUser({
+          name: data.user.user_metadata?.full_name || email.split("@")[0] || "Account",
+          email,
+          avatar: data.user.user_metadata?.avatar_url,
+        });
         setAccessDenied(true);
         setAuthChecking(false);
         return;
@@ -1925,33 +1952,40 @@ export default function AdminPage() {
   // Call list sorted by revenue potential: budget × (decayedScore/100) — highest $/mo first
   const callList = [...activeLeads].filter(l => l.phone && l.scoreLabel !== "Potential Spam").sort((a, b) => (parseBudget(b.budget) * getDecayedScore(b.score, b, callLogs)) - (parseBudget(a.budget) * getDecayedScore(a.score, a, callLogs)));
 
-  // Access denied screen
+  // Friendly onboarding screen when signed-in user has no workspace yet
   if (accessDenied) {
     return (
       <div className="min-h-screen bg-[#080C14] flex items-center justify-center px-5">
-        <div className="text-center max-w-sm">
-          <div className="w-14 h-14 rounded-2xl bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.3)] flex items-center justify-center mx-auto mb-5">
-            <Shield size={24} className="text-red-400" />
+        <div className="text-center max-w-md rounded-3xl border border-white/10 bg-white/[0.02] p-7 sm:p-8 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center mx-auto mb-5">
+            <Building2 size={24} className="text-sky-400" />
           </div>
-          <h1 className="text-xl font-black text-white mb-2">Access Denied</h1>
-          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-            This account isn&apos;t linked to a PropOpsIQ workspace yet.
-            <br />Ask your company&apos;s admin to add your email, or start a free trial.
+          <h1 className="text-xl font-black text-white mb-2">No Workspace Linked Yet</h1>
+          <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+            {currentUser?.email ? (
+              <>
+                <span className="font-semibold text-white">{currentUser.email}</span> isn&apos;t connected to a PropOpsIQ workspace yet.
+              </>
+            ) : (
+              "This account isn't connected to a PropOpsIQ workspace yet."
+            )}
+            <br />
+            Create your portfolio workspace in 60 seconds, or ask your company owner to invite this email in Settings.
           </p>
           <a
             href="/signup"
-            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-400 hover:from-indigo-400 hover:to-cyan-300 text-slate-950 font-bold text-xs transition-all shadow-lg flex items-center justify-center gap-2 mb-2.5"
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-400 hover:from-sky-400 hover:to-cyan-300 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-lg flex items-center justify-center gap-2 mb-3"
           >
-            Create Your Workspace (14-Day Free Trial) →
+            Start Free 14-Day Trial →
           </a>
           <button
             onClick={async () => {
               await signOutEverywhere();
               router.replace("/admin/login");
             }}
-            className="w-full px-5 py-2.5 rounded-xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-red-400 text-sm font-bold hover:bg-[rgba(239,68,68,0.18)] transition-colors"
+            className="w-full px-5 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-slate-300 text-xs sm:text-sm font-bold hover:bg-white/[0.08] hover:text-white transition-colors"
           >
-            Sign out and try another account
+            Sign out &amp; switch account
           </button>
         </div>
       </div>
@@ -2451,25 +2485,49 @@ export default function AdminPage() {
             if (!req) return false;
             return !hasFeature(activeOrg.tier, req);
           };
+
+          const commercialToolsEnabled =
+            activeOrg?.commercial_tools_enabled ??
+            (leads.length > 0 || activeOrg?.slug === "wired-digital-llc");
+
+          const desktopTabs: ReadonlyArray<{
+            key: TabKey;
+            label: string;
+            mobileLabel: string;
+            count?: number;
+            icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+            color: string;
+            desc: string;
+          }> = [
+            { key: "propdetails", label: "Properties",      mobileLabel: "Properties",    icon: Building2,  color: "#A78BFA", desc: "Buildings & units" },
+            { key: "tenants",     label: "Tenants",         mobileLabel: "Tenants",       icon: Users,      color: "#60A5FA", desc: "Active leases" },
+            { key: "rentledger",  label: "Rent Ledger",     mobileLabel: "Rent Ledger",   icon: DollarSign, color: "#10B981", desc: "Monthly payments" },
+            { key: "maintenance", label: "Maintenance",     mobileLabel: "Maint.",        icon: Wrench,     color: "#F97316", desc: "Work orders" },
+            { key: "cleaning",    label: "Cleaning",        mobileLabel: "Cleaning",      icon: Sparkles,   color: "#34D399", desc: "Turnovers & crews" },
+            { key: "teamboard",   label: "Team Board",      mobileLabel: "Team Board",    icon: MessageSquare, color: "#60A5FA", desc: "Comm & Tasks" },
+            { key: "analytics",   label: "Reports",         mobileLabel: "Reports",       icon: BarChart3,  color: "#22D3EE", desc: "Portfolio KPIs" },
+            { key: "content",     label: "Site Builder",    mobileLabel: "Site Builder",  icon: Pencil,     color: "#FACC15", desc: "Portfolio website" },
+            ...(commercialToolsEnabled
+              ? ([
+                  { key: "leads" as TabKey,     label: "Leads CRM",  mobileLabel: `Leads (${activeLeads.length})`, count: activeLeads.length, icon: TrendingUp, color: "#38BDF8", desc: "Inquiries" },
+                  { key: "marketing" as TabKey, label: "Marketing",  mobileLabel: "Marketing", icon: FileText, color: "#E1306C", desc: "Promo studio" },
+                  { key: "archived" as TabKey,  label: "Archived",   mobileLabel: `Archive (${archivedLeads.length})`, count: archivedLeads.length, icon: Archive, color: "#9CA3AF", desc: "Closed leads" },
+                ] as const)
+              : []),
+          ];
+
+          const mobileTabs = [
+            ...desktopTabs,
+            { key: "settings" as TabKey, label: "Settings", mobileLabel: "Settings", icon: Settings, color: "#38BDF8", desc: "Workspace" },
+          ];
+
           return (
             <>
               {/* Mobile/Tablet: Horizontal compact pill nav */}
               <div className="sm:hidden bg-[#080C14] -mx-4 px-4 mb-6">
                 <div className="scrollbar-none flex items-center gap-1 overflow-x-auto py-2 pr-6" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
                   <style>{`.scrollbar-none::-webkit-scrollbar { display: none; }`}</style>
-                  {([
-                    { key: "leads",       label: `Leads (${activeLeads.length})`, icon: TrendingUp, color: "#38BDF8" },
-                    { key: "tenants",     label: "Tenants",     icon: Building2, color: "#60A5FA" },
-                    { key: "propdetails", label: "Prop Details", icon: BarChart3, color: "#A78BFA" },
-                    { key: "maintenance", label: "Maint.",       icon: Wrench, color: "#F97316" },
-                    { key: "cleaning",    label: "Cleaning",    icon: Sparkles, color: "#A78BFA" },
-                    { key: "analytics",   label: "Analytics",   icon: BarChart3, color: "#22D3EE" },
-                    { key: "marketing",   label: "Marketing",   icon: FileText, color: "#E1306C" },
-                    { key: "content",     label: "Content",     icon: Pencil, color: "#FACC15" },
-                    { key: "teamboard",   label: "Team Board",  icon: Users, color: "#60A5FA" },
-                    { key: "archived",    label: `Archive (${archivedLeads.length})`, icon: Archive, color: "#9CA3AF" },
-                    { key: "settings",    label: "Settings",    icon: Settings, color: "#38BDF8" },
-                  ] as const).map(({ key, label, icon: Icon, color }) => {
+                  {mobileTabs.map(({ key, mobileLabel, icon: Icon, color }) => {
                     const locked = isTabLocked(key);
                     return (
                       <button
@@ -2488,7 +2546,7 @@ export default function AdminPage() {
                         } : { border: "1px solid transparent" }}
                       >
                         <Icon size={12} />
-                        {label}
+                        {mobileLabel}
                         {locked && <Lock size={10} className="text-amber-400/80 ml-0.5 flex-shrink-0" />}
                       </button>
                     );
@@ -2496,23 +2554,11 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Desktop/Tablet: Premium two-row grid nav */}
+              {/* Desktop/Tablet: Clean grid nav */}
               <div className="hidden sm:block bg-[#080C14] -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3 pb-5 mb-6">
-                <div className="grid grid-cols-5 gap-2">
-                  {([
-                    { key: "leads",       label: "Leads",       count: activeLeads.length, icon: TrendingUp, color: "#38BDF8",  desc: "Inquiries" },
-                    { key: "tenants",     label: "Tenants",     icon: Building2, color: "#60A5FA", desc: "Active leases" },
-                    { key: "propdetails", label: "Prop Details", icon: BarChart3, color: "#A78BFA", desc: "Occupancy & stats" },
-                    { key: "maintenance", label: "Maintenance", icon: Wrench,    color: "#F97316", desc: "Work orders" },
-                    { key: "cleaning",    label: "Cleaning",    icon: Sparkles,  color: "#A78BFA", desc: "Schedules" },
-                    { key: "analytics",   label: "Analytics",   icon: BarChart3, color: "#22D3EE", desc: "Traffic & KPIs" },
-                    { key: "marketing",   label: "Marketing",   icon: FileText,  color: "#E1306C", desc: "Promo tools" },
-                    { key: "content",     label: "Content",     icon: Pencil,    color: "#FACC15", desc: "Site editor" },
-                    { key: "teamboard",   label: "Team Board",  icon: Users,      color: "#60A5FA", desc: "Comm & Tasks" },
-                    { key: "archived",    label: "Archived",    count: archivedLeads.length, icon: Archive,   color: "#9CA3AF", desc: "Closed leads" },
-                  ] as const).map(({ key, label, icon: Icon, color, desc, ...rest }) => {
+                <div className={`grid gap-2 ${commercialToolsEnabled ? "grid-cols-4 lg:grid-cols-6" : "grid-cols-4"}`}>
+                  {desktopTabs.map(({ key, label, icon: Icon, color, desc, count }) => {
                     const isActive = activeTab === key;
-                    const count = (rest as Record<string, unknown>).count as number | undefined;
                     const locked = isTabLocked(key);
                     return (
                       <button
@@ -2626,313 +2672,18 @@ export default function AdminPage() {
           );
         })()}
 
-        {/* Active Customer Workspace Welcome & Onboarding Banner */}
-        {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001" && (() => {
-          const isPaidActive = activeOrg.subscription_status === "active";
-          const planDef = getPlan(activeOrg.tier);
-          const totalTrialDays = 14;
-          const fallbackEndMs = activeOrg.created_at
-            ? new Date(activeOrg.created_at).getTime() + totalTrialDays * 86_400_000
-            : Date.now() + totalTrialDays * 86_400_000;
-          const trialEndsMs = activeOrg.trial_ends_at
-            ? new Date(activeOrg.trial_ends_at).getTime()
-            : fallbackEndMs;
-          const msRemaining = Math.max(0, trialEndsMs - Date.now());
-          const daysLeft = Math.min(totalTrialDays, Math.max(0, Math.ceil(msRemaining / 86_400_000)));
-          const hoursLeft = Math.floor((msRemaining % 86_400_000) / 3_600_000);
-          const currentDay = Math.min(totalTrialDays, Math.max(1, totalTrialDays - daysLeft + 1));
-          const trialEndDateLabel = new Date(trialEndsMs).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          });
-          const isTrialExpired =
-            !isPaidActive &&
-            (msRemaining <= 0 ||
-              activeOrg.subscription_status === "past_due" ||
-              activeOrg.subscription_status === "canceled");
-          const isUrgent = daysLeft <= 3;
-          const isWarning = daysLeft > 3 && daysLeft <= 7;
-
-          return (
-            <div className="mb-8 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-indigo-950/80 via-[#0B1426] to-sky-950/70 border border-indigo-500/40 shadow-[0_0_40px_rgba(99,102,241,0.2)]">
-              <div className="flex flex-col xl:flex-row xl:items-stretch justify-between gap-6">
-                {/* Left Column: Welcome Copy + Quick-Start Actions */}
-                <div className="flex-1 flex flex-col justify-between space-y-5">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
-                        {isPaidActive ? `${planDef.name} Plan Active` : `${activeOrg.tier} Tier Active`}
-                      </span>
-                      {isPaidActive ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 flex items-center gap-1">
-                          <CheckCircle2 size={12} /> Active Subscription
-                        </span>
-                      ) : isTrialExpired ? (
-                        <button
-                          type="button"
-                          onClick={() => setShowBillingModal(true)}
-                          className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/25 hover:bg-rose-500/35 text-rose-200 border border-rose-400/60 flex items-center gap-1.5 animate-pulse shadow-[0_0_14px_rgba(244,63,94,0.45)] cursor-pointer transition-all"
-                        >
-                          <AlertTriangle size={12} className="text-rose-400" />
-                          <span>14-Day Free Evaluation Expired · Sign Up for a Plan →</span>
-                        </button>
-                      ) : (
-                        <span className="text-xs text-slate-400 font-medium">14-Day Free Evaluation Period</span>
-                      )}
-                    </div>
-                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-                      Welcome to {activeOrg.name}
-                    </h2>
-                    <p className="text-sm sm:text-base lg:text-lg text-slate-200 max-w-2xl leading-relaxed">
-                      Your dedicated property operations workspace is active. Use the quick-start buttons below to add your buildings, import your tenant rent roll, or set up maintenance workflows.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3 flex-wrap pt-1">
-                    <button
-                      onClick={() => setShowIntakeModal(true)}
-                      className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-sm sm:text-base font-black transition-all border border-cyan-300/50 flex items-center gap-2 shadow-[0_0_24px_rgba(6,182,212,0.4)] cursor-pointer"
-                    >
-                      <Sparkles size={18} className="text-cyan-100 animate-pulse" />
-                      <span>Import Buildings &amp; Tenants</span>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab("propdetails")}
-                      className="px-4 sm:px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-sm sm:text-base font-bold transition-all border border-white/20 flex items-center gap-2 shadow-sm"
-                    >
-                      <Building2 size={18} className="text-cyan-400" />
-                      <span>Add First Building</span>
-                    </button>
-                    <button
-                      onClick={() => setShowIntakeModal(true)}
-                      className="px-4 sm:px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-sm sm:text-base font-bold transition-all border border-white/20 flex items-center gap-2 shadow-sm"
-                    >
-                      <Users size={18} className="text-emerald-400" />
-                      <span>Tenant Rent Roll</span>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab("maintenance")}
-                      className="px-4 sm:px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-sm sm:text-base font-bold transition-all border border-white/20 flex items-center gap-2 shadow-sm"
-                    >
-                      <Wrench size={18} className="text-amber-400" />
-                      <span>Setup Maintenance</span>
-                    </button>
-                    <button
-                      onClick={() => switchTab("content")}
-                      className="px-4 sm:px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-sm sm:text-base font-bold transition-all border border-white/20 flex items-center gap-2 shadow-sm"
-                    >
-                      <Pencil size={18} className="text-amber-300" />
-                      <span>Site Builder</span>
-                    </button>
-                    <a
-                      href={
-                        activeOrg.custom_domain
-                          ? `https://${activeOrg.custom_domain}`
-                          : `/site/${activeOrg.slug}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 sm:px-5 py-3 rounded-2xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-sm sm:text-base font-bold transition-all border border-sky-400/40 flex items-center gap-2 shadow-[0_0_15px_rgba(56,189,248,0.2)]"
-                      title={`Open live public website for ${activeOrg.name}`}
-                    >
-                      <Globe size={18} className="text-sky-400" />
-                      <span>View Public Site</span>
-                      <ExternalLink size={14} className="opacity-75" />
-                    </a>
-                  </div>
-                </div>
-
-                {/* Right Column: Active Plan Card or 14-Day Countdown Card */}
-                {isPaidActive ? (
-                  <div className="xl:w-80 shrink-0 rounded-2xl p-5 border backdrop-blur-md flex flex-col justify-between gap-4 bg-emerald-950/30 border-emerald-500/40 shadow-[0_0_25px_rgba(16,185,129,0.15)]">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 size={16} className="text-emerald-400" />
-                        <span className="text-[11px] font-black uppercase tracking-widest text-slate-200">
-                          Subscription Status
-                        </span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold border bg-emerald-500/20 text-emerald-300 border-emerald-500/40">
-                        Active
-                      </span>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                        {planDef.name} Plan
-                      </div>
-                      <p className="text-xs text-slate-300 leading-relaxed">
-                        {planDef.tagline} — all {planDef.name} features and capacities are unlocked for your workspace.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setShowBillingModal(true)}
-                      className="w-full py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs sm:text-sm font-bold text-white flex items-center justify-between transition-all cursor-pointer"
-                    >
-                      <span>Manage Plan &amp; Billing</span>
-                      <ArrowRight size={15} className="text-emerald-300" />
-                    </button>
-                  </div>
-                ) : isTrialExpired ? (
-                  <div className="relative xl:w-80 shrink-0 rounded-2xl p-5 border-2 border-rose-500/80 bg-gradient-to-br from-rose-950/85 via-red-950/75 to-rose-900/65 backdrop-blur-md flex flex-col justify-between gap-4 shadow-[0_0_38px_rgba(244,63,94,0.45)] overflow-hidden">
-                    {/* Animated pulsing crimson border/glow ring */}
-                    <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-rose-400/60 animate-pulse" />
-                    <div className="pointer-events-none absolute -top-12 -right-12 w-32 h-32 rounded-full bg-rose-500/25 blur-2xl animate-pulse" />
-
-                    <div className="relative flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="relative flex h-3 w-3">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500" />
-                        </span>
-                        <span className="text-[11px] font-black uppercase tracking-widest text-rose-200">
-                          Evaluation Expired
-                        </span>
-                      </div>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border bg-rose-500/30 text-rose-100 border-rose-400/60 animate-pulse">
-                        Action Required
-                      </span>
-                    </div>
-
-                    {/* Expired Trial Prompt */}
-                    <div className="relative space-y-1.5">
-                      <div className="flex items-center gap-2 text-lg sm:text-xl font-black text-white tracking-tight">
-                        <AlertTriangle size={20} className="text-rose-400 shrink-0 animate-bounce" />
-                        <span>Sign Up for a Plan</span>
-                      </div>
-                      <p className="text-xs text-rose-100/90 leading-relaxed">
-                        Your 14-day free evaluation period has ended. Choose a plan now to keep your properties, tenant portal, and team tools active without interruption.
-                      </p>
-                    </div>
-
-                    {/* 14-Segment Expired Runway */}
-                    <div className="relative space-y-1.5">
-                      <div className="grid grid-cols-14 gap-1" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}>
-                        {Array.from({ length: totalTrialDays }).map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="h-2 rounded-sm bg-rose-500/60 shadow-[0_0_8px_rgba(244,63,94,0.65)] animate-pulse"
-                            style={{ animationDelay: `${idx * 80}ms` }}
-                            title={`Day ${idx + 1} of 14 (Completed)`}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-rose-200 font-semibold">
-                        <span>0 days remaining</span>
-                        <span className="text-rose-300/80">Ended {trialEndDateLabel}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowBillingModal(true)}
-                      className="relative w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 border border-rose-300/70 text-xs sm:text-sm font-black text-white flex items-center justify-between transition-all shadow-[0_0_24px_rgba(244,63,94,0.6)] hover:shadow-[0_0_32px_rgba(244,63,94,0.85)] hover:scale-[1.02] cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Sparkles size={15} className="text-amber-200 animate-pulse" />
-                        <span>Choose a Plan &amp; Subscribe</span>
-                      </span>
-                      <ArrowRight size={16} className="text-white animate-bounce" />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className={`xl:w-80 shrink-0 rounded-2xl p-5 border backdrop-blur-md flex flex-col justify-between gap-4 ${
-                      isUrgent
-                        ? "bg-rose-950/40 border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)]"
-                        : isWarning
-                        ? "bg-amber-950/35 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.15)]"
-                        : "bg-slate-900/75 border-cyan-400/35 shadow-[0_0_25px_rgba(34,211,238,0.15)]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Clock
-                          size={16}
-                          className={
-                            isUrgent ? "text-rose-400 animate-pulse" : isWarning ? "text-amber-400" : "text-cyan-400"
-                          }
-                        />
-                        <span className="text-[11px] font-black uppercase tracking-widest text-slate-200">
-                          14-Day Trial Countdown
-                        </span>
-                      </div>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
-                          isUrgent
-                            ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
-                            : isWarning
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                            : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                        }`}
-                      >
-                        Day {currentDay} of {totalTrialDays}
-                      </span>
-                    </div>
-
-                    {/* Big Day / Hour Counter */}
-                    <div className="flex items-baseline gap-3">
-                      <div className="flex items-baseline gap-1.5">
-                        <span
-                          className={`text-4xl sm:text-5xl font-black tabular-nums tracking-tight ${
-                            isUrgent ? "text-rose-300" : isWarning ? "text-amber-300" : "text-white"
-                          }`}
-                        >
-                          {daysLeft}
-                        </span>
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                          {daysLeft === 1 ? "Day" : "Days"}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-black tabular-nums text-cyan-300">{hoursLeft}</span>
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Hrs Left</span>
-                      </div>
-                    </div>
-
-                    {/* 14-Segment Visual Runway */}
-                    <div className="space-y-1.5">
-                      <div className="grid grid-cols-14 gap-1" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}>
-                        {Array.from({ length: totalTrialDays }).map((_, idx) => {
-                          const isRemainingSegment = idx < daysLeft;
-                          return (
-                            <div
-                              key={idx}
-                              className={`h-2 rounded-sm transition-all ${
-                                isRemainingSegment
-                                  ? isUrgent
-                                    ? "bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.6)]"
-                                  : isWarning
-                                    ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.5)]"
-                                    : "bg-gradient-to-t from-cyan-500 to-emerald-400 shadow-[0_0_6px_rgba(34,211,238,0.45)]"
-                                  : "bg-white/10"
-                              }`}
-                              title={`Day ${idx + 1} of 14`}
-                            />
-                          );
-                        })}
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-slate-300">
-                        <span>{daysLeft > 0 ? `${daysLeft} days remaining` : "Evaluation ended"}</span>
-                        <span className="text-slate-400">Ends {trialEndDateLabel}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setShowBillingModal(true)}
-                      className="w-full py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs sm:text-sm font-bold text-white flex items-center justify-between transition-all cursor-pointer"
-                    >
-                      <span>Manage Plan &amp; Billing</span>
-                      <ArrowRight size={15} className="text-cyan-300" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
+        {/* Guided Onboarding Checklist & Subscription Alert Strip */}
+        {activeOrg && activeOrg.id !== "00000000-0000-0000-0000-000000000001" && (
+          <GetStartedChecklist
+            activeOrg={activeOrg}
+            onNavigateTab={(tab) => switchTab(tab)}
+            onOpenIntake={() => setShowIntakeModal(true)}
+            onOpenBilling={() => setShowBillingModal(true)}
+            onDismissed={() =>
+              setActiveOrg((prev) => (prev ? { ...prev, checklist_dismissed: true } : prev))
+            }
+          />
+        )}
 
         {/* ─ LEADS TAB ──────────────────────────────────────────────────────── */}
         {activeTab === "leads" && (
@@ -3809,7 +3560,7 @@ export default function AdminPage() {
             feature: Feature,
             title: string,
             description: string,
-            requiredTierLabel: "Growth" | "Scale"
+            requiredTierLabel: "Growth" | "Pro"
           ) => (
             <div className="glass rounded-3xl border border-amber-500/25 bg-gradient-to-br from-amber-500/[0.06] via-[#0B1120] to-sky-500/[0.04] p-8 sm:p-12 text-center max-w-2xl mx-auto my-8 shadow-[0_0_40px_rgba(245,158,11,0.1)]">
               <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center mx-auto mb-5 shadow-[0_0_24px_rgba(245,158,11,0.2)]">
@@ -3868,6 +3619,16 @@ export default function AdminPage() {
                   : <CleaningTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
               )}
 
+              {/* ─ RENT LEDGER TAB (TOP-LEVEL) ──────────────────────────────── */}
+              {activeTab === "rentledger" && (
+                <>
+                  {renderLeaseAlerts()}
+                  <div className="rounded-2xl border border-[rgba(16,185,129,0.18)] bg-[rgba(0,0,0,0.25)] p-4 sm:p-6">
+                    <RentLedgerTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
+                  </div>
+                </>
+              )}
+
               {/* ─ TENANTS TAB ──────────────────────────────────────────────── */}
               {activeTab === "tenants" && (
                 <TenantsTab
@@ -3884,57 +3645,35 @@ export default function AdminPage() {
                     <>
                       {renderLeaseAlerts()}
 
-                      {/* ═══ Rent Ledger — collapsible panel ═══ */}
-                      <div className="mb-6">
+                      {/* ═══ Quick Jump to Top-Level Rent Ledger ═══ */}
+                      <div className="mb-4">
                         <button
-                          onClick={() => setRentLedgerOpen(prev => !prev)}
-                          className={`w-full group flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 ${
-                            rentLedgerOpen
-                              ? "bg-[rgba(16,185,129,0.06)] border-[rgba(16,185,129,0.25)]"
-                              : "bg-[rgba(16,185,129,0.03)] border-[rgba(16,185,129,0.12)] hover:border-[rgba(16,185,129,0.3)] hover:bg-[rgba(16,185,129,0.06)]"
-                          }`}
+                          type="button"
+                          onClick={() => switchTab("rentledger")}
+                          className="w-full group flex items-center justify-between px-5 py-4 rounded-2xl border bg-[rgba(16,185,129,0.04)] border-[rgba(16,185,129,0.18)] hover:border-[rgba(16,185,129,0.38)] hover:bg-[rgba(16,185,129,0.08)] transition-all cursor-pointer"
                         >
                           <div className="flex items-center gap-3">
                             <div
-                              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                                rentLedgerOpen ? "shadow-lg" : "group-hover:shadow-md"
-                              }`}
+                              className="w-10 h-10 rounded-xl flex items-center justify-center"
                               style={{
                                 background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.15))",
                                 border: "1px solid rgba(16,185,129,0.35)",
-                                boxShadow: rentLedgerOpen ? "0 0 20px rgba(16,185,129,0.2)" : undefined,
                               }}
                             >
                               <DollarSign size={18} className="text-[#10B981]" />
                             </div>
                             <div className="text-left">
-                              <p className="text-sm font-black text-white">Rent Ledger</p>
-                              <p className="text-[10px] text-gray-500 uppercase tracking-widest">Monthly Payment Tracking</p>
+                              <p className="text-sm font-black text-white">Monthly Rent Ledger</p>
+                              <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+                                Log payments, partial balances &amp; overdue rent
+                              </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="hidden sm:inline text-[10px] font-bold text-[#10B981]/60 uppercase tracking-widest">
-                              {rentLedgerOpen ? "Collapse" : "Open"}
-                            </span>
-                            <ChevronDown
-                              size={16}
-                              className={`text-[#10B981] transition-transform duration-300 ${
-                                rentLedgerOpen ? "rotate-180" : "group-hover:translate-y-0.5"
-                              }`}
-                            />
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#10B981]">
+                            <span>Open Rent Ledger</span>
+                            <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
                           </div>
                         </button>
-
-                        {/* Expanded content */}
-                        {rentLedgerOpen && (
-                          <div
-                            className="mt-2 rounded-2xl border border-[rgba(16,185,129,0.15)] bg-[rgba(0,0,0,0.2)] p-4 sm:p-6"
-                            style={{ animation: "fadeSlideIn 0.3s ease-out" }}
-                          >
-                            <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-                            <RentLedgerTab currentUserName={currentUser?.name} currentUserEmail={currentUser?.email} />
-                          </div>
-                        )}
                       </div>
 
                       {/* ═══ Security Deposit Ledger — collapsible panel ═══ */}
@@ -4070,7 +3809,7 @@ export default function AdminPage() {
                       "marketing_studio",
                       "AI Marketing & Social Studio",
                       "Generate property one-sheet PDFs, social media graphics, press releases, and AI blog articles.",
-                      "Scale"
+                      "Pro"
                     )
                   : (
                     <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] p-6 sm:p-8">
@@ -4086,7 +3825,7 @@ export default function AdminPage() {
                       "site_builder",
                       "Public Website & Content Builder",
                       "Customize your public property showcase website, hero banners, property photos, and SEO blog content.",
-                      "Scale"
+                      "Pro"
                     )
                   : (
                     <div className="glass rounded-2xl border border-[rgba(255,255,255,0.06)] p-6 sm:p-8">
@@ -4162,6 +3901,9 @@ export default function AdminPage() {
                 prev ? { ...prev, tier: newTier as Tier, subscription_status: newStatus, trial_ends_at: null } : prev
               )
             }
+            onModulesUpdated={(patch) =>
+              setActiveOrg((prev) => (prev ? { ...prev, ...patch } : prev))
+            }
           />
         )}
 
@@ -4173,7 +3915,7 @@ export default function AdminPage() {
 
       {/* ─ PRO TIPS floating button (always visible, context-aware) ─────────── */}
       <ProTips
-        activeTab={(activeTab === "marketing" ? `marketing-${marketingSubTab}` : activeTab === "content" ? contentSubView : activeTab) as import("./ProTips").TabKey}
+        activeTab={(activeTab === "marketing" ? `marketing-${marketingSubTab}` : activeTab === "content" ? contentSubView : activeTab === "rentledger" ? "tenants" : activeTab) as import("./ProTips").TabKey}
         customerCode={activeOrgCode}
       />
 

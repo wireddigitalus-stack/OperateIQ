@@ -12,6 +12,12 @@ function toFormUrlEncoded(params: Record<string, string>): string {
   return sp.toString();
 }
 
+function configuredPriceId(tier: Tier, billingCycle: "monthly" | "annual"): string | null {
+  const envKey = `STRIPE_PRICE_${tier.toUpperCase()}_${billingCycle.toUpperCase()}`;
+  const raw = (process.env[envKey] || "").trim();
+  return raw.startsWith("price_") ? raw : null;
+}
+
 export async function POST(req: NextRequest) {
   const g = await requireOrgAdmin(req, { allowExpired: true });
   if (!g.ok) return g.res;
@@ -37,7 +43,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "STRIPE_SECRET_KEY in Vercel is set to a masked/truncated preview (e.g. 'sk_live_...'). In your Stripe Dashboard → Developers → API keys, click 'Reveal live key' (or create a new Secret Key) and paste the full ~107-character key (with no quotes or '...').",
+          "STRIPE_SECRET_KEY in Vercel is set to a masked/truncated preview (e.g. 'sk_live_...'). In your Stripe Dashboard → Developers → API keys, click 'Reveal live key' (or create a new Secret Key) and paste the full key.",
       },
       { status: 503 }
     );
@@ -53,11 +59,54 @@ export async function POST(req: NextRequest) {
     const orgId = g.ctx.orgId;
     const { data: orgRow } = await supabaseAdmin
       .from("organizations")
-      .select("id, name, contact_email, stripe_customer_id")
+      .select("id, name, contact_email, stripe_customer_id, stripe_subscription_id, subscription_status, trial_ends_at")
       .eq("id", orgId)
       .maybeSingle();
 
-    let customerId: string | null = (orgRow as { stripe_customer_id?: string | null } | null)?.stripe_customer_id || null;
+    let customerId: string | null =
+      (orgRow as { stripe_customer_id?: string | null } | null)?.stripe_customer_id || null;
+    const existingSubId: string | null =
+      (orgRow as { stripe_subscription_id?: string | null } | null)?.stripe_subscription_id || null;
+    const existingStatus = String(
+      (orgRow as { subscription_status?: string | null } | null)?.subscription_status || ""
+    ).toLowerCase();
+    const trialEndsAt: string | null =
+      (orgRow as { trial_ends_at?: string | null } | null)?.trial_ends_at || null;
+
+    const reqOrigin = req.nextUrl.origin || BRAND.url;
+
+    // Prevent duplicate subscriptions: if this workspace already has a live Stripe subscription,
+    // route them to the Stripe Billing Portal to switch plans or update their card.
+    if (
+      customerId &&
+      existingSubId &&
+      ["active", "past_due", "trialing"].includes(existingStatus)
+    ) {
+      const portalParams = new URLSearchParams({
+        customer: customerId,
+        return_url: `${reqOrigin}/admin?tab=settings`,
+      });
+      const portalRes = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: portalParams.toString(),
+      });
+      const portalData = await portalRes.json().catch(() => ({}));
+      if (portalRes.ok && portalData?.url) {
+        return NextResponse.json({ url: portalData.url, portal: true });
+      }
+      return NextResponse.json(
+        {
+          error:
+            "This workspace already has an active subscription. Use 'Manage Billing & Invoices' to change plans or update your payment method.",
+        },
+        { status: 409 }
+      );
+    }
+
     const customerEmail = g.ctx.org.contact_email || g.ctx.user?.email || "";
     const customerName = g.ctx.org.brand_name || g.ctx.org.name || "PropOpsIQ Customer";
 
@@ -88,10 +137,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const reqOrigin = req.nextUrl.origin || BRAND.url;
+    const fixedPriceId = configuredPriceId(plan.id, billingCycle);
     const unitAmountCents = String((billingCycle === "annual" ? plan.annual : plan.monthly) * 100);
     const interval = billingCycle === "annual" ? "year" : "month";
-    const productName = `PropOpsIQ ${plan.id === "pro" ? "Scale (Pro)" : plan.name} Plan (${
+    const productName = `PropOpsIQ ${plan.name} Plan (${
       billingCycle === "annual" ? "Annual" : "Monthly"
     })`;
 
@@ -102,11 +151,6 @@ export async function POST(req: NextRequest) {
       cancel_url: `${reqOrigin}/admin?tab=settings&checkout=canceled`,
       allow_promotion_codes: "true",
       "line_items[0][quantity]": "1",
-      "line_items[0][price_data][currency]": "usd",
-      "line_items[0][price_data][unit_amount]": unitAmountCents,
-      "line_items[0][price_data][recurring][interval]": interval,
-      "line_items[0][price_data][product_data][name]": productName,
-      "line_items[0][price_data][product_data][description]": plan.blurb,
       "metadata[org_id]": orgId,
       "metadata[tier]": plan.id,
       "metadata[billing_cycle]": billingCycle,
@@ -114,6 +158,26 @@ export async function POST(req: NextRequest) {
       "subscription_data[metadata][tier]": plan.id,
       "subscription_data[metadata][billing_cycle]": billingCycle,
     };
+
+    if (fixedPriceId) {
+      checkoutParams["line_items[0][price]"] = fixedPriceId;
+    } else {
+      checkoutParams["line_items[0][price_data][currency]"] = "usd";
+      checkoutParams["line_items[0][price_data][unit_amount]"] = unitAmountCents;
+      checkoutParams["line_items[0][price_data][recurring][interval]"] = interval;
+      checkoutParams["line_items[0][price_data][product_data][name]"] = productName;
+      checkoutParams["line_items[0][price_data][product_data][description]"] = plan.blurb;
+    }
+
+    // Honor remaining trial days when upgrading during an unbilled trial
+    // (Stripe requires subscription_data.trial_end to be at least 48h in the future)
+    if (!existingSubId && trialEndsAt) {
+      const endMs = Date.parse(trialEndsAt);
+      const minFutureMs = Date.now() + 49 * 3600 * 1000;
+      if (!Number.isNaN(endMs) && endMs > minFutureMs) {
+        checkoutParams["subscription_data[trial_end]"] = String(Math.floor(endMs / 1000));
+      }
+    }
 
     if (customerId) {
       checkoutParams.customer = customerId;

@@ -61,10 +61,6 @@ function AdminLoginForm() {
         provider: "google",
         options: {
           redirectTo: `${redirectBase}/auth/callback`,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
         },
       });
       if (error) {
@@ -128,7 +124,7 @@ function AdminLoginForm() {
           : (process.env.NEXT_PUBLIC_SITE_URL || "");
       const { error } = await supabaseBrowser.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
-        { redirectTo: `${redirectBase}/auth/callback?next=/admin` }
+        { redirectTo: `${redirectBase}/auth/callback?next=/auth/reset` }
       );
       if (error) {
         setError(error.message);

@@ -66,6 +66,7 @@ interface TenantSiteClientProps {
   initialProperties: FormattedProperty[];
   initialHeroSlides: HeroSlideItem[];
   initialSiteContent?: Record<string, Record<string, string>>;
+  sitePublished?: boolean;
 }
 
 export default function TenantSiteClient({
@@ -73,6 +74,7 @@ export default function TenantSiteClient({
   initialProperties,
   initialHeroSlides,
   initialSiteContent = {},
+  sitePublished = true,
 }: TenantSiteClientProps) {
   const [org] = useState<OrgData>(initialOrg);
   const [properties] = useState<FormattedProperty[]>(initialProperties);
@@ -205,106 +207,88 @@ export default function TenantSiteClient({
 
   const statsItems = [
     {
-      value: c("stats", "stat_1_value", "20+"),
-      label: c("stats", "stat_1_label", "Years in Business"),
+      value: c("stats", "stat_1_value", properties.length > 0 ? String(properties.length) : "Local"),
+      label: c("stats", "stat_1_label", properties.length === 1 ? "Listed Property" : "Listed Properties"),
     },
     {
-      value: c("stats", "stat_2_value", "#1"),
-      label: c("stats", "stat_2_label", "Locally Owned & Operated"),
+      value: c("stats", "stat_2_value", markets.length > 0 ? String(markets.length) : "Direct"),
+      label: c("stats", "stat_2_label", markets.length === 1 ? "Local Market" : "Local Ownership"),
     },
     {
-      value: c("stats", "stat_3_value", properties.length > 0 ? `${properties.length}+` : "100%"),
-      label: c("stats", "stat_3_label", "Hands-On Management"),
+      value: c("stats", "stat_3_value", "Hands-On"),
+      label: c("stats", "stat_3_label", "Property Management"),
     },
     {
-      value: c("stats", "stat_4_value", "24/7"),
-      label: c("stats", "stat_4_label", "Tenant Support"),
+      value: c("stats", "stat_4_value", "Responsive"),
+      label: c("stats", "stat_4_label", "Maintenance & Care"),
     },
   ];
 
   const servicesCards = [
     {
-      title: c("services", "card_1_title", "Commercial & Suite Leasing"),
-      short: c("services", "card_1_short", "Office, retail, warehouse & flex space"),
+      title: c("services", "card_1_title", "Residential & Commercial Leasing"),
+      short: c("services", "card_1_short", "Apartments, homes, mixed-use & suites"),
       desc: c(
         "services",
         "card_1_desc",
-        `From private executive suites and storefronts to large-format commercial space tailored to your operations.`
+        `Clear lease terms, straightforward touring, and well-cared-for units across our portfolio.`
       ),
     },
     {
-      title: c("services", "card_2_title", "Custom Build-Outs & Renovations"),
-      short: c("services", "card_2_short", "Spaces configured around your workflow"),
+      title: c("services", "card_2_title", "Responsive Maintenance"),
+      short: c("services", "card_2_short", "Prompt repairs & preventative upkeep"),
       desc: c(
         "services",
         "card_2_desc",
-        `We partner with tenants to customize layouts, finishes, and infrastructure so your space is move-in ready.`
+        `Dedicated maintenance and cleaning coordination keeps buildings safe, clean, and comfortable year-round.`
       ),
     },
     {
-      title: c("services", "card_3_title", "Dedicated Property Management"),
-      short: c("services", "card_3_short", "Direct, local maintenance & tenant care"),
+      title: c("services", "card_3_title", "Direct Local Management"),
+      short: c("services", "card_3_short", "Real people, clear communication"),
       desc: c(
         "services",
         "card_3_desc",
-        `Our in-house maintenance and operations team responds fast, keeping your building clean, secure, and running smoothly.`
+        `Work directly with our local management team from initial inquiry through renewal.`
       ),
     },
   ];
 
-  const testimonialsList = [
-    {
-      quote: c(
-        "testimonials",
-        "quote_1",
-        "The team didn't just find us a space — they positioned us for long-term success. Responsive, professional, and easy to work with."
-      ),
-      author: c("testimonials", "author_1", "Local Business Owner"),
-      location: c("testimonials", "location_1", org.city || "Commercial Tenant"),
-    },
-    {
-      quote: c(
-        "testimonials",
-        "quote_2",
-        "Flexible terms gave our company the professional environment we needed without unnecessary overhead. Genuinely invested in our success."
-      ),
-      author: c("testimonials", "author_2", "Managing Partner"),
-      location: c("testimonials", "location_2", org.city || "Office Suite Tenant"),
-    },
-    {
-      quote: c(
-        "testimonials",
-        "quote_3",
-        "Maintenance requests get handled fast and communication is always clear. It's the best landlord experience we've had."
-      ),
-      author: c("testimonials", "author_3", "Operations Director"),
-      location: c("testimonials", "location_3", org.city || "Long-Term Tenant"),
-    },
-  ];
+  const testimonialsList = [1, 2, 3]
+    .map((idx) => {
+      const quote = (siteContent.testimonials?.[`quote_${idx}`] || "").trim();
+      if (!quote) return null;
+      return {
+        quote,
+        author: c("testimonials", `author_${idx}`, "Verified Resident"),
+        location: c("testimonials", `location_${idx}`, org.city || brandName),
+      };
+    })
+    .filter((item): item is { quote: string; author: string; location: string } => item !== null);
 
   const faqItems = [
     {
-      q: c("faq", "q_1", "How do I schedule a tour or get pricing?"),
+      q: c("faq", "q_1", "How do I schedule a showing or ask about availability?"),
       a: c(
         "faq",
         "a_1",
-        "Rates vary by property, square footage, and finish level. Click 'Schedule a Tour' or contact us directly for current availability and pricing."
+        "Click 'Schedule a Tour' on any listing or send us an inquiry directly with your preferred move-in date and questions."
       ),
     },
     {
-      q: c("faq", "q_2", "Do you offer flexible or multi-year lease terms?"),
+      q: c("faq", "q_2", "What lease terms do you offer?"),
       a: c(
         "faq",
         "a_2",
-        "Yes — we work with tenants on lease structures that fit their business stage, from flexible terms to multi-year commercial leases."
+        "Lease terms depend on the property and unit type. Reach out on the listing you're interested in and we'll share current rates and terms."
       ),
     },
     {
-      q: c("faq", "q_3", "What types of properties do you offer?"),
+      q: c("faq", "q_3", "What types of properties do you manage?"),
       a: c(
         "faq",
         "a_3",
-        "Browse our live property portfolio above to filter by space type, square footage, and immediate availability."
+        "Browse our available listings above to filter by property type, size, and location."
       ),
     },
     {
@@ -312,7 +296,7 @@ export default function TenantSiteClient({
       a: c(
         "faq",
         "a_4",
-        "Our dedicated in-house maintenance crew handles service requests promptly so you can stay focused on your business."
+        "Our maintenance team tracks and resolves repair requests promptly to keep every property in great shape."
       ),
     },
   ];
@@ -327,9 +311,20 @@ export default function TenantSiteClient({
       {isMember && (
         <div className="fixed top-0 left-0 right-0 z-50 h-10 bg-gradient-to-r from-sky-950/95 via-[#08101E]/95 to-sky-950/95 border-b border-sky-400/30 px-4 sm:px-6 flex items-center justify-between text-xs backdrop-blur-md">
           <div className="flex items-center gap-2 truncate">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-            <span className="text-gray-400 hidden sm:inline">Live Public Website:</span>
+            <span
+              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                sitePublished ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+              }`}
+            />
+            <span className="text-gray-400 hidden sm:inline">
+              {sitePublished ? "Live Public Website:" : "Draft Preview (Unpublished):"}
+            </span>
             <span className="text-sky-300 font-bold truncate">{org.name}</span>
+            {!sitePublished && (
+              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                Hidden from Google
+              </span>
+            )}
             <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30">
               {org.tier?.toUpperCase() || "PRO"} TIER
             </span>
@@ -868,16 +863,20 @@ export default function TenantSiteClient({
             </div>
           </section>
 
-          {/* 4. Client Testimonials Section */}
+          {/* 4. Client Testimonials Section — rendered ONLY when real testimonials are saved */}
+          {testimonialsList.length > 0 && (
           <section id="testimonials" className="scroll-mt-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-10">
             <div className="text-center max-w-3xl mx-auto space-y-3">
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-widest px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/20">
-                <Star size={12} fill="currentColor" />
-                <span>
-                  {c("testimonials", "review_score", "5.0 Stars")} ·{" "}
-                  {c("testimonials", "review_tagline", "Trusted by local businesses")}
-                </span>
-              </div>
+              {(siteContent.testimonials?.review_score || siteContent.testimonials?.review_tagline) && (
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-widest px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/20">
+                  <Star size={12} fill="currentColor" />
+                  <span>
+                    {[siteContent.testimonials?.review_score, siteContent.testimonials?.review_tagline]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </div>
+              )}
               <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
                 {c("testimonials", "section_heading_1", "What Our ")}{" "}
                 <span className="text-sky-400">
@@ -888,12 +887,12 @@ export default function TenantSiteClient({
                 {c(
                   "testimonials",
                   "section_subtext",
-                  `Businesses across our community trust ${brandName} to put them in the right space and support their growth.`
+                  `Feedback from residents and businesses leasing with ${brandName}.`
                 )}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className={`grid grid-cols-1 gap-6 ${testimonialsList.length === 1 ? "max-w-xl mx-auto" : testimonialsList.length === 2 ? "md:grid-cols-2 max-w-4xl mx-auto" : "md:grid-cols-3"}`}>
               {testimonialsList.map((t, i) => (
                 <div
                   key={i}
@@ -908,6 +907,7 @@ export default function TenantSiteClient({
               ))}
             </div>
           </section>
+          )}
 
           {/* 5. Leasing FAQ Section */}
           <section id="faq" className="scroll-mt-24 max-w-4xl mx-auto px-4 sm:px-6 space-y-8">

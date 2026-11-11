@@ -262,11 +262,31 @@ export async function PATCH(req: NextRequest) {
 
   return attemptPatch(patch);
 }
-// DELETE /api/tenants?id=xxx
+// DELETE /api/tenants?id=xxx or ?clear_sample=1
 export async function DELETE(req: NextRequest) {
   const g = await requireOrgAdmin(req);
   if (!g.ok) return g.res;
   const { orgId } = g.ctx;
+
+  if (req.nextUrl.searchParams.get("clear_sample") === "1") {
+    const delRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/tenants?org_id=eq.${orgId}&notes=ilike.*%5BSAMPLE%5D*`,
+      { method: "DELETE", headers: HEADERS }
+    );
+    if (!delRes.ok) {
+      console.error("tenants clear_sample error:", await delRes.text());
+      return NextResponse.json({ error: "Failed to clear sample tenants" }, { status: 500 });
+    }
+    writeActivityLog({
+      ...actorOf(g.ctx),
+      org_id: orgId,
+      action: "deleted",
+      resource_type: "tenant",
+      resource_name: "Cleared sample demo tenants",
+      resource_id: "sample_batch",
+    });
+    return NextResponse.json({ success: true });
+  }
 
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });

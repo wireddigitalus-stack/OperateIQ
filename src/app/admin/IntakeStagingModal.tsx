@@ -664,24 +664,37 @@ export default function IntakeStagingModal({
       return;
     }
 
+    const isSampleRoll = sourceFile?.type === "sample";
+    if (isSampleRoll) {
+      const ok = window.confirm(
+        `These ${selectedRecords.length} rows come from the PropOpsIQ sample demo roll.\n\nImport them as tagged [SAMPLE] records (unpublished and removable in one click)?`
+      );
+      if (!ok) return;
+    }
+
     setStep("committing");
     setErrorMsg("");
 
     try {
-      const payload = selectedRecords.map((r) => ({
-        name: r.name.trim(),
-        contact_name: r.contactName.trim(),
-        email: r.email.trim(),
-        phone: r.phone.trim(),
-        building: r.building.trim() || "Main Building",
-        unit: r.unit.trim(),
-        monthly_rent: Number(r.monthlyRent) || 0,
-        security_deposit: Number(r.securityDeposit) || 0,
-        lease_start: r.leaseStart || null,
-        lease_end: r.leaseEnd || null,
-        status: "active",
-        notes: r.notes.trim() ? `${r.notes.trim()} (Imported via AI Intake)` : "Imported via AI Intake",
-      }));
+      const payload = selectedRecords.map((r) => {
+        const baseNote = r.notes.trim()
+          ? `${r.notes.trim()} (Imported via AI Intake)`
+          : "Imported via AI Intake";
+        return {
+          name: r.name.trim(),
+          contact_name: r.contactName.trim(),
+          email: r.email.trim(),
+          phone: r.phone.trim(),
+          building: r.building.trim() || "Main Building",
+          unit: r.unit.trim(),
+          monthly_rent: Number(r.monthlyRent) || 0,
+          security_deposit: Number(r.securityDeposit) || 0,
+          lease_start: r.leaseStart || null,
+          lease_end: r.leaseEnd || null,
+          status: "active",
+          notes: isSampleRoll ? `[SAMPLE] ${baseNote}` : baseNote,
+        };
+      });
 
       // 1. Auto-enroll unique buildings into dynamic properties catalogue and property_details
       const uniqueBuildingNames = Array.from(new Set(payload.map((p) => p.building).filter(Boolean)));
@@ -714,12 +727,13 @@ export default function IntakeStagingModal({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               name: bName,
-              type: "Commercial / Residential",
+              type: "Residential / Mixed-Use",
               address: "",
               city: "",
               lease_status: "active",
               published: false,
               in_banner: false,
+              is_sample: isSampleRoll,
               description: `Auto-enrolled via PropOpsIQ AI Multi-Tenant Intake on ${new Date().toLocaleDateString()}`,
             }),
           });
@@ -910,19 +924,19 @@ export default function IntakeStagingModal({
 
                 <div className="flex flex-wrap items-center gap-2.5">
                   <a
-                    href="/sample-data/operateiq_test_portfolio.xlsx"
-                    download="operateiq_test_portfolio.xlsx"
+                    href="/sample-data/propopsiq_test_portfolio.xlsx"
+                    download="propopsiq_test_portfolio.xlsx"
                     className="px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-sm font-bold transition-all flex items-center gap-2"
-                    title="Download Excel test portfolio workbook"
+                    title="Download Excel sample portfolio workbook"
                   >
                     <FileSpreadsheet size={15} />
                     <span>Download .XLSX</span>
                   </a>
                   <a
-                    href="/sample-data/operateiq_test_portfolio.csv"
-                    download="operateiq_test_portfolio.csv"
+                    href="/sample-data/propopsiq_test_portfolio.csv"
+                    download="propopsiq_test_portfolio.csv"
                     className="px-4 py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 text-sky-300 text-sm font-bold transition-all flex items-center gap-2"
-                    title="Download CSV test portfolio spreadsheet"
+                    title="Download CSV sample portfolio spreadsheet"
                   >
                     <FileSpreadsheet size={15} />
                     <span>Download .CSV</span>
@@ -932,7 +946,7 @@ export default function IntakeStagingModal({
                     onClick={handleLoadSample}
                     className="px-5 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.18] border border-white/25 text-white text-sm sm:text-base font-black transition-all flex items-center gap-2 whitespace-nowrap shadow-[0_0_16px_rgba(255,255,255,0.08)] cursor-pointer"
                   >
-                    ⚡ 1-Click Load 18 Units <ArrowRight size={15} />
+                    ⚡ Preview 18 Sample Units <ArrowRight size={15} />
                   </button>
                 </div>
               </div>

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrg, requireOrgAdmin } from "@/lib/server-auth";
-import { PROPERTIES } from "@/lib/data";
 import { getPlan } from "@/lib/plans";
+import {
+  SAMPLE_LANDLORD_PROPERTIES,
+  SAMPLE_PROP_BADGE,
+  SAMPLE_PROP_PREFIX,
+  isSampleProperty,
+} from "@/lib/sample-data";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -23,7 +28,7 @@ async function resolveOrgIdBySlug(slug: string): Promise<string | null> {
 
 /**
  * GET
- *  • Public mode:  ?org_slug=<slug> (or ?slug=<slug>) → published properties of that org only.
+ *  • Public mode:  ?org_slug=<slug> (or ?slug=<slug>) → published, non-sample properties of that org only.
  *  • Authed mode:  org members get their own org's properties. `?admin=1` includes unpublished.
  */
 export async function GET(req: NextRequest) {
@@ -58,7 +63,11 @@ export async function GET(req: NextRequest) {
     }
     return NextResponse.json({ error: err }, { status: 500 });
   }
-  const properties = await res.json();
+  const raw = await res.json();
+  const properties =
+    publicSlug && Array.isArray(raw)
+      ? raw.filter((p) => !isSampleProperty(p))
+      : raw;
   return NextResponse.json({ properties, tableExists: true });
 }
 
@@ -79,10 +88,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, properties: existingRows, seeded: 0 });
     }
 
-    const limit = getPlan(g.ctx.org.tier).limits.properties;
-    const seedCap = limit ? Math.min(limit, 4) : 4;
-    const demoRows = PROPERTIES.slice(0, seedCap).map((p) => ({
-      id: crypto.randomUUID(),
+    const demoRows = SAMPLE_LANDLORD_PROPERTIES.map((p) => ({
+      id: `${SAMPLE_PROP_PREFIX}${crypto.randomUUID()}`,
       org_id: orgId,
       name: p.name,
       type: p.type,
@@ -90,14 +97,14 @@ export async function POST(req: NextRequest) {
       city: p.city,
       sqft: p.sqft || null,
       lease_status: "available",
-      badge: p.badge || null,
-      badge_color: p.badgeColor || "#4ADE80",
+      badge: SAMPLE_PROP_BADGE,
+      badge_color: "#F59E0B",
       description: p.description || null,
       features: p.features || [],
-      images: p.images || [p.image],
+      images: [p.image],
       hero_image: p.image || null,
-      in_banner: true,
-      published: true,
+      in_banner: false,
+      published: false,
     }));
 
     const seedRes = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
@@ -110,21 +117,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: err }, { status: 500 });
     }
     const created = await seedRes.json();
-    return NextResponse.json({ success: true, properties: created, seeded: Array.isArray(created) ? created.length : 0 });
+    return NextResponse.json({
+      success: true,
+      properties: created,
+      seeded: Array.isArray(created) ? created.length : 0,
+    });
   }
 
+  const isSample = Boolean(body.is_sample);
   const limit = getPlan(g.ctx.org.tier).limits.properties;
-  if (limit !== null && !g.ctx.isSuperAdmin) {
+  if (!isSample && limit !== null && !g.ctx.isSuperAdmin) {
     const countRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/properties?select=id&org_id=eq.${orgId}`,
+      `${SUPABASE_URL}/rest/v1/properties?select=id,badge&org_id=eq.${orgId}`,
       { headers: H, cache: "no-store" }
     );
     const existing = countRes.ok ? await countRes.json() : [];
-    const count = Array.isArray(existing) ? existing.length : 0;
-    if (count >= limit) {
+    const realCount = Array.isArray(existing)
+      ? existing.filter((p) => !isSampleProperty(p)).length
+      : 0;
+    if (realCount >= limit) {
       return NextResponse.json(
         {
-          error: "You have reached the maximum number of properties for your current plan. Upgrade in Settings → Billing.",
+          error:
+            "You have reached the maximum number of properties for your current plan. Upgrade in Settings → Billing.",
           code: "LIMIT_REACHED",
         },
         { status: 403 }
@@ -132,23 +147,26 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const record = {
+  const record: Record<string, unknown> = {
     name: body.name,
     type: body.type,
     address: body.address || null,
     city: body.city,
     sqft: body.sqft || null,
     lease_status: body.lease_status || "available",
-    badge: body.badge || null,
-    badge_color: body.badge_color || "#4ADE80",
+    badge: isSample ? SAMPLE_PROP_BADGE : body.badge || null,
+    badge_color: isSample ? "#F59E0B" : body.badge_color || "#4ADE80",
     description: body.description || null,
     features: body.features || [],
     images: body.images || [],
     hero_image: body.hero_image || null,
-    in_banner: !!body.in_banner,
-    published: !!body.published,
+    in_banner: isSample ? false : !!body.in_banner,
+    published: isSample ? false : !!body.published,
     org_id: orgId,
   };
+  if (isSample) {
+    record.id = `${SAMPLE_PROP_PREFIX}${crypto.randomUUID()}`;
+  }
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
     method: "POST",
@@ -173,6 +191,34 @@ export async function DELETE(req: NextRequest) {
   const { orgId } = g.ctx;
 
   const { searchParams } = new URL(req.url);
+  if (searchParams.get("clear_sample") === "1") {
+    const listRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/properties?select=id,name,badge&org_id=eq.${orgId}`,
+      { headers: H, cache: "no-store" }
+    );
+    const rows = listRes.ok ? await listRes.json() : [];
+    const sampleIds = Array.isArray(rows)
+      ? rows.filter((r) => isSampleProperty(r)).map((r) => String(r.id))
+      : [];
+
+    if (sampleIds.length > 0) {
+      const inList = sampleIds.map((id) => `"${id.replace(/"/g, "")}"`).join(",");
+      const delRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&id=in.(${encodeURIComponent(inList)})`,
+        { method: "DELETE", headers: H }
+      );
+      if (!delRes.ok) {
+        const err = await delRes.text();
+        return NextResponse.json({ error: err }, { status: 500 });
+      }
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/property_details?org_id=eq.${orgId}&property_id=in.(${encodeURIComponent(inList)})`,
+        { method: "DELETE", headers: H }
+      ).catch(() => {});
+    }
+    return NextResponse.json({ success: true, cleared: sampleIds.length });
+  }
+
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 

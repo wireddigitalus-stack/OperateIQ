@@ -15,6 +15,10 @@ export default function AuthCallbackPage() {
     function getNextPath(): string {
       if (typeof window === "undefined") return "/admin";
       const sp = new URLSearchParams(window.location.search);
+      const hp = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      if (sp.get("type") === "recovery" || hp.get("type") === "recovery") {
+        return "/auth/reset";
+      }
       const fromQuery = sp.get("next");
       const fromStorage = sessionStorage.getItem("oiq_auth_next");
       sessionStorage.removeItem("oiq_auth_next");
@@ -112,7 +116,14 @@ export default function AuthCallbackPage() {
     // Listen for ANY auth event that has a session — Supabase fires
     // INITIAL_SESSION (not SIGNED_IN) after PKCE token extraction
     const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          if (!redirected.current) {
+            redirected.current = true;
+            router.replace("/auth/reset");
+          }
+          return;
+        }
         if (session) goToAdmin();
       }
     );

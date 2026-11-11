@@ -251,7 +251,7 @@ export default function SocialStudio() {
     ].join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([txt], { type: "text/plain" }));
-    a.download = `operateiq-social-${Date.now()}.txt`;
+    a.download = `propopsiq-social-${Date.now()}.txt`;
     a.click();
   }
 

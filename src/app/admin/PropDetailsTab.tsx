@@ -8,6 +8,7 @@ import {
   Landmark, Wrench, Thermometer, Sparkles,
 } from "lucide-react";
 import { PROPERTIES } from "@/lib/data";
+import { isSampleProperty } from "@/lib/sample-data";
 import { getOrgProfile } from "@/lib/org-profile";
 import { type Tenant, rowToTenant } from "./TenantsTab";
 import PortfolioOverviewCard from "./PortfolioOverviewCard";
@@ -69,6 +70,7 @@ export interface PropertyItem {
   sqft: string;
   status?: string;
   isDynamic?: boolean; // true if from Supabase properties table
+  isSample?: boolean;
 }
 
 export interface AvailableSpace {
@@ -844,6 +846,7 @@ export default function PropDetailsTab() {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string>("Your Portfolio");
   const [seedingDemo, setSeedingDemo] = useState(false);
+  const [clearingSample, setClearingSample] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -879,6 +882,7 @@ export default function PropDetailsTab() {
           address: (p.address as string) || "",
           sqft: (p.sqft as string) || "TBD",
           isDynamic: true,
+          isSample: isSampleProperty({ id: String(p.id || ""), badge: p.badge as string | null }),
         })));
       }
     }
@@ -913,42 +917,36 @@ export default function PropDetailsTab() {
     return [...staticProps, ...uniqueDyn];
   }, [dynProps, isDemoOrg]);
 
+  const sampleCount = useMemo(
+    () => dynProps.filter((p) => p.isSample).length,
+    [dynProps]
+  );
+
   const handleSeedDemo = async () => {
     setSeedingDemo(true);
     try {
-      const res = await fetch("/api/properties-dynamic", {
+      await fetch("/api/properties-dynamic", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "seed_demo" }),
       });
-      const data = await res.json().catch(() => ({}));
-      // Fallback if the endpoint didn't handle seed_demo directly
-      if (!res.ok || (!data.seeded && !data.properties && (!data.property || data.property.name === undefined))) {
-        for (const p of PROPERTIES) {
-          await fetch("/api/properties-dynamic", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: p.name,
-              type: p.type,
-              address: p.address,
-              city: p.city,
-              sqft: p.sqft,
-              lease_status: p.status || "available",
-              badge: p.badge || "Available",
-              badge_color: p.badgeColor || "#4ADE80",
-              description: p.description,
-              features: p.features || [],
-              images: p.images || [],
-              hero_image: p.image || null,
-              published: false,
-            }),
-          });
-        }
-      }
       setTick(t => t + 1);
     } finally {
       setSeedingDemo(false);
+    }
+  };
+
+  const handleClearSample = async () => {
+    if (!window.confirm("Remove all sample demo properties from your portfolio? Your real properties will not be affected.")) {
+      return;
+    }
+    setClearingSample(true);
+    try {
+      await fetch("/api/properties-dynamic?clear_sample=1", { method: "DELETE" });
+      setSelectedPropertyId("all");
+      setTick(t => t + 1);
+    } finally {
+      setClearingSample(false);
     }
   };
 
@@ -1315,7 +1313,7 @@ export default function PropDetailsTab() {
         {!loading && allProperties.length === 0 && (
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
             <p className="text-xs text-sky-200/90">
-              👋 <strong>New portfolio?</strong> Click <strong>+ Add Property</strong> above to create your first building, or load editable sample properties to explore the dashboard first.
+              👋 <strong>New portfolio?</strong> Click <strong>+ Add Property</strong> above to create your first building, or load private sample properties (hidden from your public site &amp; excluded from plan limits) to explore first.
             </p>
             <button
               onClick={handleSeedDemo}
@@ -1323,7 +1321,24 @@ export default function PropDetailsTab() {
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-400/40 bg-sky-500/15 text-sky-200 text-xs font-bold hover:bg-sky-500/25 transition-all disabled:opacity-50 flex-shrink-0 cursor-pointer"
             >
               {seedingDemo ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-              {seedingDemo ? "Loading Sample Properties…" : "Load Sample Demo Properties (Editable)"}
+              {seedingDemo ? "Loading Sample Properties…" : "Load Sample Properties (Removable)"}
+            </button>
+          </div>
+        )}
+
+        {/* Clear Sample Properties Banner */}
+        {!loading && sampleCount > 0 && (
+          <div className="mt-4 pt-4 border-t border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+            <p className="text-xs text-amber-200/90">
+              🧪 <strong>{sampleCount} sample {sampleCount === 1 ? "property" : "properties"}</strong> loaded for exploration. Sample rows stay unpublished and do not count toward your plan limit.
+            </p>
+            <button
+              onClick={handleClearSample}
+              disabled={clearingSample}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-400/40 bg-amber-500/15 text-amber-200 text-xs font-bold hover:bg-amber-500/25 transition-all disabled:opacity-50 flex-shrink-0 cursor-pointer"
+            >
+              {clearingSample ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              {clearingSample ? "Clearing Sample Data…" : "Clear Sample Properties"}
             </button>
           </div>
         )}

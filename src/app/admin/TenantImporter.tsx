@@ -242,12 +242,12 @@ export default function TenantImporter({ onImport, onClose }: Props) {
   const downloadTemplate = () => {
     const csv = [
       "Tenant Name,Primary Contact,Email,Phone,Building,Unit,Monthly Rent,Lease Start,Lease End,Status,Notes",
-      "Acme Tech Co.,Jane Smith,jane@acmetech.com,(555) 555-1234,Sample Office Building,Suite 204,4200,2023-01-01,2025-12-31,active,",
-      "Main Street Salon,Bob Jones,bob@salon.com,(555) 555-9876,Sample Retail Center,Unit 12,800,2024-06-01,2025-05-31,active,",
+      "Jordan Rivera,Jordan Rivera,jordan.rivera@example.com,(555) 555-1234,Maple Court Apartments,Apt 2A,1350,2025-01-01,2025-12-31,active,",
+      "Main Street Bakery LLC,Bob Jones,bob@mainstreetbakery.com,(555) 555-9876,Main Street Mixed-Use,Suite 101,1850,2024-06-01,2026-05-31,active,",
     ].join("\n");
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "oiq_tenant_import_template.csv";
+    a.download = "propopsiq_tenant_import_template.csv";
     a.click();
   };
 
@@ -316,19 +316,19 @@ export default function TenantImporter({ onImport, onClose }: Props) {
 
             <div className="flex items-center gap-4 pt-1">
               <a
-                href="/sample-data/operateiq_test_portfolio.xlsx"
-                download="operateiq_test_portfolio.xlsx"
+                href="/sample-data/propopsiq_test_portfolio.xlsx"
+                download="propopsiq_test_portfolio.xlsx"
                 className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
               >
-                <Download size={13} /> Download Test Portfolio (.xlsx)
+                <Download size={13} /> Download Sample Portfolio (.xlsx)
               </a>
               <span className="text-gray-600">·</span>
               <a
-                href="/sample-data/operateiq_test_portfolio.csv"
-                download="operateiq_test_portfolio.csv"
+                href="/sample-data/propopsiq_test_portfolio.csv"
+                download="propopsiq_test_portfolio.csv"
                 className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 transition-colors font-medium"
               >
-                <Download size={13} /> Download Test Portfolio (.csv)
+                <Download size={13} /> Download Sample Portfolio (.csv)
               </a>
             </div>
           </div>

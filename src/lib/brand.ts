@@ -2,7 +2,7 @@
 export const BRAND = {
   name: "PropOpsIQ",
   assistant: "OpsIQ",
-  tagline: "Property operations, intelligence Platform.",
+  tagline: "Property Operations & Intelligence Platform",
   description:
     "PropOpsIQ is the all-in-one property management platform for small and mid-size owners — rent, tenants, maintenance, cleaning, inspections, reporting, and an AI assistant in one place.",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://www.PropOpsIQ.com",

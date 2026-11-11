@@ -15,7 +15,7 @@ interface CustomDomainManagerProps {
 
 export default function CustomDomainManager({
   orgId,
-  orgName = "WIRED DIGITAL LLC",
+  orgName = "your portfolio",
   currentDomain,
   onDomainUpdated,
 }: CustomDomainManagerProps) {
@@ -158,7 +158,7 @@ export default function CustomDomainManager({
                 type="text"
                 value={domainInput}
                 onChange={(e) => setDomainInput(e.target.value)}
-                placeholder="e.g. properties.wireddigital.com or wireddigitalproperties.com"
+                placeholder="e.g. listings.yourcompany.com or yourcompanyrentals.com"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/15 text-white text-sm outline-none focus:border-sky-400 transition-colors placeholder:text-slate-600 font-mono"
               />
             </div>
@@ -175,7 +175,7 @@ export default function CustomDomainManager({
             </button>
           </div>
           <p className="text-[11px] text-slate-500 mt-2">
-            Tip: You can use a dedicated standalone domain (e.g. <span className="font-mono text-slate-400">wireddigitalproperties.com</span>) or a subdomain of your existing site (e.g. <span className="font-mono text-slate-400">properties.wireddigital.com</span>).
+            Tip: You can use a dedicated standalone domain (e.g. <span className="font-mono text-slate-400">yourcompanyrentals.com</span>) or a subdomain of your existing site (e.g. <span className="font-mono text-slate-400">listings.yourcompany.com</span>).
           </p>
         </div>
       </form>
@@ -227,7 +227,7 @@ export default function CustomDomainManager({
               </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-normal">
-              e.g. <span className="font-mono text-sky-300">properties</span>.wireddigital.com
+              e.g. <span className="font-mono text-sky-300">listings</span>.yourcompany.com
             </p>
           </button>
 
@@ -247,7 +247,7 @@ export default function CustomDomainManager({
               </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-normal">
-              e.g. <span className="font-mono text-indigo-300">wireddigitalproperties.com</span>
+              e.g. <span className="font-mono text-indigo-300">yourcompanyrentals.com</span>
             </p>
           </button>
         </div>

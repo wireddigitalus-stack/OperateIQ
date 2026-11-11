@@ -188,8 +188,8 @@ function TenantForm({
 
       {/* Company & Contact */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div><label className={LABEL}>Company / Tenant Name *</label>
-          <input value={form.name || ""} onChange={e => set("name", e.target.value)} placeholder="Acme Tech Co." className={FIELD} spellCheck /></div>
+        <div><label className={LABEL}>Resident / Tenant Name *</label>
+          <input value={form.name || ""} onChange={e => set("name", e.target.value)} placeholder="Jordan Rivera or Main St Cafe LLC" className={FIELD} spellCheck /></div>
         <div><label className={LABEL}>Primary Contact</label>
           <div className="flex gap-1.5 items-center"><input value={form.contactName || ""} onChange={e => set("contactName", e.target.value)} placeholder="Jane Smith" className={FIELD + " flex-1"} spellCheck /><MicButton onResult={(t) => set("contactName", (form.contactName || "") + (form.contactName ? " " : "") + t)} /></div></div>
         <div><label className={LABEL}>Email</label>
@@ -1721,6 +1721,28 @@ export default function TenantsTab({
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [showImporter, setShowImporter] = useState(false);
   const [showIntakeStaging, setShowIntakeStaging] = useState(false);
+  const [clearingSampleTenants, setClearingSampleTenants] = useState(false);
+
+  const sampleTenantCount = useMemo(
+    () => tenants.filter((t) => String(t.notes || "").includes("[SAMPLE]")).length,
+    [tenants]
+  );
+
+  const handleClearSampleTenants = async () => {
+    if (!window.confirm(`Remove all ${sampleTenantCount} sample demo tenants (and any sample properties) from your workspace? Your real tenants will not be affected.`)) {
+      return;
+    }
+    setClearingSampleTenants(true);
+    try {
+      await Promise.all([
+        fetch("/api/tenants?clear_sample=1", { method: "DELETE" }),
+        fetch("/api/properties-dynamic?clear_sample=1", { method: "DELETE" }),
+      ]);
+      await fetchTenants();
+    } finally {
+      setClearingSampleTenants(false);
+    }
+  };
 
   useEffect(() => {
     if (prepopulatedTenant) {
@@ -2013,6 +2035,16 @@ export default function TenantsTab({
               <FileSpreadsheet size={15} className="text-emerald-400" />
               <span>Import Excel / CSV</span>
             </button>
+            {sampleTenantCount > 0 && (
+              <button
+                onClick={handleClearSampleTenants}
+                disabled={clearingSampleTenants}
+                className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl border border-amber-400/40 bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 text-xs sm:text-sm font-bold transition-all cursor-pointer disabled:opacity-50"
+              >
+                {clearingSampleTenants ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                <span>Clear {sampleTenantCount} Sample Tenants</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

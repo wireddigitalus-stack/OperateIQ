@@ -26,7 +26,11 @@ const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 function SignupForm() {
   const searchParams = useSearchParams();
-  const initialPlan = (searchParams.get("plan") as Tier) || "pro";
+  const rawPlan = searchParams.get("plan");
+  const initialPlan: Tier =
+    rawPlan === "starter" || rawPlan === "growth" || rawPlan === "pro"
+      ? rawPlan
+      : "growth";
   const billing = searchParams.get("billing") === "annual" ? "annual" : "monthly";
 
   const [selectedPlan, setSelectedPlan] = useState<Tier>(initialPlan);
@@ -35,8 +39,9 @@ function SignupForm() {
   const [password, setPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [unitCount, setUnitCount] = useState("11 - 50 Units");
-  const [portfolioType, setPortfolioType] = useState("Mixed-Use (Commercial & Residential)");
+  const [portfolioType, setPortfolioType] = useState("Small Multifamily (2 - 20 Units)");
   const [phone, setPhone] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthSignedIn, setOauthSignedIn] = useState(false);
@@ -45,7 +50,7 @@ function SignupForm() {
   const [created, setCreated] = useState<{ slug: string; signedIn: boolean } | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
 
-  const activePlan = PLANS.find((p) => p.id === selectedPlan) || PLANS[2];
+  const activePlan = PLANS.find((p) => p.id === selectedPlan) || PLANS[1];
 
   useEffect(() => {
     supabaseBrowser.auth.getUser().then(({ data: { user } }) => {
@@ -87,6 +92,10 @@ function SignupForm() {
     }
     if (!oauthSignedIn && password && password.length < 8) {
       setErrorMsg("Password must be at least 8 characters.");
+      return;
+    }
+    if (!agreedToTerms) {
+      setErrorMsg("Please agree to the Terms of Service and Privacy Policy to continue.");
       return;
     }
 
@@ -207,14 +216,18 @@ function SignupForm() {
           </p>
         </div>
 
-        {/* Benefits checklist */}
+        {/* Benefits checklist (aligned to selected plan) */}
         <div className="space-y-3 pt-2">
           {[
-            "Full access to rent ledgers, maintenance & crew portals",
-            "Autonomous AI operations assistant (PropOpsIQ) included",
-            "Start with a clean workspace — or load sample demo properties in 1 click",
-            "Turnkey public property showcase site on Pro tier",
-            "Cancel or upgrade anytime with zero penalties",
+            "Properties, tenant roster, monthly rent ledger & security deposits",
+            "Maintenance work orders & mobile PIN portal for field crew",
+            selectedPlan === "starter"
+              ? "AI rent-roll intake & OpsIQ assistant (up to 5 properties)"
+              : "Cleaning schedules, inspections, vendor directory & financial reports",
+            selectedPlan === "pro"
+              ? "Public listing website builder, blog & custom domain included"
+              : "Starts private & clean — load removable sample properties in 1 click",
+            "Cancel or change plans anytime during your 14-day trial",
           ].map((item) => (
             <div key={item} className="flex items-start gap-2.5">
               <CheckCircle2 size={15} className="text-emerald-400 mt-0.5 shrink-0" />
@@ -322,7 +335,7 @@ function SignupForm() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Your Name"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-base sm:text-xs outline-none focus:border-sky-400 transition-colors"
                   />
                 </div>
               </div>
@@ -338,8 +351,8 @@ function SignupForm() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@acmeproperties.com"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                    placeholder="you@yourportfolio.com"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-base sm:text-xs outline-none focus:border-sky-400 transition-colors"
                   />
                 </div>
               </div>
@@ -360,7 +373,7 @@ function SignupForm() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Create a password (at least 8 characters)"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-base sm:text-xs outline-none focus:border-sky-400 transition-colors"
                   />
                 </div>
               </div>
@@ -379,8 +392,8 @@ function SignupForm() {
                     required
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="ACME Property Management"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                    placeholder="Maple Street Properties LLC"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-base sm:text-xs outline-none focus:border-sky-400 transition-colors"
                   />
                 </div>
               </div>
@@ -396,7 +409,7 @@ function SignupForm() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="(555) 234-5678"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-base sm:text-xs outline-none focus:border-sky-400 transition-colors"
                   />
                 </div>
               </div>
@@ -411,7 +424,7 @@ function SignupForm() {
                 <select
                   value={unitCount}
                   onChange={(e) => setUnitCount(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                  className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-base sm:text-xs outline-none focus:border-sky-400 transition-colors"
                 >
                   <option value="1 - 10 Units">1 – 10 Units</option>
                   <option value="11 - 50 Units">11 – 50 Units</option>
@@ -427,13 +440,13 @@ function SignupForm() {
                 <select
                   value={portfolioType}
                   onChange={(e) => setPortfolioType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-sky-400 transition-colors"
+                  className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-base sm:text-xs outline-none focus:border-sky-400 transition-colors"
                 >
-                  <option value="Mixed-Use (Commercial & Residential)">Mixed-Use (Retail & Lofts)</option>
-                  <option value="Commercial & Medical Office">Medical & Commercial Office</option>
-                  <option value="Multi-Family Residential">Multi-Family Residential</option>
-                  <option value="Contractor Flex & Light Industrial">Contractor Flex & Industrial</option>
-                  <option value="Diversified Portfolio">Diversified Portfolio</option>
+                  <option value="Single-Family Rentals">Single-Family Rentals (SFR / Duplexes)</option>
+                  <option value="Small Multifamily (2 - 20 Units)">Small Multifamily (2 – 20 Units)</option>
+                  <option value="Multifamily Residential (21+ Units)">Multifamily Residential (21+ Units)</option>
+                  <option value="Mixed-Use (Residential & Commercial)">Mixed-Use (Residential &amp; Storefronts)</option>
+                  <option value="Commercial / Retail / Flex">Commercial, Office &amp; Flex Space</option>
                 </select>
               </div>
             </div>
@@ -485,11 +498,33 @@ function SignupForm() {
               />
             )}
 
+            {/* Terms & Privacy Checkbox */}
+            <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                required
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-white/25 bg-black/50 text-sky-500 focus:ring-sky-500 shrink-0"
+              />
+              <span className="text-[11px] text-slate-300 leading-relaxed">
+                I agree to the {BRAND.name}{" "}
+                <Link href="/terms" target="_blank" className="text-sky-400 hover:underline font-semibold">
+                  Terms of Service &amp; Beta Program Terms
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" target="_blank" className="text-sky-400 hover:underline font-semibold">
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
+
             {/* Submit Button */}
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={submitting || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
+                disabled={submitting || !agreedToTerms || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
                 className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-500 via-sky-500 to-indigo-600 text-white font-bold text-xs shadow-[0_0_24px_rgba(56,189,248,0.35)] hover:opacity-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {submitting ? (
@@ -507,7 +542,7 @@ function SignupForm() {
             </div>
 
             <p className="text-center text-[10px] text-slate-500 mt-2">
-              🔒 No credit card required. By signing up, you agree to our Terms of Service and Privacy Policy.
+              🔒 No credit card required during your {TRIAL_DAYS}-day trial. Export or delete your workspace anytime.
             </p>
           </form>
         </div>
