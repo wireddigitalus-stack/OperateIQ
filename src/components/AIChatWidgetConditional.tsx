@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import OpsIQWidget from "./OpsIQWidget";
+import SafeWidgetBoundary from "./SafeWidgetBoundary";
 
 function isTenantCustomDomain(): boolean {
   if (typeof window === "undefined") return false;
@@ -35,5 +36,9 @@ export default function AIChatWidgetConditional() {
     pathname?.startsWith("/wired-digital") ||
     pathname?.toLowerCase().includes("-admin")
   ) return null;
-  return <OpsIQWidget />;
+  return (
+    <SafeWidgetBoundary name="opsiq-public-chat">
+      <OpsIQWidget />
+    </SafeWidgetBoundary>
+  );
 }

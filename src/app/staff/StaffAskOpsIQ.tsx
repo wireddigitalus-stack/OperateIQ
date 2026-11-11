@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { Brain, X, Send, Loader2, Sparkles } from "lucide-react";
+import SafeWidgetBoundary from "@/components/SafeWidgetBoundary";
 
 interface Message {
   role: "user" | "ai";
@@ -33,6 +34,12 @@ export default function StaffAskOpsIQ({ role, context }: StaffAskOpsIQProps) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleClose = () => {
+    inputRef.current?.blur();
+    setOpen(false);
+  };
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -64,19 +71,23 @@ export default function StaffAskOpsIQ({ role, context }: StaffAskOpsIQProps) {
     : "from-[#4ADE80] to-[#22C55E]";
 
   return (
-    <>
-      {/* Floating Brain Button */}
-      <button
-        onClick={() => setOpen(true)}
-        className={`fixed bottom-24 right-4 z-30 w-14 h-14 rounded-full bg-gradient-to-br ${roleGradient} shadow-lg flex items-center justify-center text-black transition-transform active:scale-90`}
-        aria-label="Ask OpsIQ AI"
-      >
-        <Brain size={22} />
-      </button>
+    <SafeWidgetBoundary name="staff-ask-opsiq">
+      <div translate="no" className="notranslate">
+        {/* Floating Brain Button */}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={`fixed bottom-24 right-4 z-30 w-14 h-14 rounded-full bg-gradient-to-br ${roleGradient} shadow-lg flex items-center justify-center text-black transition-transform active:scale-90`}
+          aria-label="Ask OpsIQ AI"
+        >
+          <Brain size={22} />
+        </button>
 
-      {/* Full-screen chat sheet */}
-      {open && (
-        <div className="fixed inset-0 z-50 bg-[#080C14] flex flex-col">
+        {/* Full-screen chat sheet (persistently mounted) */}
+        <div
+          aria-hidden={!open}
+          className={open ? "fixed inset-0 z-50 bg-[#080C14] flex flex-col" : "hidden"}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-4 border-b border-[rgba(255,255,255,0.07)] flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -90,7 +101,12 @@ export default function StaffAskOpsIQ({ role, context }: StaffAskOpsIQProps) {
                 </p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="w-10 h-10 rounded-xl bg-[rgba(255,255,255,0.06)] flex items-center justify-center">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="w-10 h-10 rounded-xl bg-[rgba(255,255,255,0.06)] flex items-center justify-center"
+              aria-label="Close Ask OpsIQ"
+            >
               <X size={18} className="text-gray-400" />
             </button>
           </div>
@@ -151,15 +167,23 @@ export default function StaffAskOpsIQ({ role, context }: StaffAskOpsIQProps) {
           <div className="flex-shrink-0 px-4 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-[rgba(255,255,255,0.07)] bg-[rgba(8,12,20,0.97)]">
             <div className="flex items-end gap-2">
               <textarea
+                ref={inputRef}
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(input); } }}
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
                 placeholder={role === "maintenance" ? "Ask about repairs, tools, or procedures…" : "Ask about cleaning, supplies, or what to report…"}
                 rows={2}
                 className="flex-1 bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 resize-none"
                 style={{ borderColor: input ? `${roleColor}40` : undefined }}
               />
               <button
+                type="button"
                 onClick={() => ask(input)}
                 disabled={loading || !input.trim()}
                 className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${roleGradient} flex items-center justify-center text-black flex-shrink-0 disabled:opacity-40 active:scale-90 transition-all`}
@@ -169,7 +193,7 @@ export default function StaffAskOpsIQ({ role, context }: StaffAskOpsIQProps) {
             </div>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </SafeWidgetBoundary>
   );
 }

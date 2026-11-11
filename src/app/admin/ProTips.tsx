@@ -104,9 +104,10 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
   };
 
   return (
-    <>
+    <div translate="no" className="notranslate">
       {/* ── Modern Floating Help & Guide Trigger Button ── */}
       <button
+        type="button"
         onClick={handleOpen}
         aria-label="Open Help & Guide Center"
         className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center gap-2 sm:gap-2.5 px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl
@@ -125,20 +126,24 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
         )}
       </button>
 
-      {/* ── Full-Height Expanding Modal Popup (Scrolls via Outer Overlay, Zero Inner Scrollbars) ── */}
-      {open && (
-        <div
-          ref={overlayRef}
-          onMouseDown={(e) => {
-            if (
-              e.target === e.currentTarget &&
-              e.clientX < e.currentTarget.clientWidth
-            ) {
-              setOpen(false);
-            }
-          }}
-          className="fixed inset-0 z-[200] overflow-y-auto p-3 sm:p-6 md:p-10 flex items-start justify-center"
-        >
+      {/* ── Full-Height Expanding Modal Popup (Persistently Mounted, Scrolls via Outer Overlay) ── */}
+      <div
+        ref={overlayRef}
+        aria-hidden={!open}
+        onMouseDown={(e) => {
+          if (
+            e.target === e.currentTarget &&
+            e.clientX < e.currentTarget.clientWidth
+          ) {
+            setOpen(false);
+          }
+        }}
+        className={
+          open
+            ? "fixed inset-0 z-[200] overflow-y-auto p-3 sm:p-6 md:p-10 flex items-start justify-center"
+            : "hidden"
+        }
+      >
           {/* Full-Viewport Backdrop */}
           <div
             onClick={() => setOpen(false)}
@@ -506,6 +511,7 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
                 </Link>
               </div>
               <button
+                type="button"
                 onClick={() => setOpen(false)}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-bold hover:opacity-95 transition-opacity shadow-[0_0_20px_rgba(16,185,129,0.3)] cursor-pointer"
               >
@@ -513,8 +519,7 @@ export default function ProTips({ activeTab, customerCode }: { activeTab: TabKey
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }

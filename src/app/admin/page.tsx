@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { rowToTenant, type Tenant } from "@/lib/tenant-mapper";
 import type { AnalyticsLead } from "./AnalyticsTab";
 import ProTips from "./ProTips";
+import SafeWidgetBoundary from "@/components/SafeWidgetBoundary";
 import CallLogModal, { type CallLog, outcomeColor, outcomeLabel } from "./CallLogModal";
 import PrintButton from "./PrintButton";
 import GetStartedChecklist from "@/components/admin/GetStartedChecklist";
@@ -248,11 +249,13 @@ const QUICK_QUERIES = [
 ];
 
 function AskOpsIQModal({
+  isOpen,
   leads,
   orgName,
   customerCode,
   onClose,
 }: {
+  isOpen: boolean;
   leads: Lead[];
   orgName?: string;
   customerCode?: string;
@@ -271,17 +274,38 @@ function AskOpsIQModal({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
+  const handleClose = useCallback(() => {
+    inputRef.current?.blur();
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!isOpen) return;
+    const raf = requestAnimationFrame(() => {
+      try {
+        inputRef.current?.focus();
+      } catch {
+        /* ignore focus errors */
+      }
+    });
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen, handleClose]);
 
   useEffect(() => {
     if (orgName) setResolvedOrgName(orgName);
   }, [orgName]);
 
   useEffect(() => {
+    if (!isOpen) return;
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, isOpen]);
 
   const ask = async (q?: string) => {
     const question = (q || query).trim();
@@ -341,8 +365,14 @@ function AskOpsIQModal({
 
   return (
     <div
-      onClick={onClose}
-      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 pt-16 sm:pt-4 overflow-y-auto"
+      onClick={handleClose}
+      aria-hidden={!isOpen}
+      translate="no"
+      className={
+        isOpen
+          ? "fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 pt-16 sm:pt-4 overflow-y-auto notranslate"
+          : "hidden"
+      }
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -376,7 +406,8 @@ function AskOpsIQModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            type="button"
+            onClick={handleClose}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-rose-500/20 border border-white/10 hover:border-rose-400/30 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex-shrink-0"
           >
             <span>Close</span>
@@ -454,6 +485,12 @@ function AskOpsIQModal({
                     ask();
                   }
                 }}
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
                 placeholder={`Ask anything about ${resolvedOrgName}'s properties, tenants, rent roll, maintenance, or leads…`}
                 rows={2}
                 className="w-full bg-transparent text-sm text-white placeholder-gray-500 outline-none resize-none"
@@ -2444,15 +2481,16 @@ export default function AdminPage() {
 
         </div>
 
-        {/* Ask OpsIQ Modal */}
-        {showAskOpsIQ && (
+        {/* Ask OpsIQ Modal (persistently mounted & boundary-isolated) */}
+        <SafeWidgetBoundary name="admin-ask-opsiq">
           <AskOpsIQModal
+            isOpen={showAskOpsIQ}
             leads={leads}
             orgName={activeOrg?.name}
             customerCode={activeOrgCode}
             onClose={() => setShowAskOpsIQ(false)}
           />
-        )}
+        </SafeWidgetBoundary>
 
         {/* AI Multi-Tenant & Building Intake Modal */}
         {showIntakeModal && (
@@ -3944,10 +3982,12 @@ export default function AdminPage() {
       </div>
 
       {/* ─ PRO TIPS floating button (always visible, context-aware) ─────────── */}
-      <ProTips
-        activeTab={(activeTab === "marketing" ? `marketing-${marketingSubTab}` : activeTab === "content" ? contentSubView : activeTab === "rentledger" ? "tenants" : activeTab === "expenses" ? "propdetails" : activeTab) as import("./ProTips").TabKey}
-        customerCode={activeOrgCode}
-      />
+      <SafeWidgetBoundary name="admin-protips">
+        <ProTips
+          activeTab={(activeTab === "marketing" ? `marketing-${marketingSubTab}` : activeTab === "content" ? contentSubView : activeTab === "rentledger" ? "tenants" : activeTab === "expenses" ? "propdetails" : activeTab) as import("./ProTips").TabKey}
+          customerCode={activeOrgCode}
+        />
+      </SafeWidgetBoundary>
 
       {/* Activity Feed slide-in panel */}
       {showActivityFeed && (

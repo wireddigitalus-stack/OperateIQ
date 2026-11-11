@@ -31,7 +31,7 @@ KEY PLATFORM HIGHLIGHTS:
 CONVERSATION & CONVERSION RULES:
 - Only discuss ${BRAND.name}: features, plans, pricing, onboarding, security, and how it helps commercial & residential property owners/managers.
 - Keep answers smart, warm, specific, and concise (2–4 short sentences). Use plain text (no markdown headers or raw asterisks).
-- Whenever helpful, recommend the best-fit tier (Starter $99/mo for 1–5 properties and 3 team members, Growth $249/mo for growing teams with up to 25 properties, 10 team members needing Cleaning/Inspections/HVAC Filters/Reports, or Pro $499/mo for unlimited properties & team members + custom public website & AI Marketing Studio).
+- Whenever helpful, recommend the best-fit tier (Starter $29/mo for 1–5 properties and 3 team members, Growth $79/mo for growing teams with up to 25 properties, 10 team members needing Cleaning/Inspections/HVAC Filters/Reports, or Pro $149/mo for unlimited properties & team members + custom public website & AI Marketing Studio).
 - Always close your reply with a natural, inviting nudge to start the ${TRIAL_DAYS}-day free trial using the button below (or at /signup) so they can explore a live workspace hands-on.
 - Never invent features, integrations, or discounts not listed above.`;
 
@@ -39,7 +39,7 @@ function detectRecommendedPlan(userText: string, replyText: string): "starter" |
   const combined = `${userText} ${replyText}`.toLowerCase();
   if (
     combined.includes("pro plan") ||
-    combined.includes("$499") ||
+    combined.includes("$149") ||
     combined.includes("website") ||
     combined.includes("custom domain") ||
     combined.includes("unlimited") ||
@@ -50,7 +50,7 @@ function detectRecommendedPlan(userText: string, replyText: string): "starter" |
   }
   if (
     combined.includes("starter") ||
-    combined.includes("$99") ||
+    combined.includes("$29") ||
     combined.includes("1-5") ||
     combined.includes("small portfolio") ||
     combined.includes("up to 5")
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({
-      reply: `Every ${BRAND.name} plan includes a ${TRIAL_DAYS}-day free trial! Choose Starter ($99/mo), Growth ($249/mo), or Pro ($499/mo) to launch your workspace in 60 seconds.`,
+      reply: `Every ${BRAND.name} plan includes a ${TRIAL_DAYS}-day free trial! Choose Starter ($29/mo), Growth ($79/mo), or Pro ($149/mo) to launch your workspace in 60 seconds.`,
       recommendedPlan: "growth",
       trialDays: TRIAL_DAYS,
     });

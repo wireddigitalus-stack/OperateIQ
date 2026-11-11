@@ -207,7 +207,7 @@ export default function AuthFetchBridge() {
   }, []);
 
   return (
-    <>
+    <div data-oiq-bridge translate="no" className="notranslate">
       {toasts.length > 0 && (
         <div
           role="region"
@@ -302,6 +302,6 @@ export default function AuthFetchBridge() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

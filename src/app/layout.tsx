@@ -7,6 +7,7 @@ import AnalyticsTracker from "@/components/AnalyticsTracker";
 import UnsupportedBrowserBanner from "@/components/UnsupportedBrowserBanner";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
 import AuthFetchBridge from "@/components/AuthFetchBridge";
+import SafeWidgetBoundary from "@/components/SafeWidgetBoundary";
 import localFont from "next/font/local";
 import { BRAND } from "@/lib/brand";
 
@@ -90,19 +91,27 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               operatingSystem: "Web",
               description: BRAND.description,
               url: BRAND.url,
-              offers: { "@type": "AggregateOffer", priceCurrency: "USD", lowPrice: "99", highPrice: "499" },
+              offers: { "@type": "AggregateOffer", priceCurrency: "USD", lowPrice: "29", highPrice: "149" },
             }),
           }}
         />
       </head>
       <body className="bg-mesh antialiased">
-        <AuthFetchBridge />
+        <SafeWidgetBoundary name="auth-fetch-bridge">
+          <AuthFetchBridge />
+        </SafeWidgetBoundary>
         <AuthHashRedirect />
-        <UnsupportedBrowserBanner />
+        <SafeWidgetBoundary name="unsupported-browser-banner">
+          <UnsupportedBrowserBanner />
+        </SafeWidgetBoundary>
         <AnalyticsTracker />
-        <NavigationConditional />
+        <SafeWidgetBoundary name="public-navigation">
+          <NavigationConditional />
+        </SafeWidgetBoundary>
         <main>{children}</main>
-        <FooterConditional />
+        <SafeWidgetBoundary name="public-footer">
+          <FooterConditional />
+        </SafeWidgetBoundary>
         <AIChatWidgetConditional />
       </body>
     </html>
