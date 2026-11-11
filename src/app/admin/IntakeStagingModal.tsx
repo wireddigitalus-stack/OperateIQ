@@ -533,6 +533,13 @@ export default function IntakeStagingModal({
         uploadFile = compressed;
       }
 
+      if (uploadFile.size > 4.4 * 1024 * 1024) {
+        const sizeMb = (uploadFile.size / (1024 * 1024)).toFixed(1);
+        throw new Error(
+          `This document is ${sizeMb} MB, which exceeds the 4.4 MB direct scan limit. Please upload a smaller PDF/Word (.docx) lease summary or a screenshot/photo of the key lease page.`
+        );
+      }
+
       const formData = new FormData();
       formData.append("file", uploadFile);
       formData.append("notes", `Source from user upload for ${currentOrgName}`);
@@ -545,13 +552,18 @@ export default function IntakeStagingModal({
       clearInterval(interval);
 
       if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error(
+            "This document is too large for direct scanning (max 4.4 MB). Please upload a smaller PDF/Word (.docx) file or a screenshot of the lease summary page."
+          );
+        }
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server OCR returned ${res.status}`);
+        throw new Error(errorData.error || `Document scan returned status ${res.status}. Please retry.`);
       }
 
       const data = await res.json();
       if (!data.candidates || data.candidates.length === 0) {
-        throw new Error("No tenant records could be discerned from this image. Please check image clarity or try another file.");
+        throw new Error("No tenant records could be extracted from this document. Please check that the tenant name and lease details are visible, or try another file.");
       }
 
       setStagedRecords(data.candidates);
@@ -793,10 +805,11 @@ export default function IntakeStagingModal({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*,application/pdf,.xlsx,.xls,.csv,.tsv,.txt,.docx,.doc"
+                  accept="image/*,application/pdf,.docx,.doc,.rtf,.txt,.xlsx,.xls,.csv,.tsv"
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
+                    e.target.value = "";
                     if (!f) return;
                     if (f.name.match(/\.(xlsx|xls|csv)$/i)) {
                       handleExcelUpload(f);
@@ -815,7 +828,7 @@ export default function IntakeStagingModal({
                       Drag &amp; Drop Rent Roll, Handwritten Notes, or Leases
                     </h3>
                     <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                      Supports Excel (<code className="text-sky-300 font-bold">.xlsx, .csv</code>), physical documents (<code className="text-sky-300 font-bold">PDF, JPG, PNG</code>), and camera snaps of legal pad notes.
+                      Supports Lease Docs (<code className="text-sky-300 font-bold">PDF, Word .docx/.doc, .txt</code>), Spreadsheets (<code className="text-sky-300 font-bold">.xlsx, .csv</code>), and Photos of Legal Pads (<code className="text-sky-300 font-bold">JPG, PNG, HEIC</code>).
                     </p>
                   </div>
 
@@ -1036,12 +1049,24 @@ export default function IntakeStagingModal({
                     </span>
                     <span className="text-gray-300 text-xs sm:text-sm">Compare detected data against original document</span>
                   </div>
-                  <div className="max-h-80 overflow-auto rounded-xl border border-white/15 bg-black/90 flex items-center justify-center p-3">
-                    <img
-                      src={sourceFile.url}
-                      alt="Source Scan"
-                      className="max-h-72 object-contain rounded-lg shadow-lg"
-                    />
+                  <div className="max-h-96 overflow-auto rounded-xl border border-white/15 bg-black/90 flex items-center justify-center p-3">
+                    {sourceFile.type === "application/pdf" || /\.pdf$/i.test(sourceFile.name) ? (
+                      <iframe
+                        src={sourceFile.url}
+                        title="Source PDF Preview"
+                        className="w-full h-80 rounded-lg bg-white"
+                      />
+                    ) : sourceFile.type.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(sourceFile.name) ? (
+                      <img
+                        src={sourceFile.url}
+                        alt="Source Scan"
+                        className="max-h-72 object-contain rounded-lg shadow-lg"
+                      />
+                    ) : (
+                      <div className="py-6 px-4 text-center text-sm text-slate-300">
+                        Parsed directly from text/document file: <strong className="text-white">{sourceFile.name}</strong>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

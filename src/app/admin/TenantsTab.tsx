@@ -1215,8 +1215,8 @@ function TenantCard({
           </p>
           <label className="cursor-pointer flex items-center gap-1 text-[10px] font-bold text-[#60A5FA] bg-[rgba(96,165,250,0.08)] border border-[rgba(96,165,250,0.25)] px-2.5 py-1.5 rounded-lg hover:bg-[rgba(96,165,250,0.15)] transition-all">
             {uploadingDoc ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
-            Upload lease (PDF)
-            <input type="file" accept="application/pdf" onChange={handlePdfUpload} className="hidden" disabled={uploadingDoc} />
+            Upload lease (PDF / Doc)
+            <input type="file" accept="application/pdf,.doc,.docx,image/*" onChange={handlePdfUpload} className="hidden" disabled={uploadingDoc} />
           </label>
         </div>
 
