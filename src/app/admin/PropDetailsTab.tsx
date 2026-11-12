@@ -1388,82 +1388,66 @@ export default function PropDetailsTab() {
   return (
     <div className="space-y-5 mt-1">
 
-      {/* ═══ TOP HERO ACTION BAR: Add a Property, Import Portfolio, or Log Vacancy ═══ */}
-      <div className="rounded-2xl border border-[#A78BFA]/30 bg-gradient-to-br from-[#A78BFA]/[0.09] via-indigo-600/[0.06] to-sky-500/[0.04] p-4 sm:p-6 relative overflow-hidden shadow-[0_0_32px_rgba(167,139,250,0.12)]">
-        <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-[#A78BFA] opacity-[0.08] blur-3xl pointer-events-none" />
-        <div className="flex flex-col gap-4 relative z-10">
-          <div className="flex items-start gap-3.5 w-full">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#A78BFA] to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_20px_rgba(167,139,250,0.35)]">
-              <Building2 size={20} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-white text-base sm:text-lg font-black tracking-tight">
-                  Add a Property, Import Portfolio, or Log Vacancy
-                </h2>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-[#A78BFA]/15 border border-[#A78BFA]/35 text-[#A78BFA]">
-                  Portfolio Hub
-                </span>
+      {/* ═══ TOP HERO / COMPACT ACTION BAR (Full hero when 0 properties; collapses into 1-row toolbar once imported) ═══ */}
+      {!loading && allProperties.length === 0 ? (
+        <div className="rounded-2xl border border-[#A78BFA]/30 bg-gradient-to-br from-[#A78BFA]/[0.09] via-indigo-600/[0.06] to-sky-500/[0.04] p-4 sm:p-6 relative overflow-hidden shadow-[0_0_32px_rgba(167,139,250,0.12)]">
+          <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-[#A78BFA] opacity-[0.08] blur-3xl pointer-events-none" />
+          <div className="flex flex-col gap-4 relative z-10">
+            <div className="flex items-start gap-3.5 w-full">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#A78BFA] to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_20px_rgba(167,139,250,0.35)]">
+                <Building2 size={20} />
               </div>
-              <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
-                Add a new building to track P&amp;L and expenses, bulk-import buildings and tenants with AI, or log unleased spaces and parking lots.
-              </p>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-white text-base sm:text-lg font-black tracking-tight">
+                    Add a Property, Import Portfolio, or Log Vacancy
+                  </h2>
+                  <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-[#A78BFA]/15 border border-[#A78BFA]/35 text-[#A78BFA]">
+                    Portfolio Hub
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+                  Drop your PDF/Word leases or Excel/CSV rent rolls to populate your entire portfolio in seconds, or add a building manually.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-95 text-white text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(59,130,246,0.4)] transition-all cursor-pointer"
-            >
-              <Plus size={16} />
-              <span>Add Property</span>
-            </button>
-            <button
-              onClick={() => setShowIntakeModal(true)}
-              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600/30 to-sky-600/30 hover:from-cyan-500/40 hover:to-sky-500/40 border border-cyan-400/45 text-cyan-200 text-xs sm:text-sm font-black shadow-[0_0_16px_rgba(6,182,212,0.22)] transition-all cursor-pointer"
-            >
-              <Sparkles size={15} className="text-cyan-300 animate-pulse" />
-              <span>⚡ Import Buildings &amp; Tenants</span>
-            </button>
-            <button
-              onClick={() => setShowAddSpace(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#A78BFA]/35 bg-[#A78BFA]/10 hover:bg-[#A78BFA]/20 text-[#C4B5FD] text-xs font-bold transition-all cursor-pointer"
-            >
-              <Plus size={14} />
-              <span>Add Unleased Space</span>
-            </button>
-            <button
-              onClick={() => setShowAddParkingLot(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.09] text-gray-200 hover:text-white text-xs font-bold transition-all cursor-pointer"
-            >
-              <Plus size={14} />
-              <span>Add Parking Lot</span>
-            </button>
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2.5">
               <button
-                onClick={() => setShowPrint(true)}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-white/12 bg-white/[0.03] hover:bg-white/[0.07] text-gray-300 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                onClick={() => setShowIntakeModal(true)}
+                className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600/35 to-sky-600/35 hover:from-cyan-500/45 hover:to-sky-500/45 border border-cyan-400/50 text-cyan-100 text-xs sm:text-sm font-black shadow-[0_0_20px_rgba(6,182,212,0.28)] transition-all cursor-pointer"
               >
-                <Printer size={13} />
-                <span>Print Report</span>
+                <Sparkles size={15} className="text-cyan-300 animate-pulse" />
+                <span>⚡ Import Buildings &amp; Tenants</span>
               </button>
               <button
-                onClick={() => setTick(t => t + 1)}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-gray-400 hover:text-white text-xs transition-all cursor-pointer"
-                title="Refresh property data"
+                onClick={() => setShowAdd(true)}
+                className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-95 text-white text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(59,130,246,0.4)] transition-all cursor-pointer"
               >
-                <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+                <Plus size={16} />
+                <span>Add Property</span>
+              </button>
+              <button
+                onClick={() => setShowAddSpace(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#A78BFA]/35 bg-[#A78BFA]/10 hover:bg-[#A78BFA]/20 text-[#C4B5FD] text-xs font-bold transition-all cursor-pointer"
+              >
+                <Plus size={14} />
+                <span>Add Unleased Space</span>
+              </button>
+              <button
+                onClick={() => setShowAddParkingLot(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.09] text-gray-200 hover:text-white text-xs font-bold transition-all cursor-pointer"
+              >
+                <Plus size={14} />
+                <span>Add Parking Lot</span>
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Zero-Property Quick Demo Loader right inside the top card */}
-        {!loading && allProperties.length === 0 && (
+          {/* Zero-Property Quick Demo Loader right inside the hero card */}
           <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
             <p className="text-xs text-sky-200/90">
-              👋 <strong>New portfolio?</strong> Click <strong>+ Add Property</strong> above to create your first building, or load private sample properties (hidden from your public site &amp; excluded from plan limits) to explore first.
+              👋 <strong>New portfolio?</strong> Import a lease/rent roll above, click <strong>+ Add Property</strong>, or load private sample properties to explore first.
             </p>
             <button
               onClick={handleSeedDemo}
@@ -1474,27 +1458,72 @@ export default function PropDetailsTab() {
               {seedingDemo ? "Loading Sample Properties…" : "Load Sample Properties (Removable)"}
             </button>
           </div>
-        )}
-
-        {/* Clear Sample Properties Banner */}
-        {!loading && sampleCount > 0 && (
-          <div className="mt-4 pt-4 border-t border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
-            <p className="text-xs text-amber-200/90">
-              🧪 <strong>{sampleCount} sample {sampleCount === 1 ? "property" : "properties"}</strong> loaded for exploration. Sample rows stay unpublished and do not count toward your plan limit.
-            </p>
+        </div>
+      ) : (
+        /* Compact Collapsed Top Action Bar — stays in the exact same spot once properties exist */
+        <div className="rounded-2xl border border-white/10 bg-[rgba(11,16,32,0.75)] px-4 py-3 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={handleClearSample}
-              disabled={clearingSample}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-400/40 bg-amber-500/15 text-amber-200 text-xs font-bold hover:bg-amber-500/25 transition-all disabled:opacity-50 flex-shrink-0 cursor-pointer"
+              onClick={() => setShowIntakeModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600/30 to-sky-600/30 hover:from-cyan-500/40 hover:to-sky-500/40 border border-cyan-400/45 text-cyan-200 text-xs font-black shadow-[0_0_14px_rgba(6,182,212,0.18)] transition-all cursor-pointer"
             >
-              {clearingSample ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-              {clearingSample ? "Clearing Sample Data…" : "Clear Sample Properties"}
+              <Sparkles size={13} className="text-cyan-300" />
+              <span>⚡ Import</span>
+            </button>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-95 text-white text-xs font-black transition-all cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>Add Property</span>
+            </button>
+            <button
+              onClick={() => setShowAddSpace(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#A78BFA]/30 bg-[#A78BFA]/10 hover:bg-[#A78BFA]/20 text-[#C4B5FD] text-xs font-bold transition-all cursor-pointer"
+            >
+              <Plus size={13} />
+              <span>Unleased Space</span>
+            </button>
+            <button
+              onClick={() => setShowAddParkingLot(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/12 bg-white/[0.04] hover:bg-white/[0.09] text-gray-200 hover:text-white text-xs font-bold transition-all cursor-pointer"
+            >
+              <Plus size={13} />
+              <span>Parking Lot</span>
+            </button>
+            {!loading && sampleCount > 0 && (
+              <button
+                onClick={handleClearSample}
+                disabled={clearingSample}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-400/40 bg-amber-500/15 text-amber-200 text-xs font-bold hover:bg-amber-500/25 transition-all disabled:opacity-50 cursor-pointer"
+                title="Remove all sample demo properties"
+              >
+                {clearingSample ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                <span>Clear Sample ({sampleCount})</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={() => setShowPrint(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/12 bg-white/[0.03] hover:bg-white/[0.07] text-gray-300 hover:text-white text-xs font-bold transition-all cursor-pointer"
+            >
+              <Printer size={13} />
+              <span>Print Report</span>
+            </button>
+            <button
+              onClick={() => setTick(t => t + 1)}
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-white/10 bg-white/[0.03] text-gray-400 hover:text-white text-xs transition-all cursor-pointer"
+              title="Refresh property data"
+            >
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Add Property Form — opens right at the top below the hero bar */}
+      {/* Add Property Form — opens right at the top below the hero/action bar */}
       {showAdd && <AddPropertyForm onAdd={handleAddProperty} onClose={() => setShowAdd(false)} />}
 
       {/* Migration banner */}
@@ -1505,7 +1534,68 @@ export default function PropDetailsTab() {
         </div>
       )}
 
-      {/* Property Directory & Cards — positioned near the top */}
+      {/* ═══ PRIMARY PORTFOLIO BRIEF & CHARTS (Promoted to top when properties exist) ═══ */}
+      {!loading && allProperties.length > 0 && (
+        <>
+          {/* Portfolio KPI bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { icon: Building2,  label: "Properties", value: allProperties.length,                                    color: "#A78BFA" },
+              { icon: Users,      label: "Tenants",    value: `${activeTenants.length} active`,                      color: "#60A5FA" },
+              { icon: DollarSign, label: "Revenue",    value: `$${totalRevenue.toLocaleString()}/mo`,               color: "#4ADE80" },
+              { icon: TrendingUp, label: "Net P&L",    value: totalExpenses ? `$${Math.round(totalRevenue - totalExpenses).toLocaleString()}/mo` : "—", color: totalRevenue > totalExpenses ? "#4ADE80" : "#EF4444" },
+            ].map(({ icon: Icon, label, value, color }) => (
+              <div key={label} className="glass rounded-xl p-4 border border-[rgba(255,255,255,0.06)] flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+                  <Icon size={16} style={{ color }} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 font-semibold">{label}</p>
+                  <p className="text-base font-black text-white">{value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CEO Overview Card — Primary At-a-Glance Brief & Charts */}
+          <PortfolioOverviewCard properties={overviewProperties} tenants={tenants} details={details} availableSpaces={availableSpaces} />
+
+          {alerts > 0 && (
+            <a href="/admin?tab=tenants"
+              className="flex items-center gap-3 px-5 py-4 rounded-xl border border-yellow-900/40 bg-yellow-950/20 text-yellow-400 text-xs hover:bg-yellow-950/40 hover:border-yellow-800/60 transition-all cursor-pointer group">
+              <AlertTriangle size={14} /> <span><strong>{alerts} lease{alerts > 1 ? "s" : ""}</strong> expiring within 90 days — <span className="underline underline-offset-2 group-hover:text-yellow-300">go to Tenants tab →</span></span>
+            </a>
+          )}
+
+          {/* Unassigned tenants warning */}
+          {(() => {
+            const assignedIds = new Set(
+              allProperties.flatMap(p => {
+                const dn = detailMap[p.id]?.display_name || p.name;
+                return tenants.filter(t => exactBuildingMatch(t.building || "", p.id, dn, p.name)).map(t => t.id);
+              })
+            );
+            const unassigned = tenants.filter(t => !assignedIds.has(t.id));
+            if (unassigned.length === 0) return null;
+            return (
+              <a href="/admin?tab=tenants"
+                className="flex items-center gap-3 px-5 py-4 rounded-xl border border-orange-900/40 bg-orange-950/20 text-orange-400 text-xs hover:bg-orange-950/40 hover:border-orange-800/60 transition-all cursor-pointer group">
+                <AlertTriangle size={14} />
+                <span>
+                  <strong>{unassigned.length} tenant{unassigned.length > 1 ? "s" : ""}</strong> not assigned to a property
+                  ({unassigned.slice(0, 3).map(t => t.name).join(", ")}{unassigned.length > 3 ? ` +${unassigned.length - 3} more` : ""})
+                  — <span className="underline underline-offset-2 group-hover:text-orange-300">fix in Tenants tab →</span>
+                </span>
+              </a>
+            );
+          })()}
+
+          {/* P&L History Chart */}
+          <PortfolioHistoryChart />
+        </>
+      )}
+
+      {/* Property Directory & Cards */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 size={22} className="animate-spin text-[#A78BFA]" />
@@ -1629,66 +1719,6 @@ export default function PropDetailsTab() {
               : null
           }
         />
-      )}
-
-      {/* CEO Overview Card */}
-      {!loading && (
-        <PortfolioOverviewCard properties={overviewProperties} tenants={tenants} details={details} availableSpaces={availableSpaces} />
-      )}
-
-      {/* Portfolio KPI bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { icon: Building2,     label: "Properties",  value: allProperties.length,                                    color: "#A78BFA" },
-          { icon: Users,         label: "Tenants",     value: `${activeTenants.length} active`,                      color: "#60A5FA" },
-          { icon: DollarSign,    label: "Revenue",     value: `$${totalRevenue.toLocaleString()}/mo`,               color: "#4ADE80" },
-          { icon: TrendingUp,    label: "Net P&L",     value: totalExpenses ? `$${Math.round(totalRevenue - totalExpenses).toLocaleString()}/mo` : "—", color: totalRevenue > totalExpenses ? "#4ADE80" : "#EF4444" },
-        ].map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="glass rounded-xl p-4 border border-[rgba(255,255,255,0.06)] flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
-              <Icon size={16} style={{ color }} />
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 font-semibold">{label}</p>
-              <p className="text-base font-black text-white">{value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {alerts > 0 && (
-        <a href="/admin?tab=tenants"
-          className="flex items-center gap-3 px-5 py-4 rounded-xl border border-yellow-900/40 bg-yellow-950/20 text-yellow-400 text-xs hover:bg-yellow-950/40 hover:border-yellow-800/60 transition-all cursor-pointer group">
-          <AlertTriangle size={14} /> <span><strong>{alerts} lease{alerts > 1 ? "s" : ""}</strong> expiring within 90 days — <span className="underline underline-offset-2 group-hover:text-yellow-300">go to Tenants tab →</span></span>
-        </a>
-      )}
-
-      {/* Unassigned tenants warning */}
-      {!loading && (() => {
-        const assignedIds = new Set(
-          allProperties.flatMap(p => {
-            const dn = detailMap[p.id]?.display_name || p.name;
-            return tenants.filter(t => exactBuildingMatch(t.building || "", p.id, dn, p.name)).map(t => t.id);
-          })
-        );
-        const unassigned = tenants.filter(t => !assignedIds.has(t.id));
-        if (unassigned.length === 0) return null;
-        return (
-          <a href="/admin?tab=tenants"
-            className="flex items-center gap-3 px-5 py-4 rounded-xl border border-orange-900/40 bg-orange-950/20 text-orange-400 text-xs hover:bg-orange-950/40 hover:border-orange-800/60 transition-all cursor-pointer group">
-            <AlertTriangle size={14} />
-            <span>
-              <strong>{unassigned.length} tenant{unassigned.length > 1 ? "s" : ""}</strong> not assigned to a property
-              ({unassigned.slice(0, 3).map(t => t.name).join(", ")}{unassigned.length > 3 ? ` +${unassigned.length - 3} more` : ""})
-              — <span className="underline underline-offset-2 group-hover:text-orange-300">fix in Tenants tab →</span>
-            </span>
-          </a>
-        );
-      })()}
-
-      {/* P&L History Chart */}
-      {!loading && (
-        <PortfolioHistoryChart />
       )}
 
       {/* Available Spaces Migration Banner */}
