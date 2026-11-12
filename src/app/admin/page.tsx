@@ -8,6 +8,7 @@ import { rowToTenant, type Tenant } from "@/lib/tenant-mapper";
 import type { AnalyticsLead } from "./AnalyticsTab";
 import ProTips from "./ProTips";
 import SafeWidgetBoundary from "@/components/SafeWidgetBoundary";
+import BetaFeedbackButton from "@/components/BetaFeedbackButton";
 import CallLogModal, { type CallLog, outcomeColor, outcomeLabel } from "./CallLogModal";
 import PrintButton from "./PrintButton";
 import GetStartedChecklist from "@/components/admin/GetStartedChecklist";
@@ -2717,18 +2718,27 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Lower-profile Settings button */}
-              <button
-                onClick={() => switchTab("settings")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 ${
-                  activeTab === "settings"
-                    ? "bg-white/[0.08] border-white/20 text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.18)]"
-                    : "bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.06)] text-gray-400 hover:text-white hover:border-[rgba(255,255,255,0.15)]"
-                }`}
-              >
-                <Settings size={13} className={activeTab === "settings" ? "text-sky-400" : "text-gray-400"} />
-                Settings
-              </button>
+              {/* Quick Beta Feedback + Lower-profile Settings button */}
+              <div className="flex items-center gap-2">
+                <BetaFeedbackButton
+                  orgName={activeOrg?.name}
+                  customerCode={activeOrg?.id ? getCustomerCode(activeOrg.id) : undefined}
+                  userName={currentUser?.name}
+                  userEmail={currentUser?.email}
+                  activeTab={activeTab}
+                />
+                <button
+                  onClick={() => switchTab("settings")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200 ${
+                    activeTab === "settings"
+                      ? "bg-white/[0.08] border-white/20 text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.18)]"
+                      : "bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.06)] text-gray-400 hover:text-white hover:border-[rgba(255,255,255,0.15)]"
+                  }`}
+                >
+                  <Settings size={13} className={activeTab === "settings" ? "text-sky-400" : "text-gray-400"} />
+                  Settings
+                </button>
+              </div>
             </div>
           );
         })()}

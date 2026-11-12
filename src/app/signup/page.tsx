@@ -18,7 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
-import { PLANS, TRIAL_DAYS, type Tier } from "@/lib/plans";
+import { BETA_TRIAL_DAYS, PLANS, TRIAL_DAYS, resolveBetaInviteCode, type Tier } from "@/lib/plans";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import Turnstile from "@/components/Turnstile";
 
@@ -32,8 +32,10 @@ function SignupForm() {
       ? rawPlan
       : "growth";
   const billing = searchParams.get("billing") === "annual" ? "annual" : "monthly";
+  const initialCode = searchParams.get("code") || searchParams.get("beta") || "";
 
   const [selectedPlan, setSelectedPlan] = useState<Tier>(initialPlan);
+  const [betaCode, setBetaCode] = useState(initialCode);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,7 +52,11 @@ function SignupForm() {
   const [created, setCreated] = useState<{ slug: string; signedIn: boolean } | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
 
-  const activePlan = PLANS.find((p) => p.id === selectedPlan) || PLANS[1];
+  const validBetaCode = resolveBetaInviteCode(betaCode);
+  const effectiveTrialDays = validBetaCode ? BETA_TRIAL_DAYS : TRIAL_DAYS;
+  const activePlan = validBetaCode
+    ? PLANS.find((p) => p.id === "pro") || PLANS[2]
+    : PLANS.find((p) => p.id === selectedPlan) || PLANS[1];
 
   useEffect(() => {
     supabaseBrowser.auth.getUser().then(({ data: { user } }) => {
@@ -114,6 +120,7 @@ function SignupForm() {
           company: companyName.trim(),
           phone: phone.trim(),
           plan: activePlan.id,
+          betaCode: validBetaCode || undefined,
           unitCount,
           portfolioType,
           agreedToTerms,
@@ -161,7 +168,11 @@ function SignupForm() {
         <div className="space-y-2">
           <h2 className="text-2xl font-black text-white">Your Workspace Is Ready!</h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm mx-auto">
-            Welcome to <strong>PropOpsIQ</strong>, {fullName.split(" ")[0]}. We have provisioned a dedicated <strong>{TRIAL_DAYS}-day free trial</strong> workspace for <strong>{companyName}</strong> on the <strong>{activePlan.name}</strong> plan.
+            Welcome to <strong>PropOpsIQ</strong>, {fullName.split(" ")[0]}. We have provisioned a dedicated{" "}
+            <strong>
+              {effectiveTrialDays}-day {validBetaCode ? "Pro Beta" : "free trial"}
+            </strong>{" "}
+            workspace for <strong>{companyName}</strong> on the <strong>{activePlan.name}</strong> plan.
           </p>
         </div>
 
@@ -489,6 +500,31 @@ function SignupForm() {
               </div>
             </div>
 
+            {/* Beta / Invite Code */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                  Beta / Invite Code (Optional)
+                </label>
+                {validBetaCode && (
+                  <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-400/35 px-2 py-0.5 rounded-full">
+                    🎉 {BETA_TRIAL_DAYS}-Day Pro Beta Unlocked
+                  </span>
+                )}
+              </div>
+              <input
+                type="text"
+                value={betaCode}
+                onChange={(e) => setBetaCode(e.target.value.toUpperCase())}
+                placeholder="e.g. BETA60 (unlocks 60-day Pro access)"
+                className={`w-full px-3.5 py-2.5 rounded-xl bg-black/50 border text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ${
+                  validBetaCode
+                    ? "border-emerald-400/50 focus:border-emerald-400"
+                    : "border-white/15 focus:border-sky-400"
+                }`}
+              />
+            </div>
+
             {/* Bot protection (rendered only when Turnstile is configured) */}
             {TURNSTILE_SITE_KEY && (
               <Turnstile
@@ -535,7 +571,11 @@ function SignupForm() {
                   </>
                 ) : (
                   <>
-                    <span>Start My {TRIAL_DAYS}-Day Free Trial</span>
+                    <span>
+                      {validBetaCode
+                        ? `Start My ${BETA_TRIAL_DAYS}-Day Pro Beta`
+                        : `Start My ${TRIAL_DAYS}-Day Free Trial`}
+                    </span>
                     <ArrowRight size={14} />
                   </>
                 )}
@@ -543,7 +583,7 @@ function SignupForm() {
             </div>
 
             <p className="text-center text-[10px] text-slate-500 mt-2">
-              🔒 No credit card required during your {TRIAL_DAYS}-day trial. Export or delete your workspace anytime.
+              🔒 No credit card required during your {effectiveTrialDays}-day {validBetaCode ? "beta" : "trial"}. Export or delete your workspace anytime.
             </p>
           </form>
         </div>

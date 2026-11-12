@@ -61,6 +61,19 @@ export const PLANS: Plan[] = [
 ];
 
 export const TRIAL_DAYS = 14;
+export const BETA_TRIAL_DAYS = 60;
+
+const VALID_BETA_CODES = new Set(["BETA60", "FOUNDER", "BETA", "PROPOPSIQBETA"]);
+
+/**
+ * Normalizes and validates a beta invite code. Returns the canonical uppercase code
+ * if valid (unlocking 60-day Pro beta access), or null otherwise.
+ */
+export function resolveBetaInviteCode(raw?: string | null): string | null {
+  const clean = String(raw || "").trim().toUpperCase();
+  if (!clean) return null;
+  return VALID_BETA_CODES.has(clean) ? clean : null;
+}
 
 export const FEATURE_LABELS: Record<Feature, string> = {
   properties: "Property portfolio",

@@ -4,6 +4,7 @@ import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, getCustomerCode, isSuperAdmin } 
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getAuthUser } from "@/lib/server-auth";
 import { createEmailVerifyToken, escapeHtml, platformUrl, sendEmail, welcomeWorkspaceEmailHtml } from "@/lib/email";
+import { BETA_TRIAL_DAYS, TRIAL_DAYS, resolveBetaInviteCode } from "@/lib/plans";
 
 /** Turnstile is enforced only when BOTH keys are configured (otherwise the widget isn't rendered). */
 async function turnstileOk(token: unknown, ip: string): Promise<boolean> {
@@ -59,6 +60,9 @@ export async function POST(req: NextRequest) {
     const cleanPhone = sanitize(body.phone);
     const password = typeof body.password === "string" ? body.password.trim() : "";
     const cleanPlan = (["starter", "growth", "pro"].includes(body.plan) ? body.plan : "starter") as "starter" | "growth" | "pro";
+    const validBetaCode = resolveBetaInviteCode(body.betaCode);
+    const effectivePlan: "starter" | "growth" | "pro" = validBetaCode ? "pro" : cleanPlan;
+    const trialDays = validBetaCode ? BETA_TRIAL_DAYS : TRIAL_DAYS;
     const cleanUnitCount = sanitize(body.unitCount) || "11 - 50 Units";
     const cleanPortfolioType = sanitize(body.portfolioType) || "Commercial & Residential";
 
@@ -155,14 +159,14 @@ export async function POST(req: NextRequest) {
     // 1. Create Organization (retry on slug collision)
     let slugCandidate = orgSlug;
     for (let attempt = 0; attempt < 5 && !createdOrg; attempt++) {
-      const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      const trialEndDate = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
       const { data: newOrg, error: orgErr } = await supabaseAdmin
         .from("organizations")
         .insert({
           id: orgId,
           name: cleanCompany,
           slug: slugCandidate,
-          tier: cleanPlan,
+          tier: effectivePlan,
           subscription_status: "trialing",
           trial_ends_at: trialEndDate,
           contact_email: ownerEmail,
@@ -248,6 +252,7 @@ export async function POST(req: NextRequest) {
             commercial_tools_enabled: enableCommercialByDefault,
             checklist_dismissed: false,
             terms_accepted_at: new Date().toISOString(),
+            ...(validBetaCode ? { beta_cohort: true, beta_code: validBetaCode } : {}),
           },
           updated_at: new Date().toISOString(),
         },
@@ -263,9 +268,11 @@ export async function POST(req: NextRequest) {
       email: ownerEmail,
       company: cleanCompany,
       phone: cleanPhone,
-      interest: `14-Day Trial (${cleanPlan.toUpperCase()})`,
+      interest: validBetaCode
+        ? `${trialDays}-Day Beta (${effectivePlan.toUpperCase()} · ${validBetaCode})`
+        : `${trialDays}-Day Trial (${effectivePlan.toUpperCase()})`,
       city: cleanPortfolioType,
-      message: `Trial Signup Intake:\n- Support Code: ${customerCode}\n- Plan: ${cleanPlan}\n- Units: ${cleanUnitCount}\n- Portfolio: ${cleanPortfolioType}\n- Phone: ${cleanPhone || "None"}\n- Org ID: ${orgId}`,
+      message: `Trial Signup Intake:\n- Support Code: ${customerCode}\n- Plan: ${effectivePlan}${validBetaCode ? ` (Beta Code: ${validBetaCode} · ${trialDays}d)` : ""}\n- Units: ${cleanUnitCount}\n- Portfolio: ${cleanPortfolioType}\n- Phone: ${cleanPhone || "None"}\n- Org ID: ${orgId}`,
       org_id: orgId,
       ip_hash: ip.split(".").slice(0, 3).join(".") + ".x",
     });
@@ -273,7 +280,7 @@ export async function POST(req: NextRequest) {
 
     // 3b. Welcome + Email verification for new signups, plus founder notification.
     let verificationSent = false;
-    const planLabel = cleanPlan.charAt(0).toUpperCase() + cleanPlan.slice(1);
+    const planLabel = effectivePlan.charAt(0).toUpperCase() + effectivePlan.slice(1);
     const verifyLink = createdNewAuthUserId
       ? `${platformUrl()}/api/auth/verify-email?token=${encodeURIComponent(
           createEmailVerifyToken(createdNewAuthUserId, ownerEmail)
