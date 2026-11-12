@@ -13,16 +13,20 @@ const supabaseAdmin = createClient(SUPABASE_URL, KEY, {
   auth: { persistSession: false },
 });
 
-const ALLOWED_EXTS = new Set(["pdf", "doc", "docx", "png", "jpg", "jpeg", "webp"]);
+const ALLOWED_EXTS = new Set(["pdf", "doc", "docx", "rtf", "txt", "png", "jpg", "jpeg", "webp"]);
 const ALLOWED_MIMES = new Set([
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/rtf",
+  "text/rtf",
+  "text/plain",
+  "application/octet-stream",
   "image/png",
   "image/jpeg",
   "image/webp",
 ]);
-const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_BYTES = 25 * 1024 * 1024; // 25MB for multi-page scanned lease packets
 
 const encodeStoragePath = (p: string) => p.split("/").map(encodeURIComponent).join("/");
 
@@ -124,7 +128,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Filename and tenant ID are required." }, { status: 400 });
       }
       if (fileSize !== undefined && fileSize > MAX_BYTES) {
-        return NextResponse.json({ error: "File is too large. Maximum size is 10MB." }, { status: 400 });
+        return NextResponse.json({ error: "File is too large. Maximum size is 25MB." }, { status: 400 });
       }
 
       const lastDotIndex = filename.lastIndexOf(".");
@@ -132,12 +136,12 @@ export async function POST(req: NextRequest) {
       const ext = (lastDotIndex !== -1 ? filename.slice(lastDotIndex + 1).toLowerCase() : "").replace(/[^a-z0-9]/g, "");
       if (!ALLOWED_EXTS.has(ext) || (mimeType && !ALLOWED_MIMES.has(mimeType))) {
         return NextResponse.json(
-          { error: "Invalid file type. Allowed formats: PDF, DOC, DOCX, PNG, JPG, JPEG, WEBP." },
+          { error: "Invalid file type. Allowed formats: PDF, DOC, DOCX, RTF, TXT, PNG, JPG, JPEG, WEBP." },
           { status: 400 }
         );
       }
 
-      if (!(await tenantInOrg(tenantId, orgId))) {
+      if (tenantId !== "intake-staging" && !(await tenantInOrg(tenantId, orgId))) {
         return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
       }
 
@@ -182,7 +186,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File and tenant ID are required." }, { status: 400 });
     }
     if (file.size > MAX_BYTES) {
-      return NextResponse.json({ error: "File is too large. Maximum size is 10MB." }, { status: 400 });
+      return NextResponse.json({ error: "File is too large. Maximum size is 25MB." }, { status: 400 });
     }
 
     const lastDotIndex = file.name.lastIndexOf(".");
@@ -192,12 +196,12 @@ export async function POST(req: NextRequest) {
 
     if (!ALLOWED_EXTS.has(ext) || (normalizedMime && !ALLOWED_MIMES.has(normalizedMime))) {
       return NextResponse.json(
-        { error: "Invalid file type. Allowed formats: PDF, DOC, DOCX, PNG, JPG, JPEG, WEBP." },
+        { error: "Invalid file type. Allowed formats: PDF, DOC, DOCX, RTF, TXT, PNG, JPG, JPEG, WEBP." },
         { status: 400 }
       );
     }
 
-    if (!(await tenantInOrg(tenantId, orgId))) {
+    if (tenantId !== "intake-staging" && !(await tenantInOrg(tenantId, orgId))) {
       return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
     }
 

@@ -270,6 +270,8 @@ function QBExportButton() {
 type ImportRow = Record<string, string | number>;
 
 function ImportPanel() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [allParsedRows, setAllParsedRows] = useState<ImportRow[]>([]);
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
@@ -277,11 +279,24 @@ function ImportPanel() {
   const [err, setErr] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  function pickCell(row: ImportRow, aliases: string[]): string {
+    for (const [k, v] of Object.entries(row)) {
+      const lower = k.toLowerCase().replace(/[_-]+/g, " ").trim();
+      if (aliases.some((a) => lower === a || lower.includes(a))) {
+        const s = String(v ?? "").trim();
+        if (s) return s;
+      }
+    }
+    return "";
+  }
+
   async function handleFile(file: File) {
-    setErr(""); setDone(0); setRows([]); setHeaders([]);
+    setErr(""); setDone(0); setRows([]); setAllParsedRows([]); setHeaders([]);
+    setSelectedFile(file);
     try {
       const parsed = (await parseSpreadsheetFile(file)) as ImportRow[];
       if (!parsed.length) { setErr("No rows found in file."); return; }
+      setAllParsedRows(parsed);
       setHeaders(Object.keys(parsed[0]));
       setRows(parsed.slice(0, 5)); // preview first 5
     } catch (e) {
@@ -290,26 +305,31 @@ function ImportPanel() {
   }
 
   async function doImport() {
-    const file = inputRef.current?.files?.[0];
-    if (!file) return;
+    const file = selectedFile || inputRef.current?.files?.[0];
+    if (!file && allParsedRows.length === 0) return;
     setImporting(true); setErr(""); setDone(0);
     try {
-      const allRows = (await parseSpreadsheetFile(file)) as ImportRow[];
+      const sourceRows = allParsedRows.length > 0
+        ? allParsedRows
+        : ((await parseSpreadsheetFile(file!)) as ImportRow[]);
       let count = 0;
-      for (const row of allRows) {
-        const name = String(row["Name"] || row["name"] || row["Contact"] || row["Lead Name"] || "").trim();
+      const failedRows: string[] = [];
+
+      for (let idx = 0; idx < sourceRows.length; idx++) {
+        const row = sourceRows[idx];
+        const name = pickCell(row, ["lead name", "contact name", "full name", "name", "contact", "prospect", "company"]);
         if (!name) continue;
         const body = {
           name,
-          phone:          String(row["Phone"] || row["phone"] || ""),
-          email:          String(row["Email"] || row["email"] || ""),
-          spaceType:      String(row["Space Type"] || row["spaceType"] || row["Type"] || "Office Space"),
-          budget:         String(row["Budget/mo"] || row["Budget"] || row["budget"] || ""),
-          timeline:       String(row["Timeline"] || row["timeline"] || "Exploring options"),
-          teamSize:       String(row["Team Size"] || row["teamSize"] || "Solo"),
-          additionalInfo: String(row["Notes"] || row["notes"] || row["Additional Info"] || ""),
-          score:          Number(row["AI Score"] || row["Score"] || row["score"] || 50),
-          scoreLabel:     String(row["Label"] || row["scoreLabel"] || "Warm Lead"),
+          phone:          pickCell(row, ["phone", "mobile", "cell", "tel"]),
+          email:          pickCell(row, ["email", "e-mail"]),
+          spaceType:      pickCell(row, ["space type", "spacetype", "property type", "type"]) || "Office Space",
+          budget:         pickCell(row, ["budget", "rent", "monthly"]) || "",
+          timeline:       pickCell(row, ["timeline", "move in", "move-in"]) || "Exploring options",
+          teamSize:       pickCell(row, ["team size", "teamsize", "occupants", "size"]) || "Solo",
+          additionalInfo: pickCell(row, ["notes", "additional info", "comments", "remarks"]),
+          score:          Number(pickCell(row, ["ai score", "score"]) || 50) || 50,
+          scoreLabel:     pickCell(row, ["scorelabel", "label", "stage"]) || "Warm Lead",
           reasoning:      `Imported from spreadsheet on ${new Date().toLocaleDateString()}.`,
           source:         "import",
           medium:         "excel",
@@ -321,11 +341,15 @@ function ImportPanel() {
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || `Failed on row "${name}" (HTTP ${res.status})`);
+          failedRows.push(`Row ${idx + 1} (${name}): ${errData.error || `HTTP ${res.status}`}`);
+          continue;
         }
         count++;
       }
       setDone(count);
+      if (failedRows.length > 0) {
+        setErr(`${failedRows.length} row(s) skipped: ${failedRows.slice(0, 3).join("; ")}`);
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Import failed. Please try again.");
     } finally {

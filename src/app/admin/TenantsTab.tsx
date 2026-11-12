@@ -15,7 +15,6 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 import { compressImageFile } from "@/lib/image-compression";
 import { showToast } from "@/lib/api-client";
 
-const TenantImporter = dynamic(() => import("./TenantImporter"), { ssr: false });
 const IntakeStagingModal = dynamic(() => import("./IntakeStagingModal"), { ssr: false });
 
 import { rowToTenant, type Tenant } from "@/lib/tenant-mapper";
@@ -1733,7 +1732,6 @@ export default function TenantsTab({
   const [setupError, setSetupError] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
-  const [showImporter, setShowImporter] = useState(false);
   const [showIntakeStaging, setShowIntakeStaging] = useState(false);
   const [clearingSampleTenants, setClearingSampleTenants] = useState(false);
 
@@ -1936,51 +1934,6 @@ export default function TenantsTab({
     }
   };
 
-  const handleBatchImport = async (batch: Partial<Tenant>[]) => {
-    const res = await fetch("/api/intake/commit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        autoCreateBuildings: true,
-        source: "Excel Tenant Importer",
-        tenants: batch.map((form) => ({
-          name: form.name,
-          contactName: form.contactName,
-          email: form.email,
-          phone: form.phone,
-          building: form.building,
-          unit: form.unit,
-          rep: "",
-          monthlyRent: Number(form.monthlyRent) || 0,
-          utilitiesFee: 0,
-          securityDeposit: 0,
-          nnnFee: 0,
-          cleaningFee: 0,
-          camFee: 0,
-          nnFee: 0,
-          leaseStart: form.leaseStart || null,
-          leaseEnd: form.leaseEnd || null,
-          renewalDate: null,
-          leaseAlertDays: 60,
-          escalationPct: 0,
-          escalationDate: null,
-          status: form.status ?? "active",
-          notes: form.notes ?? "",
-        })),
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const err = new Error(data.error || `Failed to import tenants (HTTP ${res.status})`) as Error & {
-        rowErrors?: unknown;
-      };
-      if (Array.isArray(data.rowErrors)) err.rowErrors = data.rowErrors;
-      throw err;
-    }
-    showToast(`Imported ${data.tenantsCreated ?? batch.length} tenant(s).`, "success");
-    await fetchTenants();
-  };
-
   const scrollToTenant = (id: string) => {
     const el = document.getElementById(`tenant-card-${id}`);
     if (el) {
@@ -2067,17 +2020,10 @@ export default function TenantsTab({
             <button
               onClick={() => setShowIntakeStaging(true)}
               className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500/25 via-blue-500/25 to-indigo-500/25 hover:from-sky-500/35 hover:to-indigo-500/35 border border-sky-400/45 text-sky-200 text-xs sm:text-sm font-black shadow-[0_0_18px_rgba(56,189,248,0.22)] hover:shadow-[0_0_24px_rgba(56,189,248,0.38)] transition-all cursor-pointer"
-              title="Fast intake from Excel, photos of legal pads, or lease documents"
+              title="Import multiple PDF/Word leases, Excel/CSV rent rolls, or photos of legal pads"
             >
               <Sparkles size={15} className="text-sky-300 animate-pulse" />
-              <span>⚡ Fast Intake (Excel, Legal Pad, Leases)</span>
-            </button>
-            <button
-              onClick={() => setShowImporter(true)}
-              className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-gray-200 hover:text-white text-xs sm:text-sm font-bold transition-all cursor-pointer"
-            >
-              <FileSpreadsheet size={15} className="text-emerald-400" />
-              <span>Import Excel / CSV</span>
+              <span>⚡ Import Leases, Excel / CSV &amp; Docs</span>
             </button>
             {sampleTenantCount > 0 && (
               <button
@@ -2093,7 +2039,7 @@ export default function TenantsTab({
         </div>
       </div>
 
-      {/* AI Intake & Staging Modal */}
+      {/* Unified Smart Intake & Staging Modal */}
       {showIntakeStaging && (
         <IntakeStagingModal
           onClose={() => setShowIntakeStaging(false)}
@@ -2101,14 +2047,6 @@ export default function TenantsTab({
             await fetchTenants();
           }}
           knownBuildings={buildingOptions}
-        />
-      )}
-
-      {/* Legacy Excel Importer Modal */}
-      {showImporter && (
-        <TenantImporter
-          onImport={handleBatchImport}
-          onClose={() => setShowImporter(false)}
         />
       )}
 

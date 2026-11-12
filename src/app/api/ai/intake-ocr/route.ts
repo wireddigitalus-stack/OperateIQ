@@ -1,344 +1,99 @@
 import { NextRequest, NextResponse } from "next/server";
-import { inflateRawSync } from "node:zlib";
-import * as XLSX from "xlsx";
 import { checkAiQuota } from "@/lib/rateLimit";
 import { requireOrg } from "@/lib/server-auth";
+import {
+  normalizeExtractedCandidate,
+  prepareDocumentForGemini,
+  redactSensitivePii,
+  type ExtractedTenantCandidate,
+  type PreparedInput,
+} from "@/lib/lease-extraction";
+
+export type { ExtractedTenantCandidate };
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export interface ExtractedTenantCandidate {
-  id: string;
-  name: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  building: string;
-  unit: string;
-  monthlyRent: number;
-  securityDeposit: number;
-  leaseStart: string;
-  leaseEnd: string;
-  notes: string;
-  confidence: "high" | "medium" | "low";
-  needsReview: boolean;
-  selected: boolean;
-}
+const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+const SERVICE_KEY = (
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  ""
+).trim();
+const BUCKET = "tenant-assets";
+const ATTACHABLE_EXTS = new Set(["pdf", "doc", "docx", "rtf", "txt", "png", "jpg", "jpeg", "webp"]);
 
-function decodeXmlEntities(str: string): string {
-  return str
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&");
-}
+const encodeStoragePath = (p: string) => p.split("/").map(encodeURIComponent).join("/");
 
-function wordXmlToText(xml: string): string {
-  const withBreaks = xml
-    .replace(/<\/w:tc>/g, "\t")
-    .replace(/<w:tab\b[^>]*\/>/g, "\t")
-    .replace(/<w:(?:br|cr)\b[^>]*\/>/g, "\n")
-    .replace(/<\/w:(?:p|tr)>/g, "\n");
-  const stripped = withBreaks.replace(/<[^>]+>/g, "");
-  return decodeXmlEntities(stripped)
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+async function downloadFromSupabaseStorage(storagePath: string): Promise<Buffer> {
+  const res = await fetch(
+    `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeStoragePath(storagePath)}`,
+    {
+      method: "GET",
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+      },
+      cache: "no-store",
+    }
+  );
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Could not retrieve staged file from storage (${res.status}): ${errText.slice(0, 120)}`);
+  }
+  const ab = await res.arrayBuffer();
+  return Buffer.from(ab);
 }
 
 /**
- * Zero-dependency .docx text extractor using Node's built-in zlib.
- * Reads Central Directory entries from the ZIP buffer and inflates word/*.xml.
+ * Best-effort persistence of multipart/base64 uploaded lease files into Supabase Storage
+ * so the source document is automatically attached to the tenant card on commit.
  */
-function extractDocxText(buf: Buffer): string {
-  const minEocdOffset = Math.max(0, buf.length - 65557);
-  let eocdOffset = -1;
-  for (let i = buf.length - 22; i >= minEocdOffset; i--) {
-    if (buf.readUInt32LE(i) === 0x06054b50) {
-      eocdOffset = i;
-      break;
-    }
+async function persistSourceDocIfPossible(
+  orgId: string,
+  filename: string,
+  mimeType: string,
+  buf: Buffer
+): Promise<string> {
+  if (!SUPABASE_URL || !SERVICE_KEY || buf.length === 0 || buf.length > 25 * 1024 * 1024) {
+    return "";
   }
-  if (eocdOffset < 0) {
-    throw new Error("Invalid .docx archive (missing ZIP central directory).");
-  }
+  const lastDot = filename.lastIndexOf(".");
+  const baseName = lastDot !== -1 ? filename.slice(0, lastDot) : filename;
+  const ext = (lastDot !== -1 ? filename.slice(lastDot + 1).toLowerCase() : "").replace(/[^a-z0-9]/g, "");
+  if (!ATTACHABLE_EXTS.has(ext)) return "";
 
-  const totalEntries = buf.readUInt16LE(eocdOffset + 10);
-  const cdOffset = buf.readUInt32LE(eocdOffset + 16);
+  const cleanBase = baseName.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 60).toLowerCase() || "lease";
+  const storagePath = `${orgId}/intake-staging/${Date.now()}-${cleanBase}.${ext}`;
+  const contentType =
+    mimeType ||
+    (ext === "pdf"
+      ? "application/pdf"
+      : ext === "docx"
+        ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        : "application/octet-stream");
 
-  const xmlEntries: { name: string; text: string }[] = [];
-  let pos = cdOffset;
-
-  for (let idx = 0; idx < totalEntries && pos + 46 <= buf.length; idx++) {
-    if (buf.readUInt32LE(pos) !== 0x02014b50) break;
-    const compressionMethod = buf.readUInt16LE(pos + 10);
-    const compressedSize = buf.readUInt32LE(pos + 20);
-    const fileNameLen = buf.readUInt16LE(pos + 28);
-    const extraLen = buf.readUInt16LE(pos + 30);
-    const commentLen = buf.readUInt16LE(pos + 32);
-    const localHeaderOffset = buf.readUInt32LE(pos + 42);
-    const entryName = buf.subarray(pos + 46, pos + 46 + fileNameLen).toString("utf8");
-    pos += 46 + fileNameLen + extraLen + commentLen;
-
-    if (!/^word\/(header\d*|document|footer\d*|footnotes|endnotes)\.xml$/i.test(entryName)) {
-      continue;
-    }
-    if (localHeaderOffset + 30 > buf.length || buf.readUInt32LE(localHeaderOffset) !== 0x04034b50) {
-      continue;
-    }
-
-    const localNameLen = buf.readUInt16LE(localHeaderOffset + 26);
-    const localExtraLen = buf.readUInt16LE(localHeaderOffset + 28);
-    const dataStart = localHeaderOffset + 30 + localNameLen + localExtraLen;
-    if (dataStart + compressedSize > buf.length) continue;
-
-    const compressedSlice = buf.subarray(dataStart, dataStart + compressedSize);
-    let xmlBuf: Buffer | null = null;
-    if (compressionMethod === 0) {
-      xmlBuf = compressedSlice;
-    } else if (compressionMethod === 8) {
-      xmlBuf = inflateRawSync(compressedSlice);
-    }
-    if (xmlBuf) {
-      const text = wordXmlToText(xmlBuf.toString("utf8"));
-      if (text) xmlEntries.push({ name: entryName, text });
-    }
-  }
-
-  // Order headers -> main document -> footers/notes
-  xmlEntries.sort((a, b) => {
-    const rank = (n: string) =>
-      n.includes("header") ? 0 : n.includes("document.xml") ? 1 : 2;
-    return rank(a.name) - rank(b.name);
-  });
-
-  return xmlEntries.map((e) => e.text).join("\n\n").trim();
-}
-
-/** Extracts readable text runs from legacy binary .doc (OLE2 Word 97-2003) files. */
-function extractLegacyDocText(buf: Buffer): string {
-  const chunks: string[] = [];
-
-  // 1. ASCII printable runs
-  const latin = buf.toString("latin1");
-  const asciiMatches = latin.match(/[A-Za-z0-9$.,:/()\-'"@#&%\t\r\n ]{6,}/g) || [];
-  for (const m of asciiMatches) {
-    const cleaned = m.trim();
-    if (
-      cleaned.length >= 6 &&
-      /[A-Za-z0-9]/.test(cleaned) &&
-      !/^(Root Entry|WordDocument|CompObj|SummaryInformation|DocumentSummaryInformation|Microsoft Word)/i.test(cleaned)
-    ) {
-      chunks.push(cleaned);
-    }
-  }
-
-  // 2. UTF-16LE printable runs (common in Word 97-2003 Unicode piece tables)
-  let u16Run = "";
-  for (let i = 0; i + 1 < buf.length; i += 2) {
-    const code = buf.readUInt16LE(i);
-    if (code === 0x000d || code === 0x000a) {
-      u16Run += "\n";
-    } else if (code === 0x0009) {
-      u16Run += "\t";
-    } else if (code >= 0x0020 && code <= 0x007e) {
-      u16Run += String.fromCharCode(code);
-    } else {
-      if (u16Run.trim().length >= 8 && /[A-Za-z]/.test(u16Run)) {
-        chunks.push(u16Run.trim());
+  try {
+    const upRes = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeStoragePath(storagePath)}`,
+      {
+        method: "POST",
+        headers: {
+          apikey: SERVICE_KEY,
+          Authorization: `Bearer ${SERVICE_KEY}`,
+          "Content-Type": contentType,
+          "x-upsert": "true",
+        },
+        body: new Uint8Array(buf),
       }
-      u16Run = "";
+    );
+    if (upRes.ok) {
+      return `/api/tenant-upload?path=${encodeURIComponent(storagePath)}`;
     }
+  } catch (err) {
+    console.warn("[intake-ocr] Non-fatal source doc persistence warning:", err);
   }
-  if (u16Run.trim().length >= 8 && /[A-Za-z]/.test(u16Run)) {
-    chunks.push(u16Run.trim());
-  }
-
-  return chunks.join("\n").slice(0, 120_000).trim();
-}
-
-function extractRtfText(rtf: string): string {
-  return rtf
-    .replace(/\\par[d]?/g, "\n")
-    .replace(/\\tab/g, "\t")
-    .replace(/\\'[0-9a-fA-F]{2}/g, (m) => String.fromCharCode(parseInt(m.slice(2), 16)))
-    .replace(/\\[a-zA-Z]+-?\d* ?/g, "")
-    .replace(/[{}]/g, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function extractSpreadsheetText(buf: Buffer): string {
-  const wb = XLSX.read(buf, { type: "buffer" });
-  const parts: string[] = [];
-  for (const sheetName of wb.SheetNames) {
-    const ws = wb.Sheets[sheetName];
-    if (!ws) continue;
-    const csv = XLSX.utils.sheet_to_csv(ws, { blankrows: false }).trim();
-    if (csv) {
-      parts.push(`--- Sheet: ${sheetName} ---\n${csv}`);
-    }
-  }
-  return parts.join("\n\n").slice(0, 120_000).trim();
-}
-
-type PreparedInput =
-  | { kind: "inline"; mimeType: string; base64Data: string }
-  | { kind: "text"; extractedText: string; sourceFormat: string };
-
-function prepareDocumentForGemini(
-  buf: Buffer,
-  rawMimeType: string,
-  filename: string
-): PreparedInput {
-  const lowerName = filename.toLowerCase().trim();
-  const mime = rawMimeType.toLowerCase().trim();
-
-  // 1. Check binary magic bytes first so missing/wrong browser MIME types never fool Gemini
-  const isPdfMagic = buf.length >= 5 && buf.subarray(0, 5).toString("ascii") === "%PDF-";
-  const isPngMagic =
-    buf.length >= 8 &&
-    buf[0] === 0x89 &&
-    buf[1] === 0x50 &&
-    buf[2] === 0x4e &&
-    buf[3] === 0x47;
-  const isJpegMagic = buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
-  const isWebpMagic =
-    buf.length >= 12 &&
-    buf.subarray(0, 4).toString("ascii") === "RIFF" &&
-    buf.subarray(8, 12).toString("ascii") === "WEBP";
-  const isGifMagic =
-    buf.length >= 6 &&
-    (buf.subarray(0, 6).toString("ascii") === "GIF87a" ||
-      buf.subarray(0, 6).toString("ascii") === "GIF89a");
-  const isZipMagic =
-    buf.length >= 4 &&
-    buf[0] === 0x50 &&
-    buf[1] === 0x4b &&
-    buf[2] === 0x03 &&
-    buf[3] === 0x04;
-  const isOleMagic =
-    buf.length >= 4 &&
-    buf[0] === 0xd0 &&
-    buf[1] === 0xcf &&
-    buf[2] === 0x11 &&
-    buf[3] === 0xe0;
-
-  if (isPdfMagic || lowerName.endsWith(".pdf") || mime === "application/pdf") {
-    return { kind: "inline", mimeType: "application/pdf", base64Data: buf.toString("base64") };
-  }
-
-  if (isPngMagic) {
-    return { kind: "inline", mimeType: "image/png", base64Data: buf.toString("base64") };
-  }
-  if (isJpegMagic) {
-    return { kind: "inline", mimeType: "image/jpeg", base64Data: buf.toString("base64") };
-  }
-  if (isWebpMagic) {
-    return { kind: "inline", mimeType: "image/webp", base64Data: buf.toString("base64") };
-  }
-  if (isGifMagic) {
-    return { kind: "inline", mimeType: "image/gif", base64Data: buf.toString("base64") };
-  }
-
-  // Word .docx or Excel .xlsx (both are PKZIP containers)
-  if (
-    isZipMagic ||
-    lowerName.endsWith(".docx") ||
-    mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-  ) {
-    if (
-      lowerName.endsWith(".xlsx") ||
-      lowerName.endsWith(".xlsm") ||
-      mime.includes("spreadsheetml")
-    ) {
-      const text = extractSpreadsheetText(buf);
-      return { kind: "text", extractedText: text, sourceFormat: "Excel Workbook (.xlsx)" };
-    }
-    try {
-      const docxText = extractDocxText(buf);
-      if (docxText) {
-        return { kind: "text", extractedText: docxText.slice(0, 120_000), sourceFormat: "Word Document (.docx)" };
-      }
-    } catch {
-      // If it's actually an xlsx renamed or another zip spreadsheet, try SheetJS
-      try {
-        const sheetText = extractSpreadsheetText(buf);
-        if (sheetText) {
-          return { kind: "text", extractedText: sheetText, sourceFormat: "Spreadsheet" };
-        }
-      } catch {
-        /* fall through */
-      }
-    }
-    throw new Error("Could not extract readable text from this .docx file. Please save as PDF and try again.");
-  }
-
-  // Legacy .doc or .xls (OLE2 containers)
-  if (
-    isOleMagic ||
-    lowerName.endsWith(".doc") ||
-    lowerName.endsWith(".xls") ||
-    mime === "application/msword" ||
-    mime === "application/vnd.ms-excel"
-  ) {
-    if (lowerName.endsWith(".xls") || mime === "application/vnd.ms-excel") {
-      const sheetText = extractSpreadsheetText(buf);
-      return { kind: "text", extractedText: sheetText, sourceFormat: "Excel Spreadsheet (.xls)" };
-    }
-    const legacyText = extractLegacyDocText(buf);
-    if (!legacyText) {
-      throw new Error("Could not read this legacy .doc file. Please save it as .docx or PDF and retry.");
-    }
-    return { kind: "text", extractedText: legacyText, sourceFormat: "Word Document (.doc)" };
-  }
-
-  // RTF documents
-  if (
-    lowerName.endsWith(".rtf") ||
-    mime === "application/rtf" ||
-    mime === "text/rtf" ||
-    buf.subarray(0, 5).toString("ascii") === "{\\rtf"
-  ) {
-    const rtfText = extractRtfText(buf.toString("latin1"));
-    return { kind: "text", extractedText: rtfText.slice(0, 120_000), sourceFormat: "Rich Text (.rtf)" };
-  }
-
-  // Plain text / CSV / TSV
-  if (
-    mime.startsWith("text/") ||
-    /\.(txt|csv|tsv|md)$/i.test(lowerName)
-  ) {
-    return {
-      kind: "text",
-      extractedText: buf.toString("utf8").slice(0, 120_000),
-      sourceFormat: "Text / CSV Document",
-    };
-  }
-
-  // HEIC / HEIF or other Gemini-supported images
-  if (mime.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp)$/i.test(lowerName)) {
-    const resolvedImageMime =
-      mime.startsWith("image/")
-        ? mime
-        : lowerName.endsWith(".png")
-        ? "image/png"
-        : lowerName.endsWith(".webp")
-        ? "image/webp"
-        : lowerName.endsWith(".heic")
-        ? "image/heic"
-        : lowerName.endsWith(".heif")
-        ? "image/heif"
-        : "image/jpeg";
-    return { kind: "inline", mimeType: resolvedImageMime, base64Data: buf.toString("base64") };
-  }
-
-  throw new Error(
-    `Unsupported file format (${filename}). Please upload a PDF, Word document (.docx), Excel/CSV spreadsheet, or photo (JPG/PNG/HEIC).`
-  );
+  return "";
 }
 
 function extractJsonObject(raw: string): Record<string, unknown> {
@@ -392,11 +147,8 @@ async function runGeminiWithFallback(
     jsonMode: boolean;
     disableThinking: boolean;
   }> = [
-    // 1. Primary: Gemini 2.5 Flash with thinking disabled (fast, avoids thinking+JSON 500s)
     { model: "gemini-2.5-flash", jsonMode: true, disableThinking: true },
-    // 2. Fallback 1: Gemini 2.0 Flash GA (rock-solid non-thinking multimodal model)
     { model: "gemini-2.0-flash", jsonMode: true, disableThinking: false },
-    // 3. Fallback 2: Gemini 2.5 Flash without constrained JSON decoding (avoids PDF JSON-mode 500 INTERNAL)
     { model: "gemini-2.5-flash", jsonMode: false, disableThinking: true },
   ];
 
@@ -442,7 +194,6 @@ async function runGeminiWithFallback(
         `[intake-ocr] Attempt ${i + 1} (${attempt.model}, jsonMode=${attempt.jsonMode}) failed with ${res.status}:`,
         lastErrorBody.slice(0, 400)
       );
-      // Retry on 5xx, 429, 404 (model availability), or 400 (config mismatch)
       continue;
     }
 
@@ -481,7 +232,9 @@ async function runGeminiWithFallback(
 export async function POST(req: NextRequest) {
   const g = await requireOrg(req);
   if (!g.ok) return g.res;
-  if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
+  const { orgId } = g.ctx;
+
+  if (!(await checkAiQuota(orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
     return NextResponse.json(
       { error: "Your workspace has reached today's AI usage limit. It resets tomorrow." },
       { status: 429 }
@@ -502,6 +255,7 @@ export async function POST(req: NextRequest) {
     let mimeType = "";
     let filename = "upload";
     let userPromptHint = "";
+    let sourceDocUrl = "";
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
@@ -514,22 +268,33 @@ export async function POST(req: NextRequest) {
 
       mimeType = file.type || "";
       filename = file.name || "upload";
-      if (file.size > 15 * 1024 * 1024) {
-        return NextResponse.json({ error: "File is too large (max 15 MB)." }, { status: 413 });
+      if (file.size > 25 * 1024 * 1024) {
+        return NextResponse.json({ error: "File is too large (max 25 MB)." }, { status: 413 });
       }
       const arrayBuffer = await file.arrayBuffer();
       fileBuffer = Buffer.from(arrayBuffer);
+      sourceDocUrl = await persistSourceDocIfPossible(orgId, filename, mimeType, fileBuffer);
     } else {
       const body = await req.json();
-      let base64Data = String(body.imageBase64 || "");
       mimeType = String(body.mimeType || "");
       filename = String(body.filename || "upload");
       userPromptHint = String(body.notes || "");
 
-      if (base64Data.includes(";base64,")) {
-        base64Data = base64Data.split(";base64,")[1] || "";
+      const storagePath = String(body.storagePath || "").trim().replace(/^\/+/, "");
+      if (storagePath) {
+        if (!storagePath.startsWith(`${orgId}/`) || storagePath.includes("..")) {
+          return NextResponse.json({ error: "Forbidden storage path." }, { status: 403 });
+        }
+        fileBuffer = await downloadFromSupabaseStorage(storagePath);
+        sourceDocUrl = `/api/tenant-upload?path=${encodeURIComponent(storagePath)}`;
+      } else {
+        let base64Data = String(body.imageBase64 || "");
+        if (base64Data.includes(";base64,")) {
+          base64Data = base64Data.split(";base64,")[1] || "";
+        }
+        fileBuffer = Buffer.from(base64Data, "base64");
+        sourceDocUrl = await persistSourceDocIfPossible(orgId, filename, mimeType, fileBuffer);
       }
-      fileBuffer = Buffer.from(base64Data, "base64");
     }
 
     if (!fileBuffer || fileBuffer.length === 0) {
@@ -547,84 +312,99 @@ export async function POST(req: NextRequest) {
     const orgName = g.ctx.org.name || "";
     const systemInstruction = `You are an elite real estate document & lease extraction AI for PropOpsIQ property management software.
 You are inspecting a document or image uploaded by a landlord or property manager${orgName ? ` (Landlord/Workspace: "${orgName}")` : ""}.
-The source material may be:
-1. A residential or commercial LEASE AGREEMENT (PDF, Word .docx/.doc, or scanned contract) for a single tenant/household or commercial lessee.
+The source material may contain:
+1. ONE OR MULTIPLE residential or commercial LEASE AGREEMENTS (e.g., Commercial NNN lease, Multi-Family Apartment lease, Single-Family Residence SFR lease, or a multi-lease packet).
 2. A rent roll spreadsheet, tenant schedule, ledger table, or rent receipt book.
 3. A photo of a HANDWRITTEN legal pad, notebook page, whiteboard, or sticky note listing tenants, units, and rent amounts.
 
 CRITICAL EXTRACTION RULES:
-- Extract every TENANT / LESSEE / RESIDENT / OCCUPANT into the "records" array.
-- IMPORTANT FOR LEASE AGREEMENTS: Extract the TENANT / LESSEE (the person or company renting the unit) — NEVER mistake the Landlord / Lessor / Owner / Property Manager${orgName ? ` ("${orgName}")` : ""} for the tenant! If multiple co-tenants are on the same lease for the same unit, put the primary tenant in "name" and list co-tenants or contact details in "contactName" or "notes".
-- Convert written-out or annual rent amounts into numeric MONTHLY rent (e.g., "$1,850.00 per month" -> 1850; "$24,000 per annum" -> 2000).
-- Convert dates into YYYY-MM-DD format whenever possible (e.g., "November 1, 2026" -> "2026-11-01").
-- Extract the property street address or building name into "building", and any apartment/unit/suite/floor identifier into "unit" (if a single-family home has no unit number, use "Main" or "Unit 1").
+- Extract EVERY distinct TENANT / LESSEE / RESIDENT agreement in the document as its own object in "records". If a single file contains 3 separate leases across 3 properties, output 3 objects in "records" — each with its own exact building, unit, rent, fees, and dates!
+- NEVER mistake the Landlord / Lessor / Owner / Property Management LLC${orgName ? ` ("${orgName}")` : ""} for the tenant! Put the primary Tenant / Lessee (person or business renting the space) in "name".
+- If there are Co-Tenants (e.g., "Marcus Vance, Sarah Vance"), put the primary tenant ("Marcus Vance") in "name" and co-tenants ("Sarah Vance") in "contactName". Put any personal/corporate Guarantor in "guarantor".
+- SEPARATE BASE RENT FROM ADD-ON MONTHLY FEES:
+  * "monthlyRent": Base monthly rent ONLY (do NOT add NNN, pet rent, or landscaping fees into monthlyRent!). E.g. if base rent is $2,400/mo plus $50/mo landscaping fee ($2,450 total), set "monthlyRent": 2400, "utilitiesFee": 50, "utilitiesFeeLabel": "Landscaping Fee".
+  * "nnnFee": Monthly NNN / CAM / Taxes+Insurance+CAM estimate on commercial leases (e.g. $450/mo -> 450). Put combined NNN/CAM estimate in "nnnFee" and leave "camFee": 0 so it is never double-counted.
+  * "utilitiesFee": Recurring monthly residential/commercial add-ons such as Pet Rent (e.g. +$35/mo), Landscaping/Lawn fee (+$50/mo), RUBS/utility flat fee, or parking fee. Describe what it is in "utilitiesFeeLabel" (e.g. "Pet Rent", "Landscaping Fee").
+  * "securityDeposit": Refundable security deposit / escrow amount ONLY. Put any non-refundable pet/move-in fee in "nonRefundableDeposit" (e.g. $250 non-refundable pet deposit -> 250).
+  * "secDepReceived": true if the lease states the security deposit is deposited upon signing or held in escrow; false otherwise.
+- ESCALATIONS, LATE FEES & PREVENTATIVE MAINTENANCE:
+  * "escalationPct": Annual rent escalation percentage if specified (e.g. "annual 3% escalation" -> 3, else 0).
+  * "escalationDate": First escalation anniversary date in YYYY-MM-DD if determinable (e.g. leaseStart 2025-01-01 -> "2026-01-01"), else "".
+  * "lateFeeRule": Concise late fee summary if stated (e.g. "$82.50 (5%) after 5th day"), else "".
+  * "hvacFilterIntervalDays": Integer days if lease specifies an HVAC air filter replacement schedule (e.g. "HVAC air filters changed every 60 days" -> 60), else 0.
+- PROPERTY & UNIT CLASSIFICATION:
+  * "building": Clean building/community name (e.g. "Apex Plaza", "Oakview Apartments") OR street address for a Single-Family Residence (e.g. "742 Evergreen Terrace"). Do NOT append the unit number or city onto "building" when they belong in "unit" and "propertyCity"!
+  * "propertyAddress": Street address if stated (e.g. "742 Evergreen Terrace"), else "".
+  * "propertyCity": City (and state if shown, e.g. "Metropolis", "Springfield"), else "".
+  * "propertyType": One of "Commercial", "Multi-Family", "Single-Family", or "Mixed-Use".
+  * "unit": Suite, apartment, or unit number (e.g. "Suite 100", "Unit 2B", or "Main" for a Single-Family Residence).
+  * "unitSqft": Rentable square footage (RSF / SqFt) as an integer if stated (e.g. 2400), else 0.
+- PRIVACY: Never output a full 9-digit Social Security Number; always mask as "***-**-8812" if present. (Business EINs like "12-3456789" may be noted in "notes").
+- Dates must be YYYY-MM-DD (e.g. "2025-01-01").
 
-Output ONLY valid raw JSON matching this exact structure (no markdown backticks, no commentary):
+Output ONLY valid raw JSON matching this exact structure:
 {
   "portfolioSummary": "Brief 1-sentence summary of what was parsed",
-  "detectedBuildingName": "Building name or street address if identified, else empty string",
+  "detectedBuildingName": "Building name ONLY if all records belong to a single building, else empty string",
   "records": [
     {
-      "name": "Full individual tenant or business lessee name",
-      "contactName": "Primary contact or co-tenant if applicable, else empty string",
-      "email": "Tenant email address if visible, else empty string",
-      "phone": "Tenant phone number if visible, else empty string",
-      "building": "Property street address or building name",
-      "unit": "Unit, apartment, or suite identifier (e.g. Apt 2B, Suite 200, Main)",
-      "monthlyRent": 1500,
-      "securityDeposit": 1500,
-      "leaseStart": "YYYY-MM-DD",
-      "leaseEnd": "YYYY-MM-DD",
-      "notes": "Key lease terms, utilities, pets, parking, escalations, or clarifications",
+      "name": "Summit Tech LLC",
+      "contactName": "",
+      "guarantor": "Jane Doe",
+      "email": "",
+      "phone": "",
+      "building": "Apex Plaza",
+      "propertyAddress": "",
+      "propertyCity": "Metropolis",
+      "propertyType": "Commercial",
+      "unit": "Suite 100",
+      "unitSqft": 2400,
+      "beds": 0,
+      "baths": 0,
+      "monthlyRent": 5200,
+      "nnnFee": 450,
+      "camFee": 0,
+      "utilitiesFee": 0,
+      "utilitiesFeeLabel": "",
+      "cleaningFee": 0,
+      "securityDeposit": 10400,
+      "nonRefundableDeposit": 0,
+      "secDepReceived": true,
+      "secDepNotes": "Held in interest-bearing escrow",
+      "escalationPct": 3,
+      "escalationDate": "2026-01-01",
+      "lateFeeRule": "",
+      "hvacFilterIntervalDays": 0,
+      "leaseStart": "2025-01-01",
+      "leaseEnd": "2029-12-31",
+      "notes": "Commercial office / software dev · EIN 12-3456789 · 14.2% NNN share",
       "confidence": "high",
       "needsReview": false
     }
   ]
 }
 
-Context note: ${userPromptHint || "None"}`;
+Context note: ${redactSensitivePii(userPromptHint) || "None"}`;
 
     const parsedResult = await runGeminiWithFallback(apiKey, systemInstruction, prepared);
     const rawRecords = Array.isArray(parsedResult.records) ? parsedResult.records : [];
     const detectedBuildingName = String(parsedResult.detectedBuildingName || "").trim();
 
     const candidates: ExtractedTenantCandidate[] = rawRecords.map(
-      (r: Record<string, unknown>, idx: number) => {
-        const name = String(r.name || "").trim();
-        const rent = Number(r.monthlyRent) || 0;
-        const unit = String(r.unit || "").trim();
-        const building = String(r.building || detectedBuildingName || "").trim();
-
-        const isMissingCritical = !name || rent <= 0;
-        const needsReview = Boolean(r.needsReview) || isMissingCritical;
-
-        return {
-          id: `candidate_${Date.now()}_${idx}`,
-          name: name || `Tenant ${idx + 1}`,
-          contactName: String(r.contactName || "").trim(),
-          email: String(r.email || "").trim(),
-          phone: String(r.phone || "").trim(),
-          building: building || "Main Building",
-          unit: unit || (rawRecords.length === 1 ? "Unit 1" : `Unit ${idx + 1}`),
-          monthlyRent: rent,
-          securityDeposit: Number(r.securityDeposit) || 0,
-          leaseStart: String(r.leaseStart || "").trim(),
-          leaseEnd: String(r.leaseEnd || "").trim(),
-          notes: String(r.notes || "").trim(),
-          confidence:
-            (r.confidence as "high" | "medium" | "low") ||
-            (isMissingCritical ? "low" : "high"),
-          needsReview,
-          // If a single lease document was uploaded and we found the tenant name, pre-select it so the user can edit/confirm immediately
-          selected: rawRecords.length === 1 ? Boolean(name) : !isMissingCritical,
-        };
-      }
+      (r: Record<string, unknown>, idx: number) =>
+        normalizeExtractedCandidate(r, idx, {
+          totalRecords: rawRecords.length,
+          detectedBuildingName,
+          sourceDocUrl,
+          sourceDocName: filename,
+        })
     );
 
     return NextResponse.json({
       success: true,
       filename,
-      portfolioSummary: String(parsedResult.portfolioSummary || "Extracted tenant records"),
+      sourceDocUrl,
+      portfolioSummary: redactSensitivePii(String(parsedResult.portfolioSummary || "Extracted tenant records")),
       detectedBuildingName,
       totalExtracted: candidates.length,
       candidates,
