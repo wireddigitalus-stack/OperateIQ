@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOrg } from "@/lib/server-auth";
-import { PROPERTIES } from "@/lib/data";
-import { DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform-org";
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
 
@@ -14,19 +12,12 @@ const H = {
   "Content-Type":  "application/json",
 };
 
-// Building-name aliases per property id. Tenants' "building" field is matched
-// against these (plus the property display name). Driven from the property
-// catalogue so it reflects the customer's own portfolio.
-const PROPERTY_DROPDOWN_NAMES: Record<string, string[]> = Object.fromEntries(
-  PROPERTIES.map((p) => [p.id, [p.name]])
-);
-
-function exactBuildingMatch(tenantBuilding: string, propertyId: string, displayName: string): boolean {
+function exactBuildingMatch(tenantBuilding: string, propertyId: string, displayName: string, originalName?: string): boolean {
   if (!tenantBuilding) return false;
   const b = tenantBuilding.trim().toLowerCase();
   if (displayName && b === displayName.trim().toLowerCase()) return true;
-  const names = PROPERTY_DROPDOWN_NAMES[propertyId];
-  if (names && names.some(n => b === n.toLowerCase())) return true;
+  if (originalName && b === originalName.trim().toLowerCase()) return true;
+  if (propertyId && b === propertyId.trim().toLowerCase()) return true;
   return false;
 }
 
@@ -64,12 +55,8 @@ export async function POST(req: NextRequest) {
       safeFetch<Record<string, unknown>>(`properties?select=*&${scope}`),
     ]);
 
-    // Build property list: use database properties if any exist; fall back to static properties only for the demo org
-    const allProps = dynProps.length > 0
-      ? dynProps.map(p => ({ id: String(p.id), name: String(p.name || "") }))
-      : orgId === DEFAULT_PLATFORM_ORG_ID
-        ? PROPERTIES.map(p => ({ id: p.id, name: p.name }))
-        : [];
+    // Build property list strictly from the organization's database properties
+    const allProps = dynProps.map(p => ({ id: String(p.id), name: String(p.name || "") }));
 
     // Build detail map
     const detailMap: Record<string, Record<string, unknown>> = {};
@@ -114,7 +101,7 @@ export async function POST(req: NextRequest) {
       const d = detailMap[p.id];
       const displayName = String(d?.display_name || p.name);
       const propActiveTenants = activeTenants.filter(t =>
-        exactBuildingMatch(String(t.building || ""), p.id, displayName)
+        exactBuildingMatch(String(t.building || ""), p.id, displayName, p.name)
       );
       const totalUnits = Number(d?.total_units) || propActiveTenants.length || 1;
       portfolioUnits += totalUnits;

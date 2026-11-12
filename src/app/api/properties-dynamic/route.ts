@@ -14,6 +14,7 @@ import {
   parsePagination,
   safeJsonBody,
 } from "@/lib/pagination";
+import { deletePropertyCascade } from "@/lib/property-delete";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -234,23 +235,11 @@ export async function DELETE(req: NextRequest) {
         : [];
 
       if (sampleIds.length > 0) {
-        const inList = sampleIds.map((id) => `"${id.replace(/"/g, "")}"`).join(",");
-        const delRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/properties?org_id=eq.${orgId}&id=in.(${encodeURIComponent(inList)})`,
-          { method: "DELETE", headers: H }
+        await Promise.all(
+          sampleIds.map((sampleId) =>
+            deletePropertyCascade(orgId, sampleId, { includeTenants: true })
+          )
         );
-        if (!delRes.ok) {
-          const err = await delRes.text();
-          return apiErrorResponse(
-            new Error(`properties clear_sample (${delRes.status}): ${err}`),
-            "Failed to clear sample properties.",
-            { route: "/api/properties-dynamic", orgId }
-          );
-        }
-        await fetch(
-          `${SUPABASE_URL}/rest/v1/property_details?org_id=eq.${orgId}&property_id=in.(${encodeURIComponent(inList)})`,
-          { method: "DELETE", headers: H }
-        ).catch(() => {});
       }
       return NextResponse.json({ success: true, cleared: sampleIds.length });
     }
@@ -258,19 +247,14 @@ export async function DELETE(req: NextRequest) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/properties?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`,
-      { method: "DELETE", headers: H }
-    );
-    if (!res.ok) {
-      const err = await res.text();
-      return apiErrorResponse(
-        new Error(`properties DELETE (${res.status}): ${err}`),
-        "Failed to delete property.",
-        { route: "/api/properties-dynamic", orgId }
-      );
-    }
-    return NextResponse.json({ success: true });
+    const includeTenants = searchParams.get("include_tenants") === "1";
+    const result = await deletePropertyCascade(orgId, id, { includeTenants });
+
+    return NextResponse.json({
+      success: true,
+      propertyName: result.propertyName,
+      tenantsDeleted: result.tenantsDeleted,
+    });
   } catch (err) {
     return apiErrorResponse(err, "Failed to delete property.", { route: "/api/properties-dynamic", orgId });
   }

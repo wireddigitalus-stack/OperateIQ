@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireOrg, requireOrgAdmin } from "@/lib/server-auth";
 import { getPlan } from "@/lib/plans";
 import { isSampleProperty, SAMPLE_PROP_BADGE } from "@/lib/sample-data";
+import { deletePropertyCascade } from "@/lib/property-delete";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -93,10 +94,17 @@ export async function DELETE(req: NextRequest, { params }: Props) {
   const { orgId } = g.ctx;
 
   const { id } = await params;
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/properties?id=eq.${encodeURIComponent(id)}&org_id=eq.${orgId}`,
-    { method: "DELETE", headers: H }
-  );
-  if (!res.ok) { const err = await res.text(); return NextResponse.json({ error: err }, { status: 500 }); }
-  return NextResponse.json({ success: true });
+  const includeTenants = new URL(req.url).searchParams.get("include_tenants") === "1";
+
+  try {
+    const result = await deletePropertyCascade(orgId, id, { includeTenants });
+    return NextResponse.json({
+      success: true,
+      propertyName: result.propertyName,
+      tenantsDeleted: result.tenantsDeleted,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to delete property.";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

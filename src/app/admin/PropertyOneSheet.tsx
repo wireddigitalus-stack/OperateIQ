@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { FileText, Printer, Building2, MapPin, Ruler, CheckCircle2, ChevronDown, Sparkles } from "lucide-react";
-import { PROPERTIES, COMPANY } from "@/lib/data";
 import { getOrgProfile } from "@/lib/org-profile";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -690,7 +689,6 @@ export default function PropertyOneSheet() {
       fetch("/api/platform/session").then(r => r.json()).catch(() => ({})),
     ]).then(async ([dynData, sessData]) => {
       const activeOrg = sessData?.impersonatingOrg || sessData?.activeOrg;
-      const isDemoOrg = activeOrg?.id === "00000000-0000-0000-0000-000000000001";
 
       if (activeOrg?.id) {
         try {
@@ -728,24 +726,7 @@ export default function PropertyOneSheet() {
         image: dp.hero_image || dp.images?.[0] || "",
         imageAlt: dp.name,
       }));
-      const dynIds = new Set(dynProps.map(d => d.id));
-      const staticProps: OneSheetProperty[] = isDemoOrg
-        ? PROPERTIES.filter(p => !dynIds.has(p.id)).map(p => ({
-            id: p.id,
-            name: p.name,
-            type: p.type,
-            city: p.city,
-            sqft: p.sqft,
-            status: p.status,
-            badge: p.badge,
-            address: (p as any).address || "",
-            description: p.description,
-            features: p.features || [],
-            image: (p as any).image || "",
-            imageAlt: (p as any).imageAlt || p.name,
-          }))
-        : [];
-      setPropertiesList([...dynProps, ...staticProps]);
+      setPropertiesList(dynProps);
     });
   }, []);
 

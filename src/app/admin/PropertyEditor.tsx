@@ -6,7 +6,6 @@ import {
   Type, ChevronDown, ChevronRight, Building2, MapPin,
   Star, Trash2, Upload, ImageIcon, Plus, Eye, EyeOff,
 } from "lucide-react";
-import { PROPERTIES } from "@/lib/data";
 import { compressImageFile } from "@/lib/image-compression";
 
 interface PropertyImages {
@@ -88,15 +87,12 @@ export default function PropertyEditor({ refreshKey = 0 }: { refreshKey?: number
 
   const fetchContent = useCallback(async () => {
     try {
-      const [res, dynRes, sessRes] = await Promise.all([
+      const [res, dynRes] = await Promise.all([
         fetch("/api/site-content"),
         fetch("/api/properties-dynamic?admin=1"),
-        fetch("/api/platform/session"),
       ]);
       const data = await res.json().catch(() => ({}));
       const dynData = await dynRes.json().catch(() => ({}));
-      const sessData = await sessRes.json().catch(() => ({}));
-      const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
 
       const dynProps: EditableProperty[] = (dynData.properties || []).map((dp: any) => ({
         id: dp.id,
@@ -116,28 +112,7 @@ export default function PropertyEditor({ refreshKey = 0 }: { refreshKey?: number
         published: dp.published !== false,
       }));
 
-      const dynIds = new Set(dynProps.map(d => d.id));
-      const staticProps: EditableProperty[] = isDemoOrg
-        ? PROPERTIES.filter(p => !dynIds.has(p.id)).map(p => ({
-            id: p.id,
-            name: p.name,
-            type: p.type,
-            address: (p as any).address || "",
-            city: p.city,
-            sqft: p.sqft,
-            status: p.status,
-            badge: p.badge || "",
-            description: p.description,
-            features: p.features || [],
-            image: (p as any).image || "",
-            images: (p as any).images || ((p as any).image ? [(p as any).image] : []),
-            imageAlt: (p as any).imageAlt || p.name,
-            videoTour: (p as any).videoTour || "",
-            published: true,
-          }))
-        : [];
-
-      setPropertiesList([...dynProps, ...staticProps]);
+      setPropertiesList(dynProps);
 
       const items: ContentItem[] = (data.items || []).filter(
         (i: ContentItem) => i.section.startsWith("property:")

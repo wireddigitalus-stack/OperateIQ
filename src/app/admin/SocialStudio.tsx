@@ -4,7 +4,22 @@ import {
   Loader2, Sparkles, Copy, CheckCircle2, Download,
   Clock, Instagram, RefreshCw, Hash, Mail, Globe, Calendar,
 } from "lucide-react";
-import { PROPERTIES } from "@/lib/data";
+
+interface SocialPropertyItem {
+  id: string;
+  name: string;
+  type: string;
+  address: string;
+  city: string;
+  sqft: string;
+  status: string;
+  badge: string;
+  badgeColor: string;
+  description: string;
+  features: string[];
+  image: string;
+  imageAlt: string;
+}
 
 // ── Auto-growing textarea ──────────────────────────────────────────────────────
 function AutoTextarea({
@@ -115,7 +130,7 @@ const GOALS = [
 
 export default function SocialStudio() {
   // Controls
-  const [propertiesList, setPropertiesList] = useState<typeof PROPERTIES>([]);
+  const [propertiesList, setPropertiesList] = useState<SocialPropertyItem[]>([]);
   const [propId, setPropId]   = useState("");
   const [tone, setTone]       = useState<"professional"|"friendly"|"exciting"|"luxury">("professional");
   const [goal, setGoal]       = useState<"awareness"|"leads"|"tour"|"promo">("leads");
@@ -123,33 +138,28 @@ export default function SocialStudio() {
   const [activeVariant, setActiveVariant] = useState<"main"|"alt">("main");
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/properties-dynamic?admin=1").then(r => r.json()).catch(() => ({})),
-      fetch("/api/platform/session").then(r => r.json()).catch(() => ({})),
-    ]).then(([dynData, sessData]) => {
-      const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
-      const dynProps = (dynData.properties || []).map((dp: any) => ({
-        id: dp.id,
-        name: dp.name,
-        type: dp.type || "Office",
-        address: dp.address || "",
-        city: dp.city || "",
-        sqft: dp.sqft || "N/A",
-        status: dp.lease_status || "Available",
-        badge: dp.badge || dp.type || "Office",
-        badgeColor: dp.badge_color || "green",
-        description: dp.description || "",
-        features: Array.isArray(dp.features) ? dp.features : [],
-        image: dp.hero_image || dp.images?.[0] || "",
-        imageAlt: dp.name,
-      }));
-      const dynIds = new Set(dynProps.map((d: any) => d.id));
-      const combined = isDemoOrg
-        ? [...dynProps, ...PROPERTIES.filter(p => !dynIds.has(p.id))]
-        : dynProps;
-      setPropertiesList(combined);
-      if (combined.length > 0) setPropId(prev => prev || combined[0].id);
-    });
+    fetch("/api/properties-dynamic?admin=1")
+      .then(r => r.json())
+      .catch(() => ({}))
+      .then((dynData) => {
+        const dynProps: SocialPropertyItem[] = (dynData.properties || []).map((dp: any) => ({
+          id: dp.id,
+          name: dp.name,
+          type: dp.type || "Office",
+          address: dp.address || "",
+          city: dp.city || "",
+          sqft: dp.sqft || "N/A",
+          status: dp.lease_status || "Available",
+          badge: dp.badge || dp.type || "Office",
+          badgeColor: dp.badge_color || "green",
+          description: dp.description || "",
+          features: Array.isArray(dp.features) ? dp.features : [],
+          image: dp.hero_image || dp.images?.[0] || "",
+          imageAlt: dp.name,
+        }));
+        setPropertiesList(dynProps);
+        if (dynProps.length > 0) setPropId(prev => prev || dynProps[0].id);
+      });
   }, []);
 
   // Outputs (editable)

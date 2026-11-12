@@ -4,7 +4,6 @@ import {
   TrendingUp, TrendingDown, Minus, AlertTriangle,
   Building2, DollarSign, Users, BarChart3,
 } from "lucide-react";
-import { PROPERTIES } from "@/lib/data";
 import type { Tenant } from "./TenantsTab";
 import type { PropertyItem, AvailableSpace } from "./PropDetailsTab";
 
@@ -191,34 +190,26 @@ export default function PortfolioOverviewCard({ properties: propProperties, tena
   useEffect(() => {
     if (propProperties !== undefined) return;
     let cancelled = false;
-    Promise.all([
-      fetch("/api/properties-list").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch("/api/platform/session", { cache: "no-store" }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-    ]).then(([list, sess]) => {
-      if (cancelled) return;
-      const s = sess as { impersonatingOrg?: { id?: string }; activeOrg?: { id?: string } };
-      const orgId = s?.impersonatingOrg?.id || s?.activeOrg?.id || null;
-      const isDemo = orgId === "00000000-0000-0000-0000-000000000001";
-      const dynList: PropertyItem[] = Array.isArray(list)
-        ? list.map((p: any) => ({
-            id: String(p.id),
-            name: p.name || "Untitled",
-            type: p.type || "Commercial",
-            city: p.city || "",
-            sqft: p.sqft || "TBD",
-            isDynamic: true,
-          }))
-        : [];
-      if (isDemo) {
-        const staticProps: PropertyItem[] = PROPERTIES.map(p => ({
-          id: p.id, name: p.name, type: p.type, city: p.city, address: p.address, sqft: p.sqft,
+    fetch("/api/properties-list")
+      .then((r) => (r.ok ? r.json() : []))
+      .catch(() => [])
+      .then((list) => {
+        if (cancelled) return;
+        const rows = Array.isArray(list)
+          ? list
+          : Array.isArray(list?.properties)
+            ? list.properties
+            : [];
+        const dynList: PropertyItem[] = rows.map((p: Record<string, unknown>) => ({
+          id: String(p.id),
+          name: String(p.name || "Untitled"),
+          type: String(p.type || "Commercial"),
+          city: String(p.city || ""),
+          sqft: String(p.sqft || "TBD"),
+          isDynamic: true,
         }));
-        const staticIds = new Set(staticProps.map(p => p.id));
-        setFetchedProperties([...staticProps, ...dynList.filter(p => !staticIds.has(p.id))]);
-      } else {
         setFetchedProperties(dynList);
-      }
-    });
+      });
     return () => { cancelled = true; };
   }, [propProperties]);
 

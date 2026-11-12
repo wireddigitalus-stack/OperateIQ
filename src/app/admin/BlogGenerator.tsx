@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Sparkles, Loader2, Send, Globe, FileText, Trash2, Eye, EyeOff, ChevronDown, RefreshCw } from "lucide-react";
-import { PROPERTIES } from "@/lib/data";
 
 const CATEGORIES = ["Market Insights","Investment","Flexible Workspace","Office Space","Retail","Industrial","Development","Property Management","Local News"];
 
@@ -39,20 +38,18 @@ export default function BlogGenerator() {
 
   useEffect(() => {
     fetchQueue();
-    Promise.all([
-      fetch("/api/properties-list").then(r => r.json()).catch(() => ({})),
-      fetch("/api/platform/session").then(r => r.json()).catch(() => ({})),
-    ]).then(([propData, sessData]) => {
-      const isDemoOrg = sessData?.activeOrg?.id === "00000000-0000-0000-0000-000000000001";
-      const list = Array.isArray(propData)
-        ? propData
-        : Array.isArray(propData?.properties)
-          ? propData.properties
-          : [];
-      const dynNames: string[] = list.map((p: any) => p.name).filter(Boolean);
-      const staticNames = isDemoOrg ? PROPERTIES.map(p => p.name) : [];
-      setPropertyNames(Array.from(new Set([...dynNames, ...staticNames])));
-    });
+    fetch("/api/properties-list")
+      .then(r => r.json())
+      .catch(() => ({}))
+      .then((propData) => {
+        const list = Array.isArray(propData)
+          ? propData
+          : Array.isArray(propData?.properties)
+            ? propData.properties
+            : [];
+        const dynNames: string[] = list.map((p: any) => p.name).filter(Boolean);
+        setPropertyNames(Array.from(new Set(dynNames)));
+      });
   }, []);
 
   async function fetchQueue() {

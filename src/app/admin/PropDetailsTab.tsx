@@ -7,7 +7,6 @@ import {
   MoreHorizontal, TrendingDown, Minus, Printer, X, Pencil, Plus, Trash2, Download,
   Landmark, Wrench, Thermometer, Sparkles,
 } from "lucide-react";
-import { PROPERTIES } from "@/lib/data";
 import { isSampleProperty } from "@/lib/sample-data";
 import { getOrgProfile } from "@/lib/org-profile";
 import { type Tenant, rowToTenant } from "./TenantsTab";
@@ -444,14 +443,129 @@ function PrintReport({ data, onClose }: { data: PrintData[]; onClose: () => void
   );
 }
 
+// ── DeletePropertyModal ───────────────────────────────────────────────────────
+
+function DeletePropertyModal({
+  target,
+  onConfirm,
+  onClose,
+}: {
+  target: { property: PropertyItem; displayName: string; tenantCount: number };
+  onConfirm: (id: string, includeTenants: boolean) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [includeTenants, setIncludeTenants] = useState(target.tenantCount > 0);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setDeleting(true);
+    try {
+      await onConfirm(target.property.id, includeTenants);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
+      onClick={() => { if (!deleting) onClose(); }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border border-red-500/25 bg-[#0B1120] shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 p-5 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center flex-shrink-0">
+              <Trash2 size={18} className="text-red-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-white">Delete Property</h3>
+              <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[260px]">
+                {target.displayName}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={deleting}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/[0.06] transition-colors disabled:opacity-40"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-gray-300 leading-relaxed">
+            Are you sure you want to permanently remove{" "}
+            <strong className="text-white">{target.displayName}</strong>? This also cleans up its{" "}
+            <span className="text-gray-200 font-semibold">Unit Roll spaces</span>,{" "}
+            <span className="text-gray-200 font-semibold">property financials</span>,{" "}
+            <span className="text-gray-200 font-semibold">unleased space listings</span>, and{" "}
+            <span className="text-gray-200 font-semibold">HVAC schedules</span>.
+          </p>
+
+          {target.tenantCount > 0 && (
+            <label className="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] cursor-pointer hover:bg-amber-500/[0.11] transition-colors select-none">
+              <input
+                type="checkbox"
+                checked={includeTenants}
+                onChange={(e) => setIncludeTenants(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-amber-400/40 accent-red-500 cursor-pointer"
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-amber-200">
+                  Also delete {target.tenantCount} assigned {target.tenantCount === 1 ? "tenant" : "tenants"}
+                </p>
+                <p className="text-[11px] text-amber-200/70 mt-0.5 leading-snug">
+                  Uncheck this if you want to keep those tenant records in your Tenants tab and reassign them later.
+                </p>
+              </div>
+            </label>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2.5 px-5 py-4 bg-white/[0.02] border-t border-white/[0.06]">
+          <button
+            onClick={onClose}
+            disabled={deleting}
+            className="px-4 py-2 rounded-xl border border-white/10 text-xs font-bold text-gray-400 hover:text-white hover:bg-white/[0.04] transition-all disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={deleting}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 hover:text-white text-xs font-black transition-all disabled:opacity-50 cursor-pointer"
+          >
+            {deleting ? (
+              <>
+                <Loader2 size={13} className="animate-spin" /> Deleting…
+              </>
+            ) : (
+              <>
+                <Trash2 size={13} />
+                {includeTenants && target.tenantCount > 0
+                  ? `Delete Property & ${target.tenantCount} ${target.tenantCount === 1 ? "Tenant" : "Tenants"}`
+                  : "Delete Property"}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── PropertyCard ──────────────────────────────────────────────────────────────
 
-function PropertyCard({ property, tenants, detail, onSave, onDelete }: {
+function PropertyCard({ property, tenants, detail, onSave, onRequestDelete }: {
   property: PropertyItem;
   tenants: Tenant[];
   detail: PropDetail | undefined;
   onSave: (id: string, form: DetailForm) => Promise<void>;
-  onDelete?: (id: string) => void;
+  onRequestDelete?: (property: PropertyItem, displayName: string, tenantCount: number) => void;
 }) {
   const trend: Trend = detail?.trend || "stable";
   const trendItem = TRENDS.find(t => t.value === trend)!;
@@ -610,9 +724,24 @@ function PropertyCard({ property, tenants, detail, onSave, onDelete }: {
               </div>
             </div>
           )}
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-transform duration-300 ${collapsed ? "" : "rotate-180"}`}
-            style={{ background: "rgba(255,255,255,0.06)" }}>
-            <ChevronDown size={13} className="text-gray-500" />
+          <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+            {onRequestDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestDelete(property, displayName, propTenants.length);
+                }}
+                title={`Delete "${displayName}"`}
+                aria-label={`Delete ${displayName}`}
+                className="w-7 h-7 rounded-lg border border-white/[0.07] bg-white/[0.03] flex items-center justify-center text-gray-500 hover:text-red-400 hover:border-red-500/35 hover:bg-red-500/10 transition-all cursor-pointer"
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-transform duration-300 ${collapsed ? "" : "rotate-180"}`}
+              style={{ background: "rgba(255,255,255,0.06)" }}>
+              <ChevronDown size={13} className="text-gray-400" />
+            </div>
           </div>
         </div>
       </div>
@@ -620,12 +749,15 @@ function PropertyCard({ property, tenants, detail, onSave, onDelete }: {
       {/* Collapsible body */}
       {!collapsed && (
         <>
-          {/* Delete button for dynamic props (outside click area) */}
-          {property.isDynamic && onDelete && (
+          {/* Delete button inside expanded card */}
+          {onRequestDelete && (
             <div className="px-4 pb-1 flex justify-end">
-              <button onClick={() => { if (confirm(`Delete "${displayName}"? This cannot be undone.`)) onDelete(property.id); }}
-                className="flex items-center gap-1 text-xs text-red-400/70 hover:text-red-400 transition-colors" title="Delete property">
-                <Trash2 size={11} /> Remove
+              <button
+                onClick={() => onRequestDelete(property, displayName, propTenants.length)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-red-500/20 bg-red-500/[0.06] text-xs font-semibold text-red-400/90 hover:text-red-300 hover:bg-red-500/15 transition-colors cursor-pointer"
+                title="Delete property"
+              >
+                <Trash2 size={11} /> Delete Property
               </button>
             </div>
           )}
@@ -907,20 +1039,14 @@ export default function PropDetailsTab() {
   useEffect(() => { load(); }, [load, tick]);
 
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("all");
+  const [deleteTarget, setDeleteTarget] = useState<{
+    property: PropertyItem;
+    displayName: string;
+    tenantCount: number;
+  } | null>(null);
 
-  const isDemoOrg = orgId === "00000000-0000-0000-0000-000000000001";
-
-  // Merge static + dynamic properties only for the Demo org; real orgs see ONLY their DB properties
-  const allProperties: PropertyItem[] = useMemo(() => {
-    const staticProps: PropertyItem[] = isDemoOrg
-      ? PROPERTIES.map(p => ({
-          id: p.id, name: p.name, type: p.type, city: p.city, address: p.address, sqft: p.sqft,
-        }))
-      : [];
-    const staticIds = new Set(staticProps.map(p => p.id));
-    const uniqueDyn = dynProps.filter(p => !staticIds.has(p.id));
-    return [...staticProps, ...uniqueDyn];
-  }, [dynProps, isDemoOrg]);
+  // All orgs (including the Demo workspace) are 100% database-driven so every property can be edited or deleted
+  const allProperties: PropertyItem[] = dynProps;
 
   const sampleCount = useMemo(
     () => dynProps.filter((p) => p.isSample).length,
@@ -1025,9 +1151,17 @@ export default function PropDetailsTab() {
     }
   };
 
-  const handleDeleteProperty = async (id: string) => {
-    // Delete from properties-dynamic (Supabase)
-    await fetch(`/api/properties-dynamic?id=${id}`, { method: "DELETE" }).catch(() => null);
+  const handleRequestDeleteProperty = (property: PropertyItem, displayName: string, tenantCount: number) => {
+    setDeleteTarget({ property, displayName, tenantCount });
+  };
+
+  const handleConfirmDeleteProperty = async (id: string, includeTenants: boolean) => {
+    const qs = `id=${encodeURIComponent(id)}${includeTenants ? "&include_tenants=1" : ""}`;
+    await fetch(`/api/properties-dynamic?${qs}`, { method: "DELETE" }).catch(() => null);
+    if (selectedPropertyId === id) {
+      setSelectedPropertyId("all");
+    }
+    setDeleteTarget(null);
     setTick(t => t + 1);
   };
 
@@ -1460,7 +1594,7 @@ export default function PropDetailsTab() {
           {/* Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             {displayedProperties.map(p => (
-              <PropertyCard key={p.id} property={p} tenants={tenants} detail={detailMap[p.id]} onSave={handleSave} onDelete={handleDeleteProperty} />
+              <PropertyCard key={p.id} property={p} tenants={tenants} detail={detailMap[p.id]} onSave={handleSave} onRequestDelete={handleRequestDeleteProperty} />
             ))}
           </div>
         </>
@@ -1762,6 +1896,13 @@ export default function PropDetailsTab() {
         );
       })()}
 
+      {deleteTarget && (
+        <DeletePropertyModal
+          target={deleteTarget}
+          onConfirm={handleConfirmDeleteProperty}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
       {showPrint && <PrintReport data={printData} onClose={() => setShowPrint(false)} />}
       {showAddSpace && <AddSpaceModal properties={allProperties} onAdd={handleAddSpace} onClose={() => setShowAddSpace(false)} />}
       {showIntakeModal && (
