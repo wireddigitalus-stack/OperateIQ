@@ -286,7 +286,6 @@ export function printRentReceipt(params: {
 // ─── Style constants (consistent with TenantsTab) ───────────────────────────
 const FIELD = "w-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-sm text-white focus:border-blue-400/60 focus:shadow-[0_0_10px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-600 transition-all";
 const FIELD_SM = FIELD + " text-xs py-1.5";
-const FEE_INPUT = "bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-lg px-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_8px_rgba(56,189,248,0.2)] outline-none placeholder:text-gray-700 w-16 tabular-nums text-center transition-all";
 const TH_CLASS = "text-left text-[10px] font-black text-gray-500 uppercase tracking-tight px-3 py-3 whitespace-nowrap";
 const TD_CLASS = "px-3 py-3 transition-all duration-150";
 
@@ -330,7 +329,7 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
   const [view, setView] = useState<"entry" | "history">("entry");
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "paid">("all");
-  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [payments, setPayments] = useState<RentPayment[]>([]);
   const [tenants, setTenants] = useState<TenantInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1555,216 +1554,365 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
             </div>
           )}
 
-          {/* ─── Payment Table ───────────────────────────────────────────── */}
+          {/* ─── Payment Table (Zero Horizontal Scroll) ───────────────────── */}
           {payments.length > 0 && (
             <div className="bg-[rgba(0,0,0,0.3)] border border-[rgba(255,255,255,0.06)] rounded-2xl overflow-hidden">
-              {/* Desktop Table */}
-              <div className="hidden lg:block overflow-x-auto">
-                <table className="w-full text-sm">
+              {/* Desktop Table — 100% fluid width, zero side scrolling */}
+              <div className="hidden lg:block">
+                <table className="w-full text-sm table-auto">
                   <thead>
                     <tr className="border-b border-[rgba(255,255,255,0.06)] bg-[rgba(0,0,0,0.2)]">
-                      <th className={TH_CLASS + " sticky left-0 z-20 bg-[#0A0F1A] border-r border-[rgba(255,255,255,0.06)] shadow-[2px_0_10px_rgba(0,0,0,0.5)] min-w-[140px]"}>Tenant</th>
-                      {["Unit", "Total Due", "NN", "NNN", "Util", "Clean", "CAM", "Pd", "Amt", "Type", "Late", "Date", "Notes", "Remind / Receipt"].map(h => (
-                        <th key={h} className={TH_CLASS}>{h}</th>
-                      ))}
+                      <th className={TH_CLASS + " pl-4"}>Tenant &amp; Unit</th>
+                      <th className={TH_CLASS}>Total Due &amp; Fees</th>
+                      <th className={TH_CLASS + " text-center"}>Paid</th>
+                      <th className={TH_CLASS}>Collected ($)</th>
+                      <th className={TH_CLASS}>Method &amp; Date</th>
+                      <th className={TH_CLASS}>Memo / Late</th>
+                      <th className={TH_CLASS + " text-right pr-4"}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredPayments.map((p, i) => (
-                      <tr
-                        key={p.id}
-                        className={`border-b border-[rgba(255,255,255,0.04)] transition-colors duration-150 ${
-                          p.paid ? "bg-[rgba(16,185,129,0.04)]" : i % 2 === 0 ? "" : "bg-[rgba(255,255,255,0.01)]"
-                        }`}
-                      >
-                        {/* Tenant Name */}
-                        <td className={TD_CLASS + " sticky left-0 z-10 bg-[#0A0F1A] border-r border-[rgba(255,255,255,0.06)] shadow-[2px_0_10px_rgba(0,0,0,0.5)]"}>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.paid ? "bg-[#10B981]" : "bg-[rgba(255,255,255,0.15)]"}`} />
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-bold text-white text-xs truncate leading-tight">{p.tenantName}</span>
-                              <button 
-                                onClick={() => syncFees(p.id, p.tenantId)}
-                                disabled={isMonthSubmitted}
-                                className="text-[8px] text-[#60A5FA] hover:text-[#93C5FD] transition-colors flex items-center gap-0.5 mt-0.5 uppercase tracking-tighter font-black disabled:opacity-30"
-                              >
-                                <RefreshCw size={7} /> Sync
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                        {/* Building / Unit */}
-                        <td className={TD_CLASS + " text-xs text-gray-400 whitespace-nowrap"}>
-                          {p.building}{p.unit ? ` / ${p.unit}` : ""}
-                        </td>
-                        {/* Rent Due + Prior Arrears */}
-                        <td className={TD_CLASS}>
-                          <div className="flex flex-col">
-                            <span className="font-black text-white text-xs tabular-nums">{fmtMoney(p.rentDue)}</span>
-                            {(priorArrearsByTenant[p.tenantId] || 0) > 0 && (
-                              <span
-                                title="Carry-forward unpaid balance from prior months"
-                                className="text-[9px] font-black text-rose-400 whitespace-nowrap tabular-nums"
-                              >
-                                +{fmtMoney(priorArrearsByTenant[p.tenantId])} arrears
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        {/* NN Fee */}
-                        <td className={TD_CLASS}>
-                          <input type="number" step="any" value={p.nnFee || ""} onChange={e => updatePayment(p.id, "nnFee", Number(e.target.value) || 0)} disabled={isMonthSubmitted} className={FEE_INPUT} placeholder="0" />
-                        </td>
-                        {/* NNN Fee */}
-                        <td className={TD_CLASS}>
-                          <input type="number" step="any" value={p.nnnFee || ""} onChange={e => updatePayment(p.id, "nnnFee", Number(e.target.value) || 0)} disabled={isMonthSubmitted} className={FEE_INPUT} placeholder="0" />
-                        </td>
-                        {/* Utility Fee */}
-                        <td className={TD_CLASS}>
-                          <input type="number" step="any" value={p.utilityFee || ""} onChange={e => updatePayment(p.id, "utilityFee", Number(e.target.value) || 0)} disabled={isMonthSubmitted} className={FEE_INPUT} placeholder="0" />
-                        </td>
-                        {/* Cleaning Fee */}
-                        <td className={TD_CLASS}>
-                          <input type="number" step="any" value={p.cleaningFee || ""} onChange={e => updatePayment(p.id, "cleaningFee", Number(e.target.value) || 0)} disabled={isMonthSubmitted} className={FEE_INPUT} placeholder="0" />
-                        </td>
-                        {/* CAM Fee */}
-                        <td className={TD_CLASS}>
-                          <input type="number" step="any" value={p.camFee || ""} onChange={e => updatePayment(p.id, "camFee", Number(e.target.value) || 0)} disabled={isMonthSubmitted} className={FEE_INPUT} placeholder="0" />
-                        </td>
-                        {/* Paid Toggle */}
-                        <td className={TD_CLASS}>
-                          <button
-                            onClick={() => updatePayment(p.id, "paid", !p.paid)}
-                            disabled={isMonthSubmitted}
-                            title={p.paid ? "Mark unpaid" : "1-Click Mark Paid (auto-fills total & today's date)"}
-                            className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all duration-200 ${
+                    {filteredPayments.map((p, i) => {
+                      const rowAddOnFees =
+                        (p.nnFee || 0) +
+                        (p.nnnFee || 0) +
+                        (p.utilityFee || 0) +
+                        (p.cleaningFee || 0) +
+                        (p.camFee || 0);
+                      const rowTotalDue = (p.rentDue || 0) + rowAddOnFees + (p.lateFee || 0);
+                      const isRowOpen = expandedRowId === p.id;
+
+                      return (
+                        <React.Fragment key={p.id}>
+                          <tr
+                            className={`border-b border-[rgba(255,255,255,0.04)] transition-colors duration-150 ${
                               p.paid
-                                ? "bg-[#10B981] border-[#10B981] text-white"
-                                : "border-[rgba(255,255,255,0.15)] text-transparent hover:text-gray-600"
-                            } ${isMonthSubmitted ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                                ? "bg-[rgba(16,185,129,0.04)]"
+                                : i % 2 === 0
+                                  ? ""
+                                  : "bg-[rgba(255,255,255,0.01)]"
+                            }`}
                           >
-                            <CheckCircle2 size={12} />
-                          </button>
-                        </td>
-                        {/* Amount Paid */}
-                        <td className={TD_CLASS}>
-                          <input type="number" value={p.amountPaid || ""} onChange={e => updatePayment(p.id, "amountPaid", Number(e.target.value) || 0)} disabled={isMonthSubmitted} className={FEE_INPUT + " w-[60px]"} placeholder="0" />
-                        </td>
-                        {/* Payment Type */}
-                        <td className={TD_CLASS}>
-                          <select value={p.paymentType} onChange={e => updatePayment(p.id, "paymentType", e.target.value)} disabled={isMonthSubmitted} className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-lg px-1.5 py-1 text-[10px] text-white outline-none w-24">
-                            <option value="">Method…</option>
-                            {PAYMENT_TYPES.map(t => <option key={t} value={t} className="bg-[#0A0F1A]">{t}</option>)}
-                          </select>
-                        </td>
-                        {/* Late Fee */}
-                        <td className={TD_CLASS}>
-                          <input type="number" value={p.lateFee || ""} onChange={e => updatePayment(p.id, "lateFee", Number(e.target.value) || 0)} disabled={isMonthSubmitted} className={FEE_INPUT} placeholder="0" />
-                        </td>
-                        {/* Payment Date */}
-                        <td className={TD_CLASS}>
-                          <input type="date" value={p.paymentDate || ""} onChange={e => updatePayment(p.id, "paymentDate", e.target.value || null)} disabled={isMonthSubmitted} className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-lg px-1 py-1 text-[10px] text-white outline-none w-24" />
-                        </td>
-                        {/* Notes */}
-                        <td className={TD_CLASS}>
-                          <div className="flex items-center gap-1.5">
-                            {editingNotesId === p.id ? (
-                              <input 
-                                type="text" 
-                                autoFocus
-                                value={p.notes} 
-                                onBlur={() => setEditingNotesId(null)}
-                                onChange={e => updatePayment(p.id, "notes", e.target.value)} 
-                                disabled={isMonthSubmitted} 
-                                className="bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] rounded-lg px-2 py-1 text-xs text-white outline-none w-48 shadow-2xl" 
-                                placeholder="Check #, Venmo @..." 
-                              />
-                            ) : (
+                            {/* 1. Tenant & Property / Unit */}
+                            <td className={TD_CLASS + " pl-4 max-w-[230px]"}>
+                              <div className="flex items-start gap-2.5 min-w-0">
+                                <div
+                                  className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${
+                                    p.paid ? "bg-[#10B981]" : "bg-[rgba(255,255,255,0.18)]"
+                                  }`}
+                                />
+                                <div className="min-w-0">
+                                  <div className="font-bold text-white text-xs truncate leading-snug">
+                                    {p.tenantName}
+                                  </div>
+                                  <div className="text-[11px] text-gray-400 truncate">
+                                    {p.building}
+                                    {p.unit ? ` · ${p.unit}` : ""}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* 2. Total Due + Clickable Fees Breakdown */}
+                            <td className={TD_CLASS}>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex flex-col">
+                                  <span className="font-black text-white text-xs sm:text-sm tabular-nums">
+                                    {fmtMoney(rowTotalDue)}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500 tabular-nums">
+                                    Base {fmtMoney(p.rentDue)}
+                                    {rowAddOnFees > 0 ? ` + ${fmtMoney(rowAddOnFees)} fees` : ""}
+                                    {(p.lateFee || 0) > 0 ? ` + ${fmtMoney(p.lateFee)} late` : ""}
+                                  </span>
+                                  {(priorArrearsByTenant[p.tenantId] || 0) > 0 && (
+                                    <span
+                                      title="Carry-forward unpaid balance from prior months"
+                                      className="text-[10px] font-black text-rose-400 tabular-nums"
+                                    >
+                                      +{fmtMoney(priorArrearsByTenant[p.tenantId])} prior arrears
+                                    </span>
+                                  )}
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedRowId(isRowOpen ? null : p.id)}
+                                  title="Edit NN, NNN, Utility, Cleaning, CAM, or Late Fees"
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
+                                    rowAddOnFees > 0
+                                      ? "bg-cyan-500/10 border-cyan-400/35 text-cyan-300 hover:bg-cyan-500/20"
+                                      : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:text-white hover:border-white/20"
+                                  }`}
+                                >
+                                  <span>{rowAddOnFees > 0 ? `+${fmtMoney(rowAddOnFees)}` : "+Fees"}</span>
+                                  {isRowOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                                </button>
+                              </div>
+                            </td>
+
+                            {/* 3. Paid Toggle */}
+                            <td className={TD_CLASS + " text-center"}>
                               <button
-                                onClick={() => setEditingNotesId(p.id)}
-                                className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
-                                  p.notes 
-                                    ? "bg-[rgba(96,165,250,0.1)] text-[#60A5FA] border border-[rgba(96,165,250,0.2)]" 
-                                    : "bg-[rgba(255,255,255,0.04)] text-gray-600 hover:text-gray-400"
+                                onClick={() => updatePayment(p.id, "paid", !p.paid)}
+                                disabled={isMonthSubmitted}
+                                title={
+                                  p.paid
+                                    ? "Mark unpaid"
+                                    : "1-Click Mark Paid (auto-fills total & today's date)"
+                                }
+                                className={`mx-auto w-7 h-7 rounded-lg border flex items-center justify-center transition-all duration-200 ${
+                                  p.paid
+                                    ? "bg-[#10B981] border-[#10B981] text-white"
+                                    : "border-[rgba(255,255,255,0.18)] text-transparent hover:text-gray-500"
+                                } ${isMonthSubmitted ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                              >
+                                <CheckCircle2 size={14} />
+                              </button>
+                            </td>
+
+                            {/* 4. Amount Paid ($) */}
+                            <td className={TD_CLASS}>
+                              <div className="relative w-24">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-[10px] font-bold">
+                                  $
+                                </span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  value={p.amountPaid || ""}
+                                  onChange={(e) =>
+                                    updatePayment(p.id, "amountPaid", Number(e.target.value) || 0)
+                                  }
+                                  disabled={isMonthSubmitted}
+                                  className="w-full bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] rounded-lg pl-5 pr-2 py-1.5 text-xs text-white font-bold tabular-nums outline-none focus:border-blue-400/60"
+                                  placeholder="0"
+                                />
+                              </div>
+                            </td>
+
+                            {/* 5. Method & Date */}
+                            <td className={TD_CLASS}>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <select
+                                  value={p.paymentType}
+                                  onChange={(e) => updatePayment(p.id, "paymentType", e.target.value)}
+                                  disabled={isMonthSubmitted}
+                                  className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] rounded-lg px-2 py-1.5 text-[11px] text-white outline-none w-24 cursor-pointer"
+                                >
+                                  <option value="" className="bg-[#0A0F1A]">Method…</option>
+                                  {PAYMENT_TYPES.map((t) => (
+                                    <option key={t} value={t} className="bg-[#0A0F1A]">
+                                      {t}
+                                    </option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="date"
+                                  value={p.paymentDate || ""}
+                                  onChange={(e) =>
+                                    updatePayment(p.id, "paymentDate", e.target.value || null)
+                                  }
+                                  disabled={isMonthSubmitted}
+                                  className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] rounded-lg px-1.5 py-1.5 text-[11px] text-white outline-none w-[116px] [color-scheme:dark]"
+                                />
+                              </div>
+                            </td>
+
+                            {/* 6. Memo & Late Fee Indicator */}
+                            <td className={TD_CLASS}>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedRowId(isRowOpen ? null : p.id)}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] transition-all cursor-pointer border ${
+                                  p.notes || (p.lateFee || 0) > 0
+                                    ? "bg-[rgba(96,165,250,0.1)] text-[#60A5FA] border-[rgba(96,165,250,0.25)]"
+                                    : "bg-white/[0.03] border-white/[0.06] text-gray-500 hover:text-gray-300"
                                 }`}
+                                title="Click to add Check #, Venmo handle, memo, or late fee"
                               >
-                                <StickyNote size={12} />
-                                {p.notes && <span className="text-[10px] max-w-[60px] truncate font-medium">{p.notes}</span>}
+                                <StickyNote size={12} className="flex-shrink-0" />
+                                {p.notes ? (
+                                  <span className="max-w-[95px] truncate font-medium">{p.notes}</span>
+                                ) : (p.lateFee || 0) > 0 ? (
+                                  <span className="text-amber-300 font-bold tabular-nums">
+                                    +{fmtMoney(p.lateFee)} late
+                                  </span>
+                                ) : (
+                                  <span>Memo</span>
+                                )}
                               </button>
-                            )}
-                          </div>
-                        </td>
-                        {/* 1-Tap Remind / Receipt */}
-                        <td className={TD_CLASS + " whitespace-nowrap"}>
-                          {p.paid ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleReceiptAction(p, "print")}
-                                title="Print or Save Official Rent Receipt PDF"
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 text-[10px] font-bold transition-all cursor-pointer"
-                              >
-                                <Receipt size={11} />
-                                <span>Receipt</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleReceiptAction(p, "email")}
-                                disabled={emailingTenantId === p.tenantId}
-                                title="Email Paid Receipt + Resident Portal Link to Tenant"
-                                className="p-1 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-40"
-                              >
-                                {emailingTenantId === p.tenantId ? <Loader2 size={10} className="animate-spin" /> : <Mail size={10} />}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleReceiptAction(p, "sms")}
-                                title="Text Paid Receipt to Tenant"
-                                className="p-1 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
-                              >
-                                <Send size={10} />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleRemindTenant(p)}
-                              disabled={emailingTenantId === p.tenantId}
-                              title="Send Rent Reminder Email (with Resident Portal link & Zelle/Venmo/Check instructions)"
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50"
-                            >
-                              {emailingTenantId === p.tenantId ? <Loader2 size={11} className="animate-spin" /> : <Bell size={11} />}
-                              <span>Remind</span>
-                            </button>
+                            </td>
+
+                            {/* 7. Remind / Receipt + Expand Drawer */}
+                            <td className={TD_CLASS + " pr-4 text-right"}>
+                              <div className="inline-flex items-center justify-end gap-1.5">
+                                {p.paid ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReceiptAction(p, "print")}
+                                      title="Print or Save Official Rent Receipt PDF"
+                                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 text-[11px] font-bold transition-all cursor-pointer"
+                                    >
+                                      <Receipt size={12} />
+                                      <span>Receipt</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReceiptAction(p, "email")}
+                                      disabled={emailingTenantId === p.tenantId}
+                                      title="Email Paid Receipt + Resident Portal Link to Tenant"
+                                      className="p-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-40"
+                                    >
+                                      {emailingTenantId === p.tenantId ? (
+                                        <Loader2 size={11} className="animate-spin" />
+                                      ) : (
+                                        <Mail size={11} />
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReceiptAction(p, "sms")}
+                                      title="Text Paid Receipt to Tenant"
+                                      className="p-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                                    >
+                                      <Send size={11} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemindTenant(p)}
+                                    disabled={emailingTenantId === p.tenantId}
+                                    title="Send Rent Reminder Email (with Resident Portal link & Zelle/Venmo/Check instructions)"
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 text-[11px] font-bold transition-all cursor-pointer disabled:opacity-50"
+                                  >
+                                    {emailingTenantId === p.tenantId ? (
+                                      <Loader2 size={12} className="animate-spin" />
+                                    ) : (
+                                      <Bell size={12} />
+                                    )}
+                                    <span>Remind</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedRowId(isRowOpen ? null : p.id)}
+                                  title="Expand monthly fees, late fee & payment memo"
+                                  className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                                    isRowOpen
+                                      ? "bg-sky-500/20 border-sky-400/40 text-sky-300"
+                                      : "border-white/10 text-gray-500 hover:text-white hover:bg-white/5"
+                                  }`}
+                                >
+                                  {isRowOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Inline Collapsible Drawer for NN / NNN / Util / Clean / CAM / Late Fee / Memo */}
+                          {isRowOpen && (
+                            <tr className="bg-[#0B1222]/90 border-b border-sky-400/20">
+                              <td colSpan={7} className="px-5 py-4 space-y-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="text-[11px] font-bold uppercase tracking-wider text-sky-300">
+                                    Monthly Add-On Fees, Late Fee &amp; Payment Memo — {p.tenantName}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => syncFees(p.id, p.tenantId)}
+                                    disabled={isMonthSubmitted}
+                                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold text-[#60A5FA] bg-[rgba(96,165,250,0.12)] border border-[rgba(96,165,250,0.3)] hover:bg-[rgba(96,165,250,0.22)] transition-colors cursor-pointer disabled:opacity-40"
+                                  >
+                                    <RefreshCw size={11} /> Sync Rates from Tenant / Property
+                                  </button>
+                                </div>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
+                                  {(
+                                    [
+                                      { field: "nnFee" as const, label: "NN Fee ($)" },
+                                      { field: "nnnFee" as const, label: "NNN Fee ($)" },
+                                      { field: "utilityFee" as const, label: "Utility Fee ($)" },
+                                      { field: "cleaningFee" as const, label: "Cleaning ($)" },
+                                      { field: "camFee" as const, label: "CAM Fee ($)" },
+                                      { field: "lateFee" as const, label: "Late Fee ($)" },
+                                    ] as const
+                                  ).map(({ field, label }) => (
+                                    <div key={field}>
+                                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                        {label}
+                                      </label>
+                                      <div className="relative">
+                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">
+                                          $
+                                        </span>
+                                        <input
+                                          type="number"
+                                          step="any"
+                                          value={p[field] || ""}
+                                          onChange={(e) =>
+                                            updatePayment(p.id, field, Number(e.target.value) || 0)
+                                          }
+                                          disabled={isMonthSubmitted}
+                                          className={FIELD_SM + " pl-6 tabular-nums"}
+                                          placeholder="0"
+                                        />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                    Payment Memo / Check # / Reference
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={p.notes || ""}
+                                    onChange={(e) => updatePayment(p.id, "notes", e.target.value)}
+                                    disabled={isMonthSubmitted}
+                                    placeholder="e.g. Check #1042, Venmo @handle, partial payment note..."
+                                    className={FIELD_SM}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        </td>
-                      </tr>
-                    ))}
+                        </React.Fragment>
+                      );
+                    })}
+
                     {/* Totals Row */}
                     <tr className="border-t-2 border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.02)]">
-                      <td className={TD_CLASS + " sticky left-0 z-10 bg-[#161B22] text-[10px] font-black text-gray-400 uppercase tracking-wider min-w-[140px]"} colSpan={1}>
+                      <td className={TD_CLASS + " pl-4 text-[11px] font-black text-gray-300 uppercase tracking-wider"}>
                         Totals ({payments.length} tenants)
                       </td>
-                      <td className={TD_CLASS}>-</td>
                       <td className={TD_CLASS}>
-                        <span className="font-black text-[#60A5FA] text-xs tabular-nums">{fmtMoney(totals.totalDue)}</span>
+                        <span className="font-black text-[#60A5FA] text-xs sm:text-sm tabular-nums">
+                          {fmtMoney(totals.totalDue)}
+                        </span>
                       </td>
-                      <td className={TD_CLASS + " text-[10px] font-bold text-gray-500 tabular-nums"}>{fmtMoney(payments.reduce((s, p) => s + (p.nnFee || 0), 0))}</td>
-                      <td className={TD_CLASS + " text-[10px] font-bold text-gray-500 tabular-nums"}>{fmtMoney(payments.reduce((s, p) => s + (p.nnnFee || 0), 0))}</td>
-                      <td className={TD_CLASS + " text-[10px] font-bold text-gray-500 tabular-nums"}>{fmtMoney(payments.reduce((s, p) => s + (p.utilityFee || 0), 0))}</td>
-                      <td className={TD_CLASS + " text-[10px] font-bold text-gray-500 tabular-nums"}>{fmtMoney(payments.reduce((s, p) => s + (p.cleaningFee || 0), 0))}</td>
-                      <td className={TD_CLASS + " text-[10px] font-bold text-gray-500 tabular-nums"}>{fmtMoney(payments.reduce((s, p) => s + (p.camFee || 0), 0))}</td>
-                      <td className={TD_CLASS}>-</td>
+                      <td className={TD_CLASS + " text-center text-[11px] font-bold text-emerald-400 tabular-nums"}>
+                        {payments.filter((x) => x.paid).length}/{payments.length}
+                      </td>
                       <td className={TD_CLASS}>
-                        <span className="font-black text-[#10B981] text-xs tabular-nums">{fmtMoney(totals.totalPaid)}</span>
+                        <span className="font-black text-[#10B981] text-xs sm:text-sm tabular-nums">
+                          {fmtMoney(totals.totalPaid)}
+                        </span>
                       </td>
-                      <td className={TD_CLASS}>-</td>
+                      <td className={TD_CLASS + " text-[11px] text-amber-300 font-bold tabular-nums"}>
+                        {totals.outstanding > 0 ? `${fmtMoney(totals.outstanding)} due` : "All Collected"}
+                      </td>
                       <td className={TD_CLASS}>
-                        <span className="font-black text-[#FACC15] text-xs tabular-nums">{fmtMoney(totals.totalLateFees)}</span>
+                        <span className="font-black text-[#FACC15] text-xs tabular-nums">
+                          {totals.totalLateFees > 0 ? `${fmtMoney(totals.totalLateFees)} late` : "—"}
+                        </span>
                       </td>
-                      <td className={TD_CLASS}>-</td>
-                      <td className={TD_CLASS}>-</td>
-                      <td className={TD_CLASS}>-</td>
+                      <td className={TD_CLASS + " pr-4 text-right text-gray-600"}>—</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1950,35 +2098,75 @@ export default function RentLedgerTab({ currentUserName, currentUserEmail }: {
                             <Printer size={10} /> Print
                           </button>
                         </div>
-                        {/* Detail table */}
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="border-b border-[rgba(255,255,255,0.06)]">
-                                {["Tenant", "Building / Unit", "Rent Due", "Paid", "Amount", "Type", "Late Fee", "Date", "Notes"].map(h => (
-                                  <th key={h} className="text-left text-[9px] font-bold text-gray-600 uppercase tracking-widest px-4 py-2">{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {m.rows.map((r) => {
-                                const p = rowToPayment(r);
-                                return (
-                                  <tr key={p.id} className={`border-b border-[rgba(255,255,255,0.03)] ${p.paid ? "bg-[rgba(16,185,129,0.03)]" : ""}`}>
-                                    <td className="px-4 py-2 font-bold text-white">{p.tenantName}</td>
-                                    <td className="px-4 py-2 text-gray-400">{p.building}{p.unit ? ` / ${p.unit}` : ""}</td>
-                                    <td className="px-4 py-2 font-black text-white tabular-nums">{fmtMoney(p.rentDue)}</td>
-                                    <td className="px-4 py-2">{p.paid ? <CheckCircle2 size={14} className="text-[#10B981]" /> : <XCircle size={14} className="text-gray-600" />}</td>
-                                    <td className="px-4 py-2 font-bold text-gray-300 tabular-nums">{fmtMoney(p.amountPaid)}</td>
-                                    <td className="px-4 py-2 text-gray-400">{p.paymentType || "—"}</td>
-                                    <td className="px-4 py-2 tabular-nums">{p.lateFee > 0 ? <span className="text-[#EF4444] font-bold">{fmtMoney(p.lateFee)}</span> : <span className="text-gray-600">—</span>}</td>
-                                    <td className="px-4 py-2 text-gray-400">{p.paymentDate ? new Date(p.paymentDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}</td>
-                                    <td className="px-4 py-2 text-gray-500 max-w-[200px] truncate">{p.notes || "—"}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                        {/* Detail list (Zero Horizontal Scroll) */}
+                        <div className="divide-y divide-[rgba(255,255,255,0.04)]">
+                          <div className="hidden sm:grid sm:grid-cols-12 gap-3 px-5 py-2 border-b border-[rgba(255,255,255,0.06)] text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                            <div className="col-span-4">Tenant &amp; Unit</div>
+                            <div className="col-span-2">Rent Due</div>
+                            <div className="col-span-2">Collected</div>
+                            <div className="col-span-2">Method &amp; Date</div>
+                            <div className="col-span-2">Late / Memo</div>
+                          </div>
+                          {m.rows.map((r) => {
+                            const p = rowToPayment(r);
+                            const rowFees =
+                              (p.nnFee || 0) +
+                              (p.nnnFee || 0) +
+                              (p.utilityFee || 0) +
+                              (p.cleaningFee || 0) +
+                              (p.camFee || 0);
+                            const rowDue = (p.rentDue || 0) + rowFees + (p.lateFee || 0);
+                            return (
+                              <div
+                                key={p.id}
+                                className={`px-4 sm:px-5 py-3 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-center text-xs ${
+                                  p.paid ? "bg-[rgba(16,185,129,0.03)]" : ""
+                                }`}
+                              >
+                                <div className="sm:col-span-4 min-w-0">
+                                  <p className="font-bold text-white truncate">{p.tenantName}</p>
+                                  <p className="text-[11px] text-gray-400 truncate">
+                                    {p.building}
+                                    {p.unit ? ` · ${p.unit}` : ""}
+                                  </p>
+                                </div>
+                                <div className="sm:col-span-2 tabular-nums">
+                                  <span className="sm:hidden text-gray-500 mr-1">Due:</span>
+                                  <span className="font-black text-white">{fmtMoney(rowDue)}</span>
+                                </div>
+                                <div className="sm:col-span-2 flex items-center gap-1.5 tabular-nums">
+                                  {p.paid ? (
+                                    <CheckCircle2 size={14} className="text-[#10B981] flex-shrink-0" />
+                                  ) : (
+                                    <XCircle size={14} className="text-gray-600 flex-shrink-0" />
+                                  )}
+                                  <span className="font-bold text-gray-200">{fmtMoney(p.amountPaid)}</span>
+                                </div>
+                                <div className="sm:col-span-2 text-gray-400 text-[11px]">
+                                  <span>{p.paymentType || "—"}</span>
+                                  {p.paymentDate && (
+                                    <span className="text-gray-500 ml-1.5">
+                                      ·{" "}
+                                      {new Date(p.paymentDate + "T12:00:00").toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="sm:col-span-2 min-w-0 text-[11px]">
+                                  {p.lateFee > 0 && (
+                                    <span className="text-[#EF4444] font-bold tabular-nums mr-2">
+                                      +{fmtMoney(p.lateFee)} late
+                                    </span>
+                                  )}
+                                  <span className="text-gray-500 truncate inline-block max-w-full align-bottom">
+                                    {p.notes || (p.lateFee > 0 ? "" : "—")}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

@@ -1857,125 +1857,121 @@ export default function IntakeStagingModal({
                 </div>
               )}
 
-              {/* Staging Data Grid */}
+              {/* Zero-Horizontal-Scroll Staging Review List */}
               <div className="rounded-2xl border border-white/15 bg-black/50 overflow-hidden shadow-inner">
-                <div className="overflow-x-auto max-h-[52vh]">
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead className="bg-[#0B1020] text-gray-300 uppercase text-[11px] font-black tracking-wider sticky top-0 z-10 border-b border-white/15">
-                      <tr>
-                        <th className="py-3 px-2.5 w-9 text-center">Sel</th>
-                        <th className="py-3 px-2.5 min-w-[130px]">Status / Match</th>
-                        <th className="py-3 px-2.5 min-w-[185px]">Tenant / Company *</th>
-                        <th className="py-3 px-2.5 min-w-[175px]">Property / Building</th>
-                        <th className="py-3 px-2.5 min-w-[105px]">Unit / Suite</th>
-                        <th className="py-3 px-2.5 min-w-[125px]">Base Rent *</th>
-                        <th className="py-3 px-2.5 min-w-[120px]">+NNN / Fees</th>
-                        <th className="py-3 px-2.5 min-w-[110px]">Deposit ($)</th>
-                        <th className="py-3 px-2.5 min-w-[125px]">Lease Start</th>
-                        <th className="py-3 px-2.5 min-w-[125px]">Lease End</th>
-                        <th className="py-3 px-2.5 min-w-[185px]">Notes &amp; Badges</th>
-                        <th className="py-3 px-2.5 w-24 text-center">Terms</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.08]">
-                      {stagedRecords.map((r) => {
-                        const isSkipped = r.duplicateAction === "skip";
-                        const isInvalid = !isSkipped && (!r.name.trim() || r.monthlyRent <= 0);
-                        const isExpanded = expandedRowId === r.id;
-                        const combinedAddOn = (Number(r.nnnFee) || 0) + (Number(r.utilitiesFee) || 0);
+                {/* Desktop Column Header (100% fluid, zero side-scroll) */}
+                <div className="hidden lg:grid lg:grid-cols-12 gap-3 px-4 py-3 bg-[#0B1020] text-gray-300 uppercase text-[11px] font-black tracking-wider border-b border-white/15">
+                  <div className="col-span-3">Tenant &amp; Status *</div>
+                  <div className="col-span-3">Property &amp; Unit / Suite</div>
+                  <div className="col-span-3">Base Rent *, +Fees &amp; Deposit</div>
+                  <div className="col-span-2">Lease Term</div>
+                  <div className="col-span-1 text-right">Details</div>
+                </div>
 
-                        return (
-                          <React.Fragment key={r.id}>
-                            <tr
-                              className={`hover:bg-white/[0.03] transition-colors ${
-                                !r.selected || isSkipped
-                                  ? "opacity-45 bg-black/30"
-                                  : isInvalid
-                                    ? "bg-red-500/5"
-                                    : ""
+                <div className="divide-y divide-white/[0.08]">
+                  {stagedRecords.map((r) => {
+                    const isSkipped = r.duplicateAction === "skip";
+                    const isInvalid = !isSkipped && (!r.name.trim() || r.monthlyRent <= 0);
+                    const isExpanded = expandedRowId === r.id;
+                    const combinedAddOn = (Number(r.nnnFee) || 0) + (Number(r.utilitiesFee) || 0);
+                    const hasHighlights =
+                      (r.escalationPct || 0) > 0 ||
+                      (r.hvacFilterIntervalDays || 0) > 0 ||
+                      Boolean(r.sourceDocUrl) ||
+                      Boolean(r.secDepReceived) ||
+                      Boolean(r.notes?.trim());
+
+                    return (
+                      <div
+                        key={r.id}
+                        className={`transition-colors ${
+                          !r.selected || isSkipped
+                            ? "opacity-45 bg-black/30"
+                            : isInvalid
+                              ? "bg-red-500/[0.05]"
+                              : "hover:bg-white/[0.02]"
+                        }`}
+                      >
+                        <div className="p-3.5 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+                          {/* Col 1-3: Checkbox + Status Pill + Tenant Name */}
+                          <div className="lg:col-span-3 space-y-1.5 min-w-0">
+                            <div className="flex items-center flex-wrap gap-2">
+                              <input
+                                type="checkbox"
+                                checked={r.selected}
+                                onChange={(e) => updateRow(r.id, "selected", e.target.checked)}
+                                className="w-4 h-4 rounded border-white/30 text-sky-500 focus:ring-0 cursor-pointer flex-shrink-0"
+                              />
+                              {isInvalid ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-300 bg-red-500/20 border border-red-500/40 px-2 py-0.5 rounded-full">
+                                  <AlertCircle size={10} /> Missing Info
+                                </span>
+                              ) : r.isExpiredHoldover ? (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-200 bg-amber-500/20 border border-amber-400/45 px-2 py-0.5 rounded-full"
+                                  title="Lease end date is in the past — open Details to choose Expired vs Active Holdover"
+                                >
+                                  <AlertTriangle size={10} /> Expired / Holdover
+                                </span>
+                              ) : r.needsReview ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 rounded-full">
+                                  <AlertTriangle size={10} /> Review
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 rounded-full">
+                                  <CheckCircle2 size={10} /> Verified
+                                </span>
+                              )}
+
+                              {r.matchedExistingTenantId && (
+                                <select
+                                  value={r.duplicateAction || "update"}
+                                  onChange={(e) =>
+                                    updateRow(
+                                      r.id,
+                                      "duplicateAction",
+                                      e.target.value as "update" | "create" | "skip"
+                                    )
+                                  }
+                                  title={`Matches existing tenant: ${r.matchedExistingTenantName}`}
+                                  className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-950/70 border border-indigo-400/45 text-indigo-200 outline-none cursor-pointer"
+                                >
+                                  <option value="update">↻ Update</option>
+                                  <option value="create">+ Duplicate</option>
+                                  <option value="skip">⊘ Skip</option>
+                                </select>
+                              )}
+                            </div>
+
+                            <input
+                              type="text"
+                              value={r.name}
+                              onChange={(e) => updateRow(r.id, "name", e.target.value)}
+                              placeholder="Tenant or company name *"
+                              className={`w-full px-2.5 py-1.5 rounded-xl text-sm font-semibold bg-black/50 border text-white outline-none focus:border-sky-400 ${
+                                !r.name.trim() && !isSkipped ? "border-red-500/60 bg-red-500/10" : "border-white/15"
                               }`}
-                            >
-                              {/* Checkbox */}
-                              <td className="py-2.5 px-2.5 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={r.selected}
-                                  onChange={(e) => updateRow(r.id, "selected", e.target.checked)}
-                                  className="w-4 h-4 rounded border-white/30 text-sky-500 focus:ring-0 cursor-pointer"
-                                />
-                              </td>
+                            />
+                            {r.contactName && (
+                              <div className="text-[11px] text-gray-400 truncate px-0.5" title={r.contactName}>
+                                Contact: {r.contactName}
+                              </div>
+                            )}
+                          </div>
 
-                              {/* Status / Duplicate Match / Expired Holdover */}
-                              <td className="py-2.5 px-2.5 space-y-1">
-                                {isInvalid ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-300 bg-red-500/20 border border-red-500/40 px-2 py-0.5 rounded-full whitespace-nowrap">
-                                    <AlertCircle size={11} /> Missing Info
-                                  </span>
-                                ) : r.isExpiredHoldover ? (
-                                  <span
-                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-200 bg-amber-500/20 border border-amber-400/45 px-2 py-0.5 rounded-full whitespace-nowrap"
-                                    title="Lease end date is in the past — expand Terms to choose Expired vs Active Holdover"
-                                  >
-                                    <AlertTriangle size={11} /> Expired / Holdover
-                                  </span>
-                                ) : r.needsReview ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 rounded-full whitespace-nowrap">
-                                    <AlertTriangle size={11} /> Review
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 rounded-full whitespace-nowrap">
-                                    <CheckCircle2 size={11} /> Verified
-                                  </span>
-                                )}
-
-                                {r.matchedExistingTenantId && (
-                                  <div>
-                                    <select
-                                      value={r.duplicateAction || "update"}
-                                      onChange={(e) =>
-                                        updateRow(
-                                          r.id,
-                                          "duplicateAction",
-                                          e.target.value as "update" | "create" | "skip"
-                                        )
-                                      }
-                                      title={`Matches existing tenant: ${r.matchedExistingTenantName}`}
-                                      className="mt-0.5 w-full px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-indigo-950/70 border border-indigo-400/45 text-indigo-200 outline-none cursor-pointer"
-                                    >
-                                      <option value="update">↻ Update Existing</option>
-                                      <option value="create">+ Create Duplicate</option>
-                                      <option value="skip">⊘ Skip Row</option>
-                                    </select>
-                                  </div>
-                                )}
-                              </td>
-
-                              {/* Tenant Name + Co-tenant hint */}
-                              <td className="py-2.5 px-2.5">
-                                <input
-                                  type="text"
-                                  value={r.name}
-                                  onChange={(e) => updateRow(r.id, "name", e.target.value)}
-                                  placeholder="Tenant or business..."
-                                  className={`w-full px-2.5 py-1.5 rounded-xl text-sm font-semibold bg-black/50 border text-white outline-none focus:border-sky-400 ${
-                                    !r.name.trim() && !isSkipped ? "border-red-500/60 bg-red-500/10" : "border-white/15"
-                                  }`}
-                                />
-                                {r.contactName && (
-                                  <div className="text-[11px] text-gray-400 mt-0.5 truncate px-1" title={r.contactName}>
-                                    {r.contactName}
-                                  </div>
-                                )}
-                              </td>
-
-                              {/* Property / Building */}
-                              <td className="py-2.5 px-2.5">
+                          {/* Col 4-6: Building + Unit side-by-side */}
+                          <div className="lg:col-span-3 space-y-1 min-w-0">
+                            <label className="lg:hidden block text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                              Property &amp; Unit
+                            </label>
+                            <div className="grid grid-cols-12 gap-2 lg:mt-[26px]">
+                              <div className="col-span-8 min-w-0">
                                 <input
                                   type="text"
                                   list={`buildings-${r.id}`}
                                   value={r.building}
                                   onChange={(e) => updateRow(r.id, "building", e.target.value)}
-                                  placeholder="Property name..."
+                                  placeholder="Property / Building..."
                                   className="w-full px-2.5 py-1.5 rounded-xl text-sm font-medium bg-black/50 border border-white/15 text-white outline-none focus:border-sky-400"
                                 />
                                 <datalist id={`buildings-${r.id}`}>
@@ -1983,326 +1979,357 @@ export default function IntakeStagingModal({
                                     <option key={b} value={b} />
                                   ))}
                                 </datalist>
-                                {(r.propertyType && r.propertyType !== "Mixed-Use") || r.propertyCity ? (
-                                  <div className="text-[10px] text-sky-300/80 mt-0.5 px-1 truncate">
-                                    {[r.propertyType, r.propertyCity].filter(Boolean).join(" · ")}
-                                  </div>
-                                ) : null}
-                              </td>
-
-                              {/* Unit / Suite */}
-                              <td className="py-2.5 px-2.5">
+                              </div>
+                              <div className="col-span-4 min-w-0">
                                 <input
                                   type="text"
                                   value={r.unit}
                                   onChange={(e) => updateRow(r.id, "unit", e.target.value)}
-                                  placeholder="Unit 1..."
-                                  className="w-full px-2.5 py-1.5 rounded-xl text-sm bg-black/50 border border-white/15 text-white outline-none focus:border-sky-400"
+                                  placeholder="Unit/Ste"
+                                  className="w-full px-2 py-1.5 rounded-xl text-sm bg-black/50 border border-white/15 text-white outline-none focus:border-sky-400"
                                 />
-                                {(r.unitSqft || 0) > 0 && (
-                                  <div className="text-[10px] text-gray-400 mt-0.5 px-1">
-                                    {Number(r.unitSqft).toLocaleString()} RSF
-                                  </div>
-                                )}
-                              </td>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-[10px] text-sky-300/80 px-0.5">
+                              {((r.propertyType && r.propertyType !== "Mixed-Use") || r.propertyCity) && (
+                                <span className="truncate">
+                                  {[r.propertyType, r.propertyCity].filter(Boolean).join(" · ")}
+                                </span>
+                              )}
+                              {(r.unitSqft || 0) > 0 && (
+                                <span className="text-gray-400">{Number(r.unitSqft).toLocaleString()} RSF</span>
+                              )}
+                            </div>
+                          </div>
 
-                              {/* Base Monthly Rent */}
-                              <td className="py-2.5 px-2.5">
-                                <div className="relative">
-                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">$</span>
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    value={r.monthlyRent || ""}
-                                    onChange={(e) => updateRow(r.id, "monthlyRent", Number(e.target.value))}
-                                    placeholder="0"
-                                    className={`w-full pl-6 pr-2 py-1.5 rounded-xl text-sm bg-black/50 border text-emerald-300 font-black outline-none focus:border-sky-400 ${
-                                      r.monthlyRent <= 0 && !isSkipped ? "border-red-500/60 bg-red-500/10" : "border-white/15"
-                                    }`}
-                                  />
-                                </div>
-                              </td>
+                          {/* Col 7-9: Base Rent + Add-On Fees Pill + Security Deposit */}
+                          <div className="lg:col-span-3 space-y-1 min-w-0">
+                            <label className="lg:hidden block text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                              Base Rent, Fees &amp; Deposit
+                            </label>
+                            <div className="grid grid-cols-3 gap-1.5 lg:mt-[26px]">
+                              <div className="relative min-w-0">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">$</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={r.monthlyRent || ""}
+                                  onChange={(e) => updateRow(r.id, "monthlyRent", Number(e.target.value))}
+                                  placeholder="Rent *"
+                                  title="Base Monthly Rent"
+                                  className={`w-full pl-5 pr-1.5 py-1.5 rounded-xl text-xs sm:text-sm bg-black/50 border text-emerald-300 font-black tabular-nums outline-none focus:border-sky-400 ${
+                                    r.monthlyRent <= 0 && !isSkipped ? "border-red-500/60 bg-red-500/10" : "border-white/15"
+                                  }`}
+                                />
+                              </div>
 
-                              {/* Add-On Monthly Fees (NNN / Pet / Lawn) */}
-                              <td className="py-2.5 px-2.5">
-                                <div
-                                  onClick={() => setExpandedRowId(isExpanded ? null : r.id)}
-                                  className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-black/50 border border-white/15 text-cyan-300 cursor-pointer hover:border-cyan-400/50 flex items-center justify-between"
-                                  title="Click to edit NNN, CAM, Pet Rent, or Landscaping fees"
-                                >
-                                  <span>{combinedAddOn > 0 ? `+$${combinedAddOn.toLocaleString()}` : "$0"}</span>
-                                  <ChevronDown size={12} className="text-gray-400" />
-                                </div>
-                                {(r.nnnFee || 0) > 0 && (
-                                  <div className="text-[10px] text-cyan-300/80 mt-0.5 px-1">NNN ${r.nnnFee}/mo</div>
-                                )}
-                                {(r.utilitiesFee || 0) > 0 && (
-                                  <div className="text-[10px] text-purple-300/90 mt-0.5 px-1 truncate">
-                                    {r.utilitiesFeeLabel || "Add-on"} ${r.utilitiesFee}/mo
-                                  </div>
-                                )}
-                              </td>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedRowId(isExpanded ? null : r.id)}
+                                className={`px-2 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer flex items-center justify-between min-w-0 ${
+                                  combinedAddOn > 0
+                                    ? "bg-cyan-500/10 border-cyan-400/40 text-cyan-300"
+                                    : "bg-black/50 border-white/15 text-gray-400 hover:text-cyan-300 hover:border-cyan-400/40"
+                                }`}
+                                title="Click to edit NNN, CAM, Pet Rent, or Landscaping fees"
+                              >
+                                <span className="truncate tabular-nums">
+                                  {combinedAddOn > 0 ? `+$${combinedAddOn.toLocaleString()}` : "+Fees"}
+                                </span>
+                                <ChevronDown size={11} className="flex-shrink-0 ml-0.5 opacity-70" />
+                              </button>
 
-                              {/* Security Deposit */}
-                              <td className="py-2.5 px-2.5">
-                                <div className="relative">
-                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">$</span>
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    value={r.securityDeposit || ""}
-                                    onChange={(e) => updateRow(r.id, "securityDeposit", Number(e.target.value))}
-                                    placeholder="0"
-                                    className="w-full pl-6 pr-2 py-1.5 rounded-xl text-sm bg-black/50 border border-white/15 text-amber-300 font-bold outline-none focus:border-sky-400"
-                                  />
-                                </div>
-                                {r.secDepReceived && (
-                                  <div className="text-[10px] text-emerald-400 mt-0.5 px-1">✓ In Escrow / Paid</div>
-                                )}
-                              </td>
+                              <div className="relative min-w-0">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-[11px] font-bold">$</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={r.securityDeposit || ""}
+                                  onChange={(e) => updateRow(r.id, "securityDeposit", Number(e.target.value))}
+                                  placeholder="Dep"
+                                  title="Security Deposit"
+                                  className="w-full pl-5 pr-1.5 py-1.5 rounded-xl text-xs sm:text-sm bg-black/50 border border-white/15 text-amber-300 font-bold tabular-nums outline-none focus:border-sky-400"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-[10px] px-0.5">
+                              <span className="text-gray-500">Rent/mo</span>
+                              {(r.nnnFee || 0) > 0 && (
+                                <span className="text-cyan-300/90">· NNN ${r.nnnFee}/mo</span>
+                              )}
+                              {(r.utilitiesFee || 0) > 0 && (
+                                <span className="text-purple-300/90 truncate">
+                                  · {r.utilitiesFeeLabel || "Add-on"} ${r.utilitiesFee}/mo
+                                </span>
+                              )}
+                              {(r.securityDeposit || 0) > 0 && (
+                                <span className="text-amber-300/80">· Dep ${Number(r.securityDeposit).toLocaleString()}</span>
+                              )}
+                            </div>
+                          </div>
 
-                              {/* Lease Start */}
-                              <td className="py-2.5 px-2.5">
+                          {/* Col 10-11: Compact Lease Start & End */}
+                          <div className="lg:col-span-2 space-y-1.5 min-w-0">
+                            <label className="lg:hidden block text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                              Lease Start &amp; End
+                            </label>
+                            <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[9px] font-bold uppercase text-gray-500 w-7 flex-shrink-0">Start</span>
                                 <input
                                   type="date"
                                   value={r.leaseStart}
                                   onChange={(e) => updateRow(r.id, "leaseStart", e.target.value)}
-                                  className="w-full px-2 py-1.5 rounded-xl text-xs bg-black/50 border border-white/15 text-gray-200 outline-none focus:border-sky-400"
+                                  className="w-full min-w-0 px-2 py-1 rounded-lg text-[11px] bg-black/50 border border-white/15 text-gray-200 outline-none focus:border-sky-400 [color-scheme:dark]"
                                 />
-                              </td>
-
-                              {/* Lease End */}
-                              <td className="py-2.5 px-2.5">
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[9px] font-bold uppercase text-gray-500 w-7 flex-shrink-0">End</span>
                                 <input
                                   type="date"
                                   value={r.leaseEnd}
                                   onChange={(e) => updateRow(r.id, "leaseEnd", e.target.value)}
-                                  className={`w-full px-2 py-1.5 rounded-xl text-xs bg-black/50 border outline-none focus:border-sky-400 ${
+                                  className={`w-full min-w-0 px-2 py-1 rounded-lg text-[11px] bg-black/50 border outline-none focus:border-sky-400 [color-scheme:dark] ${
                                     r.isExpiredHoldover
                                       ? "border-amber-400/60 text-amber-200"
                                       : "border-white/15 text-gray-200"
                                   }`}
                                 />
-                              </td>
+                              </div>
+                            </div>
+                          </div>
 
-                              {/* Notes & Rich Feature Badges */}
-                              <td className="py-2.5 px-2.5">
+                          {/* Col 12: Expand Details + Delete */}
+                          <div className="lg:col-span-1 flex items-center justify-end gap-1 lg:mt-[24px]">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedRowId(isExpanded ? null : r.id)}
+                              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1 ${
+                                isExpanded
+                                  ? "bg-sky-500/25 border-sky-400/50 text-sky-200"
+                                  : "bg-white/5 border-white/15 text-gray-300 hover:text-white"
+                              }`}
+                              title="Edit NNN, pet fees, escalations, contact info, notes & HVAC schedule"
+                            >
+                              <span className="lg:hidden">Details</span>
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteRow(r.id)}
+                              className="p-1.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Remove Row"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Smart Highlights Strip (Extracted Badges + Quick Notes Preview) */}
+                        {hasHighlights && !isExpanded && (
+                          <div
+                            onClick={() => setExpandedRowId(r.id)}
+                            className="px-4 pb-3 -mt-1 flex flex-wrap items-center gap-1.5 cursor-pointer group"
+                            title="Click to inspect or edit all extracted lease terms"
+                          >
+                            {r.sourceDocUrl && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-300 border border-sky-400/30 flex items-center gap-1">
+                                <Paperclip size={10} /> Lease Attached
+                              </span>
+                            )}
+                            {(r.escalationPct || 0) > 0 && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                                +{r.escalationPct}%/yr Escalation
+                              </span>
+                            )}
+                            {(r.hvacFilterIntervalDays || 0) > 0 && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-400/30 flex items-center gap-1">
+                                <Flame size={10} /> HVAC {r.hvacFilterIntervalDays}d
+                              </span>
+                            )}
+                            {r.secDepReceived && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
+                                ✓ Deposit in Escrow
+                              </span>
+                            )}
+                            {r.notes?.trim() && (
+                              <span className="text-[11px] text-gray-400 group-hover:text-gray-200 truncate max-w-xl">
+                                📝 {r.notes}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Expandable Detailed Lease & Property Drawer */}
+                        {isExpanded && (
+                          <div className="px-4 pb-4 pt-3 bg-[#0B1222]/90 border-t border-sky-400/25 space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
+                              <div>
+                                <label className="block text-gray-400 font-bold mb-1">Co-Tenant / Guarantor</label>
                                 <input
                                   type="text"
-                                  value={r.notes}
-                                  onChange={(e) => updateRow(r.id, "notes", e.target.value)}
-                                  placeholder="Terms, options..."
-                                  className="w-full px-2.5 py-1.5 rounded-xl text-xs bg-black/50 border border-white/15 text-gray-200 outline-none focus:border-sky-400"
+                                  value={r.contactName}
+                                  onChange={(e) => updateRow(r.id, "contactName", e.target.value)}
+                                  placeholder="Co-tenant or guarantor..."
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
                                 />
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {(r.escalationPct || 0) > 0 && (
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
-                                      +{r.escalationPct}%/yr
-                                    </span>
-                                  )}
-                                  {(r.hvacFilterIntervalDays || 0) > 0 && (
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-400/30 flex items-center gap-0.5">
-                                      <Flame size={10} /> HVAC {r.hvacFilterIntervalDays}d
-                                    </span>
-                                  )}
-                                  {r.sourceDocUrl && (
-                                    <span
-                                      className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-400/30 flex items-center gap-0.5"
-                                      title={`Attached: ${r.sourceDocName || "Lease"}`}
-                                    >
-                                      <Paperclip size={10} /> Lease Attached
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 font-bold mb-1">Email</label>
+                                <input
+                                  type="email"
+                                  value={r.email}
+                                  onChange={(e) => updateRow(r.id, "email", e.target.value)}
+                                  placeholder="tenant@email.com"
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 font-bold mb-1">Phone</label>
+                                <input
+                                  type="text"
+                                  value={r.phone}
+                                  onChange={(e) => updateRow(r.id, "phone", e.target.value)}
+                                  placeholder="(555) 000-0000"
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 font-bold mb-1">Asset Type</label>
+                                <select
+                                  value={r.propertyType || "Mixed-Use"}
+                                  onChange={(e) =>
+                                    updateRow(r.id, "propertyType", e.target.value as PropertyAssetType)
+                                  }
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
+                                >
+                                  <option value="Commercial">Commercial</option>
+                                  <option value="Multi-Family">Multi-Family</option>
+                                  <option value="Single-Family">Single-Family (SFR)</option>
+                                  <option value="Mixed-Use">Mixed-Use</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 font-bold mb-1">City</label>
+                                <input
+                                  type="text"
+                                  value={r.propertyCity || ""}
+                                  onChange={(e) => updateRow(r.id, "propertyCity", e.target.value)}
+                                  placeholder="City..."
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 font-bold mb-1">Unit SqFt / RSF</label>
+                                <input
+                                  type="number"
+                                  value={r.unitSqft || ""}
+                                  onChange={(e) => updateRow(r.id, "unitSqft", Number(e.target.value))}
+                                  placeholder="0"
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
+                                />
+                              </div>
 
-                              {/* Expand Terms + Delete */}
-                              <td className="py-2.5 px-2.5 text-center">
-                                <div className="flex items-center justify-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => setExpandedRowId(isExpanded ? null : r.id)}
-                                    className={`px-2 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1 ${
-                                      isExpanded
-                                        ? "bg-sky-500/25 border-sky-400/50 text-sky-200"
-                                        : "bg-white/5 border-white/15 text-gray-300 hover:text-white"
-                                    }`}
-                                    title="Edit commercial NNN, pet fees, escalations, email/phone & unit RSF"
-                                  >
-                                    {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => deleteRow(r.id)}
-                                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                                    title="Remove Row"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
+                              <div>
+                                <label className="block text-cyan-300 font-bold mb-1">NNN / CAM ($/mo)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={r.nnnFee || ""}
+                                  onChange={(e) => updateRow(r.id, "nnnFee", Number(e.target.value))}
+                                  placeholder="0"
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-cyan-500/30 text-cyan-200 font-bold"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-purple-300 font-bold mb-1">
+                                  Pet / Lawn / Other ($/mo)
+                                </label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={r.utilitiesFee || ""}
+                                  onChange={(e) => updateRow(r.id, "utilitiesFee", Number(e.target.value))}
+                                  placeholder="0"
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-purple-500/30 text-purple-200 font-bold"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-emerald-300 font-bold mb-1">
+                                  Annual Escalation (%)
+                                </label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={r.escalationPct || ""}
+                                  onChange={(e) => updateRow(r.id, "escalationPct", Number(e.target.value))}
+                                  placeholder="0"
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-emerald-500/30 text-emerald-200 font-bold"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-gray-400 font-bold mb-1">Lease Status</label>
+                                <select
+                                  value={r.status || "active"}
+                                  onChange={(e) =>
+                                    updateRow(
+                                      r.id,
+                                      "status",
+                                      e.target.value as "active" | "pending" | "expired"
+                                    )
+                                  }
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
+                                >
+                                  <option value="active">Active (or MTM Holdover)</option>
+                                  <option value="expired">Expired</option>
+                                  <option value="pending">Pending Move-In</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-amber-300 font-bold mb-1">
+                                  HVAC Filter Interval (Days)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={r.hvacFilterIntervalDays || ""}
+                                  onChange={(e) =>
+                                    updateRow(r.id, "hvacFilterIntervalDays", Number(e.target.value))
+                                  }
+                                  placeholder="e.g. 60"
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-amber-500/30 text-amber-200"
+                                />
+                              </div>
+                              <div className="flex flex-col justify-end pb-1">
+                                <label className="inline-flex items-center gap-2 cursor-pointer text-gray-200 font-semibold">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(r.secDepReceived)}
+                                    onChange={(e) => updateRow(r.id, "secDepReceived", e.target.checked)}
+                                    className="w-4 h-4 rounded border-white/30 text-emerald-500"
+                                  />
+                                  <span>Deposit Paid / In Escrow</span>
+                                </label>
+                              </div>
+                            </div>
 
-                            {/* Expandable Detailed Lease & Property Drawer Row */}
-                            {isExpanded && (
-                              <tr className="bg-[#0B1222]/90 border-b border-sky-400/25">
-                                <td colSpan={12} className="p-4">
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
-                                    <div>
-                                      <label className="block text-gray-400 font-bold mb-1">Co-Tenant / Contact</label>
-                                      <input
-                                        type="text"
-                                        value={r.contactName}
-                                        onChange={(e) => updateRow(r.id, "contactName", e.target.value)}
-                                        placeholder="Co-tenant or guarantor..."
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-gray-400 font-bold mb-1">Email</label>
-                                      <input
-                                        type="email"
-                                        value={r.email}
-                                        onChange={(e) => updateRow(r.id, "email", e.target.value)}
-                                        placeholder="tenant@email.com"
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-gray-400 font-bold mb-1">Phone</label>
-                                      <input
-                                        type="text"
-                                        value={r.phone}
-                                        onChange={(e) => updateRow(r.id, "phone", e.target.value)}
-                                        placeholder="(555) 000-0000"
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-gray-400 font-bold mb-1">Asset Type</label>
-                                      <select
-                                        value={r.propertyType || "Mixed-Use"}
-                                        onChange={(e) =>
-                                          updateRow(r.id, "propertyType", e.target.value as PropertyAssetType)
-                                        }
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
-                                      >
-                                        <option value="Commercial">Commercial</option>
-                                        <option value="Multi-Family">Multi-Family</option>
-                                        <option value="Single-Family">Single-Family (SFR)</option>
-                                        <option value="Mixed-Use">Mixed-Use</option>
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="block text-gray-400 font-bold mb-1">City</label>
-                                      <input
-                                        type="text"
-                                        value={r.propertyCity || ""}
-                                        onChange={(e) => updateRow(r.id, "propertyCity", e.target.value)}
-                                        placeholder="City..."
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-gray-400 font-bold mb-1">Unit SqFt / RSF</label>
-                                      <input
-                                        type="number"
-                                        value={r.unitSqft || ""}
-                                        onChange={(e) => updateRow(r.id, "unitSqft", Number(e.target.value))}
-                                        placeholder="0"
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
-                                      />
-                                    </div>
-
-                                    <div>
-                                      <label className="block text-cyan-300 font-bold mb-1">NNN / CAM ($/mo)</label>
-                                      <input
-                                        type="number"
-                                        step="0.01"
-                                        value={r.nnnFee || ""}
-                                        onChange={(e) => updateRow(r.id, "nnnFee", Number(e.target.value))}
-                                        placeholder="0"
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-cyan-500/30 text-cyan-200 font-bold"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-purple-300 font-bold mb-1">
-                                        Pet / Lawn / Other ($/mo)
-                                      </label>
-                                      <input
-                                        type="number"
-                                        step="0.01"
-                                        value={r.utilitiesFee || ""}
-                                        onChange={(e) => updateRow(r.id, "utilitiesFee", Number(e.target.value))}
-                                        placeholder="0"
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-purple-500/30 text-purple-200 font-bold"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-emerald-300 font-bold mb-1">
-                                        Annual Escalation (%)
-                                      </label>
-                                      <input
-                                        type="number"
-                                        step="0.1"
-                                        value={r.escalationPct || ""}
-                                        onChange={(e) => updateRow(r.id, "escalationPct", Number(e.target.value))}
-                                        placeholder="0"
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-emerald-500/30 text-emerald-200 font-bold"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-gray-400 font-bold mb-1">Lease Status</label>
-                                      <select
-                                        value={r.status || "active"}
-                                        onChange={(e) =>
-                                          updateRow(
-                                            r.id,
-                                            "status",
-                                            e.target.value as "active" | "pending" | "expired"
-                                          )
-                                        }
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-white"
-                                      >
-                                        <option value="active">Active (or MTM Holdover)</option>
-                                        <option value="expired">Expired</option>
-                                        <option value="pending">Pending Move-In</option>
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="block text-amber-300 font-bold mb-1">
-                                        HVAC Filter Interval (Days)
-                                      </label>
-                                      <input
-                                        type="number"
-                                        value={r.hvacFilterIntervalDays || ""}
-                                        onChange={(e) =>
-                                          updateRow(r.id, "hvacFilterIntervalDays", Number(e.target.value))
-                                        }
-                                        placeholder="e.g. 60"
-                                        className="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-amber-500/30 text-amber-200"
-                                      />
-                                    </div>
-                                    <div className="flex flex-col justify-end pb-1">
-                                      <label className="inline-flex items-center gap-2 cursor-pointer text-gray-200 font-semibold">
-                                        <input
-                                          type="checkbox"
-                                          checked={Boolean(r.secDepReceived)}
-                                          onChange={(e) => updateRow(r.id, "secDepReceived", e.target.checked)}
-                                          className="w-4 h-4 rounded border-white/30 text-emerald-500"
-                                        />
-                                        <span>Deposit Paid / In Escrow</span>
-                                      </label>
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                            {/* Full-width Lease Notes & Clauses Row inside Drawer */}
+                            <div className="text-xs">
+                              <label className="block text-gray-400 font-bold mb-1">
+                                Extracted Notes, Clauses &amp; Options
+                              </label>
+                              <input
+                                type="text"
+                                value={r.notes}
+                                onChange={(e) => updateRow(r.id, "notes", e.target.value)}
+                                placeholder="Renewal options, EIN, NNN share, pet/landscaping notes..."
+                                className="w-full px-3 py-1.5 rounded-lg bg-black/60 border border-white/15 text-gray-200 outline-none focus:border-sky-400"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

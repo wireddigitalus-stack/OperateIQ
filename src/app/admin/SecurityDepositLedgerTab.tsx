@@ -220,92 +220,106 @@ export default function SecurityDepositLedgerTab({
           <p className="text-xs text-gray-500">No active tenants match search.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <table className="w-full border-collapse text-left text-xs min-w-[700px]">
-            <thead>
-              <tr className="border-b border-[rgba(255,255,255,0.04)] text-gray-500 font-bold uppercase tracking-widest text-[9px]">
-                <th className="pb-3 pl-4">Tenant Name</th>
-                <th className="pb-3">Property / Unit</th>
-                <th className="pb-3 w-[120px]">Deposit Amount</th>
-                <th className="pb-3 w-[80px] text-center">Received?</th>
-                <th className="pb-3 w-[130px]">Received Date</th>
-                <th className="pb-3 w-[150px]">Status</th>
-                <th className="pb-3 pr-4">Notes</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[rgba(255,255,255,0.03)] text-gray-300">
-              {filtered.map(t => {
-                const isSaving = savingId === t.id;
-                return (
-                  <tr key={t.id} className="hover:bg-[rgba(255,255,255,0.01)] transition-colors">
-                    <td className="py-3 pl-4 font-bold text-white relative">
-                      {t.name}
-                      {isSaving && (
-                        <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[#60A5FA]">
-                          <Loader2 size={10} className="animate-spin" />
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Building2 size={12} className="text-gray-600" />
-                        {t.building} (Unit {t.unit || "—"})
-                      </span>
-                    </td>
-                    <td className="py-2">
-                      <div className="relative flex items-center">
-                        <span className="absolute left-2.5 text-gray-600 text-[10px] font-black">$</span>
-                        <input
-                          type="number"
-                          value={t.securityDeposit || ""}
-                          onChange={e => updateField(t.id, "securityDeposit", e.target.value)}
-                          className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg pl-6 pr-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none"
-                        />
-                      </div>
-                    </td>
-                    <td className="py-2 text-center">
-                      <input
-                        type="checkbox"
-                        checked={!!t.secDepReceived}
-                        onChange={e => updateField(t.id, "secDepReceived", e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-600 text-sky-400 bg-[rgba(255,255,255,0.02)] focus:ring-0 cursor-pointer"
-                      />
-                    </td>
-                    <td className="py-2">
-                      <input
-                        type="date"
-                        value={t.secDepDate || ""}
-                        onChange={e => updateField(t.id, "secDepDate", e.target.value)}
-                        className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none [color-scheme:dark]"
-                      />
-                    </td>
-                    <td className="py-2">
-                      <select
-                        value={t.secDepStatus || "no_change"}
-                        onChange={e => updateField(t.id, "secDepStatus", e.target.value)}
-                        className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none"
-                      >
-                        {STATUS_OPTIONS.map(o => (
-                          <option key={o.value} value={o.value} className="bg-[#0D1117]">
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <input
-                        type="text"
-                        placeholder="Escrow account details, damages, etc..."
-                        value={t.secDepNotes || ""}
-                        onChange={e => updateField(t.id, "secDepNotes", e.target.value)}
-                        className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-2 py-1 text-xs text-white focus:border-blue-400/60 focus:shadow-[0_0_12px_rgba(56,189,248,0.2)] outline-none"
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="divide-y divide-[rgba(255,255,255,0.04)]">
+          {/* Desktop Column Header — Zero Horizontal Scroll */}
+          <div className="hidden lg:grid lg:grid-cols-12 gap-3 pb-3 px-2 border-b border-[rgba(255,255,255,0.06)] text-gray-500 font-bold uppercase tracking-widest text-[9px]">
+            <div className="col-span-3">Tenant &amp; Property</div>
+            <div className="col-span-2">Deposit ($)</div>
+            <div className="col-span-1 text-center">Received</div>
+            <div className="col-span-2">Received Date</div>
+            <div className="col-span-2">Status</div>
+            <div className="col-span-2">Escrow / Notes</div>
+          </div>
+
+          {filtered.map(t => {
+            const isSaving = savingId === t.id;
+            return (
+              <div
+                key={t.id}
+                className="py-3 px-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 lg:gap-3 items-center text-xs hover:bg-[rgba(255,255,255,0.015)] transition-colors"
+              >
+                <div className="sm:col-span-2 lg:col-span-3 min-w-0 relative">
+                  <div className="font-bold text-white truncate flex items-center gap-1.5">
+                    <span className="truncate">{t.name}</span>
+                    {isSaving && <Loader2 size={11} className="animate-spin text-[#60A5FA] flex-shrink-0" />}
+                  </div>
+                  <div className="text-[11px] text-gray-400 truncate flex items-center gap-1 mt-0.5">
+                    <Building2 size={11} className="text-gray-600 flex-shrink-0" />
+                    <span className="truncate">
+                      {t.building} {t.unit ? `· Unit ${t.unit}` : ""}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2">
+                  <label className="lg:hidden block text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                    Deposit Amount
+                  </label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-2.5 text-gray-500 text-[10px] font-black">$</span>
+                    <input
+                      type="number"
+                      value={t.securityDeposit || ""}
+                      onChange={e => updateField(t.id, "securityDeposit", e.target.value)}
+                      className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-lg pl-6 pr-2 py-1.5 text-xs text-white tabular-nums focus:border-blue-400/60 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="lg:col-span-1 flex items-center lg:justify-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!!t.secDepReceived}
+                    onChange={e => updateField(t.id, "secDepReceived", e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-600 text-sky-400 bg-[rgba(255,255,255,0.02)] focus:ring-0 cursor-pointer"
+                  />
+                  <span className="lg:hidden text-[11px] text-gray-400">Deposit Received</span>
+                </div>
+
+                <div className="lg:col-span-2">
+                  <label className="lg:hidden block text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                    Received Date
+                  </label>
+                  <input
+                    type="date"
+                    value={t.secDepDate || ""}
+                    onChange={e => updateField(t.id, "secDepDate", e.target.value)}
+                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-lg px-2 py-1.5 text-xs text-white focus:border-blue-400/60 outline-none [color-scheme:dark]"
+                  />
+                </div>
+
+                <div className="lg:col-span-2">
+                  <label className="lg:hidden block text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={t.secDepStatus || "no_change"}
+                    onChange={e => updateField(t.id, "secDepStatus", e.target.value)}
+                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-lg px-2 py-1.5 text-xs text-white focus:border-blue-400/60 outline-none"
+                  >
+                    {STATUS_OPTIONS.map(o => (
+                      <option key={o.value} value={o.value} className="bg-[#0D1117]">
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2 lg:col-span-2">
+                  <label className="lg:hidden block text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                    Notes
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Escrow account, damages..."
+                    value={t.secDepNotes || ""}
+                    onChange={e => updateField(t.id, "secDepNotes", e.target.value)}
+                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-blue-400/60 outline-none"
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

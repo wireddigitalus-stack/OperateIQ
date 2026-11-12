@@ -381,97 +381,102 @@ export default function UnitRosterSection({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-white/[0.06] bg-black/25 text-[10px] uppercase tracking-wider text-gray-400">
-                <th className="text-left px-4 py-3 font-black">Building · Unit</th>
-                <th className="text-left px-3 py-3 font-black">Specs</th>
-                <th className="text-left px-3 py-3 font-black">Current Tenant</th>
-                <th className="text-left px-3 py-3 font-black">Lease Rent</th>
-                <th className="text-left px-3 py-3 font-black">Market Rent</th>
-                <th className="text-left px-3 py-3 font-black">Status</th>
-                <th className="text-right px-4 py-3 font-black">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {enrichedUnits.map((u) => {
-                const badge = STATUS_BADGE[u.effectiveStatus];
-                return (
-                  <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-black text-white">{u.unitNumber}</p>
-                      <p className="text-[10px] text-gray-500">{u.displayBuilding}</p>
-                    </td>
-                    <td className="px-3 py-3 text-gray-300 whitespace-nowrap">
-                      {u.beds || u.baths || u.sqft ? (
-                        <span>
-                          {u.beds ? `${u.beds} bd` : "—"} · {u.baths ? `${u.baths} ba` : "—"}
-                          {u.sqft ? ` · ${u.sqft.toLocaleString()} sf` : ""}
-                        </span>
-                      ) : (
-                        <span className="text-gray-600">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      {u.matchedTenant ? (
-                        <span className="font-bold text-emerald-300">{u.matchedTenant.name}</span>
-                      ) : (
-                        <span className="text-gray-500 italic">Unassigned / Vacant</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 tabular-nums font-bold text-white">
-                      {u.actualRent > 0 ? `$${u.actualRent.toLocaleString()}/mo` : <span className="text-gray-600">—</span>}
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="relative w-28">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-[10px]">$</span>
-                        <input
-                          key={`${u.id}_${u.marketRent}`}
-                          type="number"
-                          defaultValue={u.marketRent || ""}
-                          onBlur={(e) => {
-                            const next = Math.max(0, Number(e.target.value) || 0);
-                            if (next !== u.marketRent) handleUpdateMarketRent(u, next);
-                          }}
-                          placeholder="0"
-                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg pl-5 pr-2 py-1 text-xs text-white tabular-nums outline-none focus:border-emerald-400/50"
-                        />
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      {u.matchedTenant ? (
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold border ${badge.cls}`}>
-                          {badge.label}
-                        </span>
-                      ) : (
-                        <select
-                          value={u.status}
-                          onChange={(e) => handleUpdateStatus(u, e.target.value as PropertyUnitItem["status"])}
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold border outline-none cursor-pointer ${badge.cls} bg-transparent`}
-                        >
-                          <option value="vacant" className="bg-[#0A0F1A] text-white">Vacant</option>
-                          <option value="turnover" className="bg-[#0A0F1A] text-white">Turnover / Make-Ready</option>
-                          <option value="notice" className="bg-[#0A0F1A] text-white">Notice Given</option>
-                          <option value="occupied" className="bg-[#0A0F1A] text-white">Occupied</option>
-                        </select>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteUnit(u)}
-                        title="Remove unit"
-                        className="p-1.5 rounded-lg border border-white/[0.06] text-gray-500 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="divide-y divide-white/[0.04]">
+          {/* Desktop Column Header — Zero Horizontal Scroll */}
+          <div className="hidden md:grid md:grid-cols-12 gap-3 px-4 py-3 border-b border-white/[0.06] bg-black/25 text-[10px] uppercase tracking-wider text-gray-400 font-black">
+            <div className="col-span-3">Building · Unit</div>
+            <div className="col-span-2">Specs</div>
+            <div className="col-span-2">Current Tenant</div>
+            <div className="col-span-2">Lease / Market Rent</div>
+            <div className="col-span-2">Status</div>
+            <div className="col-span-1 text-right">Actions</div>
+          </div>
+
+          {enrichedUnits.map((u) => {
+            const badge = STATUS_BADGE[u.effectiveStatus];
+            return (
+              <div
+                key={u.id}
+                className="px-4 py-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-2.5 md:gap-3 items-center text-xs hover:bg-white/[0.02] transition-colors"
+              >
+                <div className="md:col-span-3 min-w-0">
+                  <p className="font-black text-white truncate">{u.unitNumber}</p>
+                  <p className="text-[10px] text-gray-500 truncate">{u.displayBuilding}</p>
+                </div>
+
+                <div className="md:col-span-2 text-gray-300 text-[11px]">
+                  {u.beds || u.baths || u.sqft ? (
+                    <span>
+                      {u.beds ? `${u.beds} bd` : "—"} · {u.baths ? `${u.baths} ba` : "—"}
+                      {u.sqft ? ` · ${u.sqft.toLocaleString()} sf` : ""}
+                    </span>
+                  ) : (
+                    <span className="text-gray-600">—</span>
+                  )}
+                </div>
+
+                <div className="md:col-span-2 min-w-0">
+                  {u.matchedTenant ? (
+                    <span className="font-bold text-emerald-300 truncate block">
+                      {u.matchedTenant.name}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500 italic">Unassigned / Vacant</span>
+                  )}
+                </div>
+
+                <div className="md:col-span-2 flex items-center gap-2 flex-wrap">
+                  <span className="tabular-nums font-bold text-white">
+                    {u.actualRent > 0 ? `$${u.actualRent.toLocaleString()}/mo` : <span className="text-gray-600">—</span>}
+                  </span>
+                  <div className="relative w-24" title="Market / Asking Rent">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-[10px]">$</span>
+                    <input
+                      key={`${u.id}_${u.marketRent}`}
+                      type="number"
+                      defaultValue={u.marketRent || ""}
+                      onBlur={(e) => {
+                        const next = Math.max(0, Number(e.target.value) || 0);
+                        if (next !== u.marketRent) handleUpdateMarketRent(u, next);
+                      }}
+                      placeholder="Mkt"
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg pl-5 pr-1.5 py-1 text-xs text-white tabular-nums outline-none focus:border-emerald-400/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  {u.matchedTenant ? (
+                    <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold border ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  ) : (
+                    <select
+                      value={u.status}
+                      onChange={(e) => handleUpdateStatus(u, e.target.value as PropertyUnitItem["status"])}
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold border outline-none cursor-pointer ${badge.cls} bg-transparent`}
+                    >
+                      <option value="vacant" className="bg-[#0A0F1A] text-white">Vacant</option>
+                      <option value="turnover" className="bg-[#0A0F1A] text-white">Turnover / Make-Ready</option>
+                      <option value="notice" className="bg-[#0A0F1A] text-white">Notice Given</option>
+                      <option value="occupied" className="bg-[#0A0F1A] text-white">Occupied</option>
+                    </select>
+                  )}
+                </div>
+
+                <div className="md:col-span-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteUnit(u)}
+                    title="Remove unit"
+                    className="p-1.5 rounded-lg border border-white/[0.06] text-gray-500 hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
