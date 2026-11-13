@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import type { Tenant } from "./TenantsTab";
 import type { PropertyItem, AvailableSpace } from "./PropDetailsTab";
+import { DashboardCard, DashboardCardHeader } from "@/components/admin/DashboardCard";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -131,25 +132,25 @@ function BarChart({ data }: { data: BarDatum[] }) {
               )}
 
               {/* Bar pair */}
-              <div className="flex items-end gap-0.5 w-full justify-center">
+              <div className="flex items-end gap-1 w-full justify-center">
                 {/* Revenue bar */}
                 <div
-                  className="flex-1 rounded-t-md transition-all duration-500 relative overflow-hidden"
+                  className="flex-1 max-w-[34px] rounded-t-lg transition-all duration-500 relative overflow-hidden"
                   style={{
                     height: `${rh}px`,
-                    backgroundColor: "#4ADE80",
-                    opacity: isHovered ? 1 : 0.75,
+                    background: "linear-gradient(180deg, #4ADE80 0%, rgba(74,222,128,0.28) 100%)",
+                    opacity: isHovered ? 1 : 0.85,
                   }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-10" />
                 </div>
                 {/* Expenses bar */}
                 <div
-                  className="flex-1 rounded-t-md transition-all duration-500"
+                  className="flex-1 max-w-[34px] rounded-t-lg transition-all duration-500"
                   style={{
                     height: `${eh}px`,
-                    backgroundColor: "#F97316",
-                    opacity: isHovered ? 0.9 : d.expenses > 0 ? 0.6 : 0.12,
+                    background: "linear-gradient(180deg, #FB7185 0%, rgba(251,113,133,0.26) 100%)",
+                    opacity: isHovered ? 1 : d.expenses > 0 ? 0.78 : 0.14,
                   }}
                 />
               </div>
@@ -171,11 +172,11 @@ function BarChart({ data }: { data: BarDatum[] }) {
 
       {/* Legend */}
       <div className="flex items-center gap-5 mt-3">
-        <span className="flex items-center gap-1.5 text-xs text-gray-400">
-          <span className="w-3 h-3 rounded-sm bg-[#4ADE80]" /> Revenue
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#4ADE80]" /> Revenue
         </span>
-        <span className="flex items-center gap-1.5 text-xs text-gray-400">
-          <span className="w-3 h-3 rounded-sm bg-[#F97316]" /> Expenses
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#FB7185]" /> Expenses
         </span>
       </div>
     </div>
@@ -311,46 +312,46 @@ export default function PortfolioOverviewCard({ properties: propProperties, tena
   }));
 
   return (
-    <div className="glass rounded-2xl border border-[rgba(255,255,255,0.08)] overflow-hidden">
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[rgba(255,255,255,0.06)]">
-        <div>
-          <h2 className="text-base font-black text-white flex items-center gap-2">
-            <BarChart3 size={17} className="text-[#A78BFA]" /> Executive Overview
-          </h2>
-          <p className="text-xs text-gray-400 mt-1">Portfolio-wide snapshot · live data</p>
-        </div>
-        {totalAlerts > 0 && (
-          <div className="flex items-center gap-1.5 text-xs font-bold text-yellow-400 bg-yellow-950/30 border border-yellow-900/40 px-3 py-1.5 rounded-full">
-            <AlertTriangle size={11} /> {totalAlerts} lease alert{totalAlerts > 1 ? "s" : ""}
-          </div>
-        )}
-      </div>
+    <DashboardCard>
+      <DashboardCardHeader
+        icon={<BarChart3 size={17} className="text-violet-300" />}
+        iconGradient="linear-gradient(135deg, rgba(167,139,250,0.24), rgba(56,189,248,0.2))"
+        title="Executive Overview"
+        subtitle="Portfolio-wide snapshot · Live data"
+        actions={
+          totalAlerts > 0 ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-400/25 px-3 py-1.5 rounded-full">
+              <AlertTriangle size={12} /> {totalAlerts} lease alert{totalAlerts > 1 ? "s" : ""}
+            </div>
+          ) : undefined
+        }
+      />
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-px bg-[rgba(255,255,255,0.04)]">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-px bg-white/[0.05]">
         {kpis.map(({ label, value, color, icon: Icon }) => (
-          <div key={label} className="flex flex-col items-center justify-center py-5 px-3 bg-[#080C14] text-center">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2.5"
-              style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
+          <div key={label} className="flex flex-col items-center justify-center py-5 px-3 bg-[#090E18] text-center">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center mb-2.5"
+              style={{ background: `${color}15`, border: `1px solid ${color}30` }}
+            >
               <Icon size={15} style={{ color }} />
             </div>
-            <p className="text-lg font-black text-white leading-none">{value}</p>
-            <p className="text-xs text-gray-400 font-semibold mt-1.5">{label}</p>
+            <p className="text-lg font-black text-white leading-none tabular-nums">{value}</p>
+            <p className="text-xs text-slate-300 font-semibold mt-1.5">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Chart */}
-      <div className="px-4 sm:px-6 pt-5 pb-4 border-t border-[rgba(255,255,255,0.04)]">
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Revenue vs Expenses by Property</p>
+      <div className="px-5 sm:px-6 pt-5 pb-4 border-t border-white/[0.06]">
+        <p className="text-xs font-bold text-slate-300 mb-4">Revenue vs Expenses by Property</p>
         <BarChart data={chartData} />
       </div>
 
       {/* Property Health Strip */}
-      <div className="border-t border-[rgba(255,255,255,0.04)] py-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 px-4 sm:px-6">Property Health</p>
+      <div className="border-t border-white/[0.06] py-4">
+        <p className="text-xs font-bold text-slate-300 mb-2 px-5 sm:px-6">Property Health</p>
         <div className="divide-y divide-[rgba(255,255,255,0.03)] sm:divide-y-0 sm:space-y-1">
           {propData.map(({ property, occupancy, revenue, profit, trend, alerts, expenses, missedRevenue: propMissed, expiringTenants }) => {
             const trendCfg = TREND_MAP[trend];
@@ -425,6 +426,6 @@ export default function PortfolioOverviewCard({ properties: propProperties, tena
           })}
         </div>
       </div>
-    </div>
+    </DashboardCard>
   );
 }

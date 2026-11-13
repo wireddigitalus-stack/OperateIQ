@@ -561,21 +561,20 @@ function RevenueForecast({ tenants }: { tenants: Tenant[] }) {
   });
 
   return (
-    <div className="rounded-2xl p-4 sm:p-5 mb-6 border bg-[rgba(255,255,255,0.02)]"
-      style={{ borderColor: "rgba(74,222,128,0.18)", boxShadow: "0 0 28px rgba(74,222,128,0.07)" }}>
+    <div className="glass rounded-2xl p-5 sm:p-6 mb-6 border border-white/[0.08] shadow-[0_10px_34px_rgba(0,0,0,0.3)]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2">
-          <BarChart3 size={14} className="text-[#4ADE80]" />
-          <p className="text-xs font-black text-white uppercase tracking-widest">12-Month Revenue Forecast</p>
+          <BarChart3 size={15} className="text-[#4ADE80]" />
+          <p className="text-sm font-bold text-slate-100">12-Month Revenue Forecast</p>
         </div>
         {growth !== 0 && (
-          <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg ${growth > 0 ? "text-[#4ADE80] bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)]" : "text-red-400 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)]"}`}>
-            {growth > 0 ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+          <span className={`flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full tabular-nums ${growth > 0 ? "text-[#4ADE80] bg-[rgba(74,222,128,0.1)] border border-[rgba(74,222,128,0.25)]" : "text-red-400 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)]"}`}>
+            {growth > 0 ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             {Math.abs(growth).toFixed(1)}% over 12mo
           </span>
         )}
       </div>
-      <p className="text-[11px] text-gray-400 mb-4">Projections include scheduled rent escalations and lease expirations</p>
+      <p className="text-xs text-slate-400 mb-4">Projections include scheduled rent escalations and lease expirations</p>
 
       {activeTenants.length === 0 ? (
         <p className="text-sm text-gray-600 italic text-center py-6">Add tenants to see revenue forecast</p>
@@ -945,7 +944,7 @@ export default function AnalyticsTab({ leads, currentUserName }: { leads: Analyt
       <RevenueForecast tenants={tenants} />
 
       {/* ── Lead Pipeline Funnel ────────────────────────────────────── */}
-      <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-2xl p-5">
+      <div className="glass border border-white/[0.08] shadow-[0_10px_34px_rgba(0,0,0,0.3)] rounded-2xl p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <Zap size={13} className="text-[#FACC15]" />
@@ -1043,7 +1042,7 @@ export default function AnalyticsTab({ leads, currentUserName }: { leads: Analyt
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
         {/* Revenue by Building */}
-        <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-2xl p-5">
+        <div className="glass border border-white/[0.08] shadow-[0_10px_34px_rgba(0,0,0,0.3)] rounded-2xl p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Building2 size={13} className="text-[#60A5FA]" />
             <p className="text-xs font-black text-white uppercase tracking-widest">Revenue by Property</p>
@@ -1064,7 +1063,7 @@ export default function AnalyticsTab({ leads, currentUserName }: { leads: Analyt
         {/* Right side: Rep Leaderboard, Lead Sources, Space Demand stacked */}
         <div className="space-y-6">
           {/* Rep Leaderboard */}
-          <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-2xl p-5">
+          <div className="glass border border-white/[0.08] shadow-[0_10px_34px_rgba(0,0,0,0.3)] rounded-2xl p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Users size={13} className="text-[#C4B5FD]" />
               <p className="text-xs font-black text-white uppercase tracking-widest">Rep Leaderboard</p>
@@ -1092,7 +1091,7 @@ export default function AnalyticsTab({ leads, currentUserName }: { leads: Analyt
           </div>
 
           {/* Source breakdown */}
-          <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-2xl p-5">
+          <div className="glass border border-white/[0.08] shadow-[0_10px_34px_rgba(0,0,0,0.3)] rounded-2xl p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-3">
               <ArrowUpRight size={13} className="text-[#F472B6]" />
               <p className="text-xs font-black text-white uppercase tracking-widest">Lead Sources</p>
@@ -1111,7 +1110,7 @@ export default function AnalyticsTab({ leads, currentUserName }: { leads: Analyt
           </div>
 
           {/* Space type demand */}
-          <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.07)] rounded-2xl p-5">
+          <div className="glass border border-white/[0.08] shadow-[0_10px_34px_rgba(0,0,0,0.3)] rounded-2xl p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-3">
               <PieChart size={13} className="text-[#F97316]" />
               <p className="text-xs font-black text-white uppercase tracking-widest">Space Demand</p>

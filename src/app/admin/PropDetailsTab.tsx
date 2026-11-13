@@ -1545,13 +1545,16 @@ export default function PropDetailsTab() {
               { icon: DollarSign, label: "Revenue",    value: `$${totalRevenue.toLocaleString()}/mo`,               color: "#4ADE80" },
               { icon: TrendingUp, label: "Net P&L",    value: totalExpenses ? `$${Math.round(totalRevenue - totalExpenses).toLocaleString()}/mo` : "—", color: totalRevenue > totalExpenses ? "#4ADE80" : "#EF4444" },
             ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="glass rounded-xl p-4 border border-[rgba(255,255,255,0.06)] flex items-center gap-3">
+              <div
+                key={label}
+                className="glass rounded-2xl p-4 border border-white/[0.08] shadow-[0_8px_24px_rgba(0,0,0,0.24)] flex items-center gap-3"
+              >
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
                   <Icon size={16} style={{ color }} />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 font-semibold">{label}</p>
-                  <p className="text-base font-black text-white">{value}</p>
+                  <p className="text-xs text-slate-300 font-semibold">{label}</p>
+                  <p className="text-base font-black text-white tabular-nums">{value}</p>
                 </div>
               </div>
             ))}
