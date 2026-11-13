@@ -93,7 +93,7 @@ export type TechSupportGuide = {
   id: string;
   title: string;
   symptom: string;
-  category: "Account & Login" | "Crew Mobile Portals" | "Rent & Payments" | "AI & Data Import" | "Domains & Website" | "Billing & Plans";
+  category: "Account & Login" | "Crew Mobile Portals" | "Resident Portal" | "Rent & Payments" | "AI & Data Import" | "Domains & Website" | "Billing & Plans";
   icon: LucideIcon;
   accent: TipAccent;
   solutionSummary: string;
@@ -304,6 +304,17 @@ export const TIPS: Record<TabKey, Tip[]> = {
       highlights: [
         "Filter tenants by building or search by business name, contact, or unit",
         "Click any tenant card to expand full lease details, documents, and payment history",
+      ],
+    },
+    {
+      icon: Smartphone,
+      accent: "blue",
+      audience: "admin",
+      title: "1-Click Resident Portal (Maintenance, Docs & Optional Rent)",
+      body: "Click 'Portal Link' on any Tenant Card to copy or email a private, passwordless Resident Portal link. By default, the portal is limited to Maintenance Requests (with photo uploads & live status) and Lease Documents so tenants never see rent balances unless you want them to.",
+      highlights: [
+        "Default mode: Maintenance tickets + photo uploads + Lease & Docs downloads only",
+        "Optional Full Mode: Turn on Rent Balance, Zelle/Venmo/Check instructions & Receipts anytime in Settings → 1-Click Resident Portal Mode (no online payment processing)",
       ],
     },
     {
@@ -856,6 +867,22 @@ export const TECH_SUPPORT_GUIDES: TechSupportGuide[] = [
     proTip: "You can regenerate or view any technician's 6-digit PIN at any time inside Settings → Team & Access.",
   },
   {
+    id: "resident-portal",
+    title: "1-Click Resident Portal: Maintenance Tickets, Lease Docs & Optional Rent View",
+    symptom: "You want to share a self-serve link with tenants for maintenance requests and lease PDFs, or control whether they can see rent balances.",
+    category: "Resident Portal",
+    icon: Users,
+    accent: "blue",
+    solutionSummary: "Each tenant has a unique, passwordless Resident Portal link in the Tenants Directory. By default it shows Maintenance & Lease Docs only, and can be expanded in Settings.",
+    steps: [
+      "Open the Tenants tab and find the tenant card, then click 'Portal Link' to copy the link or the Send icon to email it directly to the tenant.",
+      "By default, the Resident Portal is set to 'Maintenance & Lease Docs Only': tenants can submit maintenance tickets with photos, check work order status, and download attached lease files.",
+      "To also show Rent & Balance, your off-platform Zelle/Venmo/Check instructions, and printable paid receipts, open Settings → 1-Click Resident Portal Mode and select 'Full Portal'.",
+      "PropOpsIQ does not process online card or ACH payments on your behalf — any rent instructions shown are off-platform only so you keep 100% of your rent with $0 processing fees.",
+    ],
+    proTip: "If a tenant shares their link or moves out, you can rotate/revoke their portal link from the Tenants Directory.",
+  },
+  {
     id: "rent-payments-receipts",
     title: "Logging Cash, Check, Zelle & Venmo Rent + Sending Receipts & Reminders",
     symptom: "You want to log a tenant's rent payment in 1 click, configure your Zelle/Venmo handles, or send an official rent receipt.",
@@ -1018,6 +1045,14 @@ export const BASIC_FAQS: FaqItem[] = [
     question: "Does PropOpsIQ charge payment processing fees, or can tenants pay me directly via Zelle, Venmo, Cash, or Check?",
     answer:
       "PropOpsIQ charges $0 (0%) payment processing fees and never holds your funds. Your tenants pay you directly the way you already prefer — Check, Cash, Zelle, Venmo, Cash App, ACH, or Wire. Click 'Payment Instructions (Zelle / Venmo / Check)' at the top of the Rent Ledger to save your Zelle handle, Venmo @username, Cash App $cashtag, and Check mailing/drop-off address once, and PropOpsIQ will automatically include them whenever you send a 1-tap rent reminder.",
+    relatedTab: "tenants",
+  },
+  {
+    id: "faq-resident-portal",
+    category: "Daily Operations",
+    question: "What can tenants do in the 1-Click Resident Portal, and does it process rent payments?",
+    answer:
+      "No — PropOpsIQ does not process online card/ACH payments. By default, the 1-Click Resident Portal is limited to Maintenance Requests (tenants can submit work orders with photos and track repair status) and Lease Documents (download attached lease PDFs). If you also want tenants to see their Rent Balance, your off-platform Zelle/Venmo/Cash App/Check payment instructions, and printable paid receipts, you can enable 'Full Portal' anytime under Settings → 1-Click Resident Portal Mode.",
     relatedTab: "tenants",
   },
   {

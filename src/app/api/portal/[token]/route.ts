@@ -44,7 +44,7 @@ async function resolveValidPortalTenant(token: string) {
       { headers: HEADERS, cache: "no-store" }
     ),
     fetch(
-      `${SUPABASE_URL}/rest/v1/site_content?org_id=eq.${encodeURIComponent(claims.orgId)}&section=in.(rent_ledger,portal_tokens)&limit=100`,
+      `${SUPABASE_URL}/rest/v1/site_content?org_id=eq.${encodeURIComponent(claims.orgId)}&section=in.(rent_ledger,portal_tokens,resident_portal)&limit=100`,
       { headers: HEADERS, cache: "no-store" }
     ),
   ]);
@@ -78,7 +78,23 @@ async function resolveValidPortalTenant(token: string) {
     }
   }
 
-  return { claims, tenant, org, paymentInstructions };
+  let includeBilling = false;
+  const portalSettingsRow = contentRows.find(
+    (r) => r.section === "resident_portal" && r.key === "settings"
+  );
+  if (portalSettingsRow?.value) {
+    try {
+      const parsed =
+        typeof portalSettingsRow.value === "string"
+          ? JSON.parse(portalSettingsRow.value)
+          : portalSettingsRow.value;
+      includeBilling = Boolean(parsed?.includeBilling);
+    } catch {
+      includeBilling = false;
+    }
+  }
+
+  return { claims, tenant, org, paymentInstructions, includeBilling };
 }
 
 export async function GET(
@@ -100,26 +116,31 @@ export async function GET(
       );
     }
 
-    const { claims, tenant, org, paymentInstructions } = resolved;
+    const { claims, tenant, org, paymentInstructions, includeBilling } = resolved;
     const month = currentMonthYm();
 
-    // Fetch tenant's rent payment rows & maintenance tickets in parallel
+    // Fetch maintenance tickets (and rent payments only when billing is enabled for this org)
     const building = String(tenant.building || "").trim();
     const unit = String(tenant.unit || "").trim();
     const tenantName = String(tenant.name || "").trim();
 
     const [paymentsRes, maintRes] = await Promise.all([
-      fetch(
-        `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${encodeURIComponent(claims.orgId)}&tenant_id=eq.${encodeURIComponent(claims.tenantId)}&order=month.desc&limit=36`,
-        { headers: HEADERS, cache: "no-store" }
-      ),
+      includeBilling
+        ? fetch(
+            `${SUPABASE_URL}/rest/v1/rent_payments?org_id=eq.${encodeURIComponent(claims.orgId)}&tenant_id=eq.${encodeURIComponent(claims.tenantId)}&order=month.desc&limit=36`,
+            { headers: HEADERS, cache: "no-store" }
+          )
+        : Promise.resolve(null),
       fetch(
         `${SUPABASE_URL}/rest/v1/maintenance_tickets?org_id=eq.${encodeURIComponent(claims.orgId)}&order=created_at.desc&limit=100`,
         { headers: HEADERS, cache: "no-store" }
       ),
     ]);
 
-    const rawPayments = paymentsRes.ok ? ((await paymentsRes.json()) as Array<Record<string, unknown>>) : [];
+    const rawPayments =
+      paymentsRes && paymentsRes.ok
+        ? ((await paymentsRes.json()) as Array<Record<string, unknown>>)
+        : [];
     const allMaint = maintRes.ok ? ((await maintRes.json()) as Array<Record<string, unknown>>) : [];
 
     // Filter maintenance tickets strictly belonging to this resident's unit or name
@@ -200,6 +221,9 @@ export async function GET(
 
     return NextResponse.json(
       {
+        features: {
+          includeBilling,
+        },
         organization: {
           name: String(org.brand_name || org.name || "Property Management"),
           logoUrl: (org.brand_logo_url as string) || null,
@@ -218,30 +242,32 @@ export async function GET(
           securityDeposit: Number(tenant.security_deposit) || 0,
           secDepReceived: Boolean(tenant.sec_dep_received),
         },
-        billing: {
-          currentMonth: month,
-          baseRent: currentRow ? Number(currentRow.rent_due) || 0 : Number(tenant.monthly_rent) || 0,
-          feesTotal: currentRow
-            ? (Number(currentRow.nn_fee) || 0) +
-              (Number(currentRow.nnn_fee) || 0) +
-              (Number(currentRow.utility_fee) || 0) +
-              (Number(currentRow.cleaning_fee) || 0) +
-              (Number(currentRow.cam_fee) || 0)
-            : (Number(tenant.utilities_fee) || 0) +
-              (Number(tenant.nnn_fee) || 0) +
-              (Number(tenant.cam_fee) || 0) +
-              (Number(tenant.cleaning_fee) || 0) +
-              (Number(tenant.nn_fee) || 0),
-          lateFee: currentRow ? Number(currentRow.late_fee) || 0 : 0,
-          currentDue,
-          currentPaid,
-          currentRemaining,
-          priorArrears,
-          totalBalanceDue: currentRemaining + priorArrears,
-          paidInFull: currentRemaining + priorArrears <= 0.009,
-          paymentInstructions,
-        },
-        receipts,
+        billing: includeBilling
+          ? {
+              currentMonth: month,
+              baseRent: currentRow ? Number(currentRow.rent_due) || 0 : Number(tenant.monthly_rent) || 0,
+              feesTotal: currentRow
+                ? (Number(currentRow.nn_fee) || 0) +
+                  (Number(currentRow.nnn_fee) || 0) +
+                  (Number(currentRow.utility_fee) || 0) +
+                  (Number(currentRow.cleaning_fee) || 0) +
+                  (Number(currentRow.cam_fee) || 0)
+                : (Number(tenant.utilities_fee) || 0) +
+                  (Number(tenant.nnn_fee) || 0) +
+                  (Number(tenant.cam_fee) || 0) +
+                  (Number(tenant.cleaning_fee) || 0) +
+                  (Number(tenant.nn_fee) || 0),
+              lateFee: currentRow ? Number(currentRow.late_fee) || 0 : 0,
+              currentDue,
+              currentPaid,
+              currentRemaining,
+              priorArrears,
+              totalBalanceDue: currentRemaining + priorArrears,
+              paidInFull: currentRemaining + priorArrears <= 0.009,
+              paymentInstructions,
+            }
+          : null,
+        receipts: includeBilling ? receipts : [],
         documents: parsedDocs.map((d, index) => ({
           index,
           name: d.name,
@@ -402,6 +428,12 @@ export async function POST(
     }
 
     if (action === "payment_notice") {
+      if (!resolved.includeBilling) {
+        return NextResponse.json(
+          { error: "Rent & payment notices are not enabled on this resident portal." },
+          { status: 403 }
+        );
+      }
       const amount = Number(body.amount) || 0;
       const method = String(body.method || "Zelle / Transfer").trim().slice(0, 40);
       const reference = String(body.reference || "").trim().slice(0, 120);

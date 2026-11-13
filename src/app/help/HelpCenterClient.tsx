@@ -1228,6 +1228,7 @@ export default function HelpCenterClient() {
                   "All",
                   "Account & Login",
                   "Crew Mobile Portals",
+                  "Resident Portal",
                   "AI & Data Import",
                   "Domains & Website",
                   "Billing & Plans",

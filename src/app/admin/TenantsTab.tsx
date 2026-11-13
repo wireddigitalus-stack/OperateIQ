@@ -1009,7 +1009,7 @@ function TenantCard({
               disabled={portalBusy !== null}
               onClick={handleCopyPortalLink}
               className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-sky-300 hover:bg-sky-500/20 hover:text-white transition-all cursor-pointer disabled:opacity-50"
-              title="Copy Resident Portal link (view balance, receipts, lease PDFs & submit maintenance with photos)"
+              title="Copy 1-Click Resident Portal link (Maintenance & Lease Docs by default; Rent Balance & Receipts optional in Settings)"
             >
               {portalBusy === "copy" ? (
                 <Loader2 size={11} className="animate-spin" />

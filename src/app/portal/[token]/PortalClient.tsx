@@ -25,6 +25,9 @@ import {
 import { compressImageFile } from "@/lib/image-compression";
 
 interface PortalData {
+  features?: {
+    includeBilling?: boolean;
+  };
   organization: {
     name: string;
     logoUrl: string | null;
@@ -62,7 +65,7 @@ interface PortalData {
       checkAddress?: string;
       customNote?: string;
     };
-  };
+  } | null;
   receipts: Array<{
     id: string;
     month: string;
@@ -117,7 +120,7 @@ export default function PortalClient({ token }: { token: string }) {
   const [data, setData] = useState<PortalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<"rent" | "maintenance" | "receipts" | "lease">("rent");
+  const [tab, setTab] = useState<"rent" | "maintenance" | "receipts" | "lease">("maintenance");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Payment notice state
@@ -336,7 +339,8 @@ export default function PortalClient({ token }: { token: string }) {
   }
 
   const { organization, tenant, billing, receipts, documents, tickets } = data;
-  const inst = billing.paymentInstructions || {};
+  const includeBilling = Boolean(data.features?.includeBilling && billing);
+  const inst = billing?.paymentInstructions || {};
   const hasAnyPaymentInstructions = Boolean(
     inst.zelle || inst.venmo || inst.cashApp || inst.checkPayableTo || inst.checkAddress || inst.customNote
   );
@@ -377,14 +381,18 @@ export default function PortalClient({ token }: { token: string }) {
         {/* Navigation Pills */}
         <div className="max-w-3xl mx-auto px-4 pb-3 flex items-center gap-1.5 overflow-x-auto">
           {[
-            { id: "rent" as const, label: "Rent & Balance", icon: DollarSign },
             {
               id: "maintenance" as const,
               label: `Maintenance${tickets.filter((t) => t.status !== "complete" && t.status !== "cancelled").length ? ` (${tickets.filter((t) => t.status !== "complete" && t.status !== "cancelled").length})` : ""}`,
               icon: Wrench,
             },
-            { id: "receipts" as const, label: `Receipts (${receipts.length})`, icon: Receipt },
             { id: "lease" as const, label: "Lease & Docs", icon: FileText },
+            ...(includeBilling
+              ? [
+                  { id: "rent" as const, label: "Rent & Balance", icon: DollarSign },
+                  { id: "receipts" as const, label: `Receipts (${receipts.length})`, icon: Receipt },
+                ]
+              : []),
           ].map(({ id, label, icon: Icon }) => {
             const active = tab === id;
             return (
@@ -408,7 +416,7 @@ export default function PortalClient({ token }: { token: string }) {
 
       <main className="max-w-3xl mx-auto px-4 pt-6 space-y-6">
         {/* ═══ TAB 1: RENT & BALANCE ═══ */}
-        {tab === "rent" && (
+        {tab === "rent" && includeBilling && billing && (
           <div className="space-y-5">
             {/* Balance Card */}
             <div className="rounded-3xl border border-white/12 bg-gradient-to-br from-[#0E1628] to-[#0A0F1C] p-6 shadow-xl">
@@ -804,7 +812,7 @@ export default function PortalClient({ token }: { token: string }) {
         )}
 
         {/* ═══ TAB 3: PAID RECEIPTS ═══ */}
-        {tab === "receipts" && (
+        {tab === "receipts" && includeBilling && (
           <div className="rounded-3xl border border-white/10 bg-[#0D1322] p-6 space-y-4">
             <h2 className="text-sm font-black text-white flex items-center gap-2">
               <Receipt size={16} className="text-emerald-400" />

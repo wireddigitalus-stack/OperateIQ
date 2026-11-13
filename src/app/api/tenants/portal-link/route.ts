@@ -138,6 +138,29 @@ export async function POST(req: NextRequest) {
       const unitLabel = `${tenant.building || ""}${tenant.unit ? ` · Unit ${tenant.unit}` : ""}`.trim();
       const firstName = String(tenant.contact_name || tenant.name || "Resident").split(" ")[0];
 
+      // Check whether this org has expanded the Resident Portal to include rent balance & receipts
+      let includeBilling = false;
+      try {
+        const settingsRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/site_content?org_id=eq.${encodeURIComponent(orgId)}&section=eq.resident_portal&key=eq.settings&select=value&limit=1`,
+          { headers: HEADERS, cache: "no-store" }
+        );
+        if (settingsRes.ok) {
+          const sRows = (await settingsRes.json()) as Array<{ value?: string }>;
+          if (sRows[0]?.value) {
+            const parsedSettings =
+              typeof sRows[0].value === "string" ? JSON.parse(sRows[0].value) : sRows[0].value;
+            includeBilling = Boolean(parsedSettings?.includeBilling);
+          }
+        }
+      } catch {
+        includeBilling = false;
+      }
+
+      const portalCapabilitiesText = includeBilling
+        ? "submit maintenance requests with photos, download lease documents and paid rent receipts, and view your rent balance &amp; payment instructions"
+        : "submit maintenance requests with photos, track work order status, and download your lease documents";
+
       const sent = await sendEmail({
         to: toEmail,
         subject: `Your Resident Portal Link — ${orgName}`,
@@ -145,7 +168,7 @@ export async function POST(req: NextRequest) {
           <div style="font-size:18px;font-weight:900;color:#38bdf8;margin-bottom:16px">${escapeHtml(orgName)}</div>
           <h2 style="margin:0 0 10px;font-size:20px;color:#ffffff">Welcome to Your Resident Portal</h2>
           <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#cbd5e1">
-            Hi ${escapeHtml(firstName)}, bookmark this personal link for <strong>${escapeHtml(unitLabel || "your unit")}</strong> to view your rent balance &amp; payment instructions, download paid rent receipts and lease documents, or submit maintenance requests with photos — no password required.
+            Hi ${escapeHtml(firstName)}, bookmark this personal link for <strong>${escapeHtml(unitLabel || "your unit")}</strong> to ${portalCapabilitiesText} — no password required.
           </p>
           <div style="margin:24px 0">
             <a href="${escapeHtml(url)}" style="display:inline-block;padding:13px 24px;background:linear-gradient(135deg,#0284c7,#4f46e5);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:800;font-size:14px">Open My Resident Portal →</a>

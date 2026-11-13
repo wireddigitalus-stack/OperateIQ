@@ -2411,6 +2411,142 @@ function DataExportSection({ leads }: { leads: Lead[] }) {
   );
 }
 
+function ResidentPortalSettingsCard() {
+  const [includeBilling, setIncludeBilling] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/site-content")
+      .then((r) => r.json())
+      .then((data) => {
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const match = items.find(
+          (it: { section: string; key: string; value: string }) =>
+            it.section === "resident_portal" && it.key === "settings"
+        );
+        if (match?.value) {
+          const parsed = typeof match.value === "string" ? JSON.parse(match.value) : match.value;
+          setIncludeBilling(Boolean(parsed?.includeBilling));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSelectMode = async (nextIncludeBilling: boolean) => {
+    if (saving || nextIncludeBilling === includeBilling) return;
+    const prev = includeBilling;
+    setIncludeBilling(nextIncludeBilling);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/site-content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "resident_portal",
+          key: "settings",
+          value: JSON.stringify({ includeBilling: nextIncludeBilling }),
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      showToast(
+        nextIncludeBilling
+          ? "Resident Portal expanded to include Rent Balance, Payment Instructions & Receipts."
+          : "Resident Portal set to Maintenance & Lease Docs Only (default).",
+        "success"
+      );
+    } catch {
+      setIncludeBilling(prev);
+      showToast("Could not update Resident Portal mode.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-[rgba(17,24,39,0.7)] border border-[rgba(255,255,255,0.07)] rounded-xl p-5">
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Wrench size={15} className="text-sky-400" />
+            <h2 className="text-sm font-black text-white uppercase tracking-widest">
+              1-Click Resident Portal Mode
+            </h2>
+          </div>
+          <p className="text-xs text-gray-400 leading-relaxed max-w-2xl">
+            Choose what tenants see when they open their personal Resident Portal link from the Tenants tab.
+            PropOpsIQ does not process online card/ACH payments directly — any rent instructions shown are off-platform only (Zelle, Venmo, Cash App, or Check).
+          </p>
+        </div>
+        {saving && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-300">
+            <Loader2 size={12} className="animate-spin" /> Saving…
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-4 text-xs text-gray-500">
+          <Loader2 size={14} className="animate-spin text-sky-400" /> Loading Resident Portal settings…
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => handleSelectMode(false)}
+            className={`text-left p-4 rounded-xl border transition-all ${
+              !includeBilling
+                ? "bg-sky-500/12 border-sky-400/50 shadow-[0_0_20px_rgba(56,189,248,0.12)]"
+                : "bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.07)] hover:border-white/20"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <span className="text-xs font-black text-white">
+                Maintenance &amp; Lease Docs Only
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                {!includeBilling ? "Active · Default" : "Default"}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Tenants can submit maintenance tickets with photos, track repair status, and download lease PDFs. Rent balances, payment instructions, and receipts stay hidden.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => handleSelectMode(true)}
+            className={`text-left p-4 rounded-xl border transition-all ${
+              includeBilling
+                ? "bg-emerald-500/12 border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.12)]"
+                : "bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.07)] hover:border-white/20"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <span className="text-xs font-black text-white">
+                Full Portal (Include Rent Balance &amp; Receipts)
+              </span>
+              {includeBilling && (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                  Active
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Adds Rent &amp; Balance, your off-platform Zelle/Venmo/Cash App/Check instructions, &ldquo;I Sent Payment&rdquo; notices, and printable paid receipts alongside Maintenance &amp; Lease Docs.
+            </p>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Danger Zone (Collapsible) ────────────────────────────────────────────────
 
 function DangerZoneSection({
@@ -2705,6 +2841,12 @@ function SettingsPanel({
           </div>
         )}
       </div>
+
+      {/* ─ Divider */}
+      <div className="border-t border-[rgba(255,255,255,0.05)]" />
+
+      {/* ── 1-Click Resident Portal Mode ── */}
+      <ResidentPortalSettingsCard />
 
       {/* ─ Divider */}
       <div className="border-t border-[rgba(255,255,255,0.05)]" />
