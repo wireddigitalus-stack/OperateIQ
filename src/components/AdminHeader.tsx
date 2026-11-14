@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle, LifeBuoy, Copy, Check, Clock } from "lucide-react";
+import { Building2, LayoutDashboard, Globe, ExternalLink, HelpCircle, LifeBuoy, Copy, Check, Clock, ShieldCheck } from "lucide-react";
 import { getCustomerCode, getTrialCountdown } from "@/lib/platform";
 
 interface OrgOption {
@@ -25,6 +25,7 @@ interface OrgOption {
 export default function AdminHeader() {
   const router = useRouter();
   const [activeOrg, setActiveOrg] = useState<OrgOption | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
 
   const customerCode = activeOrg ? getCustomerCode(activeOrg.id, activeOrg.customer_code) : null;
@@ -43,6 +44,7 @@ export default function AdminHeader() {
       fetch("/api/platform/session", { cache: "no-store" })
         .then((res) => res.json())
         .then((data) => {
+          setIsSuperAdmin(Boolean(data.isSuperAdmin));
           if (data.impersonatingOrg) setActiveOrg(data.impersonatingOrg);
           else if (data.activeOrg) setActiveOrg(data.activeOrg);
         })
@@ -136,6 +138,18 @@ export default function AdminHeader() {
             </a>
           );
         })()}
+
+        {isSuperAdmin && (
+          <Link
+            href="/platform"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/15 border border-emerald-400/35 text-emerald-200 hover:bg-emerald-500/25 hover:text-white transition-all"
+            title="Open Master Admin Console (/platform)"
+          >
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span className="hidden sm:inline">Master Admin</span>
+            <span className="sm:hidden">Platform</span>
+          </Link>
+        )}
 
         <button
           onClick={() => window.dispatchEvent(new CustomEvent("open-help-center"))}
