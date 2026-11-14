@@ -10,7 +10,7 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export interface ActivityPayload {
   actor_email:   string;   // who did it  e.g. "admin@example.com"
   actor_name:    string;   // display name e.g. "Robert"
-  action:        "created" | "updated" | "deleted" | "submitted" | "exported";
+  action:        "created" | "updated" | "deleted" | "submitted" | "exported" | "admin_blocked";
   resource_type: "tenant" | "lead" | "maintenance" | "cleaning" | "rent_ledger" | "organization" | "property" | "expense";
   resource_name: string;   // human label  e.g. "Tin Roof Kitchen"
   resource_id:   string;   // record id

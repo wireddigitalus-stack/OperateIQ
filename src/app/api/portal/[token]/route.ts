@@ -4,6 +4,7 @@ import { checkRateLimit, clientIp as getClientIp } from "@/lib/rateLimit";
 import { writeActivityLog } from "@/lib/activity-log";
 import { sendEmail, escapeHtml, platformUrl } from "@/lib/email";
 import { apiErrorResponse, safeJsonBody } from "@/lib/pagination";
+import { scanTextForPhishingAndMaliciousLinks, maskIp } from "@/lib/security-shield";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -336,6 +337,24 @@ export async function POST(
       if (!title || description.length < 5) {
         return NextResponse.json(
           { error: "Please provide a brief issue title and description." },
+          { status: 400 }
+        );
+      }
+
+      const shieldScan = scanTextForPhishingAndMaliciousLinks(`${title}\n${description}`);
+      if (shieldScan.isHighRisk) {
+        await writeActivityLog({
+          org_id: claims.orgId,
+          actor_email: `portal@${maskIp(ip)}`,
+          actor_name: tenantName || "Resident Portal",
+          action: "admin_blocked",
+          resource_type: "maintenance",
+          resource_name: "OpsIQ Shield Portal Filter",
+          resource_id: "portal-shield",
+          metadata: { reason: "High-risk link/script blocked in resident maintenance ticket", flags: shieldScan.flags, ip: maskIp(ip) },
+        }).catch(() => {});
+        return NextResponse.json(
+          { error: "Submission blocked by OpsIQ Shield: suspicious link or script payload detected." },
           { status: 400 }
         );
       }

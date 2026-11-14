@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkAiQuota } from "@/lib/rateLimit";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { requireOrgAdmin } from "@/lib/server-auth";
+import { requireOrgAdmin, requirePlatformStaff } from "@/lib/server-auth";
 import { scanTextForPhishingAndMaliciousLinks } from "@/lib/security-shield";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
@@ -51,10 +51,60 @@ Analyze the user-supplied message/email/URL and respond ONLY with a valid JSON o
 }
 `;
 
+function deterministicAuditFallback(rawLogs: Array<Record<string, unknown>>) {
+  const blocked = rawLogs.filter(
+    (l) => l?.action === "admin_blocked" || l?.status === "blocked"
+  );
+  const simulated = blocked.filter(
+    (l) =>
+      (l?.metadata as Record<string, unknown> | undefined)?.simulated === true ||
+      String(l?.reason || "").toLowerCase().includes("simulated")
+  );
+  const anomalies: string[] = [];
+  if (simulated.length > 0) anomalies.push(`Simulated Threat Drill (${simulated.length})`);
+  const realBlocked = blocked.length - simulated.length;
+  if (realBlocked > 0) anomalies.push(`Blocked Access / Probe Events (${realBlocked})`);
+
+  const penalty = Math.min(48, blocked.length * 14);
+  const securityScore = Math.max(40, 98 - penalty);
+  const threatLevel: "safe" | "warning" | "threat" =
+    blocked.length >= 2 || simulated.length > 0
+      ? "threat"
+      : blocked.length === 1
+      ? "warning"
+      : "safe";
+
+  const summary =
+    blocked.length > 0
+      ? `OpsIQ Shield deterministic analyzer flagged ${blocked.length} blocked security event(s)${
+          simulated.length > 0 ? " (including a simulated attack drill)" : ""
+        }. Review the flagged actors and keep Crew PINs & MFA active.`
+      : `OpsIQ Shield deterministic analyzer reviewed ${rawLogs.length} authentication event(s). All logins appear normal with zero blocked attempts.`;
+
+  return {
+    securityScore,
+    threatLevel,
+    summary,
+    anomalies,
+    recommendations: [
+      "Keep 6-digit Crew PINs unique and rotate them when staff changes.",
+      "Use the OpsIQ Phishing Inspector below before clicking external vendor or tenant payment links.",
+    ],
+  };
+}
+
 export async function POST(req: NextRequest) {
+  let quotaKey = "platform";
+  let trialing = false;
   const g = await requireOrgAdmin(req);
-  if (!g.ok) return g.res;
-  if (!(await checkAiQuota(g.ctx.orgId, { trialing: g.ctx.org.subscription_status === "trialing" }))) {
+  if (g.ok) {
+    quotaKey = g.ctx.orgId;
+    trialing = g.ctx.org.subscription_status === "trialing";
+  } else {
+    const ps = await requirePlatformStaff(req);
+    if (!ps.ok) return g.res;
+  }
+  if (!(await checkAiQuota(quotaKey, { trialing }))) {
     return NextResponse.json({ error: "Your workspace has reached today's AI usage limit. It resets tomorrow." }, { status: 429 });
   }
 
@@ -155,50 +205,49 @@ export async function POST(req: NextRequest) {
     }
     const logs = rawLogs.slice(0, 200);
 
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      systemInstruction: SYSTEM_PROMPT,
-    });
+    if (!GEMINI_API_KEY) {
+      return NextResponse.json(deterministicAuditFallback(logs));
+    }
 
-    const prompt = `Analyze these security logs:\n${JSON.stringify(logs, null, 2)}`;
+    try {
+      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: SYSTEM_PROMPT,
+      });
 
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.2,
-      },
-    });
+      const prompt = `Analyze these security logs:\n${JSON.stringify(logs, null, 2)}`;
 
-    const text = result.response.text().trim();
-    const cleanText = text.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
-    const data = JSON.parse(cleanText);
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        },
+      });
 
-    return NextResponse.json({
-      securityScore: data.securityScore ?? 98,
-      threatLevel: data.threatLevel ?? "safe",
-      summary: data.summary ?? "OpsIQ Shield AI is active and monitoring all authentication and phishing channels.",
-      anomalies: Array.isArray(data.anomalies) ? data.anomalies : [],
-      recommendations: Array.isArray(data.recommendations)
-        ? data.recommendations
-        : [
-            "Keep 6-digit Crew PINs unique and rotate them when staff changes.",
-            "Use the OpsIQ Phishing Inspector below before clicking external vendor or tenant payment links.",
-          ],
-    });
+      const text = result.response.text().trim();
+      const cleanText = text.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+      const data = JSON.parse(cleanText);
+
+      return NextResponse.json({
+        securityScore: data.securityScore ?? 98,
+        threatLevel: data.threatLevel ?? "safe",
+        summary: data.summary ?? "OpsIQ Shield AI is active and monitoring all authentication and phishing channels.",
+        anomalies: Array.isArray(data.anomalies) ? data.anomalies : [],
+        recommendations: Array.isArray(data.recommendations)
+          ? data.recommendations
+          : [
+              "Keep 6-digit Crew PINs unique and rotate them when staff changes.",
+              "Use the OpsIQ Phishing Inspector below before clicking external vendor or tenant payment links.",
+            ],
+      });
+    } catch (aiErr) {
+      console.error("AI Security Audit error (using deterministic fallback):", aiErr);
+      return NextResponse.json(deterministicAuditFallback(logs));
+    }
   } catch (error) {
-    console.error("AI Security Audit error:", error);
-    return NextResponse.json({
-      securityScore: 98,
-      threatLevel: "safe",
-      summary:
-        "OpsIQ Shield AI is active. Analyzed recent authentication, crew PIN, and phishing defense logs. No critical anomalies detected.",
-      anomalies: [],
-      recommendations: [
-        "Keep 6-digit Crew PINs unique and non-sequential.",
-        "Scan any unexpected vendor ACH/wire change emails with the OpsIQ Phishing Inspector.",
-      ],
-    });
+    console.error("Security Audit request error:", error);
+    return NextResponse.json(deterministicAuditFallback([]));
   }
 }

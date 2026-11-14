@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireSuperAdmin, getRequestContext } from "@/lib/server-auth";
+import { requirePlatformStaff, requireSuperAdmin, getRequestContext } from "@/lib/server-auth";
 import { getCustomerCode, DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform";
 import { platformOrgId } from "@/lib/platform-org";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
+import { scanTextForPhishingAndMaliciousLinks, maskIp } from "@/lib/security-shield";
 import { sendEmail, escapeHtml } from "@/lib/email";
 
 export interface SupportTicketItem {
@@ -100,7 +101,7 @@ function parseTicketRow(
  * Super-Admin endpoint: returns all support tickets submitted via /help or /contact
  */
 export async function GET(req: NextRequest) {
-  const sa = await requireSuperAdmin(req);
+  const sa = await requirePlatformStaff(req);
   if (!sa.ok) return sa.res;
 
   try {
@@ -198,6 +199,25 @@ export async function POST(req: NextRequest) {
     if (!name || !email || !message) {
       return NextResponse.json(
         { error: "Name, email, and issue description are required." },
+        { status: 400 }
+      );
+    }
+
+    const shieldScan = scanTextForPhishingAndMaliciousLinks(`${category}\n${message}`);
+    if (shieldScan.isHighRisk) {
+      const ip = clientIp(req);
+      if (supabaseAdmin) {
+        await supabaseAdmin.from("activity_log").insert({
+          actor_email: email || `visitor@${maskIp(ip)}`,
+          actor_name: name || "Support Visitor",
+          action: "admin_blocked",
+          resource_type: "support",
+          resource_name: "OpsIQ Shield Support Filter",
+          metadata: { reason: "High-risk link/script blocked in support ticket", flags: shieldScan.flags, ip: maskIp(ip) },
+        }).then(() => {}, () => {});
+      }
+      return NextResponse.json(
+        { error: "Message blocked by OpsIQ Shield: suspicious link or script payload detected." },
         { status: 400 }
       );
     }
@@ -331,7 +351,7 @@ export async function POST(req: NextRequest) {
  * Super-Admin endpoint: toggle ticket status (Open / Resolved)
  */
 export async function PATCH(req: NextRequest) {
-  const sa = await requireSuperAdmin(req);
+  const sa = await requirePlatformStaff(req);
   if (!sa.ok) return sa.res;
 
   try {
