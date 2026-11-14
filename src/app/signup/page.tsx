@@ -51,11 +51,45 @@ function SignupForm() {
   const [errorMsg, setErrorMsg] = useState("");
   const [created, setCreated] = useState<{ slug: string; signedIn: boolean } | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [couponInfo, setCouponInfo] = useState<{
+    valid: boolean;
+    code?: string;
+    plan?: "starter" | "growth" | "pro";
+    trialDays?: number;
+    error?: string;
+  } | null>(null);
 
-  const validBetaCode = resolveBetaInviteCode(betaCode);
-  const effectiveTrialDays = validBetaCode ? BETA_TRIAL_DAYS : TRIAL_DAYS;
-  const activePlan = validBetaCode
-    ? PLANS.find((p) => p.id === "pro") || PLANS[2]
+  const staticBetaCode = resolveBetaInviteCode(betaCode);
+
+  useEffect(() => {
+    const clean = betaCode.trim().toUpperCase();
+    if (!clean) {
+      setCouponInfo(null);
+      return;
+    }
+    if (staticBetaCode) {
+      setCouponInfo({ valid: true, code: staticBetaCode, plan: "pro", trialDays: BETA_TRIAL_DAYS });
+      return;
+    }
+    const timer = setTimeout(() => {
+      fetch(`/api/coupons/validate?code=${encodeURIComponent(clean)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.valid) {
+            setCouponInfo({ valid: true, code: d.code, plan: d.plan, trialDays: d.trialDays });
+          } else {
+            setCouponInfo({ valid: false, error: d?.error || "Invalid code" });
+          }
+        })
+        .catch(() => setCouponInfo(null));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [betaCode, staticBetaCode]);
+
+  const validBetaCode = couponInfo?.valid ? (couponInfo.code || betaCode.trim().toUpperCase()) : null;
+  const effectiveTrialDays = couponInfo?.valid && couponInfo.trialDays ? couponInfo.trialDays : TRIAL_DAYS;
+  const activePlan = couponInfo?.valid && couponInfo.plan
+    ? PLANS.find((p) => p.id === couponInfo.plan) || PLANS[2]
     : PLANS.find((p) => p.id === selectedPlan) || PLANS[1];
 
   useEffect(() => {
@@ -120,7 +154,7 @@ function SignupForm() {
           company: companyName.trim(),
           phone: phone.trim(),
           plan: activePlan.id,
-          betaCode: validBetaCode || undefined,
+          betaCode: betaCode.trim().toUpperCase() || undefined,
           unitCount,
           portfolioType,
           agreedToTerms,
@@ -508,7 +542,12 @@ function SignupForm() {
                 </label>
                 {validBetaCode && (
                   <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-400/35 px-2 py-0.5 rounded-full">
-                    🎉 {BETA_TRIAL_DAYS}-Day Pro Beta Unlocked
+                    🎉 {effectiveTrialDays}-Day {activePlan.name} Unlocked
+                  </span>
+                )}
+                {!validBetaCode && betaCode.trim().length >= 3 && couponInfo?.valid === false && (
+                  <span className="text-[10px] font-bold text-rose-300">
+                    {couponInfo.error || "Invalid or expired code"}
                   </span>
                 )}
               </div>

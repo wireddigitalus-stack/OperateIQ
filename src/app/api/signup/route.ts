@@ -4,7 +4,8 @@ import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, getCustomerCode, isSuperAdmin } 
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getAuthUser } from "@/lib/server-auth";
 import { createEmailVerifyToken, escapeHtml, platformUrl, sendEmail, welcomeWorkspaceEmailHtml } from "@/lib/email";
-import { BETA_TRIAL_DAYS, TRIAL_DAYS, resolveBetaInviteCode } from "@/lib/plans";
+import { TRIAL_DAYS } from "@/lib/plans";
+import { recordCouponRedemption, validateAndResolveCoupon, type ResolvedCoupon } from "@/lib/coupons";
 
 /** Turnstile is enforced only when BOTH keys are configured (otherwise the widget isn't rendered). */
 async function turnstileOk(token: unknown, ip: string): Promise<boolean> {
@@ -60,9 +61,21 @@ export async function POST(req: NextRequest) {
     const cleanPhone = sanitize(body.phone);
     const password = typeof body.password === "string" ? body.password.trim() : "";
     const cleanPlan = (["starter", "growth", "pro"].includes(body.plan) ? body.plan : "starter") as "starter" | "growth" | "pro";
-    const validBetaCode = resolveBetaInviteCode(body.betaCode);
-    const effectivePlan: "starter" | "growth" | "pro" = validBetaCode ? "pro" : cleanPlan;
-    const trialDays = validBetaCode ? BETA_TRIAL_DAYS : TRIAL_DAYS;
+    const rawCode = sanitize(body.betaCode);
+    let resolvedCoupon: ResolvedCoupon | null = null;
+    if (rawCode) {
+      const couponCheck = await validateAndResolveCoupon(rawCode);
+      if (!couponCheck.valid || !couponCheck.coupon) {
+        return NextResponse.json(
+          { error: couponCheck.error || "That invite or coupon code is invalid, expired, or maxed out." },
+          { status: 400 }
+        );
+      }
+      resolvedCoupon = couponCheck.coupon;
+    }
+    const effectivePlan: "starter" | "growth" | "pro" = resolvedCoupon ? resolvedCoupon.plan : cleanPlan;
+    const trialDays = resolvedCoupon ? resolvedCoupon.trialDays : TRIAL_DAYS;
+    const validBetaCode = resolvedCoupon?.code || null;
     const cleanUnitCount = sanitize(body.unitCount) || "11 - 50 Units";
     const cleanPortfolioType = sanitize(body.portfolioType) || "Commercial & Residential";
 
@@ -216,6 +229,9 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin.auth.admin.deleteUser(createdNewAuthUserId).catch(() => {});
       }
       return NextResponse.json({ error: "Could not create workspace. Please try again." }, { status: 500 });
+    }
+    if (resolvedCoupon?.source === "dynamic") {
+      await recordCouponRedemption(resolvedCoupon.code, ownerEmail).catch(() => {});
     }
     const targetUserId = authedUser?.id || createdNewAuthUserId;
     if (targetUserId) {

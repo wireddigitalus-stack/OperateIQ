@@ -28,7 +28,9 @@ import {
   Wrench,
   HelpCircle,
   Trash2,
+  Ticket,
 } from "lucide-react";
+import PlatformCouponsPanel from "@/components/platform/PlatformCouponsPanel";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { isSuperAdmin, getCustomerCode, getTrialCountdown } from "@/lib/platform";
 import { PLANS, type Tier } from "@/lib/plans";
@@ -92,7 +94,7 @@ export default function PlatformDashboardPage() {
   const [authChecking, setAuthChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"organizations" | "signups" | "support" | "security">("organizations");
+  const [activeTab, setActiveTab] = useState<"organizations" | "signups" | "support" | "security" | "coupons">("organizations");
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [signups, setSignups] = useState<PlatformSignup[]>([]);
   const [securityLogs, setSecurityLogs] = useState<PlatformSecurityLog[]>([]);
@@ -786,10 +788,22 @@ export default function PlatformDashboardPage() {
               );
             })()}
           </button>
+
+          <button
+            onClick={() => setActiveTab("coupons")}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === "coupons"
+                ? "bg-sky-500/20 text-white shadow-sm border border-sky-400/45"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Ticket size={16} className={activeTab === "coupons" ? "text-sky-400" : ""} />
+            <span>Coupons &amp; Invites</span>
+          </button>
         </div>
 
         {/* Search & Filters */}
-        {activeTab !== "security" && (
+        {activeTab !== "security" && activeTab !== "coupons" && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
             <div className="relative w-full sm:w-96">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -823,7 +837,9 @@ export default function PlatformDashboardPage() {
         )}
 
         {/* Tables Section */}
-        {activeTab === "security" ? (
+        {activeTab === "coupons" ? (
+          <PlatformCouponsPanel />
+        ) : activeTab === "security" ? (
           <div className="space-y-6">
             {/* 1. Global Security Score & OpsIQ Shield AI Command Center */}
             {(() => {
