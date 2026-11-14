@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { IMPERSONATE_COOKIE, isSuperAdmin, getCustomerCode } from "@/lib/platform";
+import { resolvePlatformAccess } from "@/lib/platform-team";
 import { getAuthUser, getRequestContext } from "@/lib/server-auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -51,8 +52,12 @@ export async function GET(req: NextRequest) {
         }
       : null;
 
-    // Clean up a stale impersonation cookie for non-super-admins.
-    if (!ctx?.isSuperAdmin) {
+    const platformAccess = user.emailVerified
+      ? await resolvePlatformAccess(user.email)
+      : { role: null, canImpersonate: false };
+
+    // Clean up a stale impersonation cookie for users without impersonate access.
+    if (!ctx?.isSuperAdmin && !platformAccess.canImpersonate) {
       try {
         const store = await cookies();
         if (store.get(IMPERSONATE_COOKIE)) store.delete(IMPERSONATE_COOKIE);
@@ -63,6 +68,8 @@ export async function GET(req: NextRequest) {
       authenticated: true,
       user: { email: user.email, name: user.name, emailVerified: user.emailVerified },
       isSuperAdmin: !!ctx?.isSuperAdmin || (user.emailVerified && isSuperAdmin(user.email)),
+      platformRole: platformAccess.role,
+      canImpersonate: platformAccess.canImpersonate,
       role: ctx?.role || null,
       activeOrg,
       impersonatingOrg: ctx?.impersonating ? activeOrg : null,

@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ACTIVE_ORG_COOKIE, IMPERSONATE_COOKIE, DEFAULT_PLATFORM_ORG_ID, isSuperAdmin, getCustomerCode } from "@/lib/platform";
+import { resolvePlatformAccess, type PlatformRole } from "@/lib/platform-team";
 import { readStaffSession, type StaffSession } from "@/lib/staff-session";
 import { hasFeature, isSubscriptionActive, FEATURE_LABELS, type Feature } from "@/lib/plans";
 
@@ -259,6 +260,30 @@ export async function getRequestContext(
       }
     }
 
+    // Limited Tech Support impersonation mode (only when explicitly enabled for that rep)
+    if (!superAdmin && user.emailVerified) {
+      const imp = await readCookie(IMPERSONATE_COOKIE);
+      if (imp) {
+        const access = await resolvePlatformAccess(user.email);
+        if (access.role === "tech_support" && access.canImpersonate) {
+          const org = await loadOrg(imp);
+          if (org) {
+            return {
+              kind: "user",
+              user,
+              staff: null,
+              orgId: org.id,
+              org,
+              role: "platform",
+              isSuperAdmin: true,
+              impersonating: true,
+              memberships: [{ org_id: org.id, role: "owner" }],
+            };
+          }
+        }
+      }
+    }
+
     if (!memberships.length) return null;
     const preferred = await readCookie(ACTIVE_ORG_COOKIE);
     const chosen = memberships.find((m) => m.org_id === preferred) || memberships[0];
@@ -364,6 +389,41 @@ export async function requireSuperAdmin(req: NextRequest): Promise<Guarded<Authe
   if (!user) return { ok: false, res: unauthorized() };
   if (!user.emailVerified || !isSuperAdmin(user.email)) return { ok: false, res: forbidden("Platform administrator access required.") };
   return { ok: true, ctx: user };
+}
+
+export type PlatformStaffUser = AuthedUser & {
+  platformRole: PlatformRole;
+  canImpersonate: boolean;
+};
+
+/**
+ * Require either a full Super-Admin OR an active Tech Support member.
+ * Tech Support has limited read/support permissions (no org deletion, billing changes, coupons, or team edits).
+ */
+export async function requirePlatformStaff(
+  req: NextRequest,
+  opts: { requireImpersonate?: boolean } = {}
+): Promise<Guarded<PlatformStaffUser>> {
+  const user = await getAuthUser(req);
+  if (!user) return { ok: false, res: unauthorized() };
+  if (!user.emailVerified) return { ok: false, res: forbidden("Verified email required.") };
+
+  const access = await resolvePlatformAccess(user.email);
+  if (!access.role) {
+    return { ok: false, res: forbidden("Platform or Tech Support access required.") };
+  }
+  if (opts.requireImpersonate && !access.canImpersonate) {
+    return { ok: false, res: forbidden("Support impersonation is disabled for your account.") };
+  }
+
+  return {
+    ok: true,
+    ctx: {
+      ...user,
+      platformRole: access.role,
+      canImpersonate: access.canImpersonate,
+    },
+  };
 }
 
 /** Strip any client-supplied tenancy fields and stamp the trusted org_id. */

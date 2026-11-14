@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { IMPERSONATE_COOKIE, DEFAULT_PLATFORM_ORG_ID } from "@/lib/platform";
-import { requireSuperAdmin } from "@/lib/server-auth";
+import { requirePlatformStaff } from "@/lib/server-auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
-// Platform super-admin "support mode": view a tenant workspace as that org.
-// Only verified super-admins can set it, and server-auth only honours the
-// cookie for verified super-admins, so a forged cookie grants nothing.
+// Platform super-admin or authorized Tech Support "support mode": view a tenant workspace as that org.
 export async function POST(req: NextRequest) {
-  const sa = await requireSuperAdmin(req);
+  const sa = await requirePlatformStaff(req, { requireImpersonate: true });
   if (!sa.ok) return sa.res;
   try {
     const { orgId } = await req.json();

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireOrgAdmin, requireSuperAdmin } from "@/lib/server-auth";
+import { requireOrgAdmin, requirePlatformStaff, requireSuperAdmin } from "@/lib/server-auth";
 import { getCustomerCode } from "@/lib/platform";
 
 // Fields safe to expose for public site rendering (slug / domain lookups).
@@ -37,9 +37,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ organization: org || null });
     }
 
-    // Lookup by id: platform super-admins or org admins of that org.
+    // Lookup by id: platform staff or org admins of that org.
     if (id) {
-      const sa = await requireSuperAdmin(req);
+      const sa = await requirePlatformStaff(req);
       if (!sa.ok) {
         const g = await requireOrgAdmin(req);
         if (!g.ok) return g.res;

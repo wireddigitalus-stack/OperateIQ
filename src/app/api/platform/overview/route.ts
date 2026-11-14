@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireSuperAdmin } from "@/lib/server-auth";
+import { requirePlatformStaff } from "@/lib/server-auth";
 import { getCustomerCode } from "@/lib/platform";
 
 export async function GET(req: NextRequest) {
-  const sa = await requireSuperAdmin(req);
+  const sa = await requirePlatformStaff(req);
   if (!sa.ok) return sa.res;
   try {
     if (!supabaseAdmin) {

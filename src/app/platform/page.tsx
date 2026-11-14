@@ -31,6 +31,7 @@ import {
   Ticket,
 } from "lucide-react";
 import PlatformCouponsPanel from "@/components/platform/PlatformCouponsPanel";
+import PlatformTeamPanel from "@/components/platform/PlatformTeamPanel";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { isSuperAdmin, getCustomerCode, getTrialCountdown } from "@/lib/platform";
 import { PLANS, type Tier } from "@/lib/plans";
@@ -94,7 +95,9 @@ export default function PlatformDashboardPage() {
   const [authChecking, setAuthChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"organizations" | "signups" | "support" | "security" | "coupons">("organizations");
+  const [activeTab, setActiveTab] = useState<"organizations" | "signups" | "support" | "security" | "coupons" | "team">("organizations");
+  const [platformRole, setPlatformRole] = useState<"super_admin" | "tech_support" | null>(null);
+  const [canImpersonate, setCanImpersonate] = useState(false);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [signups, setSignups] = useState<PlatformSignup[]>([]);
   const [securityLogs, setSecurityLogs] = useState<PlatformSecurityLog[]>([]);
@@ -253,22 +256,34 @@ export default function PlatformDashboardPage() {
       localStorage.removeItem("oiq_demo_auth");
     }
 
-    supabaseBrowser.auth.getUser().then(({ data }) => {
-      const email = data.user?.email || null;
-      setCurrentUserEmail(email);
-      if (email && isSuperAdmin(email)) {
-        setAuthorized(true);
-      } else if (email) {
-        // Strictly forbid authenticated tenants from viewing /platform
-        router.replace("/admin");
-        return;
-      }
-      setAuthChecking(false);
-    }).catch(() => {
-      setCurrentUserEmail(null);
-      setAuthorized(false);
-      setAuthChecking(false);
-    });
+    Promise.all([
+      supabaseBrowser.auth.getUser(),
+      fetch("/api/platform/session", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
+    ])
+      .then(([{ data }, sessionData]) => {
+        const email = data.user?.email || null;
+        setCurrentUserEmail(email);
+        const role = sessionData?.platformRole as "super_admin" | "tech_support" | null | undefined;
+        if (role === "super_admin" || role === "tech_support") {
+          setPlatformRole(role);
+          setCanImpersonate(Boolean(sessionData?.canImpersonate ?? (role === "super_admin")));
+          setAuthorized(true);
+        } else if (email && isSuperAdmin(email)) {
+          setPlatformRole("super_admin");
+          setCanImpersonate(true);
+          setAuthorized(true);
+        } else if (email) {
+          // Strictly forbid authenticated tenants from viewing /platform
+          router.replace("/admin");
+          return;
+        }
+        setAuthChecking(false);
+      })
+      .catch(() => {
+        setCurrentUserEmail(null);
+        setAuthorized(false);
+        setAuthChecking(false);
+      });
   }, []);
 
   // 2. Fetch all organizations & platform stats & signups & security logs
@@ -603,7 +618,8 @@ export default function PlatformDashboardPage() {
 
         <div className="flex items-center gap-2.5">
           <span className="text-xs text-slate-400 hidden sm:inline">
-            Master Admin: <strong className="text-white">{currentUserEmail}</strong>
+            {platformRole === "tech_support" ? "Tech Support (Limited):" : "Master Admin:"}{" "}
+            <strong className="text-white">{currentUserEmail}</strong>
           </span>
           <button
             type="button"
@@ -664,13 +680,15 @@ export default function PlatformDashboardPage() {
               Manage client accounts, adjust service tiers, or enter customer dashboards in support mode.
             </p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="oiq-btn !py-2.5 text-sm flex items-center gap-2 self-start md:self-auto"
-          >
-            <Plus size={16} />
-            <span>Add Client Organization</span>
-          </button>
+          {platformRole === "super_admin" && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="oiq-btn !py-2.5 text-sm flex items-center gap-2 self-start md:self-auto"
+            >
+              <Plus size={16} />
+              <span>Add Client Organization</span>
+            </button>
+          )}
         </div>
 
         {/* Stats Row */}
@@ -789,21 +807,37 @@ export default function PlatformDashboardPage() {
             })()}
           </button>
 
-          <button
-            onClick={() => setActiveTab("coupons")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-              activeTab === "coupons"
-                ? "bg-sky-500/20 text-white shadow-sm border border-sky-400/45"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Ticket size={16} className={activeTab === "coupons" ? "text-sky-400" : ""} />
-            <span>Coupons &amp; Invites</span>
-          </button>
+          {platformRole === "super_admin" && (
+            <>
+              <button
+                onClick={() => setActiveTab("coupons")}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+                  activeTab === "coupons"
+                    ? "bg-sky-500/20 text-white shadow-sm border border-sky-400/45"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Ticket size={16} className={activeTab === "coupons" ? "text-sky-400" : ""} />
+                <span>Coupons &amp; Invites</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("team")}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+                  activeTab === "team"
+                    ? "bg-emerald-500/20 text-white shadow-sm border border-emerald-400/45"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Users size={16} className={activeTab === "team" ? "text-emerald-400" : ""} />
+                <span>Tech Support Team</span>
+              </button>
+            </>
+          )}
         </div>
 
         {/* Search & Filters */}
-        {activeTab !== "security" && activeTab !== "coupons" && (
+        {activeTab !== "security" && activeTab !== "coupons" && activeTab !== "team" && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
             <div className="relative w-full sm:w-96">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -837,7 +871,9 @@ export default function PlatformDashboardPage() {
         )}
 
         {/* Tables Section */}
-        {activeTab === "coupons" ? (
+        {activeTab === "team" && platformRole === "super_admin" ? (
+          <PlatformTeamPanel />
+        ) : activeTab === "coupons" && platformRole === "super_admin" ? (
           <PlatformCouponsPanel />
         ) : activeTab === "security" ? (
           <div className="space-y-6">
@@ -1964,26 +2000,30 @@ export default function PlatformDashboardPage() {
 
                           <td className="py-4 px-5 text-right">
                             <div className="inline-flex items-center gap-2">
-                              <button
-                                onClick={() => {
-                                  setEditOrg(org);
-                                  setEditTier(org.tier);
-                                  setEditStatus(org.subscription_status);
-                                  setEditDomain(org.custom_domain || "");
-                                }}
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                                title="Edit tier & subscription settings"
-                              >
-                                <Sliders size={15} />
-                              </button>
+                              {platformRole === "super_admin" && (
+                                <button
+                                  onClick={() => {
+                                    setEditOrg(org);
+                                    setEditTier(org.tier);
+                                    setEditStatus(org.subscription_status);
+                                    setEditDomain(org.custom_domain || "");
+                                  }}
+                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                                  title="Edit tier & subscription settings"
+                                >
+                                  <Sliders size={15} />
+                                </button>
+                              )}
 
-                              <button
-                                onClick={() => handleEnterSupportMode(org)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-white oiq-grad-bg hover:opacity-95 transition-opacity shadow-sm flex items-center gap-1.5"
-                              >
-                                <span>Enter Dashboard</span>
-                                <ArrowRight size={13} />
-                              </button>
+                              {canImpersonate && (
+                                <button
+                                  onClick={() => handleEnterSupportMode(org)}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-white oiq-grad-bg hover:opacity-95 transition-opacity shadow-sm flex items-center gap-1.5"
+                                >
+                                  <span>Enter Dashboard</span>
+                                  <ArrowRight size={13} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
